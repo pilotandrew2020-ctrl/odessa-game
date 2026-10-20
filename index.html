@@ -1,5 +1,8 @@
 <meta charset="utf-8">
 <title>My Odesa</title>
+<!-- start the map download while the rest of this large page is still being parsed (matches decodeData's fetches) -->
+<link rel="preload" href="d0.txt" as="fetch" crossorigin><link rel="preload" href="d1.txt" as="fetch" crossorigin><link rel="preload" href="d2.txt" as="fetch" crossorigin>
+<link rel="preload" href="d3.txt" as="fetch" crossorigin><link rel="preload" href="d4.txt" as="fetch" crossorigin><link rel="preload" href="d5.txt" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600;700&family=Unbounded:wght@600;800&display=swap">
 <style>
@@ -2662,6 +2665,8 @@ function buildOpera(grp,G,P,Sg,GR){
    STATIC_WALLS.push({cx:F.P(13.2,-12)[0],cz:F.P(13.2,-12)[1],hw:.6,hd:1.2,ca:F.ca,sa:F.sa,y0:y0,y1:y0+20});STATIC_WALLS.push({cx:F.P(13.2,12)[0],cz:F.P(13.2,12)[1],hw:.6,hd:1.2,ca:F.ca,sa:F.sa,y0:y0,y1:y0+20})}
   // film screen = live render of the city from a camera flying over Odesa
   const filmRT=new THREE.WebGLRenderTarget(512,256);filmRT.texture.encoding=THREE.LinearEncoding;
+  // give the target its GL texture now: drawn before its first film frame, three r128 tried to upload it as an image and logged an error every frame
+  if(renderer){const prev=renderer.getRenderTarget();renderer.setRenderTarget(filmRT);renderer.clear();renderer.setRenderTarget(prev)}
   const scr=new THREE.Mesh(new THREE.PlaneGeometry(17,8.5),new THREE.MeshBasicMaterial({map:filmRT.texture,toneMapped:false}));
   {const p=F.P(26.6,0);scr.position.set(p[0],y0+FLR+1.4+5.6,p[1]);scr.rotation.y=Math.atan2(-F.ca,-F.sa);grp.add(scr)}
   boxAt(26.9,0,FLR+1.4+5.6,.3,9.3,17.8,M.dark,false);
@@ -4146,6 +4151,7 @@ function carAhead(c,d){return [c.x+Math.sin(c.yaw)*d,c.z+Math.cos(c.yaw)*d]}
 function toggleCar(){
   if(!started)return;
   if(HELI.on){toast('Land first','leave the helicopter before driving');return}
+  if(PASS.host){toast('Jump out first','press F');return}
   if(MARINE.cur){toast('Get off the '+MARINE.cur.spec.name+' first','steer up to the quay or a beach');return}
   if(DRIVE.on){exitCar();return}
   if(curIndoor){toast('Can\'t drive here','go outside first');return}
@@ -5450,7 +5456,7 @@ const HELI={
     tryModelPath(0);
   },
   toggle(){
-    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur)return;
+    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur||PASS.host)return;
     if(!this.loaded){
       toast(this.loadError?'Helicopter unavailable':'Helicopter loading','Check the model asset and reload the game');
       return;
@@ -5611,7 +5617,14 @@ const SPK={
     $('spkPlay').onclick=()=>this.togglePlay();$('spkNext').onclick=()=>this.next();$('spkPrev').onclick=()=>this.prev();$('spkClose').onclick=()=>{$('spk').hidden=true};
     $('spkVol').oninput=e=>{this.vol=e.target.value/100;if(this.out)this.out.gain.value=this.vol};
     $('spkCarry').onclick=()=>{if(!this.owned)this.takeOut();else if(this.carry)this.place();else this.pickUp()};
-    $('spkFile').onchange=e=>{for(const f of e.target.files){const u={name:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(f)};this.user.push(u);TRK_DB.add(u.name,f).then(id=>{u.id=id})}this.buildList();if(this.user.length){this.idx=TRACKS.length+this.user.length-1;this.takeOut();this.play()}};
+    // iPad/iPhone: accept="audio/*" opens the Music library, where Apple Music songs are DRM-locked and grey, and it
+    // also greys out downloaded files iOS does not tag as audio. Without a filter the picker offers Files; we check the type ourselves.
+    const AUDIO_EXT=/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|webm|mp4|caf|aif|aiff)$/i;
+    if(IOS)$('spkFile').removeAttribute('accept');else $('spkFile').setAttribute('accept','audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.webm');
+    $('spkFile').onchange=e=>{let added=0,skipped=0;for(const f of e.target.files){if(!(f.type.startsWith('audio/')||AUDIO_EXT.test(f.name))){skipped++;continue}
+        const u={name:f.name.replace(/\.[^.]+$/,''),url:URL.createObjectURL(f)};this.user.push(u);added++;TRK_DB.add(u.name,f).then(id=>{u.id=id})}
+      e.target.value='';if(skipped)toast(skipped+' file'+(skipped>1?'s are':' is')+' not music','pick MP3, M4A, WAV or similar from the Files app');
+      this.buildList();if(added){this.idx=TRACKS.length+this.user.length-1;this.takeOut();this.play()}};
     // your own tracks are remembered in this browser (IndexedDB), so they are there next time
     TRK_DB.all().then(list=>{for(const t of list){if(this.user.some(u=>u.id===t.id))continue;this.user.push({id:t.id,name:t.name,url:URL.createObjectURL(t.blob)})}this.buildList()});
   },
@@ -6285,6 +6298,7 @@ function stepCamera(dt){
   if(window.DBGCAM){const c=window.DBGCAM;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);return}
   if(HELI.on&&started)return HELI.stepCamera(dt);
   if(MARINE.cur&&started)return MARINE.stepCamera(dt);
+  if(PASS.host&&started)return PASS.stepCamera(dt);
   if(DRIVE.on&&started)return stepCarCamera(dt);
   if(RIDE.on&&started)return stepTramCamera(dt);
   const tx=player.x,ty=player.y+(player.scoot?1.5:(player.sit?1.0:1.35)),tz=player.z;
@@ -6386,6 +6400,7 @@ function updateHUD(dt){
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
   if(DRIVE.on)best={label:'Get out of the car',fn:exitCar};
   if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':'Get off the tram',fn:leaveTram};
+  if(PASS.host)best={label:'Jump out of the helicopter',fn:()=>PASS.leave('Jumped out')};
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
   curAct=best;const ab=$('bAct');if(best){ab.hidden=false;ab.textContent=(TOUCH?'':'E · ')+best.label}else ab.hidden=true;
   if(miniT<=0){miniT=.1;drawMini()}
@@ -6468,7 +6483,7 @@ function setupInput(){
   addEventListener('keydown',e=>{if(!started)return;inp.k[e.code]=true;
     if(e.code==='Space'){inp.jump=true;e.preventDefault()}
     if(e.code==='KeyE'&&!HELI.on)doAction();
-    if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!MARINE.keyF())toggleScoot();
+    if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!PASS.keyF()&&!MARINE.keyF())toggleScoot();
     if(e.code==='KeyC')toggleCar();
     if(e.code==='KeyX'&&!e.repeat)SHOVE.act(true);
     if(e.code==='KeyV'&&!e.repeat)HELI.toggle();
@@ -6558,6 +6573,8 @@ function adaptLowDrawCalls(){
   else if(calls<64)lowRenderScale=Math.min(1,lowRenderScale+.015);
 }
 // ---------- init ----------
+// startup timing per phase (ms since navigation), readable as window.BOOT_T when tuning load time on iPad
+const bootMark=n=>{(window.BOOT_T=window.BOOT_T||[]).push([n,Math.round(performance.now())])};
 async function boot(){
   try{COOP.initMenu()}catch(e){console.error('coop menu',e)}
   try{GUN.build()}catch(e){console.error('guns build',e)}
@@ -6567,7 +6584,7 @@ async function boot(){
     const fontsReady=document.fonts?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
     await Promise.all([decodeData(),fontsReady]);
   }catch(e){$('bStart').textContent='Couldn\'t load the map';console.error(e);return}
-  $('bStart').textContent='Painting textures…';await new Promise(r=>requestAnimationFrame(()=>r()));
+  bootMark('Painting textures…');$('bStart').textContent='Painting textures…';await new Promise(r=>requestAnimationFrame(()=>r()));
   genTextures();genSignAtlas();genProductAtlas();
   setupRenderer();
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbcd0dc,.0026);
@@ -6579,22 +6596,22 @@ async function boot(){
   if(typeof GRASS_SYS!=='undefined')GRASS_SYS.init(scene);
   if(typeof SNOW_SYS!=='undefined')SNOW_SYS.init(scene);
   if(typeof PED_SPRITES!=='undefined')PED_SPRITES.init(scene);
-  $('bStart').textContent='Building the city…';await new Promise(r=>setTimeout(r,30));
+  bootMark('Building the city…');$('bStart').textContent='Building the city…';await new Promise(r=>setTimeout(r,30));
   await buildAllLandmarks(scene);if(LANDMARK_GRP)LANDMARK_GRP.traverse(o=>{if(o.isMesh){o.matrixAutoUpdate=false;o.updateMatrix()}});try{initTrams()}catch(e){console.error('trams',e)}try{initRides()}catch(e){console.error('rides',e)}
   PLR=makePlayer();PLR.root.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeAvatar(PLR.root);scene.add(PLR.root);
   initPeopleMeshes(scene,100);initCarMeshes(scene,20);
-  HELI.init(scene);
+  bootMark('landmarks');HELI.init(scene);
   try{MARINE.init(scene)}catch(e){console.error('marine',e)}
-  applyQuality();applyTime();
+  bootMark('scene');applyQuality();applyTime();bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
-  $('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
+  bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
   // unhiding every interior to compile it doubles GPU memory for a moment — too much for mobile Safari
   warmupShaders(!MOBILE);
   buildPlaceList();
   window.addEventListener('resize',onResize);
   setupInput();
   if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
-  $('bStart').disabled=false;$('bStart').textContent='Play';
+  bootMark('ready');$('bStart').disabled=false;$('bStart').textContent='Play';
   requestAnimationFrame(loop);
   COOP.init();
 }
@@ -6604,7 +6621,7 @@ function loop(t){
   let dt=Math.min(.05,(t-last)/1000);last=t;
   UNI.uTime.value+=dt;
   if(started&&$('mapUI').hidden){
-    refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(MARINE.cur)MARINE.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
@@ -6729,7 +6746,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   drop(R){if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
-  mode(){if(HELI.on)return 'heli';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
+  mode(){if(HELI.on)return 'heli';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
   carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
     out.push({x:R.x,y:R.y,z:R.z,yaw:R.yaw,pitch:0,roll:0,type:4,col:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6]})}return out},
@@ -6755,6 +6772,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
     if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
     // on the water: the hull position plus [type, pitch, roll, forward speed]
+    if(PASS.host)st.pp=PASS.host;
     if(MARINE.cur){const c=MARINE.cur;st.x=r2(c.x);st.y=r2(c.y);st.z=r2(c.z);st.r=r2(c.yaw);st.wc=[c.type==='jetski'?1:0,r2(c.pitch),r2(c.roll),r2(c.u)]}
     {const lk=WARDROBE.ids();if(lk.length)st.lk=lk}
     if(this.say){st.say=this.say.m;st.sayT=this.say.t}
@@ -6785,6 +6803,11 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
       // flying friend: hide the walker, draw their Apache from the interpolation buffer
+      // a friend riding as a passenger: seat them in that helicopter (mine, or another friend's)
+      if(s.m==='pass'){const root=PASS.hostRoot(s);if(root){const p=PASS.seat(root,this._pv||(this._pv=new THREE.Vector3()));R.x=p.x;R.y=p.y;R.z=p.z;R.yaw=root.rotation.y;R.has=true;R.wasPass=true;
+          R.P.root.visible=true;R.lo.visible=false;R.P.root.position.copy(p);R.P.root.quaternion.copy(root.quaternion);animPlayer(R.P,{spd:0,mode:'sit'},dt);
+          R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(p.x,p.y+1.6,p.z);if(R.bub){R.bubT-=dt;R.bub.position.set(p.x,p.y+2,p.z);R.bub.visible=R.bubT>0}continue}}
+      if(R.wasPass){R.wasPass=false;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}
       if(s.m==='heli'&&HELI.loaded){
         if(!R.heli)R.heli=new PeerHeli();
         if(R.hst!==s){R.hst=s;R.heli.push(s)}
@@ -7462,6 +7485,7 @@ function buildDealer(grp,P,GR){
   {const f=F.P(0,fv+.03);P.box(f[0],y0+2.2,f[1],W-1,3.6,.06,ry,sRGB('#1b2730'),2)}
   P.box(c[0],y0+H+.3,c[1],W+.6,.6,Dp+.6,ry,sRGB('#f4f4f0'),1);
   addBlock(c[0],c[1],W,Dp,F.a);
+  shopDoor(grp,P,lotDoor(F,8.5,fv),y0,{label:'Enter the Polmozbyt showroom',interior:'salon',w:2.2,awn:'#d4213d'});
   lotSign(grp,F,['POLMOZBYT'],{w:1024,h:180,size:130,color:'#d4213d',bg:'#f4f4f0',weight:'900'},0,y0+H+.3,fv+.34,9,1.6,1);
   lotSign(grp,F,['FIAT 126p · FSO POLONEZ'],{w:1024,h:120,size:78,color:'#ffffff',bg:'#1b2730',weight:'800'},0,y0+H-.75,fv+.1,10,1.15,1.2);
   for(const u of [-19,-7,7,19])lotFlag(P,F,u,13.2,y0);
@@ -7493,6 +7517,24 @@ function buildMall(grp,P,GR){
   const pp=F.P(0,13);PLACES.push({id:'mall',name:'Odesa Mall',sub:'clothes, shoes, hair salon',x:pp[0],z:pp[1],yaw:ry+Math.PI});
 }
 
+// Polmozbyt showroom: the real car bodies on display (one-instance meshes so the car shader gets its paint colour)
+DEALER.buyInside=function(type,col){const m=DEALER_MODELS[type];const mine=S.myCar&&S.myCar.type===type&&S.myCar.col===col;if(mine){toast('Already yours','press C outside to call it');return}
+  if(!(S.myCar&&S.myCar.type===type)&&!WALLET.pay(m.price,'The '+m.name))return;S.myCar={type,col};saveS();if(DRIVE.car&&!DRIVE.on)DRIVE.car=null;
+  toast('Bought: '+m.name,'it waits outside — press C to call it · wallet '+WALLET.fmt())};
+INTERIORS.salon=()=>simpleInterior('salon',8,{w:20,d:14,h:5,floor:0xd9dcdf,fr:.12,wall:0xf2f2ee,ceil:0xf4f4f2,title:'Polmozbyt',sub:'FSO Polonez and Fiat 126p · since 1973',lights:[4,10],lcol:0xfff8ee,li:2.4,door:2.4,
+  furnish(P,grp,ox,oz,hw,D){const Y=INT_Y;
+    const show=(type,col,x,z,yaw)=>{const t=CAR_T[type];if(!t)return;const M=new THREE.Matrix4().compose(new THREE.Vector3(ox+x,Y+.02,oz+z),new THREE.Quaternion().setFromEuler(new THREE.Euler(0,yaw,0)),new THREE.Vector3(1,1,1));
+      const body=new THREE.InstancedMesh(t.geo,CAR_MAT,1);body.setMatrixAt(0,M);body.setColorAt(0,new THREE.Color(col).convertSRGBToLinear());body.frustumCulled=false;grp.add(body);
+      const wh=new THREE.InstancedMesh(t.wgeo,CAR_MAT,4);let q=0;for(const sx of [-1,1])for(const wz of t.wz){wh.setMatrixAt(q++,new THREE.Matrix4().makeTranslation(sx*t.wx,t.wr,wz).premultiply(M))}wh.setColorAt(0,new THREE.Color(1,1,1));grp.add(wh);
+      P.cyl(ox+x,Y,oz+z,2.6,2.6,.04,24,sRGB('#c9ccd0'),6);LOW_OBB.push(ox+x,oz+z,1.0,2.3,Math.cos(yaw),-Math.sin(yaw));
+      const m=DEALER_MODELS[type];INTERACT.push({x:ox+x+Math.cos(yaw)*1.7,z:oz+z-Math.sin(yaw)*1.7,r:1.6,
+        get label(){return (S.myCar&&S.myCar.type===type&&S.myCar.col===col)?'Your '+m.name:'Buy this '+m.name+' · '+WALLET.fmt(m.price)},fn:()=>DEALER.buyInside(type,col)})};
+    show(10,0x8a1c1c,-5.5,8,.6);show(10,0xd9d4c4,5.5,8,-.6);show(9,0xc0262d,-5,3.6,.9);show(9,0xe8c43a,5,3.6,-.9);
+    neonSign(grp,'POLMOZBYT',ox,Y+3.9,oz+D-.12,Math.PI,6,'#ff4a5a');
+    for(const [x,txt] of [[-5,'FSO POLONEZ · 1978'],[5,'FIAT 126p · MALUCH']]){const m=plateMesh([txt],{w:1024,h:160,size:84,color:'#ffffff',bg:'#1b2730',weight:'800'},4.2,.66,.6);m.position.set(ox+x,Y+2.7,oz+D-.12);m.rotation.y=Math.PI;grp.add(m)}
+    P.box(ox,Y+.5,oz+11.6,3.2,1,1,0,sRGB('#1b2730'),1);P.box(ox,Y+1.03,oz+11.6,3.3,.06,1.1,0,sRGB('#e8e4da'),1);LOW_OBB.push(ox,oz+11.6,1.65,.55,1,0);
+    INTERACT.push({x:ox,z:oz+10.6,r:1.4,label:'Sales desk',fn:()=>toast('Dzień dobry!',S.myCar?'your car is outside — press C':'pick a car on display and buy it')});
+  }});
 Object.assign(PRICE,{'hot dog':45,'zapiekanka':60,'kanapka':55,'pączek':25,'Tymbark juice':35,'Kubuś':30});
 const ZABKA={pay(){let sum=0,n=0;for(const [k,v] of Object.entries(INVENTORY)){sum+=(PRICE[k]||20)*v;n+=v}
     if(!n){toast('Basket is empty','grab something from the shelves');return}if(!WALLET.pay(sum,'Your basket'))return;
@@ -7546,7 +7588,7 @@ const SHOVE={cool:0,last:null,lastT:0,cand:null,bub:null,
   BACK:['Oh yeah? Take that!','Two can play that game!','Here, have some back!'],
   BUMP:['Careful!','Excuse me?','Look where you\'re going!'],
   lists(){return CRUISE.people.length?[PEDS,TALKERS,CRUISE.people]:[PEDS,TALKERS]},
-  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!RIDE.on&&!player.sit},
+  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!RIDE.on&&!player.sit&&!PASS.host},
   near(maxd){let best=null,bd=maxd;const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);
     for(const L of this.lists())for(const p of L){const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);if(d>=bd||Math.abs(p.y-player.y)>1.5||p.fallT>0)continue;
       if(d>.7&&(dx*fx+dz*fz)/d<.1)continue;bd=d;best=p}return best},
@@ -7745,7 +7787,7 @@ const MARINE={crafts:[],cur:null,eng:null,hulls:[],_v:new THREE.Vector3(),
   add(world,c,p,r){c.x=p[0];c.z=p[1];c.sync();world.add(c.root);this.crafts.push(c);
     INTERACT.push({get x(){return c.x},get z(){return c.z},r,label:'Board the '+c.spec.name,cond:()=>!this.cur&&this.free(),fn:()=>this.enter(c)})},
   findWater(c,x,z){for(let r=0;r<=40;r+=1.5)for(let i=0;i<(r?16:1);i++){const a=i/16*6.283,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(c.navigable(px,pz,c.yaw))return [px,pz]}return null},
-  free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit},
+  free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit&&!PASS.host},
   nearest(maxd){let best=null,bd=maxd;for(const c of this.crafts){const d=Math.hypot(c.x-player.x,c.z-player.z);if(d<bd){bd=d;best=c}}return best},
   keyF(){if(this.cur){this.exit();return true}if(!this.free())return false;const c=this.nearest(8.5);if(!c)return false;this.enter(c);return true},
   enter(c){if(this.cur||!this.free())return;
@@ -7831,6 +7873,37 @@ class PeerBoat{
   update(dt){const s=this.net.update(dt);if(!s)return null;const c=this.craft;c.x=s.x;c.y=s.y;c.z=s.z;c.yaw=s.yaw;c.pitch=s.p;c.roll=s.r;c.u=s.u;c.sync();return s}
   dispose(){scene.remove(this.craft.root);scene.remove(this.craft.wake)}
 }
+
+// ===================== co-op: ride along in a friend's helicopter (front seat) =====================
+// The passenger publishes m:'pass' and pp = the pilot's co-op id; both sides then seat the passenger in that airframe.
+const HELI_SEAT=new THREE.Vector3(0,.35,1.7);   // front gunner seat, in the Apache's local frame
+const PASS={host:null,cand:null,_v:new THREE.Vector3(),
+  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!RIDE.on&&!player.sit&&!this.host},
+  // a friend's helicopter close to me and low enough to climb in
+  find(){if(!this.free())return null;let best=null,bd=9;for(const R of COOP.peers.values()){if(!R.heli||!R.st||R.st.m!=='heli')continue;const p=R.heli.root.position;
+      const d=Math.hypot(p.x-player.x,p.z-player.z);if(d<bd&&Math.abs(p.y-player.y)<6){bd=d;best=R}}return best},
+  seat(root,out){root.updateMatrixWorld();return out.copy(HELI_SEAT).applyMatrix4(root.matrixWorld)},
+  board(R){if(!R||!this.free())return;this.host=R.peer;player.scoot=false;$('bScoot').classList.remove('on');cam.init=false;
+    toast('In '+((R.st&&R.st.n)||'your friend')+'\'s helicopter','F to jump out · they fly, you enjoy the view');COOP.push(true)},
+  // jump out: drop beside the airframe (from the air you fall the rest of the way)
+  leave(msg){if(!this.host)return;const R=COOP.peers.get(this.host);this.host=null;
+    if(R&&R.heli){const p=R.heli.root.position,yw=R.heli.root.rotation.y;player.x=p.x+Math.cos(yw)*2.6;player.z=p.z-Math.sin(yw)*2.6;player.y=p.y}
+    PLR.root.rotation.set(0,player.yaw,0,'XYZ');player.vx=player.vz=player.vy=0;player.air=player.y>groundAt(player.x,player.z,player.y)+.5;cam.init=false;
+    if(msg)toast(msg,'');COOP.push(true)},
+  keyF(){if(this.host){this.leave('Jumped out');return true}const R=this.find();if(!R)return false;this.board(R);return true},
+  ride(dt){const R=COOP.peers.get(this.host);if(!R||!R.heli||!R.st||R.st.m!=='heli'||!R.st.in){this.leave('Your pilot landed');return}
+    const root=R.heli.root,p=this.seat(root,this._v);player.x=p.x;player.y=p.y;player.z=p.z;player.yaw=root.rotation.y;player.spd=0;inp.jump=false;
+    PLR.root.position.copy(p);PLR.root.quaternion.copy(root.quaternion);animPlayer(PLR,{spd:0,mode:'sit'},dt)},
+  stepCamera(dt){const R=COOP.peers.get(this.host);if(!R||!R.heli)return;const p=R.heli.root.position,yw=R.heli.root.rotation.y,dist=Math.max(9,cam.dist*2),pitch=Math.max(.12,cam.pitch);
+    if(!inp.dragging&&!TOUCH_LOOK.active)cam.yaw+=((yw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*1.5);
+    const cp=Math.cos(pitch),sp=Math.sin(pitch),wx=p.x-Math.sin(cam.yaw)*cp*dist,wy=p.y+sp*dist+2,wz=p.z-Math.cos(cam.yaw)*cp*dist;
+    if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*5);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
+    camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x,p.y+1.4,p.z)},
+  // the airframe a passenger peer sits in, as seen here: mine while I fly, or another friend's
+  hostRoot(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId)return HELI.on?HELI.root:null;const H=COOP.peers.get(s.pp);return H&&H.heli?H.heli.root:null}
+};
+INTERACT.push({get x(){return PASS.cand?PASS.cand.heli.root.position.x:1e9},get z(){return PASS.cand?PASS.cand.heli.root.position.z:1e9},r:9,
+  get label(){return 'Ride with '+((PASS.cand&&PASS.cand.st&&PASS.cand.st.n)||'your friend')+' (helicopter)'},cond:()=>!!(PASS.cand=PASS.find()),fn:()=>PASS.board(PASS.cand)});
 
 boot();
 </script>
