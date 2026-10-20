@@ -1914,7 +1914,8 @@ async function buildAllLandmarks(scene){
   const grp=new THREE.Group();scene.add(grp);LANDMARK_GRP=grp;
   const G=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2});GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});
   const steps=[['home',()=>buildHome(grp,G,P,Sg,GRX)],['stairs',()=>buildStairs(grp,P,GRX)],['station',()=>buildStation(grp,G,P,Sg,GRX)],['lighthouse',()=>buildLighthouse(grp,P)],
-    ['opera',()=>buildOpera(grp,G,P,Sg,GRX)],['port',()=>buildPort(grp,G,P,Sg,GRX)],['parks',()=>buildParks(grp,G,P,Sg,GRX)],['b411',()=>build411(grp,G,P,Sg,GRX)],['lanz',()=>buildLanzheron(grp,G,P,Sg,GRX)],['azs',()=>buildNeighbourhood(grp,G,P,Sg,GRX)]];
+    ['opera',()=>buildOpera(grp,G,P,Sg,GRX)],['port',()=>buildPort(grp,G,P,Sg,GRX)],['parks',()=>buildParks(grp,G,P,Sg,GRX)],['b411',()=>build411(grp,G,P,Sg,GRX)],['lanz',()=>buildLanzheron(grp,G,P,Sg,GRX)],['azs',()=>buildNeighbourhood(grp,G,P,Sg,GRX)],
+    ['zabka',()=>buildZabka(grp,P,GRX)],['dealer',()=>buildDealer(grp,P,GRX)],['mall',()=>buildMall(grp,P,GRX)]];
   for(const [nm,f] of steps){
     try{f()}catch(e){console.error('landmark '+nm+' failed',e)}
     await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
@@ -3001,8 +3002,8 @@ function buildPort(grp,G,P,Sg,GR){
    addOBB(...H.P(4,0),36,46,a);
    {const sp=F.P(63,-34),hc=H.P(-4,0);PLACES.push({id:'morvokzal',name:'Sea Terminal',sub:'Hotel “Odesa” and the piers',x:sp[0],z:sp[1],yaw:Math.atan2(hc[0]-sp[0],hc[1]-sp[1]),r:200})}}
   // ships moored along the pier
-  const ships=[{L:132,W:18,decks:6,funnel:0x1d4f91,hull:0xf5f5f2,u:-70,s:1},{L:105,W:15,decks:4,funnel:0xc8372d,hull:0xf2f2ef,u:-60,s:-1},{L:68,W:12,decks:3,funnel:0x2a7a5a,hull:0x2a3a4a,stripe:0xf2f2f2,u:20,s:-1}];
-  for(const o of ships){const sh=buildShip(o);const c=F.P(o.u,o.s*(46+o.W/2+2.5));sh.position.set(c[0],SL,c[1]);sh.rotation.y=-a;sh.userData.dyn=true;grp.add(sh);
+  const ships=[{L:150,W:22,u:-70,s:1,walk:1},{L:105,W:15,decks:4,funnel:0xc8372d,hull:0xf2f2ef,u:-60,s:-1},{L:68,W:12,decks:3,funnel:0x2a7a5a,hull:0x2a3a4a,stripe:0xf2f2f2,u:20,s:-1}];
+  for(const o of ships){if(o.walk){buildCruise(grp,F,a,o);continue}const sh=buildShip(o);const c=F.P(o.u,o.s*(46+o.W/2+2.5));sh.position.set(c[0],SL,c[1]);sh.rotation.y=-a;sh.userData.dyn=true;grp.add(sh);
     const ph=Math.random()*6;ANIM.push(()=>{const t=UNI.uTime.value;sh.position.y=SL+Math.sin(t*.6+ph)*.12;sh.rotation.z=Math.sin(t*.45+ph)*.006});addOBB(c[0],c[1],o.L,o.W,a)}
   // Golden Child: a golden ring with a child figure on a globe
   {const gc=[LMK.goldchild.x,LMK.goldchild.y];const gy=Math.max(groundH(gc[0],gc[1]),yP);const gold=new THREE.MeshStandardMaterial({color:0xd8ac3e,roughness:.25,metalness:.9});
@@ -3697,6 +3698,7 @@ function initPeopleMeshes(scene,N){
   NPC_P.skirt=mk(skirt,N,THREE.DoubleSide);NPC_P.scarf=mk(scarf,N);
   BUBBLES.init(scene);
 }
+const _eR=new THREE.Euler();
 function placePeople(list){
   const P=NPC_P;let k=0,ks=0,kh=0,kc=0,kl=0;
   const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;const cap=P.torso.instanceMatrix.count;
@@ -3704,7 +3706,7 @@ function placePeople(list){
     if(k>=cap)break;   // never write past the instance buffers
     if(Math.abs(n.x-cx)<1.0&&Math.abs(n.z-cz)<1.0&&cy-n.y<2.4&&cy-n.y>-.5)continue;   // never let an NPC fill the camera
     const ph=n.phase;const pose=n.pose||'walk';const amp=(pose==='walk'&&n.moving)?.5:0;
-    _e.set(0,n.yaw,0);_q.setFromEuler(_e);_v.set(n.x,n.y,n.z);_s.set(n.sc,n.sc,n.sc);_m.compose(_v,_q,_s);
+    _eR.set(n.tilt||0,n.yaw,0,'YXZ');_q.setFromEuler(_eR);_v.set(n.x,n.y,n.z);_s.set(n.sc,n.sc,n.sc);_m.compose(_v,_q,_s);   // tilt: knocked over (SHOVE)
     const part=(mesh,idx,ox,oy,oz,rx,col,rz)=>{_e.set(rx,0,rz||0);_q.setFromEuler(_e);_v.set(ox,oy,oz);_s.set(1,1,1);_m2.compose(_v,_q,_s);_m2.premultiply(_m);mesh.setMatrixAt(idx,_m2);if(col!==undefined)mesh.setColorAt(idx,linHex(col))};
     const sit=pose==='sit';const hy=sit?.5:ND.hy;const bob=Math.abs(Math.cos(ph))*.035*amp*2;
     part(P.hips,k,0,hy+bob,0,0,n.cP);
@@ -3719,6 +3721,7 @@ function placePeople(list){
       let ax=Math.sin(q)*amp*.8,az=sg*-.05;
       if(pose==='talk'&&s===(n.hand||0)){ax=-.6-.4*Math.max(0,Math.sin(UNI.uTime.value*3+n.phase));az=sg*-.2}
       if(sit)ax=-.4;
+      if(n.react>0&&!n.fallT){ax=-2.6;az=sg*-.35}   // hands up after a shove
       if(n.basket&&s===1){ax=-.25;az=.05}
       part(P.arm,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cT,az);
       part(P.hand,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cS,az);
@@ -3934,6 +3937,14 @@ const CAR_DEFS=[
   {L:10.6,W:2.5,wr:.5,wz:[3.4,-3.7],front:5.3,rear:-5.3,hl:.85,tl:.9,mirror:4.7,tum:.97,round:.94,pillars:[-3.6,-1.2,1.2,3.6],y0:.42,
    top:[[-5.3,3.0],[-5.28,3.06],[4.9,3.06],[5.25,2.4],[5.3,.9]],
    glass:[[-5.0,1.35],[-5.0,2.78],[4.9,2.78],[5.2,1.5]]},
+  // 9: Fiat 126p "Maluch" — tiny, round roof, rear engine lid
+  {L:3.05,W:1.38,wr:.27,wz:[.92,-.92],front:1.52,rear:-1.53,hl:.66,tl:.7,mirror:.72,tum:.8,round:.7,pillars:[-.25],
+   top:[[-1.53,.6],[-1.45,.8],[-1.0,.86],[-.76,1.3],[.3,1.33],[.78,.92],[1.4,.8],[1.52,.56]],
+   glass:[[-.98,.88],[-.74,1.26],[.28,1.29],[.74,.94]]},
+  // 10: FSO Polonez — long wedge hatchback
+  {L:4.32,W:1.65,wr:.3,wz:[1.27,-1.31],front:2.16,rear:-2.16,hl:.72,tl:.92,mirror:.95,tum:.82,round:.9,pillars:[-.6],
+   top:[[-2.16,.95],[-2.05,1.02],[-1.8,1.3],[-.2,1.4],[.5,1.38],[1.05,.98],[2.0,.86],[2.16,.66]],
+   glass:[[-1.95,1.05],[-1.7,1.32],[.45,1.35],[1.0,1.0]]},
 ];
 function pickCarType(r){const v=r();return v<.17?0:v<.31?1:v<.42?2:v<.58?5:v<.72?6:v<.88?7:1}
 let PARKED_DIRTY=true;
@@ -3942,7 +3953,7 @@ function initCarMeshes(scene,N){
   CAR_MAT=patchMat(new THREE.MeshStandardMaterial({color:0xffffff,roughness:.25,metalness:.85,transparent:true,opacity:1}),{key:'car',vDecl:CAR_VS_DECL,vMain:CAR_VS_MAIN,fDecl:'varying vec3 vCol;varying float vM;varying vec3 vIC;',fSurf:CAR_SURF,noLamps:false});
   CAR_MAT.envMapIntensity=1.2;
   CAR_DEFS.forEach((d,i)=>{const t=buildCarType(d);
-    const cap=i===4?2:N+(i===3?40:160);
+    const cap=i===4?2:i>=9?12:N+(i===3?40:160);   // 9, 10: dealer classics only
     t.mesh=new THREE.InstancedMesh(t.geo,CAR_MAT,cap);t.wheels=new THREE.InstancedMesh(t.wgeo,CAR_MAT,cap*4);
     for(const m of [t.mesh,t.wheels]){m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m)}
     t.cap=cap;CAR_T.push(t)});
@@ -4121,6 +4132,7 @@ function crowdList(){
   if(curIndoor&&curIndoor.name==='opera'&&OPERA){if(!OPERA.aud){OPERA.aud=[];for(let i=0;i<46;i++){const s=OPERA.seats[Math.floor(Math.random()*OPERA.seats.length)];const p=OPERA.F.P(s[0],s[1]);
     OPERA.aud.push(Object.assign(randPerson(),{x:p[0],z:p[1],y:OPERA.y0+1.25,yaw:Math.atan2(OPERA.F.ca,OPERA.F.sa),pose:'sit',moving:false,phase:Math.random()*6}))}}
     for(const a of OPERA.aud)L.push(a)}
+  if(CRUISE.people.length&&Math.hypot(CRUISE.x-player.x,CRUISE.z-player.z)<230)for(const p of CRUISE.people)L.push(p);
   return L;
 }
 let CASHIER_P=null;
@@ -4146,7 +4158,8 @@ function toggleCar(){
     for(const side of [1,-1,0]){for(const back of [0,2,-2,4]){const x=player.x-Math.cos(yaw)*2.6*side+Math.sin(yaw)*back,z=player.z+Math.sin(yaw)*2.6*side+Math.cos(yaw)*back;
       if(!carFits(x,z,yaw))continue;best=[x,z];break}if(best)break}
     if(!best){toast('No room for the car','move to an open spot');return}
-    c=DRIVE.car={x:best[0],z:best[1],y:groundAt(best[0],best[1],player.y+1),yaw,pitch:0,roll:0,type:4,col:PCAR_COL};
+    const mine=S.myCar&&CAR_DEFS[S.myCar.type]?S.myCar:null;   // a car bought at the dealer replaces the hatch
+    c=DRIVE.car={x:best[0],z:best[1],y:groundAt(best[0],best[1],player.y+1),yaw,pitch:0,roll:0,type:mine?mine.type:4,col:mine?mine.col:PCAR_COL};
   }
   DRIVE.on=true;DRIVE.v=0;DRIVE.steer=0;DRIVE.vy=0;
   player.x=c.x;player.z=c.z;player.y=c.y;PLR.root.visible=false;
@@ -4472,7 +4485,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
     if(name!=='flat')return name;
     return `flat:${ent}:${floor}`;
   },
-  setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;
+  setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;if(seaNear)seaNear.visible=showWorld;
     for(const t of TREES.meshes){t.t.visible=showWorld;t.l.visible=showWorld}for(const t of CAR_T){t.mesh.visible=showWorld;t.wheels.visible=showWorld}for(const t of TRAMS)t.mesh.visible=showWorld;if(snowPts)snowPts.visible=showWorld&&S.season==='winter';
     for(const n in this.built){const B=this.built[n];setInteriorGroupVisible(B.grp,!v&&B===this.active)}},
   enter(name,ret,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{
@@ -5059,20 +5072,22 @@ function buildNeighbourhood(grp,G,P,Sg,GR){
   const sx0=3,sx1=17,sv0=-9,sv1=-2,H=3.8;
   const cen=q((sx0+sx1)/2,(sv0+sv1)/2);
   P.box(cen[0],y0+H/2,cen[1],sx1-sx0,H,sv1-sv0,ry,sRGB('#e8e2d2'),0);
-  P.box(cen[0],y0+H+.15,cen[1],sx1-sx0+.6,.3,sv1-sv0+.6,ry,sRGB('#2e8b45'),1);
-  P.box(cen[0],y0+H+.4,cen[1],sx1-sx0+.62,.14,sv1-sv0+.62,ry,sRGB('#f2c418'),1);
+  P.box(cen[0],y0+H+.15,cen[1],sx1-sx0+.6,.3,sv1-sv0+.6,ry,sRGB('#d3001c'),8);
+  P.box(cen[0],y0+H+.4,cen[1],sx1-sx0+.62,.14,sv1-sv0+.62,ry,sRGB('#f4f4f0'),1);
   // glass front (towards the pumps)
   {const m=q((sx0+sx1)/2,sv1+.04);P.box(m[0],y0+1.5,m[1],sx1-sx0-1.2,1.9,.08,ry,sRGB('#27323a'),2)}
   wallSeg(...q(sx0,sv0),...q(sx1,sv0),.4,y0,y0+H);wallSeg(...q(sx1,sv0),...q(sx1,sv1),.4,y0,y0+H);wallSeg(...q(sx1,sv1),...q(sx0,sv1),.4,y0,y0+H);wallSeg(...q(sx0,sv1),...q(sx0,sv0),.4,y0,y0+H);
   {const dp=q(6.5,sv1);const dn=[ca*0+(-sa)*1, ca*1];  // normal = +v direction
-    shopDoor(grp,P,{x:dp[0],z:dp[1],nx:-sa,nz:ca,tx:ca,tz:sa},y0,{label:'Enter the gas station shop',interior:'azsshop',sign:'МАГАЗИН · КАВА',bg:'#2e8b45',sw:3.6,awn:'#2e8b45'})}
-  {const m=plateMesh(['АЗС'],{w:512,h:160,size:100,color:'#fff',bg:'#2e8b45',weight:'900'},3.2,1.0,.45);const p=q(13,sv1+.1);m.position.set(p[0],y0+H-.2,p[1]);m.rotation.y=Math.atan2(-sa,ca);grp.add(m)}
+    shopDoor(grp,P,{x:dp[0],z:dp[1],nx:-sa,nz:ca,tx:ca,tz:sa},y0,{label:'Enter the Orlen shop',interior:'azsshop',sign:'STOP CAFE',bg:'#d3001c',sw:3.6,awn:'#d3001c'})}
+  {const m=plateMesh(['ORLEN'],{w:512,h:160,size:110,color:'#fff',bg:'#d3001c',weight:'900'},3.6,1.1,1.2);const p=q(13,sv1+.1);m.position.set(p[0],y0+H-.2,p[1]);m.rotation.y=Math.atan2(-sa,ca);grp.add(m)}
   // ---- canopy over the pumps
   const cu0=14,cu1=32,cv0=2,cv1=9,cy=5.3;const cc=q((cu0+cu1)/2,(cv0+cv1)/2);
-  P.box(cc[0],y0+cy,cc[1],cu1-cu0,.5,cv1-cv0,ry,white,1);P.box(cc[0],y0+cy+.05,cc[1],cu1-cu0+.05,.16,cv1-cv0+.05,ry,sRGB('#2e8b45'),1);
+  P.box(cc[0],y0+cy,cc[1],cu1-cu0,.5,cv1-cv0,ry,white,1);P.box(cc[0],y0+cy+.05,cc[1],cu1-cu0+.05,.6,cv1-cv0+.05,ry,sRGB('#d3001c'),8);   // red neon fascia, Orlen style
   P.box(cc[0],y0+cy-.3,cc[1],cu1-cu0-.3,.1,cv1-cv0-.3,ry,sRGB('#fffbe8'),3);
   for(const u of [cu0+1.5,cu1-1.5])for(const v of [cv0+1.2,cv1-1.2]){const p=q(u,v);P.box(p[0],y0+cy/2,p[1],.45,cy,.45,ry,steel,6);STATIC_CIR.push(p[0],p[1],.4)}
   for(const u of [(cu0+cu1)/2-4,(cu0+cu1)/2+4]){const p=q(u,(cv0+cv1)/2);EXTRA_LAMPS.push([p[0],y0+cy-.6,p[1],2.2])}
+  for(const sv of [1,-1]){const m=plateMesh(['ORLEN'],{w:512,h:128,size:96,color:'#fff',bg:'#d3001c',weight:'900'},3.4,.56,1.4);const p=q((cu0+cu1)/2,sv>0?cv1+.04:cv0-.04);
+    m.position.set(p[0],y0+cy+.05,p[1]);m.rotation.y=Math.atan2(-sa,ca)+(sv>0?0:Math.PI);grp.add(m)}
   // pump islands: two islands, two pumps each
   for(const u of [19,27]){const p=q(u,(cv0+cv1)/2);P.box(p[0],y0+.1,p[1],5.2,.2,1.1,ry,conc,9);
     for(const k of [-1.2,1.2]){const pp=q(u+k,(cv0+cv1)/2);
@@ -5081,7 +5096,7 @@ function buildNeighbourhood(grp,G,P,Sg,GR){
     for(const k of [-1.2,1.2]){const pp=q(u+k,(cv0+cv1)/2-.35);P.cyl(pp[0],y0+.75,pp[1],.025,.025,.5,5,dark,1)}}
   // ---- price pylon at the road
   {const p=q(36,11);P.box(p[0],y0+3,p[1],.5,6,.5,ry,steel,6);STATIC_CIR.push(p[0],p[1],.5);
-    const m=plateMesh(['АЗС','А-95   57.90','ДТ   54.90','ГАЗ   31.90'],{w:512,h:512,sizes:[110,64,64,64],color:'#fff',bg:'#1c5e30',weight:'800'},3.0,3.0,.5);
+    const m=plateMesh(['ORLEN','Pb95   6.49','ON   6.69','LPG   3.19'],{w:512,h:512,sizes:[110,64,64,64],color:'#fff',bg:'#d3001c',weight:'800'},3.0,3.0,1.1);
     m.position.set(p[0]-sa*.3,y0+7.3,p[1]+ca*.3);m.rotation.y=Math.atan2(-sa,ca);grp.add(m);
     const m2=m.clone();m2.position.set(p[0]+sa*.3,y0+7.3,p[1]-ca*.3);m2.rotation.y=Math.atan2(-sa,ca)+Math.PI;grp.add(m2);EXTRA_LAMPS.push([p[0],y0+5,p[1],1.2])}
   // ---- marshrutka bay: shelter, sign pole, two vans
@@ -5111,7 +5126,7 @@ function buildNeighbourhood(grp,G,P,Sg,GR){
   for(let k=0;k<7;k++){const p=q(-8+k*7.2,19.5);TREE_CLEAR.push(p[0],p[1],0);}
   // pad lights
   for(const [u,v] of [[0,-4],[10,12],[34,2]]){const p=q(u,v);propGlobeLamp(P,p[0],y0,p[1],ry);const p2=q(u+.38,v);EXTRA_LAMPS.push([p2[0],y0+3.75,p2[1],2.2])}
-  PLACES.push({id:'azs',name:'Gas station',sub:'next to the tram',x:q(10,5)[0],z:q(10,5)[1],yaw:A});
+  PLACES.push({id:'azs',name:'Orlen',sub:'gas station next to the tram',x:q(10,5)[0],z:q(10,5)[1],yaw:A});
 
   // ---- OSM garages west of the pad: enterable
   const garages=[[[112,-79],[120,-77],[118,-67],[110,-69]],[[78,-76],[80,-84],[89,-82],[87,-73]],[[60,-88],[73,-85],[71,-78],[58,-81]]];
@@ -5152,9 +5167,9 @@ INTERIORS.trattoria=()=>simpleInterior('trattoria',4,{w:12,d:10,h:4.2,floor:0x59
     P.box(ox+hw-1,INT_Y+2.15,oz+5.2,1.12,.1,.82,0,sRGB('#34231b'),6);
     INTERACT.push({x:ox-3,z:oz+1.6,r:1.4,label:'Order at La Trattoria',fn:()=>toast('La Trattoria','espresso, pasta and a table upstairs')});
   }});
-INTERIORS.azsshop=()=>simpleInterior('azsshop',0,{w:11,d:7,h:3.2,floor:0xd9d6cc,wall:0xece6d4,title:'Gas station shop',sub:'coffee, hot dogs and everything for the road',lights:[3.5],
+INTERIORS.azsshop=()=>simpleInterior('azsshop',0,{w:11,d:7,h:3.2,floor:0xd9d6cc,wall:0xece6d4,title:'ORLEN · Stop Cafe',sub:'coffee, hot dogs and everything for the road',lights:[3.5],
   furnish(P,grp,ox,oz,hw,D){
-    P.box(ox+2.4,INT_Y+.55,oz+1.8,4,1.1,.8,0,sRGB('#2e8b45'),1);P.box(ox+2.4,INT_Y+1.12,oz+1.8,4.1,.06,.9,0,sRGB('#ddd'),1);wallSeg(ox+.4,oz+1.8,ox+4.4,oz+1.8,.8,INT_Y-1,INT_Y+1.2);
+    P.box(ox+2.4,INT_Y+.55,oz+1.8,4,1.1,.8,0,sRGB('#d3001c'),1);P.box(ox+2.4,INT_Y+1.12,oz+1.8,4.1,.06,.9,0,sRGB('#ddd'),1);wallSeg(ox+.4,oz+1.8,ox+4.4,oz+1.8,.8,INT_Y-1,INT_Y+1.2);
     P.box(ox+3.8,INT_Y+1.35,oz+1.6,.45,.5,.4,0,sRGB('#222'),1);P.box(ox+2.6,INT_Y+1.3,oz+1.6,.9,.4,.5,0,sRGB('#c9a13a'),1);   // coffee machine, hot-dog roller
     for(const x of [-4,-2.2,-.4]){P.box(ox+x,INT_Y+1.0,oz+D-.5,1.5,2.0,.6,0,sRGB('#c9ccd0'),1);for(let l=0;l<5;l++)P.box(ox+x,INT_Y+.3+l*.38,oz+D-.5,1.4,.03,.55,0,sRGB('#888'),1)}
     for(const [x,z] of [[-4,3.6],[-2.5,3.6]]){P.box(ox+x,INT_Y+.7,oz+z,1.2,1.4,.5,0,sRGB('#d83a2a'),1);LOW_OBB.push(ox+x,oz+z,.6,.25,1,0)}
@@ -5710,6 +5725,8 @@ function syncMultiplayerState(){
   MARINE.crafts.forEach((c,i)=>write('boat-'+i,c.x,c.y,c.z,c.yaw,c.type));
   if(HELI.on){const p=HELI.root.position;write('local-heli',p.x,p.y,p.z,HELI.yaw,'helicopter');players.local.flight={velocity:HELI.velocity.toArray(),pitch:HELI.pitch,roll:HELI.roll,throttle:HELI.throttle}}
   else delete players.local.flight;
+  if(MARINE.cur){const c=MARINE.cur;players.local.vessel={type:c.type,velocity:[c.vx,0,c.vz],pitch:c.pitch,roll:c.roll,throttle:c.throttle}}
+  else delete players.local.vessel;
 }
 const cam={yaw:0,pitch:.3,dist:(innerHeight>innerWidth?5.6:4.6),x:0,y:0,z:0,init:false};
 const inp={k:{},jx:0,jy:0,jump:false};
@@ -5845,23 +5862,47 @@ function makeSkies(){
     vertexShader:'varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*viewMatrix*modelMatrix*vec4(position,1.);}',fragmentShader:NIGHT_FS}));
   nightSky.renderOrder=-10;nightSky.frustumCulled=false;scene.add(nightSky);
 }
-const SEA_FS2=`uniform vec3 uSunD;uniform vec3 uSunC;uniform vec3 uSkyC;uniform vec3 uFogC;uniform float uFogD;uniform float uTime;uniform float uNight;uniform sampler2D uSD;uniform vec4 uSDT;varying vec3 vW;
+// ===================== sea swell: one wave sum shared by the water shader and everything that floats =====================
+const SEA_WAVES=[[.8,.6,38,.55],[-.3,.95,21,.3],[.95,-.3,11,.15]];   // direction x/z, wavelength m, share of the amplitude
+const SEA_AMP=.42,SEA_NEAR_R=330;
+// grows over the first 40 m off the coastline, like the shader (sd = signed distance to the shore)
+function waveH(x,z,t){const sd=sdAt(x,z);if(sd>-2)return 0;let k0=Math.min(1,(-sd-2)/38);k0=k0*k0*(3-2*k0);
+  let h=0;for(const [dx,dz,L,a] of SEA_WAVES){const k=6.2832/L;h+=a*Math.sin((dx*x+dz*z)*k-Math.sqrt(9.8*k)*t)}return h*SEA_AMP*k0}
+const SEA_SWELL_GLSL='vec3 wv(vec2 p,float t,vec2 d,float L,float a){float k=6.2832/L;float ph=dot(d,p)*k-sqrt(9.8*k)*t;return vec3(sin(ph),cos(ph)*k*d.x,cos(ph)*k*d.y)*a;}\n'+
+  'vec3 swell(vec2 p,float t){return wv(p,t,vec2(.8,.6),38.,.55)+wv(p,t,vec2(-.3,.95),21.,.3)+wv(p,t,vec2(.95,-.3),11.,.15);}\n';
+// near-field grid around the camera: really displaced, flattening before its edge where the far plane takes over
+const SEA_VS_NEAR='uniform float uTime;uniform float uAmp;uniform vec4 uNear;uniform sampler2D uSD;uniform vec4 uSDT;varying vec3 vW;\n'+SEA_SWELL_GLSL+
+  'void main(){vec4 w=modelMatrix*vec4(position,1.);float depth=-(texture2D(uSD,(w.xz-uSDT.xy)/uSDT.zw).r*255.-128.)*2.;'+
+  'float e=1.-smoothstep(uNear.z*.65,uNear.z*.9,length(w.xz-uNear.xy));w.y+=swell(w.xz,uTime).x*uAmp*smoothstep(2.,40.,depth)*e;vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}';
+let seaNear=null;
+function seaFollow(){if(!seaNear)return;const n=MOBILE?100:140,cell=(SEA_NEAR_R*2+40)/n;
+  const x=Math.round(camera.position.x/cell)*cell,z=Math.round(camera.position.z/cell)*cell;seaNear.position.set(x,SL,z);
+  seaNear.material.uniforms.uNear.value.set(x,z,SEA_NEAR_R,2);seaMesh.material.uniforms.uNear.value.set(x,z,SEA_NEAR_R,1)}
+
+const SEA_FS2=`uniform vec3 uSunD;uniform vec3 uSunC;uniform vec3 uSkyC;uniform vec3 uFogC;uniform float uFogD;uniform float uTime;uniform float uNight;uniform sampler2D uSD;uniform vec4 uSDT;uniform float uAmp;uniform vec4 uNear;varying vec3 vW;
 float h12(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
 float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h12(i),h12(i+vec2(1,0)),f.x),mix(h12(i+vec2(0,1)),h12(i+vec2(1,1)),f.x),f.y);}
+`+SEA_SWELL_GLSL+`
 void main(){
  vec2 p=vW.xz;float t=uTime;
- vec2 g=vec2(cos(p.x*.21+p.y*.07+t*1.3),cos(p.y*.19-p.x*.05+t*1.1))*.16;
- g+=(vec2(vn(p*.6+t*.5),vn(p*.6-t*.45+7.))-.5)*.45;g+=(vec2(vn(p*2.1-t*.9),vn(p*2.3+t*.8+3.))-.5)*.22;
- vec3 n=normalize(vec3(g.x,1.,g.y));vec3 V=normalize(cameraPosition-vW);
+ // the far plane leaves a hole where the displaced near grid draws, and the near grid stops at that circle
+ float dn=length(p-uNear.xy);if(uNear.w<1.5){if(dn<uNear.z)discard;}else if(dn>uNear.z)discard;
+ float depth=-(texture2D(uSD,(p-uSDT.xy)/uSDT.zw).r*255.-128.)*2.;
+ float ks=uAmp*smoothstep(2.,40.,depth);vec3 sw=swell(p,t)*ks;
+ vec2 g=vec2(cos(p.x*.21+p.y*.07+t*1.3),cos(p.y*.19-p.x*.05+t*1.1))*.08;
+ g+=(vec2(vn(p*.6+t*.5),vn(p*.6-t*.45+7.))-.5)*.4;g+=(vec2(vn(p*2.1-t*.9),vn(p*2.3+t*.8+3.))-.5)*.22;
+ vec3 n=normalize(vec3(g.x-sw.y*1.6,1.,g.y-sw.z*1.6));vec3 V=normalize(cameraPosition-vW);
  float fr=.02+.98*pow(1.-max(dot(V,n),0.),5.);
  vec3 R=reflect(-V,n);vec3 sky=mix(uFogC,uSkyC,clamp(R.y*1.6,0.,1.));
- float depth=-(texture2D(uSD,(p-uSDT.xy)/uSDT.zw).r*255.-128.)*2.;
- vec3 deep=vec3(.010,.045,.065),shal=vec3(.045,.13,.13);
+ vec3 deep=vec3(.008,.04,.062),shal=vec3(.045,.13,.13);
  vec3 wc=mix(shal,deep,smoothstep(0.,90.,depth))*(uSkyC*1.4+uSunC*.12*max(uSunD.y,0.));
+ float crest=ks>0.?clamp(sw.x/(uAmp*.75),0.,1.):0.;
+ wc+=vec3(.02,.1,.085)*crest*(uSkyC+uSunC*.3);   // light through the thin tops of the swell
  vec3 c=mix(wc,sky,fr);
- c+=uSunC*pow(max(dot(R,uSunD),0.),260.)*4.;
+ float sd=max(dot(R,uSunD),0.);c+=uSunC*(pow(sd,260.)*4.+pow(sd,40.)*.25*(1.-uNight));   // sun spot and glitter
  float foam=(1.-smoothstep(0.,9.,depth))*(.5+.5*sin(depth*1.3-t*2.2+vn(p*.3)*4.));
- c=mix(c,(uSkyC*1.6+uSunC*.25),clamp(foam*.5,0.,.55));
+ foam+=smoothstep(.62,.95,crest)*smoothstep(.45,.8,vn(p*.9+t*.35))*.9;   // whitecaps on the crests
+ c=mix(c,(uSkyC*1.6+uSunC*.25),clamp(foam*.5,0.,.6));
  float a=clamp(.6+depth*.06,.6,.97);
  float d=length(vW-cameraPosition);c=mix(c,uFogC,1.-exp(-uFogD*uFogD*d*d));
  gl_FragColor=vec4(c,a);
@@ -5870,9 +5911,14 @@ void main(){
 }`;
 function makeSea(){
   const sg=new THREE.PlaneGeometry(9000,9000,1,1);sg.rotateX(-Math.PI/2);
-  seaMesh=new THREE.Mesh(sg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{uSunD:{value:new THREE.Vector3()},uSunC:{value:new THREE.Color()},uSkyC:{value:new THREE.Color()},uFogC:{value:new THREE.Color()},uFogD:{value:.002},uTime:UNI.uTime,uNight:UNI.uNight,uSD:UNI.uSD,uSDT:UNI.uSDT},
+  const U={uSunD:{value:new THREE.Vector3()},uSunC:{value:new THREE.Color()},uSkyC:{value:new THREE.Color()},uFogC:{value:new THREE.Color()},uFogD:{value:.002},uTime:UNI.uTime,uNight:UNI.uNight,uSD:UNI.uSD,uSDT:UNI.uSDT,uAmp:{value:SEA_AMP}};
+  seaMesh=new THREE.Mesh(sg,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:Object.assign({uNear:{value:new THREE.Vector4(0,0,SEA_NEAR_R,1)}},U),
     vertexShader:'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',fragmentShader:SEA_FS2}));
   seaMesh.position.y=SL;seaMesh.renderOrder=2;scene.add(seaMesh);
+  // displaced swell around the camera; shares every uniform object with the far plane except its own circle
+  const n=MOBILE?100:140,size=SEA_NEAR_R*2+40,ng=new THREE.PlaneGeometry(size,size,n,n);ng.rotateX(-Math.PI/2);
+  seaNear=new THREE.Mesh(ng,new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:Object.assign({uNear:{value:new THREE.Vector4(0,0,SEA_NEAR_R,2)}},U),vertexShader:SEA_VS_NEAR,fragmentShader:SEA_FS2}));
+  seaNear.position.y=SL;seaNear.renderOrder=2;seaNear.frustumCulled=false;scene.add(seaNear);
 }
 function makeSnow(){
   const n=5000,pos=new Float32Array(n*3);for(let i=0;i<n;i++){pos[i*3]=(Math.random()-.5)*80;pos[i*3+1]=Math.random()*40;pos[i*3+2]=(Math.random()-.5)*80}
@@ -6139,6 +6185,9 @@ function groundAt(x, z, playerY) {
     }
   }
   if (citySpec !== null) return citySpec.h;
+  // ship decks and gangways (function surfaces flagged .deck): the highest one the player can step onto
+  let deckH=null;for(const f of SPECIAL)if(typeof f==='function'&&f.deck){const r=f(x,z,playerY);if(r&&(deckH===null||r.h>deckH))deckH=r.h}
+  if(deckH!==null)return deckH;
   return gH;
 }
 
@@ -6330,7 +6379,7 @@ function updateHUD(dt){
   if(hudT<=0){hudT=.3;
     const [n,s]=curIndoor?[curIndoor.title||curIndoor.name,curIndoor.sub||'']:districtOf(player.x,player.z);
     if(n!==lastDistrict){if(lastDistrict&&n!=='Chykalenka St, 59k')toast(n,s);lastDistrict=n;$('dName').textContent=n;$('dSub').textContent=s}
-    const h=PLACES[0];const me=PORTAL.cur?PORTAL.ret||h:player;$('homeDir').textContent='Home · '+fmtDist(Math.hypot(h.x-me.x,h.z-me.z));
+    const h=PLACES[0];const me=PORTAL.cur?PORTAL.ret||h:player;$('homeDir').textContent='Home · '+fmtDist(Math.hypot(h.x-me.x,h.z-me.z))+' · '+WALLET.fmt();
   }
   // interaction prompt
   let best=null,bd=1e9;for(const it of INTERACT){if(it.cond&&!it.cond())continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
@@ -6421,6 +6470,7 @@ function setupInput(){
     if(e.code==='KeyE'&&!HELI.on)doAction();
     if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!MARINE.keyF())toggleScoot();
     if(e.code==='KeyC')toggleCar();
+    if(e.code==='KeyX'&&!e.repeat)SHOVE.act(true);
     if(e.code==='KeyV'&&!e.repeat)HELI.toggle();
     if(e.code==='KeyQ'&&!HELI.on&&(typeof SPK!=='undefined')&&SPK)SPK.toggleCarry();
     if(e.code==='KeyN'&&(typeof SPK!=='undefined')&&SPK)SPK.next();
@@ -6556,7 +6606,7 @@ function loop(t){
   if(started&&$('mapUI').hidden){
     refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(MARINE.cur)MARINE.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
-    else{updateCars(dt,player,Qp().cars);updatePeds(dt,player,Qp().peds);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
+    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
@@ -6576,7 +6626,7 @@ function loop(t){
   if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
   sky.position.copy(camera.position);nightSky.position.copy(camera.position);
-  seaMesh.position.x=Math.round(camera.position.x/100)*100;seaMesh.position.z=Math.round(camera.position.z/100)*100;
+  seaMesh.position.x=Math.round(camera.position.x/100)*100;seaMesh.position.z=Math.round(camera.position.z/100)*100;seaFollow();
   if(sunL.castShadow){const q=Qp(),tx=2*q.sr/q.shadow;_SL.copy(sunDir).normalize();_SU.set(0,1,0);if(Math.abs(_SL.y)>.99)_SU.set(1,0,0);
     _SR.crossVectors(_SU,_SL).normalize();_SV.crossVectors(_SL,_SR);_ST.set(player.x,player.y,player.z);const a=_ST.dot(_SR),b=_ST.dot(_SV);
     _ST.addScaledVector(_SR,Math.round(a/tx)*tx-a).addScaledVector(_SV,Math.round(b/tx)*tx-b);   // snap to shadow texels: no crawling shadows
@@ -6676,7 +6726,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){if(R.heli){R.heli.dispose();R.heli=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
+  drop(R){if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(HELI.on)return 'heli';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
@@ -6686,7 +6736,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   // ---------- local player outfit + spawn ----------
   onStart(){
     if(!this.onStart.done){this.onStart.done=true;
-      if(this.me.outfit){const old=PLR;const N=makePlayer(OUTFITS[this.me.outfit].o);N.root.traverse(o=>{if(o.isMesh)o.castShadow=true});mergeAvatar(N.root);scene.remove(old.root);scene.add(N.root);PLR=N}
+      if(this.me.outfit||WARDROBE.ids().length){const old=PLR;const N=makePlayer(WARDROBE.outfit());N.root.traverse(o=>{if(o.isMesh)o.castShadow=true});mergeAvatar(N.root);scene.remove(old.root);scene.add(N.root);PLR=N}
       // spawn next to a friend who is already walking around outside
       const f=this.nearest(true);if(f){const s=f.st;teleportRaw(s.x+Math.sin((s.r||0)+1.6)*1.6,s.z+Math.cos((s.r||0)+1.6)*1.6,s.r||0);toast('Next to '+(s.n||'your friend'),'co-op · press G to find each other')}
       $('coHud').hidden=false}
@@ -6704,6 +6754,9 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0)}
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
     if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
+    // on the water: the hull position plus [type, pitch, roll, forward speed]
+    if(MARINE.cur){const c=MARINE.cur;st.x=r2(c.x);st.y=r2(c.y);st.z=r2(c.z);st.r=r2(c.yaw);st.wc=[c.type==='jetski'?1:0,r2(c.pitch),r2(c.roll),r2(c.u)]}
+    {const lk=WARDROBE.ids();if(lk.length)st.lk=lk}
     if(this.say){st.say=this.say.m;st.sayT=this.say.t}
     if(typeof GUN!=='undefined'){const g=GUN.pub();if(g)st.g=g}
     if(typeof HS!=='undefined'){const h=HS.pub();if(h)st.hs=h;if(HS.on&&HS.role==='H'&&HS.camo&&!HS.myFound)st.cc=parseInt(HS.camo.slice(1),16)}
@@ -6725,8 +6778,9 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const zn=this.zone();const k=1-Math.exp(-dt*12);
     for(const R of this.peers.values()){const s=R.st;
       const show=!!(s&&s.in&&(s.zn||'')===zn&&typeof s.x==='number');
-      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
-      const okey=s.cc?100000+(s.cc|0):(s.o|0);if(!R.P||R.outfit!==okey){if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):(OUTFITS[s.o|0]||OUTFITS[0]).o);R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
+      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
+      const lk=Array.isArray(s.lk)?s.lk.filter(x=>typeof x==='string').slice(0,4):[];
+      const okey=s.cc?'c'+(s.cc|0):(s.o|0)+':'+lk.join(',');if(!R.P||R.outfit!==okey){if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):WARDROBE.outfit((OUTFITS[s.o|0]||OUTFITS[0]).o,lk));R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
       const nm=(s.n||'Friend').slice(0,16);
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
@@ -6740,6 +6794,17 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
         if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+4.7,R.z);R.bub.visible=R.bubT>0}
         continue}
       if(R.heli){R.heli.dispose();R.heli=null;R.hst=null;R.has=false}   // landed: snap the walker to where they got out
+      // friend on the water: their boat from the interpolation buffer, the avatar seated on it
+      if(Array.isArray(s.wc)){const type=s.wc[0]===1?'jetski':'boat';
+        if(!R.boat||R.boat.type!==type){if(R.boat)R.boat.dispose();R.boat=new PeerBoat(type);R.bst=null}
+        if(R.bst!==s){R.bst=s;R.boat.push(s)}
+        const q=R.boat.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true}
+        const far=Math.hypot(R.x-player.x,R.z-player.z),c=R.boat.craft;c.root.visible=far<1200;R.lo.visible=false;R.P.root.visible=far<250;
+        if(R.P.root.visible){R.P.root.position.copy(c.seatWorld(this._sv||(this._sv=new THREE.Vector3())));R.P.root.rotation.set(c.pitch,c.yaw,c.roll,'YXZ');animPlayer(R.P,{spd:0,mode:'sit'},dt)}
+        R.tag.visible=c.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+2.5,R.z);
+        if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+3,R.z);R.bub.visible=R.bubT>0}
+        continue}
+      if(R.boat){R.boat.dispose();R.boat=null;R.bst=null;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}   // ashore: back to walking
       if(!R.has||Math.hypot(s.x-R.x,s.z-R.z)>30){R.x=s.x;R.y=s.y;R.z=s.z;R.yaw=s.r||0;R.has=true}
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
@@ -6850,7 +6915,7 @@ const HS={on:false,rd:0,role:'',sk:'',zone:null,t0:0,hT:60,sT:300,fd:[],myFound:
     m.position.set(x,groundH(x,z)+20,z);m.userData.dyn=true;m.renderOrder=5;scene.add(m);this.ring=m},
   removeRing(){if(this.ring){scene.remove(this.ring);this.ring.geometry.dispose();this.ring=null}},
   setCamo(hex){if(this.camo===hex&&PLR.camoSet===hex)return;this.camo=hex||this.camo;
-    const o=hex?camoOutfit(hex):(OUTFITS[COOP.me.outfit]||OUTFITS[0]).o;const old=PLR;const N=makePlayer(o);N.root.traverse(m=>{if(m.isMesh)m.castShadow=true});scene.remove(old.root);scene.add(N.root);PLR=N;PLR.camoSet=hex||null;COOP.push(true)},
+    const o=hex?camoOutfit(hex):WARDROBE.outfit();const old=PLR;const N=makePlayer(o);N.root.traverse(m=>{if(m.isMesh)m.castShadow=true});scene.remove(old.root);scene.add(N.root);PLR=N;PLR.camoSet=hex||null;COOP.push(true)},
   catchTarget(){if(!this.on||this.role!=='S'||this.phase()!=='seek')return null;let best=null,bd=3.2;for(const R of this.hiders()){if(this.fd.includes(R.peer)||R.st.hs.f)continue;const d=Math.hypot(R.x-player.x,R.z-player.z);if(d<bd&&Math.abs(R.y-player.y)<2.5){bd=d;best=R}}return best},
   hideTag(R){const h=R.st&&R.st.hs;return !!(this.on&&h&&h.rd===this.rd&&R.peer!==this.sk&&!h.f)},
   tick(dt){
@@ -7312,6 +7377,285 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ANIM.push(dt=>GUN.tick(dt))}
 };
 
+// ===================== wallet: one purse for Żabka, the clothes mall and the car dealer =====================
+const WALLET={
+  get(){if(typeof S.cash!=='number')S.cash=40000;return S.cash},
+  fmt(n){return '₴'+Math.round(n===undefined?this.get():n).toLocaleString('en-US').replace(/,/g,' ')},
+  pay(n,what){if(this.get()<n){toast('Not enough money',what+' costs '+this.fmt(n)+' · you have '+this.fmt());return false}
+    S.cash-=n;saveS();if(window.AUD)AUD.beep();return true}
+};
+
+// ===================== clothes: bought items are kept, worn ones layer over the chosen outfit =====================
+const CLOTHES=[
+  {id:'top_hoodie',slot:'top',name:'Red hoodie',price:650,o:{shirt:0xb3262d,tee1:'#1a1a1a',tee2:'#b3262d'}},
+  {id:'top_denim',slot:'top',name:'Denim jacket',price:900,o:{shirt:0x4a6a9a,tee1:'#f4f4f0',tee2:'#f4f4f0'}},
+  {id:'top_leather',slot:'top',name:'Black leather jacket',price:1800,o:{shirt:0x1b1b1d,tee1:'#c9c9c9',tee2:'#1b1b1d'}},
+  {id:'top_sailor',slot:'top',name:'Odesa sailor top',price:420,o:{shirt:0xf2efe6,tee1:'#f4f4f0',tee2:'#1d2f6a'}},
+  {id:'top_neon',slot:'top',name:'Neon windbreaker',price:780,o:{shirt:0xd8e02a,tee1:'#ff2a8a',tee2:'#1a1a1a'}},
+  {id:'top_bomber',slot:'top',name:'Green bomber',price:950,o:{shirt:0x3d5a2a,tee1:'#e8a020',tee2:'#3d5a2a'}},
+  {id:'bot_black',slot:'bottom',name:'Black jeans',price:700,o:{jeans:0x222226,cuff:0x34343a}},
+  {id:'bot_chinos',slot:'bottom',name:'Beige chinos',price:560,o:{jeans:0xc9b48a,cuff:0xd9c69e}},
+  {id:'bot_joggers',slot:'bottom',name:'Grey joggers',price:480,o:{jeans:0x8a8c90,cuff:0x6a6c70}},
+  {id:'bot_track',slot:'bottom',name:'Red track pants',price:520,o:{jeans:0xb02a2a,cuff:0xf2f2f2}},
+  {id:'sh_white',slot:'shoes',name:'White sneakers',price:1200,o:{shoe:0xf6f6f2,sole:0xe2e2e2}},
+  {id:'sh_boots',slot:'shoes',name:'Black boots',price:1500,o:{shoe:0x1c1c1c,sole:0x3a2a1a}},
+  {id:'sh_neon',slot:'shoes',name:'Neon runners',price:1350,o:{shoe:0x2ad1ff,sole:0xff3aa0}},
+  {id:'hair_black',slot:'hair',name:'Black hair dye',price:250,o:{hair:0x161616,hair2:0x2a2a2a}},
+  {id:'hair_ginger',slot:'hair',name:'Ginger hair dye',price:250,o:{hair:0xa0522d,hair2:0xc0703a}},
+  {id:'hair_pink',slot:'hair',name:'Pink hair dye',price:300,o:{hair:0xe86aa8,hair2:0xf3a0c8}},
+];
+const WARDROBE={
+  item(id){return CLOTHES.find(c=>c.id===id)},
+  owned(id){return Array.isArray(S.own)&&S.own.includes(id)},
+  ids(){const L=S.look||{};return Object.values(L).filter(id=>this.item(id))},
+  // the menu outfit with worn items on top; also used for co-op friends (their base outfit + their item ids)
+  outfit(base,ids){const o=Object.assign({},base!==undefined?base:(OUTFITS[COOP.me.outfit]||OUTFITS[0]).o);
+    for(const id of ids||this.ids()){const c=this.item(id);if(c)Object.assign(o,c.o)}return o},
+  apply(){if(!PLR)return;const old=PLR,N=makePlayer(this.outfit());N.root.traverse(m=>{if(m.isMesh)m.castShadow=true});mergeAvatar(N.root);
+    N.root.position.copy(old.root.position);N.root.rotation.copy(old.root.rotation);N.root.visible=old.root.visible;scene.remove(old.root);scene.add(N.root);PLR=N;COOP.push(true)},
+  label(c){if(!this.owned(c.id))return 'Buy '+c.name+' · '+WALLET.fmt(c.price);return (S.look&&S.look[c.slot]===c.id)?c.name+' · wearing':'Wear '+c.name},
+  rack(c){if(!this.owned(c.id)){if(!WALLET.pay(c.price,c.name))return;S.own=(Array.isArray(S.own)?S.own:[]).concat([c.id])}
+    S.look=Object.assign({},S.look||{},{[c.slot]:c.id});saveS();this.apply();toast('Wearing: '+c.name,'wallet '+WALLET.fmt())},
+  reset(){S.look={};saveS();this.apply();toast('Your own clothes again','everything you bought stays yours — just wear it again')}
+};
+
+// ===================== lots along the streets near 59k =====================
+// Local frame of a lot: +v faces the street, u runs along it. P.box takes ry=yaw; addBlock / addFlatRect take a=-yaw.
+function lotFrame(x,z,yaw){const F=frame(x,z,-yaw);F.yaw=yaw;F.a=-yaw;F.n=[Math.sin(yaw),Math.cos(yaw)];F.t=[Math.cos(yaw),-Math.sin(yaw)];return F}
+function lotPad(F,w,d,y){const c=F.P(0,0);addFlatRect(c[0],c[1],F.a,w,d,8,y);TREE_CLEAR.push(c[0],c[1],Math.hypot(w,d)/2+3)}
+function lotDoor(F,u,v){const p=F.P(u,v);return {x:p[0],z:p[1],nx:F.n[0],nz:F.n[1],tx:F.t[0],tz:F.t[1]}}
+function lotSign(grp,F,lines,opt,u,y,v,w,h,emis){const m=plateMesh(lines,opt,w,h,emis);const p=F.P(u,v);m.position.set(p[0],y,p[1]);m.rotation.y=F.yaw;grp.add(m);return m}
+function lotFlag(P,F,u,v,y0){const p=F.P(u,v);P.cyl(p[0],y0,p[1],.06,.05,7,6,sRGB('#c8ccd0'),6);
+  const f=F.P(u+.85,v);P.box(f[0],y0+6.55,f[1],1.6,.42,.03,F.yaw,sRGB('#f4f4f0'),0);P.box(f[0],y0+6.13,f[1],1.6,.42,.03,F.yaw,sRGB('#d4213d'),0)}
+
+// Żabka: green corner mini-market on the street side of the 59k courtyard
+function buildZabka(grp,P,GR){
+  const F=lotFrame(53,66.4,.906),y0=rawH(53,66.4),ry=F.yaw;lotPad(F,18,14,y0);
+  groundQuad(GR,[F.P(-9,-7),F.P(9,-7),F.P(9,7),F.P(-9,7)],4,y0+.05);
+  const W=13,Dp=9,H=4.2,vc=-1.5,c=F.P(0,vc),fv=vc+Dp/2;
+  P.box(c[0],y0+H/2,c[1],W,H,Dp,ry,sRGB('#f2f2ee'),0);
+  P.box(c[0],y0+H+.25,c[1],W+.4,.5,Dp+.4,ry,sRGB('#00843d'),1);
+  {const f=F.P(-1.6,fv+.03);P.box(f[0],y0+1.55,f[1],W-4.6,2.3,.06,ry,sRGB('#18261e'),2)}
+  for(const y of [y0+H-.32,y0+.14]){const f=F.P(0,fv+.06);P.box(f[0],y,f[1],W+.4,.12,.1,ry,sRGB('#27d36b'),8)}   // neon strips
+  addBlock(c[0],c[1],W,Dp,F.a);
+  shopDoor(grp,P,lotDoor(F,W/2-2,fv),y0,{label:'Enter Żabka',interior:'zabka',w:1.8,awn:'#00843d',frame:0x0f4d27});
+  lotSign(grp,F,['żabka'],{w:512,h:160,size:124,color:'#ffffff',bg:'#00843d',weight:'900'},-1.8,y0+H-1.0,fv+.1,4.6,1.4,1.5);
+  {const s=F.P(-1.8,fv+.12);EXTRA_LAMPS.push([s[0]+F.n[0]*2.5,y0+3,s[1]+F.n[1]*2.5,1.6])}
+  const pp=F.P(0,5.5);PLACES.push({id:'zabka',name:'Żabka',sub:'mini-market by 59k',x:pp[0],z:pp[1],yaw:ry+Math.PI});
+}
+
+// Polmozbyt: a PRL-style dealer lot with Fiat 126p and FSO Polonez; buy one and it becomes your car (C)
+const DEALER_MODELS={9:{name:'Fiat 126p',price:9000},10:{name:'FSO Polonez',price:14000}};
+const DEALER={
+  label(e){const m=DEALER_MODELS[e.type];const mine=S.myCar&&S.myCar.type===e.type;return (mine?'Drive this ':'Buy this ')+m.name+(mine?'':' · '+WALLET.fmt(m.price))},
+  take(e){const m=DEALER_MODELS[e.type];const mine=S.myCar&&S.myCar.type===e.type;if(!mine&&!WALLET.pay(m.price,'The '+m.name))return;
+    S.myCar={type:e.type,col:e.col};saveS();
+    const i=PARKED_STATIC.indexOf(e);if(i>=0)PARKED_STATIC.splice(i,1);PARKED_DIRTY=true;LOW_OBB[e.obb+2]=LOW_OBB[e.obb+3]=0;
+    if(DRIVE.on)exitCar();DRIVE.car={x:e.x,y:e.y,z:e.z,yaw:e.yaw,pitch:0,roll:0,type:e.type,col:e.col};
+    toast(mine?'Your '+m.name:'Bought: '+m.name,(mine?'':'paid '+WALLET.fmt(m.price)+' · ')+'press C anywhere to call it');toggleCar()}
+};
+function buildDealer(grp,P,GR){
+  const F=lotFrame(55.3,-109.8,3.046),y0=rawH(55.3,-109.8),ry=F.yaw;lotPad(F,42,30,y0);
+  groundQuad(GR,[F.P(-20,-14),F.P(20,-14),F.P(20,14),F.P(-20,14)],4,y0+.05);
+  const W=22,Dp=9,H=5.2,vc=-9,c=F.P(0,vc),fv=vc+Dp/2;
+  P.box(c[0],y0+H/2,c[1],W,H,Dp,ry,sRGB('#dfe3e6'),1);
+  {const f=F.P(0,fv+.03);P.box(f[0],y0+2.2,f[1],W-1,3.6,.06,ry,sRGB('#1b2730'),2)}
+  P.box(c[0],y0+H+.3,c[1],W+.6,.6,Dp+.6,ry,sRGB('#f4f4f0'),1);
+  addBlock(c[0],c[1],W,Dp,F.a);
+  lotSign(grp,F,['POLMOZBYT'],{w:1024,h:180,size:130,color:'#d4213d',bg:'#f4f4f0',weight:'900'},0,y0+H+.3,fv+.34,9,1.6,1);
+  lotSign(grp,F,['FIAT 126p · FSO POLONEZ'],{w:1024,h:120,size:78,color:'#ffffff',bg:'#1b2730',weight:'800'},0,y0+H-.75,fv+.1,10,1.15,1.2);
+  for(const u of [-19,-7,7,19])lotFlag(P,F,u,13.2,y0);
+  for(const u of [-6,6]){const p=F.P(u,fv+3);propGlobeLamp(P,p[0],y0,p[1],ry);EXTRA_LAMPS.push([p[0],y0+3.7,p[1],2])}
+  const lot=[[9,-15,7,0xc0262d],[9,-11.6,7,0xe8c43a],[9,-8.2,7,0xd8c9a0],[9,-4.8,7,0x8ab4d8],[10,1.5,7,0x8a1c1c],[10,5.6,7,0x2a4a7a],[10,9.7,7,0xd9d4c4],
+    [9,-13,.5,0x4a7a3a],[9,-9.6,.5,0xf2efe6],[10,3,.5,0x3a3a3e],[10,7.2,.5,0xb8862a]];
+  for(const [type,u,v,col] of lot){const p=F.P(u,v);const e={x:p[0],y:y0+.05,z:p[1],yaw:ry,type,col,pitch:0,roll:0,obb:LOW_OBB.length};
+    PARKED_STATIC.push(e);LOW_OBB.push(p[0],p[1],type===9?.75:.88,type===9?1.6:2.2,Math.cos(ry),-Math.sin(ry));
+    INTERACT.push({x:p[0],z:p[1],r:2.8,get label(){return DEALER.label(e)},cond:()=>PARKED_STATIC.includes(e)&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!PORTAL.cur&&!RIDE.on,fn:()=>DEALER.take(e)})}
+  PARKED_DIRTY=true;
+  const pp=F.P(0,12);PLACES.push({id:'dealer',name:'Polmozbyt car dealer',sub:'Fiat 126p and FSO Polonez',x:pp[0],z:pp[1],yaw:ry+Math.PI});
+}
+
+// Odesa Mall: glass box with a clothes floor inside
+function buildMall(grp,P,GR){
+  const F=lotFrame(119.1,241.7,-.686),y0=rawH(119.1,241.7),ry=F.yaw;lotPad(F,54,36,y0);
+  groundQuad(GR,[F.P(-26,-17),F.P(26,-17),F.P(26,17),F.P(-26,17)],4,y0+.05);
+  const W=44,Dp=20,H=11,vc=-6.5,c=F.P(0,vc),fv=vc+Dp/2;
+  const glass=windowRowsTex({bg:'#a9bcc6',rows:2,cols:11,win:'#2a3c48',lit:.3,mx:.03,my:.08,band:'#e8e4da'});
+  texBox(grp,c[0],y0,c[1],W,H,Dp,ry,glass,W,H,new THREE.MeshStandardMaterial({color:0xe8e4da,roughness:.7}),true);
+  addBlock(c[0],c[1],W,Dp,F.a);
+  lotSign(grp,F,['ODESA MALL'],{w:1024,h:200,size:150,color:'#ffffff',bg:'#7a1fa2',weight:'900'},0,y0+H-1.7,fv+.12,14,2.7,1.4);
+  {const p=F.P(0,fv+2.2);P.box(p[0],y0+4.3,p[1],9,.3,4.4,ry,sRGB('#7a1fa2'),1);for(const u of [-4,4]){const q=F.P(u,fv+4);P.cyl(q[0],y0,q[1],.14,.14,4.2,8,sRGB('#c8ccd0'),6)}}
+  shopDoor(grp,P,lotDoor(F,0,fv),y0,{label:'Enter Odesa Mall',interior:'mall',w:3.2,awn:'#7a1fa2'});
+  let k=0;for(const u of [-21,-17.8,-14.6,-11.4,11.4,14.6,17.8,21]){const p=F.P(u,7.5);if(k++%3===2)continue;
+    PARKED_STATIC.push({x:p[0],y:y0+.05,z:p[1],yaw:ry+Math.PI,type:[0,1,2,5,6,7][k%6],col:CAR_COLS[(k*5)%CAR_COLS.length],pitch:0,roll:0});LOW_OBB.push(p[0],p[1],.9,2.2,Math.cos(ry),-Math.sin(ry))}
+  for(const u of [-8,8]){const p=F.P(u,13);propGlobeLamp(P,p[0],y0,p[1],ry);EXTRA_LAMPS.push([p[0],y0+3.7,p[1],2])}
+  PARKED_DIRTY=true;
+  const pp=F.P(0,13);PLACES.push({id:'mall',name:'Odesa Mall',sub:'clothes, shoes, hair salon',x:pp[0],z:pp[1],yaw:ry+Math.PI});
+}
+
+Object.assign(PRICE,{'hot dog':45,'zapiekanka':60,'kanapka':55,'pączek':25,'Tymbark juice':35,'Kubuś':30});
+const ZABKA={pay(){let sum=0,n=0;for(const [k,v] of Object.entries(INVENTORY)){sum+=(PRICE[k]||20)*v;n+=v}
+    if(!n){toast('Basket is empty','grab something from the shelves');return}if(!WALLET.pay(sum,'Your basket'))return;
+    for(const [k,v] of Object.entries(INVENTORY)){BAG[k]=(BAG[k]||0)+v;delete INVENTORY[k]}toast('Paid '+WALLET.fmt(sum),'Dziękujemy! Zapraszamy ponownie · wallet '+WALLET.fmt())}};
+INTERIORS.zabka=()=>simpleInterior('zabka',6,{w:12,d:10,h:3.2,floor:0xd8d8d2,wall:0xf4f4f0,ceil:0xf2f2ee,title:'Żabka',sub:'hot snacks, drinks · open 24/7',lights:[3,7],lcol:0xf2fff2,li:1.8,
+  furnish(P,grp,ox,oz,hw,D){const Y=INT_Y,green=sRGB('#00843d');
+    // till with the hot-dog roller and coffee machine
+    P.box(ox-3.8,Y+.55,oz+2.3,2.8,1.1,.8,0,green,1);P.box(ox-3.8,Y+1.13,oz+2.3,2.9,.06,.9,0,sRGB('#e8e8e2'),1);LOW_OBB.push(ox-3.8,oz+2.3,1.45,.42,1,0);
+    P.box(ox-4.6,Y+1.3,oz+2.2,.8,.28,.45,0,sRGB('#c9a13a'),1);P.box(ox-2.9,Y+1.38,oz+2.25,.45,.45,.4,0,sRGB('#1f1f22'),1);
+    neonSign(grp,'żabka',ox-5.88,Y+2.5,oz+3,Math.PI/2,2.6,'#3cf07a');
+    // two shelf islands
+    const cols=['#d8372a','#f2c418','#2f6db0','#3f9a4a','#e07a2a','#8a4ab0','#f4f4f0'];
+    for(const x of [-.8,2.6]){P.box(ox+x,Y+.8,oz+6,1,1.6,4.2,0,sRGB('#dadcd8'),1);LOW_OBB.push(ox+x,oz+6,.55,2.15,1,0);
+      for(let l=0;l<4;l++)for(let i=0;i<7;i++)for(const sx of [-1,1])P.box(ox+x+sx*.53,Y+.3+l*.38,oz+4.25+i*.58,.06,.22,.42,0,sRGB(cols[(i+l+(sx>0?2:0))%cols.length]),1)}
+    // fridges along the back wall, lit inside
+    P.box(ox,Y+1.1,oz+D-.45,10.6,2.2,.8,0,sRGB('#c8d4dc'),1);
+    for(let i=0;i<5;i++){const x=-4.2+i*2.1;P.box(ox+x,Y+1.15,oz+D-.07,1.9,1.9,.04,0,sRGB('#e8f6ff'),8);
+      for(let l=0;l<4;l++)for(let j=0;j<6;j++)P.box(ox+x-.75+j*.3,Y+.45+l*.46,oz+D-.12,.14,.3,.1,0,sRGB(cols[(i*3+j+l)%cols.length]),3)}
+    LOW_OBB.push(ox,oz+D-.45,5.3,.42,1,0);
+    for(const [x,z,item,label] of [[-3.3,3.4,'hot dog','Take a hot dog'],[-1.9,3.4,'zapiekanka','Take a zapiekanka'],[1.0,4.6,'kanapka','Take a kanapka'],[1.0,7.4,'pączek','Take a pączek'],
+      [-2.8,D-1.4,'Tymbark juice','Take a Tymbark juice'],[2.2,D-1.4,'Kubuś','Take a Kubuś']])
+      INTERACT.push({x:ox+x,z:oz+z,r:1.2,label:label+' · '+WALLET.fmt(PRICE[item]),fn:()=>addItem(item)});
+    INTERACT.push({x:ox-4.6,z:oz+3.4,r:1.2,label:'Pay at the till',fn:()=>ZABKA.pay()});
+  }});
+INTERIORS.mall=()=>simpleInterior('mall',7,{w:26,d:20,h:5,floor:0xe9e4da,fr:.25,wall:0xf2efe8,ceil:0xf6f4f0,title:'Odesa Mall',sub:'clothes, shoes and a hair salon',lights:[5,10,15],lcol:0xfff6e8,li:2.4,door:3.2,
+  furnish(P,grp,ox,oz,hw,D){const Y=INT_Y,metal=sRGB('#9aa0a6'),hex=n=>sRGB('#'+n.toString(16).padStart(6,'0'));
+    const rackAt=(c,x,z,ry)=>{const col=hex(c.o.shirt||c.o.jeans||c.o.shoe||c.o.hair),cs=Math.cos(ry),sn=Math.sin(ry);
+      if(c.slot==='top'||c.slot==='bottom'){P.box(ox+x,Y+1.6,oz+z,1.3,.05,.05,ry,metal,6);for(const s of [-.62,.62])P.box(ox+x+s*cs,Y+.8,oz+z-s*sn,.05,1.6,.05,ry,metal,6);
+        for(let i=0;i<5;i++){const s=-.5+i*.25;P.box(ox+x+s*cs,Y+(c.slot==='top'?1.22:1.05),oz+z-s*sn,.05,c.slot==='top'?.7:1.0,.48,ry,col,0)}}
+      else{P.box(ox+x,Y+.45,oz+z,1.2,.9,.5,ry,sRGB('#efe9dc'),5);for(let i=0;i<3;i++){const s=-.38+i*.38,hr=c.slot==='hair';P.box(ox+x+s*cs,Y+(hr?1.05:.98),oz+z-s*sn,hr?.12:.3,hr?.3:.16,hr?.12:.42,ry,col,1)}}
+      LOW_OBB.push(ox+x,oz+z,.68,.3,cs,-sn);
+      INTERACT.push({x:ox+x+Math.sin(ry)*1.1,z:oz+z+Math.cos(ry)*1.1,r:1.15,get label(){return WARDROBE.label(c)},fn:()=>WARDROBE.rack(c)})};
+    CLOTHES.filter(c=>c.slot==='top').forEach((c,i)=>rackAt(c,-12.1,3.8+i*2.5,Math.PI/2));
+    CLOTHES.filter(c=>c.slot==='bottom').forEach((c,i)=>rackAt(c,-5.1+i*3.4,D-.7,Math.PI));
+    CLOTHES.filter(c=>c.slot==='shoes').forEach((c,i)=>rackAt(c,12.1,4+i*2.3,-Math.PI/2));
+    CLOTHES.filter(c=>c.slot==='hair').forEach((c,i)=>rackAt(c,12.1,12+i*2.3,-Math.PI/2));
+    neonSign(grp,'TOPS',ox-12.88,Y+3.9,oz+10,Math.PI/2,3.6,'#ff6ad5');
+    neonSign(grp,'DENIM',ox,Y+3.9,oz+D-.12,Math.PI,4.2,'#6ad1ff');
+    neonSign(grp,'SHOES',ox+12.88,Y+3.9,oz+6.3,-Math.PI/2,3.6,'#ffd36a');
+    neonSign(grp,'HAIR',ox+12.88,Y+3.9,oz+14.3,-Math.PI/2,3.0,'#9cff6a');
+    // fitting room with a mirror: take everything off again
+    P.box(ox,Y+1.3,oz+10,2.4,2.6,2.4,0,sRGB('#7a1fa2'),1);P.box(ox,Y+1.2,oz+8.79,1.6,2.3,.04,0,sRGB('#dfe7ec'),6);LOW_OBB.push(ox,oz+10,1.25,1.25,1,0);
+    INTERACT.push({x:ox,z:oz+8.1,r:1.2,label:'Fitting room · your own clothes back',fn:()=>WARDROBE.reset()});
+    for(const x of [-5,5]){P.box(ox+x,Y+.3,oz+6,1.6,.6,1.6,0,sRGB('#efe9dc'),5);LOW_OBB.push(ox+x,oz+6,.8,.8,1,0)}
+  }});
+
+// ===================== shove & punch: E / the action button pushes, X (or a second push) knocks them down =====================
+const SHOVE={cool:0,last:null,lastT:0,cand:null,bub:null,
+  LINES:['Hey! Watch it!','Are you crazy?!','Don\'t push, this is Odesa!','What do you want from me?!','Leave me alone!','Who raised you like that?','I\'ll tell your mother!','Police! Somebody!'],
+  DOWN:['Ouch!','My back…','Oy vey…','At least help me up!'],
+  BACK:['Oh yeah? Take that!','Two can play that game!','Here, have some back!'],
+  BUMP:['Careful!','Excuse me?','Look where you\'re going!'],
+  lists(){return CRUISE.people.length?[PEDS,TALKERS,CRUISE.people]:[PEDS,TALKERS]},
+  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!RIDE.on&&!player.sit},
+  near(maxd){let best=null,bd=maxd;const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);
+    for(const L of this.lists())for(const p of L){const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);if(d>=bd||Math.abs(p.y-player.y)>1.5||p.fallT>0)continue;
+      if(d>.7&&(dx*fx+dz*fz)/d<.1)continue;bd=d;best=p}return best},
+  say(p,lines){p.say=R_(lines);p.sayT=2.6;this.bub=p},
+  hitSound(k){if(window.AUD&&AUD.burst)AUD.burst(700,90,.12,.2+.25*k,'lowpass',.8)},
+  act(hard){if(!this.free()||this.cool>0)return false;const p=this.near(1.8);if(!p)return false;this.cool=.35;
+    const now=performance.now(),again=p===this.last&&now-this.lastT<1300;this.last=p;this.lastT=now;
+    const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d,down=hard||again;
+    p.kx=p.kx||0;p.kz=p.kz||0;const f=down?5.2:3.2;p.kvx=(p.kvx||0)+ux*f;p.kvz=(p.kvz||0)+uz*f;
+    if(down){p.fallT=2.8;p.fallDir=(ux*Math.sin(p.yaw)+uz*Math.cos(p.yaw))>0?1:-1;p.react=0;this.say(p,this.DOWN);this.hitSound(1);if(typeof FX!=='undefined'&&FX.ready){FX.shakeT=.18;FX.shakeA=.06}}
+    else{p.react=1.6;this.hitSound(.3);if(Math.random()<.3)this.pushBack(p);else{p.flee=4;this.say(p,this.LINES)}}
+    for(const L of this.lists())for(const q of L)if(q!==p&&!q.fallT&&Math.hypot(q.x-p.x,q.z-p.z)<7){q.react=Math.max(q.react||0,1.2);q.yaw=Math.atan2(player.x-q.x,player.z-q.z)}
+    return true},
+  pushBack(p){this.say(p,this.BACK);p.yaw=Math.atan2(player.x-p.x,player.z-p.z);const ux=player.x-p.x,uz=player.z-p.z,d=Math.hypot(ux,uz)||1;
+    player.vx+=ux/d*7;player.vz+=uz/d*7;player.vy=3.2;player.air=true;this.hitSound(.6)},
+  // people walk their path; the shove is an offset on top of it, taken off before updatePeds and put back after
+  pre(){for(const L of this.lists())for(const p of L)if(p.kx||p.kz){p.x-=p.kx;p.z-=p.kz}},
+  post(dt){this.cool-=dt;const pv=Math.hypot(player.vx,player.vz),free=this.free();let bub=null;
+    for(const L of this.lists())for(const p of L){
+      if(p.kvx||p.kvz){p.kx+=p.kvx*dt;p.kz+=p.kvz*dt;const k=Math.exp(-dt*5);p.kvx*=k;p.kvz*=k;if(Math.abs(p.kvx)+Math.abs(p.kvz)<.02)p.kvx=p.kvz=0}
+      if(p.fallT>0){p.fallT-=dt;p.wait=Math.max(p.wait||0,.3);p.moving=false;const tgt=p.fallT>.6?1.45*p.fallDir:0;p.tilt=(p.tilt||0)+(tgt-(p.tilt||0))*Math.min(1,dt*(p.fallT>.6?9:4));if(p.fallT<=0){p.fallT=0;p.flee=3}}
+      else if(p.tilt){p.tilt*=Math.exp(-dt*6);if(Math.abs(p.tilt)<.01)p.tilt=0}
+      if((p.kx||p.kz)&&!p.fallT&&!p.kvx){const k=Math.exp(-dt*.8);p.kx*=k;p.kz*=k;if(Math.abs(p.kx)+Math.abs(p.kz)<.02)p.kx=p.kz=0}
+      if(p.react>0)p.react-=dt;
+      if(p.flee>0){p.flee-=dt;if(!p.speed0)p.speed0=p.speed||1.2;p.speed=p.speed0*(p.flee>0?2.6:1);if(p.flee<=0){p.speed=p.speed0;p.speed0=0}}
+      // walking into people nudges them; running into them makes them stumble
+      if(free&&pv>.8&&!p.fallT){const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz);
+        if(d<.55&&Math.abs(p.y-player.y)<1.2&&!(p.bumpT>0)){p.bumpT=1.2;p.kx=p.kx||0;p.kz=p.kz||0;const f=pv>4?3:1.2;p.kvx=(p.kvx||0)+dx/(d||1)*f;p.kvz=(p.kvz||0)+dz/(d||1)*f;
+          if(pv>4.5&&Math.random()<.5){p.fallT=2.2;p.fallDir=1;this.say(p,this.DOWN)}else if(Math.random()<.5)this.say(p,this.BUMP);p.react=1}}
+      if(p.bumpT>0)p.bumpT-=dt;
+      if(p.kx||p.kz){p.x+=p.kx;p.z+=p.kz}
+      if(p.sayT>0){p.sayT-=dt;if(!bub||p===this.bub)bub=p}}
+    if(bub&&bub.sayT>0)BUBBLES.show(5,bub.x,bub.y+2.25,bub.z,bub.say)}
+};
+
+INTERACT.push({get x(){return SHOVE.cand?SHOVE.cand.x:1e9},get z(){return SHOVE.cand?SHOVE.cand.z:1e9},r:1.9,get label(){return TOUCH?'Push · tap twice to knock down':'Push · X to punch'},
+  cond:()=>{SHOVE.cand=SHOVE.free()?SHOVE.near(1.8):null;return !!SHOVE.cand},fn:()=>SHOVE.act(false)});
+
+// ===================== cruise liner at the sea terminal: gangway from the pier, promenade, sun deck with a pool =====================
+const CRUISE={people:[],x:0,z:0};
+function buildCruise(grp,F,a,o){
+  const L=150,W=22,yM=SL+7,decks=3,yS=yM+decks*2.8,c=F.P(o.u,o.s*(46+W/2+2.5));
+  const SF=frame(c[0],c[1],a+Math.PI);   // ship frame: +x bow (out to sea), +z towards the pier
+  CRUISE.x=c[0];CRUISE.z=c[1];
+  const g=new THREE.Group();g.position.set(c[0],0,c[1]);g.rotation.y=-(a+Math.PI);grp.add(g);
+  const halfW=x=>x<45?W/2:Math.max(0,W/2*(1-Math.pow((x-45)/30,2)));   // straight sides, rounded bow from x=45 to 75
+  const sh=new THREE.Shape();sh.moveTo(-75,-W/2);for(let x=45;x<=75;x+=3)sh.lineTo(x,-halfW(x));for(let x=75;x>=45;x-=3)sh.lineTo(x,halfW(x));sh.lineTo(-75,W/2);sh.lineTo(-75,-W/2);
+  const hull=new THREE.ExtrudeGeometry(sh,{depth:10.5,bevelEnabled:false});hull.rotateX(-Math.PI/2);hull.translate(0,SL-3.5,0);
+  const hm=new THREE.Mesh(hull,new THREE.MeshStandardMaterial({color:0xf6f6f2,roughness:.4}));hm.castShadow=hm.receiveShadow=true;g.add(hm);
+  const P=new PB(),navy=sRGB('#1d2f6a'),teak=sRGB('#a8794e'),rail=sRGB('#d8dcdf');
+  P.box(-15,SL+.6,0,120,1.2,W+.08,0,navy,1);   // boot-topping stripe at the waterline
+  P.box(-2,yM-.04,0,146,.1,W-.3,0,teak,5);       // teak promenade
+  // superstructure: three decks of cabins with balconies, bridge windows at the front
+  const sx0=-55,sx1=30,sw=14;
+  const tex=windowRowsTex({bg:'#f6f6f2',rows:decks,cols:28,win:'#25394a',lit:.35,mx:.08,my:.22});
+  const wm=new THREE.MeshStandardMaterial({map:tex,roughness:.35}),pm=new THREE.MeshStandardMaterial({color:0xf6f6f2,roughness:.5});
+  const sup=new THREE.Mesh(new THREE.BoxGeometry(sx1-sx0,decks*2.8,sw),[pm,pm,new THREE.MeshStandardMaterial({color:0xe9e6dc,roughness:.8}),pm,wm,wm]);
+  sup.position.set((sx0+sx1)/2,yM+decks*1.4,0);sup.castShadow=sup.receiveShadow=true;g.add(sup);
+  P.box(sx1+.03,yM+decks*2.8-1.2,0,.06,1.2,sw-1,0,sRGB('#1a2630'),2);   // bridge windows
+  for(const s of [-1,1])for(let x=sx0+6;x<sx1-4;x+=12)P.box(x,yM+4.6,s*(sw/2+.7),6.5,1.4,1.3,0,sRGB('#ef7b24'),1);   // lifeboats
+  // sun deck: pool, deck chairs, bar, funnel
+  P.box(-20,yS+.25,0,16,.5,9,0,sRGB('#e8e4da'),1);P.box(-20,yS+.52,0,15,.06,8,0,sRGB('#36c6e8'),8);
+  for(let i=0;i<6;i++)for(const s of [-1,1])P.box(-27+i*2.8,yS+.25,s*5.6,.75,.5,1.9,0,sRGB('#f2efe6'),1);
+  P.box(-2,yS+.6,-4.5,6,1.2,1.2,0,teak,5);P.box(-36,yS+3,0,7,6,5,0,sRGB('#d4213d'),1);P.box(-36,yS+6.2,0,7.2,.6,5.2,0,sRGB('#1a1a1a'),1);
+  for(const s of [-1,1]){P.box(-2,yM+.55,s*(W/2-.15),146,.08,.08,0,rail,6);P.box((sx0+sx1)/2,yS+.55,s*(sw/2-.1),sx1-sx0,.08,.08,0,rail,6)}
+  {const m=new THREE.Mesh(P.build(),MATS.props);m.castShadow=m.receiveShadow=true;g.add(m)}
+  // outside stair from the promenade (port side, -z) up to the sun deck
+  const st0=-10,st1=22,stz0=-10.6,stz1=-7.05,stH=x=>yM+(yS-yM)*Math.max(0,Math.min(1,(x-st0)/(st1-st0)));
+  {const sg=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(st1-st0,yS-yM),.2,stz1-stz0),new THREE.MeshStandardMaterial({color:0xa8794e,roughness:.8}));
+   sg.position.set((st0+st1)/2,(yM+yS)/2-.1,(stz0+stz1)/2);sg.rotation.z=Math.atan2(yS-yM,st1-st0);sg.castShadow=true;g.add(sg)}
+  {const m=plateMesh(['ODESA STAR'],{w:1024,h:160,size:120,color:'#1d2f6a',bg:'#f6f6f2',weight:'900'},12,1.9,.3);m.position.set(52,yM-2.2,W/2+.05);g.add(m);
+   const m2=m.clone();m2.position.z=-W/2-.05;m2.rotation.y=Math.PI;g.add(m2)}
+  // walls: superstructure (main deck level only), funnel, rails round the deck edges
+  const wl=(x0,z0,x1,z1,y0,y1)=>wallSeg(...SF.P(x0,z0),...SF.P(x1,z1),.3,y0,y1);
+  wl(sx0,-sw/2,sx1,-sw/2,yM-.5,yS-.4);wl(sx0,sw/2,sx1,sw/2,yM-.5,yS-.4);wl(sx0,-sw/2,sx0,sw/2,yM-.5,yS-.4);wl(sx1,-sw/2,sx1,sw/2,yM-.5,yS-.4);
+  wl(-39.5,-2.5,-32.5,-2.5,yS,yS+6);wl(-39.5,2.5,-32.5,2.5,yS,yS+6);wl(-39.5,-2.5,-39.5,2.5,yS,yS+6);wl(-32.5,-2.5,-32.5,2.5,yS,yS+6);
+  wl(-75,-W/2,45,-W/2,yM,yM+1.1);wl(-75,W/2,-26,W/2,yM,yM+1.1);wl(-18,W/2,45,W/2,yM,yM+1.1);wl(-75,-W/2,-75,W/2,yM,yM+1.1);
+  for(let x=45;x<75;x+=6)for(const s of [-1,1])wl(x,s*halfW(x),x+6,s*halfW(x+6),yM,yM+1.1);
+  wl(sx0,sw/2,sx1,sw/2,yS,yS+1.1);wl(sx0,-sw/2,st1-1,-sw/2,yS,yS+1.1);wl(sx0,-sw/2,sx0,sw/2,yS,yS+1.1);wl(sx1,-sw/2,sx1,sw/2,yS,yS+1.1);
+  // walkable: main deck, the sun deck on the superstructure roof, the stair between them
+  const deck=(x,z,y)=>{const [lx,lz]=SF.inv(x,z);if(lx<-75.5||lx>75||Math.abs(lz)>halfW(lx)+.2)return null;const yy=y===undefined?99:y;if(yy<yM-1.6)return null;
+    let h=yM;if(lx>sx0&&lx<sx1&&Math.abs(lz)<sw/2&&yy>=yS-1.3)h=yS;else if(lx>st0&&lx<st1&&lz>stz0&&lz<stz1){const hs=stH(lx);if(yy>=hs-1.3)h=hs}
+    return {h,pri:40,surf:'wood'}};
+  deck.deck=1;SPECIAL.push(deck);
+  // gangway on the pier: a ramp along the quay edge, then a bridge across onto the promenade
+  const yP=SL+2.6,gu0=-28,gu1=-46,gv=44;
+  const gw=(x,z,y)=>{const [u,v]=F.inv(x,z);const yy=y===undefined?99:y;
+    if(v>gv-1.4&&v<gv+1.4&&u<gu0&&u>gu1){const h=yP+(yM-yP)*(gu0-u)/(gu0-gu1);return yy>=h-1.3?{h,pri:41,surf:'wood'}:null}
+    if(u<=gu1&&u>gu1-2.2&&v>gv-1.4&&v<49.5)return yy>=yM-1.3?{h:yM,pri:41,surf:'wood'}:null;return null};
+  gw.deck=1;SPECIAL.push(gw);
+  // gangway rails (stepped to follow the ramp) and the hull side at swimming height, so nobody swims inside the ship
+  const gr=(u0,v0,u1,v1,y0,y1)=>wallSeg(...F.P(u0,v0),...F.P(u1,v1),.2,y0,y1);
+  for(let u=gu0;u>gu1;u-=3){const h=yP+(yM-yP)*(gu0-u)/(gu0-gu1);for(const v of [gv-1.5,gv+1.5])gr(u,v,Math.max(gu1,u-3),v,h-.2,h+1.4)}
+  gr(gu1-2.3,gv-1.5,gu1-2.3,49.6,yM-.5,yM+1.1);gr(gu1,gv+1.5,gu1,48.4,yM-.5,yM+1.1);gr(gu1-2.3,gv-1.5,gu1,gv-1.5,yM-.5,yM+1.1);
+  wl(-75,-W/2,45,-W/2,SL-4,yM-1.7);wl(-75,W/2,45,W/2,SL-4,yM-1.7);wl(-75,-W/2,-75,W/2,SL-4,yM-1.7);
+  for(let x=45;x<75;x+=6)for(const s of [-1,1])wl(x,s*halfW(x),x+6,s*halfW(x+6),SL-4,yM-1.7);
+  {const ry=Math.atan2(Math.cos(a),Math.sin(a)),len=Math.hypot(gu0-gu1,yM-yP),m=F.P((gu0+gu1)/2,gv),gm=new THREE.MeshStandardMaterial({color:0x8c9298,roughness:.6,metalness:.5});
+   const ramp=new THREE.Mesh(new THREE.BoxGeometry(2.8,.18,len),gm);ramp.position.set(m[0],(yP+yM)/2-.1,m[1]);
+   ramp.rotation.set(Math.atan2(yM-yP,gu0-gu1),ry,0,'YXZ');ramp.castShadow=true;grp.add(ramp);
+   const b=F.P(gu1-1.1,(gv-1.4+49.5)/2),br=new THREE.Mesh(new THREE.BoxGeometry(2.2,.18,49.5-(gv-1.4)),gm);br.position.set(b[0],yM-.1,b[1]);br.rotation.y=ry+Math.PI/2;grp.add(br)}
+  // passengers: sunbathers by the pool, groups chatting on the decks, a few at the rails
+  const at=(lx,lz,y,pose,face)=>{const p=SF.P(lx,lz);CRUISE.people.push(Object.assign(randPerson(),{x:p[0],z:p[1],y,yaw:face-(a+Math.PI),pose,moving:false,phase:Math.random()*6,hand:Math.random()<.5?1:0}))};
+  for(let i=0;i<6;i++)for(const s of [-1,1])if((i+s+3)%3)at(-27+i*2.8,s*5.6,yS+.02,'sit',s>0?Math.PI:0);
+  for(const [lx,lz,n] of [[-6,2,3],[10,-3,2],[18,3,3]])for(let k=0;k<n;k++){const an=k/n*6.283,px=lx+Math.cos(an)*.8,pz=lz+Math.sin(an)*.8;at(px,pz,yS+.02,'talk',Math.atan2(lx-px,lz-pz))}
+  for(const [lx,lz] of [[-60,9.6],[-48,9.6],[35,-9.6],[52,6],[60,-4],[-66,-9.6]])at(lx,lz,yM+.02,'stand',lz>0?0:Math.PI);
+  MARINE.hulls.push({x:c[0],z:c[1],hl:75.5,hw:W/2+.5,ca:Math.cos(a),sa:Math.sin(a)});
+  const gp=F.P(gu0+4,gv);PLACES.push({id:'cruise',name:'Cruise liner Odesa Star',sub:'walk up the gangway at the sea terminal',x:gp[0],z:gp[1],yaw:Math.atan2(-Math.cos(a),-Math.sin(a))});
+}
+
 // ===================== watercraft at the sea terminal: a motor boat and a jet ski (F or the action button to board) =====================
 const WATERCRAFT_SPECS={
   boat:{name:'motor boat',len:6.2,beam:2.3,depth:.95,draft:.35,maxSpeed:17,reverse:5,turn:.95,keel:.80,lean:.012,plane:.22,seat:[0,.5,-1.05],hull:0xf3f0e8,stripe:0x1f3f73,deck:0xb98a5a},
@@ -7356,7 +7700,8 @@ class Watercraft{
   }
   // hull ends and middle must all be over water deeper than the draft, clear of quays and moored ships
   navigable(x,z,yaw){const s=this.spec,fx=Math.sin(yaw)*s.len*.45,fz=Math.cos(yaw)*s.len*.45;
-    for(const [px,pz] of [[x+fx,z+fz],[x,z],[x-fx,z-fz]]){if(groundH(px,pz)>SL-s.draft-.1)return false;if(insideAny(px,pz,s.beam*.5,SL+.6))return false}
+    for(const [px,pz] of [[x+fx,z+fz],[x,z],[x-fx,z-fz]]){if(groundH(px,pz)>SL-s.draft-.1)return false;if(insideAny(px,pz,s.beam*.5,SL+.6))return false;
+      for(const h of MARINE.hulls){const dx=px-h.x,dz=pz-h.z;if(Math.abs(dx*h.ca+dz*h.sa)<h.hl+s.beam*.5&&Math.abs(-dx*h.sa+dz*h.ca)<h.hw+s.beam*.5)return false}}
     return true}
   step(dt,thrIn,steerIn){const s=this.spec;
     this.throttle+=(thrIn-this.throttle)*Math.min(1,dt*2.5);this.rudder+=(steerIn-this.rudder)*Math.min(1,dt*4);
@@ -7372,11 +7717,12 @@ class Watercraft{
     if(Math.abs(u)+Math.abs(w)>.02){const nx=this.x+this.vx*dt,nz=this.z+this.vz*dt;
       if(this.navigable(nx,nz,this.yaw)){this.x=nx;this.z=nz}
       else{const sp=Math.hypot(this.vx,this.vz);if(this.occupied&&sp>3)crashSound(sp);this.vx*=-.25;this.vz*=-.25;this.throttle*=.3;this.yawRate*=.5}}
-    // buoyancy: a damped spring to the wave surface; at speed the hull planes up and the bow lifts
-    const t=UNI.uTime.value,a1=this.x*.21+t*1.3+this.ph,a2=this.z*.17-t*1.05;
-    const sp=Math.min(1,Math.abs(u)/s.maxSpeed),target=SL+Math.sin(a1)*.06+Math.sin(a2)*.05+s.plane*sp*sp;
+    // buoyancy: a damped spring to the swell under the hull (the same waves as the water shader); at speed it planes and the bow lifts
+    const t=UNI.uTime.value,bx=fx*s.len*.4,bz=fz*s.len*.4,lx=rx*s.beam*.5,lz=rz*s.beam*.5;
+    const hB=waveH(this.x+bx,this.z+bz,t),hS=waveH(this.x-bx,this.z-bz,t),hL=waveH(this.x+lx,this.z+lz,t),hR=waveH(this.x-lx,this.z-lz,t);
+    const sp=Math.min(1,Math.abs(u)/s.maxSpeed),target=SL+(hB+hS+hL+hR)/4+s.plane*sp*sp;
     this.vy+=((target-this.y)*28-this.vy*6.5)*dt;this.y+=this.vy*dt;
-    const pitchT=-(.07*sp+.05*Math.max(0,this.throttle-sp))+Math.cos(a1)*.025,rollT=Math.max(-.4,Math.min(.4,-this.yawRate*Math.abs(u)*s.lean))+Math.cos(a2)*.03;
+    const pitchT=-Math.atan((hB-hS)/(s.len*.8))-(.07*sp+.05*Math.max(0,this.throttle-sp)),rollT=Math.atan((hL-hR)/s.beam)+Math.max(-.4,Math.min(.4,-this.yawRate*Math.abs(u)*s.lean));
     this.pitch+=(pitchT-this.pitch)*Math.min(1,dt*3);this.roll+=(rollT-this.roll)*Math.min(1,dt*3);
     this.sync()}
   sync(){const s=this.spec;this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ');
@@ -7384,19 +7730,24 @@ class Watercraft{
     if(this.wake.visible){this.wake.position.set(this.x-Math.sin(this.yaw)*s.len*.48,SL+.04,this.z-Math.cos(this.yaw)*s.len*.48);this.wake.rotation.y=this.yaw;this.wake.scale.set(s.beam*(1.1+sp*1.6),1,s.len*(.4+sp*2.2));this.wake.material.opacity=.55*sp}}
   seatWorld(v){this.root.updateMatrixWorld();return v.set(...this.spec.seat).applyMatrix4(this.root.matrixWorld)}
 }
-const MARINE={crafts:[],cur:null,eng:null,_v:new THREE.Vector3(),
+const MARINE={crafts:[],cur:null,eng:null,hulls:[],_v:new THREE.Vector3(),
   // the quay alongside the sea terminal pier: open water at the pier's side, bows pointing out to sea
   init(world){
     if(typeof PORT==='undefined'||!PORT||!PORT.F){console.warn('marine: no sea terminal pier, watercraft not spawned');return}
     const F=PORT.F,yaw=Math.atan2(-F.ca,-F.sa);
     for(const [type,u,v] of [['boat',-170,49.5],['jetski',-150,48.6]]){const c=new Watercraft(type,0,0,yaw);const p=this.findWater(c,...F.P(u,v));if(!p)continue;
-      c.x=p[0];c.z=p[1];c.sync();world.add(c.root);this.crafts.push(c);
-      INTERACT.push({get x(){return c.x},get z(){return c.z},r:7,label:'Board the '+c.spec.name,cond:()=>!this.cur&&this.free(),fn:()=>this.enter(c)})}
+      this.add(world,c,p,7)}
+    // a second mooring for quick testing: the lagoon at Velykyi Fontan, the sea nearest to the 59k home (wade in to board)
+    const B=[1567,273],dir=[.990,.139],lat=[-dir[1],dir[0]],myaw=Math.atan2(dir[0],dir[1]);
+    for(const [type,d,l] of [['boat',31,-4],['jetski',29,5]]){const c=new Watercraft(type,0,0,myaw);const p=this.findWater(c,B[0]+dir[0]*d+lat[0]*l,B[1]+dir[1]*d+lat[1]*l);if(p)this.add(world,c,p,8.5)}
+    PLACES.push({id:'marina',name:'Boats · Velykyi Fontan',sub:'motor boat and jet ski off the beach',x:B[0],z:B[1],yaw:myaw});
   },
+  add(world,c,p,r){c.x=p[0];c.z=p[1];c.sync();world.add(c.root);this.crafts.push(c);
+    INTERACT.push({get x(){return c.x},get z(){return c.z},r,label:'Board the '+c.spec.name,cond:()=>!this.cur&&this.free(),fn:()=>this.enter(c)})},
   findWater(c,x,z){for(let r=0;r<=40;r+=1.5)for(let i=0;i<(r?16:1);i++){const a=i/16*6.283,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(c.navigable(px,pz,c.yaw))return [px,pz]}return null},
   free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit},
   nearest(maxd){let best=null,bd=maxd;for(const c of this.crafts){const d=Math.hypot(c.x-player.x,c.z-player.z);if(d<bd){bd=d;best=c}}return best},
-  keyF(){if(this.cur){this.exit();return true}if(!this.free())return false;const c=this.nearest(7);if(!c)return false;this.enter(c);return true},
+  keyF(){if(this.cur){this.exit();return true}if(!this.free())return false;const c=this.nearest(8.5);if(!c)return false;this.enter(c);return true},
   enter(c){if(this.cur||!this.free())return;
     if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=c;c.occupied=true;cam.init=false;$('spd').hidden=false;this.sound(true);
@@ -7434,37 +7785,51 @@ const MARINE={crafts:[],cur:null,eng:null,_v:new THREE.Vector3(),
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(c.x,c.y+1.1,c.z)}
 };
 
-// ===================== a co-op friend's helicopter =====================
-// A clone of the local Apache driven from a short buffer of received states, played back a little more
-// than one packet late. Packets arrive unevenly (~9 Hz), so drawing the newest one directly would jitter.
-class PeerHeli{
-  constructor(){
-    this.root=new THREE.Group();this.model=HELI.modelRoot.clone(true);this.root.add(this.model);
-    this.main=PeerHeli.twin(this.model,HELI.modelRoot,HELI.mainRotor);this.tail=PeerHeli.twin(this.model,HELI.modelRoot,HELI.tailRotor);
-    this.buf=[];this.gap=110;this.lastT=0;this.st=null;scene.add(this.root);
-  }
-  // the node in the clone at the same child-index path as `node` in the original
-  static twin(clone,src,node){if(!node)return null;const path=[];for(let o=node;o&&o!==src;o=o.parent){if(!o.parent)return null;path.unshift(o.parent.children.indexOf(o))}
-    let o=clone;for(const i of path)o=o&&o.children[i];return o||null}
-  push(s){const now=performance.now(),h=Array.isArray(s.h)?s.h:[0,0,.62],L=this.buf[this.buf.length-1];
-    const q={t:now,x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+h[0]||0,r:+h[1]||0,th:h[2]===undefined?.62:+h[2]};
+// ===================== co-op vehicles: a friend's helicopter or boat =====================
+// Received states are buffered and played back a few packets late, so uneven packet timing (~9 Hz)
+// never shows as jitter: positions follow a Catmull-Rom curve through the surrounding snapshots, angles are lerped.
+class NetSnaps{
+  constructor(){this.buf=[];this.gap=110;this.lastT=0;this.st=null}
+  push(q){const now=performance.now(),L=this.buf[this.buf.length-1];q.t=now;
     if(L&&q.x===L.x&&q.y===L.y&&q.z===L.z&&q.yaw===L.yaw&&q.p===L.p&&q.r===L.r)return;   // repeated presence, not a new packet
     if(L&&Math.hypot(q.x-L.x,q.y-L.y,q.z-L.z)>80){this.buf.length=0;this.st=null}        // teleport: snap
     if(this.lastT)this.gap+=(Math.min(600,now-this.lastT)-this.gap)*.2;this.lastT=now;
     this.buf.push(q);if(this.buf.length>16)this.buf.shift()}
-  sample(now){const b=this.buf;if(!b.length)return null;const t=now-Math.max(120,Math.min(350,this.gap*1.7)),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
-    const mix=(a,c,u)=>({x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u,yaw:a.yaw+wrap(c.yaw-a.yaw)*u,p:a.p+(c.p-a.p)*u,r:a.r+(c.r-a.r)*u,th:a.th+(c.th-a.th)*u});
+  // ~2.6 packet gaps behind: two dropped packets in a row still land inside the buffer (measured 8% step spread vs 19% at 1.7)
+  sample(now){const b=this.buf;if(!b.length)return null;const t=now-Math.max(140,Math.min(450,this.gap*2.6)),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+    const cr=(a,p,q,d,u)=>{const u2=u*u,u3=u2*u;return .5*(2*p+(q-a)*u+(2*a-5*p+4*q-d)*u2+(3*p-a-3*q+d)*u3)};
+    const lin=(A,C,u)=>{const o={};for(const k in C)o[k]=k==='yaw'?A.yaw+wrap(C.yaw-A.yaw)*u:A[k]+(C[k]-A[k])*u;return o};
     if(t<=b[0].t)return b[0];
-    for(let i=1;i<b.length;i++)if(t<=b[i].t)return mix(b[i-1],b[i],(t-b[i-1].t)/Math.max(1,b[i].t-b[i-1].t));
+    for(let i=1;i<b.length;i++)if(t<=b[i].t){const A=b[i-1],C=b[i],u=(t-A.t)/Math.max(1,C.t-A.t),o=lin(A,C,u),Z=b[i-2]||A,E=b[i+1]||C;
+      for(const k of ['x','y','z'])o[k]=cr(Z[k],A[k],C[k],E[k],u);return o}
     // late packet: carry on along the last segment for at most a quarter second
-    if(b.length<2)return b[0];const a=b[b.length-2],c=b[b.length-1];return mix(a,c,1+Math.min(250,t-c.t)/Math.max(1,c.t-a.t))}
-  update(dt){const q=this.sample(performance.now());if(!q)return null;
-    if(!this.st)this.st=Object.assign({},q);else{const k=1-Math.exp(-dt*18),s=this.st;   // light final smoothing over late-packet corrections
-      s.x+=(q.x-s.x)*k;s.y+=(q.y-s.y)*k;s.z+=(q.z-s.z)*k;s.yaw+=Math.atan2(Math.sin(q.yaw-s.yaw),Math.cos(q.yaw-s.yaw))*k;s.p+=(q.p-s.p)*k;s.r+=(q.r-s.r)*k;s.th+=(q.th-s.th)*k}
-    const s=this.st;this.root.position.set(s.x,s.y,s.z);this.root.rotation.set(s.p,s.yaw,s.r,'YXZ');
-    if(this.main)this.main.rotation.y+=dt*(12+s.th*34);if(this.tail)this.tail.rotation.z+=dt*(22+s.th*45);
+    if(b.length<2)return b[0];const A=b[b.length-2],C=b[b.length-1];return lin(A,C,1+Math.min(250,t-C.t)/Math.max(1,C.t-A.t))}
+  // light final smoothing over late-packet corrections
+  update(dt){const q=this.sample(performance.now());if(!q)return null;if(!this.st){this.st=Object.assign({},q);return this.st}
+    const k=1-Math.exp(-dt*18),s=this.st;
+    for(const key in q){if(key==='t')continue;if(key==='yaw')s.yaw+=Math.atan2(Math.sin(q.yaw-s.yaw),Math.cos(q.yaw-s.yaw))*k;else s[key]=s[key]===undefined?q[key]:s[key]+(q[key]-s[key])*k}
     return s}
+}
+class PeerHeli{
+  constructor(){
+    this.root=new THREE.Group();this.model=HELI.modelRoot.clone(true);this.root.add(this.model);
+    this.main=PeerHeli.twin(this.model,HELI.modelRoot,HELI.mainRotor);this.tail=PeerHeli.twin(this.model,HELI.modelRoot,HELI.tailRotor);
+    this.net=new NetSnaps();scene.add(this.root);
+  }
+  // the node in the clone at the same child-index path as `node` in the original
+  static twin(clone,src,node){if(!node)return null;const path=[];for(let o=node;o&&o!==src;o=o.parent){if(!o.parent)return null;path.unshift(o.parent.children.indexOf(o))}
+    let o=clone;for(const i of path)o=o&&o.children[i];return o||null}
+  push(s){const h=Array.isArray(s.h)?s.h:[0,0,.62];this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+h[0]||0,r:+h[1]||0,th:h[2]===undefined?.62:+h[2]})}
+  update(dt){const s=this.net.update(dt);if(!s)return null;this.root.position.set(s.x,s.y,s.z);this.root.rotation.set(s.p,s.yaw,s.r,'YXZ');
+    if(this.main)this.main.rotation.y+=dt*(12+s.th*34);if(this.tail)this.tail.rotation.z+=dt*(22+s.th*45);return s}
   dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local Apache
+}
+// a friend's motor boat / jet ski: its own Watercraft model driven from the network, with the friend seated on it
+class PeerBoat{
+  constructor(type){this.type=type;this.craft=new Watercraft(type,0,0,0);scene.add(this.craft.root);this.net=new NetSnaps()}
+  push(s){const w=s.wc;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+w[1]||0,r:+w[2]||0,u:+w[3]||0})}
+  update(dt){const s=this.net.update(dt);if(!s)return null;const c=this.craft;c.x=s.x;c.y=s.y;c.z=s.z;c.yaw=s.yaw;c.pitch=s.p;c.roll=s.r;c.u=s.u;c.sync();return s}
+  dispose(){scene.remove(this.craft.root);scene.remove(this.craft.wake)}
 }
 
 boot();
