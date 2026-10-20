@@ -7039,7 +7039,7 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
     if(air<r){for(let i=0;i<12;i++){const a=i/12*6.283+R()*.4,sp=(8+R()*6)*k;
       this.puff({x:x+Math.cos(a)*1.2,y:gy+.6,z:z+Math.sin(a)*1.2,vx:Math.cos(a)*sp,vy:.5+R()*.9,vz:Math.sin(a)*sp,s0:r*.45,s1:r*1.5,life:1.5+R()*.8,c0:[.62,.55,.45],c1:[.5,.46,.4],op:.62,add:false,drag:3,delay:.04,grow:1})}}
     // shockwave ring
-    {const rg=this.rings.find(q=>!q.on)||this.rings[0];rg.on=true;rg.t=0;rg.r=r;rg.m.position.set(x,Math.max(gy,y-1)+.12,z);rg.m.visible=true;rg.m.scale.set(1,1,1)}
+    {const rg=this.rings.find(q=>!q.on)||this.rings[0];rg.on=true;rg.t=0;rg.r=r;rg.m.material.color.set(0xffe9c0);rg.m.position.set(x,Math.max(gy,y-1)+.12,z);rg.m.visible=true;rg.m.scale.set(1,1,1)}
     // sparks / embers
     for(let n=0,i=0;n<70+((k*50)|0);n++){let q=-1;for(let j=0;j<this.sN;j++){const idx=(this.sCur=(this.sCur+1)%this.sN);if(this.sLife[idx]<=0){q=idx;break}}if(q<0)break;
       const a=R()*6.283,e=R()*1.4,sp=(8+R()*20)*k;this.sPos[q*3]=x;this.sPos[q*3+1]=y+.4;this.sPos[q*3+2]=z;this.sVel[q*3]=Math.cos(a)*Math.cos(e)*sp;this.sVel[q*3+1]=Math.sin(e)*sp*.9+3;this.sVel[q*3+2]=Math.sin(a)*Math.cos(e)*sp;this.sLife[q]=.7+R()*1.5}
@@ -7134,7 +7134,8 @@ const WEAPONS=[
   {n:'Uzi',        k:'4',dmg:10,cd:.065,auto:true, spread:.04, col:0x222428},
   {n:'Bazooka',    k:'5',dmg:95,cd:2.4,auto:false,spread:0,   col:0x4d6b3a,rocket:true},
   {n:'C4',         k:'6',dmg:100,cd:.6,auto:false,spread:0,   col:0xd8cfa8,c4:true},
-  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true}];
+  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true},
+  {n:'Neon katana',k:'8',dmg:40,cd:.42,auto:false,spread:0,   col:0xff2a8a,melee:true}];
 const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],exs:[],c4:[],kb:null,down:0,spawn:null,
   seen:new Map(),held:false,rockets:[],tracers:[],booms:[],c4m:new Map(),remoteR:[],models:[],ac:null,flash:0,last:{},ui:null,lastTag:0,
   // ---------- models ----------
@@ -7142,7 +7143,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     if(this.models[i])return this.models[i];
     const W=WEAPONS[i],g=new THREE.Group();const dark=new THREE.MeshStandardMaterial({color:W.col,roughness:.35,metalness:.7}),grip=new THREE.MeshStandardMaterial({color:0x1b1b1d,roughness:.7,metalness:.2});
     const B=(x,y,z,sx,sy,sz,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m||dark);b.position.set(x,y,z);b.castShadow=true;g.add(b);return b};
-    if(i<4)this.gunModel(g,i);
+    if(W.melee)this.katanaModel(g);
+    else if(i<4)this.gunModel(g,i);
     else if(i===4||i===6){this.bazooka(g,i===6)}
     else this.c4Model(g);
     if(i<4)g.scale.setScalar(1.4);g.rotation.x=Math.PI/2;g.position.set(0,-.2,.04);this.models[i]=g;return g},
@@ -7152,6 +7154,10 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     if(!on){if(P._gw){A.el.remove(P._gw);P._gw=null;P._gi=-1}return}
     if(P._gi!==w){if(P._gw)A.el.remove(P._gw);P._gw=this.model(w).clone();A.el.add(P._gw);P._gi=w}
     A.sh.rotation.x=-1.42+((P===PLR&&this.rec)?this.rec*.22:0);A.sh.rotation.z=0;A.el.rotation.x=-.05;
+    // katana: two hands on the grip; the right arm sweeps through a strike while GUN.slash runs 1 -> 0
+    if(WEAPONS[w]&&WEAPONS[w].melee){const sl=P===PLR?this.slash:0,k=sl>0?Math.sin(Math.PI*(1-sl)):0;
+      A.sh.rotation.x=-1.15-1.1*k;A.sh.rotation.z=sl>0?.9*Math.cos(Math.PI*(1-sl)):0;A.el.rotation.x=-.35;
+      const L=P.arms[0];L.sh.rotation.x=-1.0-.6*k;L.sh.rotation.z=.35;L.el.rotation.x=-.6}
     // two-handed hold for the bazooka
     if(w===4||w===6){const L=P.arms[0];L.sh.rotation.x=-1.2;L.sh.rotation.z=.25;L.el.rotation.x=-.4}},
   // ---------- audio ----------
@@ -7161,6 +7167,49 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
       for(let i=0;i<n;i++){const t=i/n;d[i]=(Math.random()*2-1)*Math.pow(1-t,kind==='boom'?1.6:3)}
       const src=ac.createBufferSource();src.buffer=buf;const f=ac.createBiquadFilter();f.type=kind==='boom'?'lowpass':'bandpass';f.frequency.value=kind==='boom'?260:(kind==='uzi'?1500:kind==='deagle'?700:kind==='magnum'?600:1100);
       const gn=ac.createGain();gn.gain.value=(vol||1)*(kind==='boom'?1.6:.55);src.connect(f);f.connect(gn);gn.connect(ac.destination);src.start();if(kind==='shot'||kind==='deagle'||kind==='magnum'||kind==='uzi'){const o=ac.createOscillator(),og=ac.createGain(),t0=ac.currentTime;o.type='triangle';o.frequency.setValueAtTime(kind==='uzi'?210:kind==='shot'?170:120,t0);o.frequency.exponentialRampToValueAtTime(40,t0+.12);og.gain.setValueAtTime((vol||1)*(kind==='uzi'?.35:.7),t0);og.gain.exponentialRampToValueAtTime(.001,t0+.14);o.connect(og);og.connect(ac.destination);o.start(t0);o.stop(t0+.16)}}catch(e){}},
+  // ---------- neon katana (blade along +z): chrome blade, magenta neon edge, glowing guard ----------
+  katanaModel(g){
+    const chrome=new THREE.MeshStandardMaterial({color:0xdfe6ee,roughness:.12,metalness:1,emissive:0x2a0a22,emissiveIntensity:.6}),
+      wrap=new THREE.MeshStandardMaterial({color:0x14121a,roughness:.8}),
+      neon=new THREE.MeshBasicMaterial({color:0xff2a8a,toneMapped:false}),cyan=new THREE.MeshBasicMaterial({color:0x2ae6ff,toneMapped:false}),
+      glow=new THREE.MeshBasicMaterial({color:0xff3aa0,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
+    const B=(x,y,z,sx,sy,sz,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);b.position.set(x,y,z);g.add(b);return b};
+    const grip=new THREE.Mesh(new THREE.CylinderGeometry(.018,.02,.26,10),wrap);grip.rotation.x=Math.PI/2;grip.position.z=-.06;g.add(grip);
+    for(let k=0;k<4;k++){const r=new THREE.Mesh(new THREE.TorusGeometry(.021,.004,6,12),cyan);r.position.z=-.16+k*.06;g.add(r)}
+    B(0,0,.08,.07,.07,.016,neon);                                        // tsuba
+    const blade=new THREE.Group();blade.name='blade';g.add(blade);
+    const core=new THREE.Mesh(new THREE.BoxGeometry(.008,.034,.92),chrome);core.position.z=.55;core.castShadow=true;blade.add(core);
+    const edge=new THREE.Mesh(new THREE.BoxGeometry(.004,.006,.9),neon);edge.position.set(0,.019,.55);blade.add(edge);
+    const tip=new THREE.Mesh(new THREE.BoxGeometry(.008,.03,.06),chrome);tip.position.set(0,.004,1.03);tip.rotation.x=.45;blade.add(tip);
+    const halo=new THREE.Mesh(new THREE.BoxGeometry(.03,.06,.95),glow);halo.position.z=.55;halo.name='halo';blade.add(halo)},
+  // electric hum: quiet while the katana is in hand, loud and higher for the length of a strike
+  katanaTick(dt){const on=this.armed&&!this.down&&!PORTAL.cur&&WEAPONS[this.w]&&WEAPONS[this.w].melee;
+    if(PLR&&PLR._gw&&on){const b=PLR._gw.getObjectByName('blade');if(b){const a=this.slash>0?.006:.0015;b.position.set((Math.random()-.5)*a,(Math.random()-.5)*a,0);
+      const h=b.getObjectByName('halo');if(h)h.material.opacity=.25+Math.random()*.15+this.slash*.5}}
+    if(!on&&!this.hum)return;
+    try{if(!this.ac){const C=window.AudioContext||window.webkitAudioContext;if(!C)return;this.ac=new C()}const ac=this.ac;
+      if(!this.hum){const o=ac.createOscillator(),o2=ac.createOscillator(),f=ac.createBiquadFilter(),g=ac.createGain(),lfo=ac.createOscillator(),lg=ac.createGain();
+        o.type='sawtooth';o.frequency.value=98;o2.type='square';o2.frequency.value=147;f.type='lowpass';f.frequency.value=900;f.Q.value=4;g.gain.value=0;
+        lfo.frequency.value=33;lg.gain.value=.4;lfo.connect(lg);lg.connect(g.gain);   // fast tremolo: the buzz
+        o.connect(f);o2.connect(f);f.connect(g);g.connect(ac.destination);o.start();o2.start();lfo.start();this.hum={o,o2,f,g}}
+      const T=ac.currentTime,H=this.hum,k=on?(this.slash>0?1:0):-1;
+      H.g.gain.setTargetAtTime(k<0?0:(k?.09:.012),T,.05);H.o.frequency.setTargetAtTime(k>0?190:98,T,.04);H.f.frequency.setTargetAtTime(k>0?2600:900,T,.05)}catch(e){}},
+  // a strike: an arc in front of you; people are knocked over by an electric shock, friends in a PvP round take damage
+  strike(W){this.cd=W.cd;this.slash=1;this.shots++;
+    const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw),hx=player.x+fx*1.3,hz=player.z+fz*1.3,hy=player.y+1.1;
+    this.sfx('uzi',.35);let hit=0;
+    for(const L of SHOVE.lists())for(const q of L){const dx=q.x-player.x,dz=q.z-player.z,d=Math.hypot(dx,dz);
+      if(d<2.6&&Math.abs(q.y-player.y)<1.6&&(d<.6||(dx*fx+dz*fz)/d>.25)&&!(q.fallT>0)){SHOVE.hitPed(q,true,true);this.shock(q.x,q.y+1,q.z);hit++}}
+    for(const R of this.peersAlive()){const dx=R.x-player.x,dz=R.z-player.z,d=Math.hypot(dx,dz);
+      if(d<2.6&&Math.abs(R.y-player.y)<1.8&&(d<.6||(dx*fx+dz*fz)/d>.25)){this.addHit(R.peer,W.dmg);this.shock(R.x,R.y+1,R.z);toast('Slash!',(R.st.n||'Friend')+' −'+W.dmg);hit++}}
+    if(!hit)this.shock(hx,hy,hz,true);
+    this.push()},
+  // neon shockwave: a flat ring plus a spray of sparks and a short magenta/cyan flash
+  shock(x,y,z,miss){FX.init();const R=Math.random;
+    {const rg=FX.rings.find(q=>!q.on)||FX.rings[0];rg.on=true;rg.t=0;rg.r=miss?.9:1.8;rg.m.position.set(x,groundAt(x,z,y)+.15,z);rg.m.visible=true;rg.m.material.color.set(0xff6ad5)}
+    FX.puff({x,y,z,vx:0,vy:0,vz:0,s0:.3,s1:miss?1.2:2.2,life:.3,c0:[1,.35,.9],c1:[.3,.85,1],op:.9,add:true,drag:0});
+    for(let n=0;n<(miss?12:40);n++){let q=-1;for(let j=0;j<FX.sN;j++){const idx=(FX.sCur=((FX.sCur||0)+1)%FX.sN);if(FX.sLife[idx]<=0){q=idx;break}}if(q<0)break;
+      const a=R()*6.283,e=R()*1.2,sp=4+R()*9;FX.sPos[q*3]=x;FX.sPos[q*3+1]=y;FX.sPos[q*3+2]=z;FX.sVel[q*3]=Math.cos(a)*Math.cos(e)*sp;FX.sVel[q*3+1]=Math.sin(e)*sp*.7+1.5;FX.sVel[q*3+2]=Math.sin(a)*Math.cos(e)*sp;FX.sLife[q]=.25+R()*.45}},
   // ---------- detailed pistols / revolver / SMG (barrel along +z) ----------
   gunModel(g,i){
     const mt=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
@@ -7270,6 +7319,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   fire(){
     if(!this.canFire()||this.cd>0)return;const W=WEAPONS[this.w];
     if(W.c4){this.placeC4();return}
+    if(W.melee){this.strike(W);return}
     this.cd=W.cd;this.shots++;const {o,d}=this.aimRay();
     d.x+=(Math.random()-.5)*W.spread;d.y+=(Math.random()-.5)*W.spread;d.z+=(Math.random()-.5)*W.spread;d.normalize();
     this.last.ax=d.x;this.last.az=d.z;this.last.ay2=d.y;
@@ -7331,6 +7381,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   tick(dt){
     if(this.cd>0)this.cd-=dt;
     if(this.rec>0)this.rec=Math.max(0,this.rec-dt*9);
+    if(this.slash>0)this.slash=Math.max(0,this.slash-dt*3.4);
+    this.katanaTick(dt);
     if(this.flash>0){this.flash-=dt;if(this.ui)this.ui.vig.style.opacity=Math.max(0,Math.min(.6,this.flash*2.2))}
     if(this.down>0){this.down-=dt;if(this.down<=0)this.respawn()}
     for(const t of this.tracers)if(t.on){t.t-=dt;if(t.t<=0){t.on=false;t.mesh.visible=false}}
@@ -7364,7 +7416,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     rows.sort((a,b)=>b.k-a.k||a.d-b.d);const key=JSON.stringify(rows);if(key!==this.boardKey){this.boardKey=key;u.board.innerHTML=rows.slice(0,10).map(r=>'<div'+(r.me?' class="me"':'')+'><span>'+r.n.replace(/[<>&]/g,'')+'</span><b>'+r.k+'/'+r.d+'</b></div>').join('')}},
   // ---------- UI ----------
   setArmed(on){
-    this.armed=!!on;this.used=true;if(on){this.spawn={x:player.x,z:player.z,yaw:player.yaw};this.hp=100;this.down=0;this.kills=0;this.deaths=0;toast('Armed','1–6 pick a weapon · F or the Fire button shoots')}
+    this.armed=!!on;this.used=true;if(on){this.spawn={x:player.x,z:player.z,yaw:player.yaw};this.hp=100;this.down=0;this.kills=0;this.deaths=0;toast('Armed','1–8 pick a weapon (8: neon katana) · F or the Fire button shoots or strikes')}
     else{this.c4=[];this.hits=[];this.exs=[];this.kb=null}
     this.sync();this.push()},
   sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent=this.armed?'Armed ✓':'Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;u.hudw.hidden=!this.armed;
@@ -7395,7 +7447,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ui.btn=document.createElement('button');ui.btn.id='bGun';ui.btn.textContent='Armed';ui.btn.onclick=()=>this.setArmed(!this.armed);$('topBtns').appendChild(ui.btn);
     this.ui=ui;this.sync();
     addEventListener('keydown',e=>{if(!started||!this.armed)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
-      if(e.code==='KeyF'){if(!e.repeat){this.held=true;this.fire()}}else if(/^Digit[1-7]$/.test(e.code))this.pick(+e.code.slice(5)-1);else if(e.code==='KeyE')this.detonate()});
+      if(e.code==='KeyF'){if(!e.repeat){this.held=true;this.fire()}}else if(/^Digit[1-8]$/.test(e.code))this.pick(+e.code.slice(5)-1);else if(e.code==='KeyE')this.detonate()});
     addEventListener('keyup',e=>{if(e.code==='KeyF')this.held=false});
     ANIM.push(dt=>GUN.tick(dt))}
 };
@@ -7595,13 +7647,13 @@ const SHOVE={cool:0,last:null,lastT:0,cand:null,bub:null,
   say(p,lines){p.say=R_(lines);p.sayT=2.6;this.bub=p},
   hitSound(k){if(window.AUD&&AUD.burst)AUD.burst(700,90,.12,.2+.25*k,'lowpass',.8)},
   act(hard){if(!this.free()||this.cool>0)return false;const p=this.near(1.8);if(!p)return false;this.cool=.35;
-    const now=performance.now(),again=p===this.last&&now-this.lastT<1300;this.last=p;this.lastT=now;
-    const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d,down=hard||again;
+    const now=performance.now(),again=p===this.last&&now-this.lastT<1300;this.last=p;this.lastT=now;this.hitPed(p,hard||again);return true},
+  ZAP:['Aaa! It burns!','Is that a sword?!','Cyberpsycho!','Call the police!'],
+  hitPed(p,down,zap){const dx=p.x-player.x,dz=p.z-player.z,d=Math.hypot(dx,dz)||1,ux=dx/d,uz=dz/d;
     p.kx=p.kx||0;p.kz=p.kz||0;const f=down?5.2:3.2;p.kvx=(p.kvx||0)+ux*f;p.kvz=(p.kvz||0)+uz*f;
-    if(down){p.fallT=2.8;p.fallDir=(ux*Math.sin(p.yaw)+uz*Math.cos(p.yaw))>0?1:-1;p.react=0;this.say(p,this.DOWN);this.hitSound(1);if(typeof FX!=='undefined'&&FX.ready){FX.shakeT=.18;FX.shakeA=.06}}
+    if(down){p.fallT=2.8;p.fallDir=(ux*Math.sin(p.yaw)+uz*Math.cos(p.yaw))>0?1:-1;p.react=0;this.say(p,zap?this.ZAP:this.DOWN);this.hitSound(1);if(typeof FX!=='undefined'&&FX.ready){FX.shakeT=.18;FX.shakeA=.06}}
     else{p.react=1.6;this.hitSound(.3);if(Math.random()<.3)this.pushBack(p);else{p.flee=4;this.say(p,this.LINES)}}
-    for(const L of this.lists())for(const q of L)if(q!==p&&!q.fallT&&Math.hypot(q.x-p.x,q.z-p.z)<7){q.react=Math.max(q.react||0,1.2);q.yaw=Math.atan2(player.x-q.x,player.z-q.z)}
-    return true},
+    for(const L of this.lists())for(const q of L)if(q!==p&&!q.fallT&&Math.hypot(q.x-p.x,q.z-p.z)<7){q.react=Math.max(q.react||0,1.2);q.yaw=Math.atan2(player.x-q.x,player.z-q.z);if(zap)q.flee=4}},
   pushBack(p){this.say(p,this.BACK);p.yaw=Math.atan2(player.x-p.x,player.z-p.z);const ux=player.x-p.x,uz=player.z-p.z,d=Math.hypot(ux,uz)||1;
     player.vx+=ux/d*7;player.vz+=uz/d*7;player.vy=3.2;player.air=true;this.hitSound(.6)},
   // people walk their path; the shove is an offset on top of it, taken off before updatePeds and put back after
