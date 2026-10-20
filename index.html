@@ -191,10 +191,43 @@ async function inflate(bin){
   await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s)});
   return pako.inflate(bin);
 }
+// World data: six base64 text chunks. School / hotel networks stall single requests for a long time, so
+// the chunks download in parallel, a request that makes no progress for 20 s is retried, and the
+// base64 → bytes step runs in slices that yield to the browser (iPad Safari froze on one big atob loop).
+const yieldUI=()=>new Promise(r=>setTimeout(r,0));
+async function fetchChunk(name,onBytes){
+  let err=null;
+  for(let attempt=0;attempt<4;attempt++){
+    const ac=typeof AbortController!=='undefined'?new AbortController():null;let stall=0,got=0;
+    const arm=()=>{clearTimeout(stall);stall=setTimeout(()=>{if(ac)ac.abort()},20000)};
+    try{
+      arm();const r=await fetch(name,ac?{signal:ac.signal}:{});
+      if(!r.ok)throw new Error('World data chunk '+name+' failed: '+r.status);
+      let text;
+      if(r.body&&r.body.getReader&&typeof TextDecoder!=='undefined'){
+        const rd=r.body.getReader(),dec=new TextDecoder(),parts=[];
+        for(;;){const {done,value}=await rd.read();if(done)break;arm();got+=value.length;onBytes(value.length);parts.push(dec.decode(value,{stream:true}))}
+        parts.push(dec.decode());text=parts.join('');
+      }else{text=await r.text();got=text.length;onBytes(got)}
+      clearTimeout(stall);return text;
+    }catch(e){clearTimeout(stall);err=e;onBytes(-got);console.warn('retrying '+name,e);await new Promise(r=>setTimeout(r,800*(attempt+1)))}
+  }
+  throw err;
+}
+async function b64Bytes(b64){
+  const n=b64.length,pad=b64.endsWith('==')?2:b64.endsWith('=')?1:0,out=new Uint8Array(Math.ceil(n/4)*3-pad);
+  const SLICE=1<<19;let o=0;   // 512 K characters, a multiple of 4
+  for(let i=0;i<n;i+=SLICE){const bs=atob(b64.slice(i,i+SLICE));for(let j=0;j<bs.length;j++)out[o++]=bs.charCodeAt(j);await yieldUI()}
+  return out;
+}
 async function decodeData(){
-  const chunks=[];for(let i=0;i<6;i++){const name="d"+i+".txt";const response=await fetch("d" + i + ".txt");if(!response.ok)throw new Error("World data chunk "+name+" failed: "+response.status);chunks.push(await response.text())}const b64=chunks.join("").replace(/\s/g,"");
-  const bs=atob(b64);const bin=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)bin[i]=bs.charCodeAt(i);
-  const raw=await inflate(bin);
+  const btn=document.getElementById('bStart'),EST=6*719323;let bytes=0,shown=-1;
+  const onBytes=k=>{bytes+=k;const p=Math.max(0,Math.min(99,Math.floor(bytes/EST*100)));if(p!==shown&&btn){shown=p;btn.textContent='Loading the map… '+p+'%'}};
+  const chunks=await Promise.all([0,1,2,3,4,5].map(i=>fetchChunk('d'+i+'.txt',onBytes)));
+  const b64=chunks.join('').replace(/\s/g,'');chunks.length=0;
+  if(btn)btn.textContent='Unpacking the map…';await yieldUI();
+  const bin=await b64Bytes(b64);
+  const raw=await inflate(bin);await yieldUI();
   let o=0;const T={'<f4':Float32Array,'<u4':Uint32Array,'|u1':Uint8Array,'|i1':Int8Array,'<i2':Int16Array,'<u2':Uint16Array,'<i4':Int32Array};
   for(const [name,dt,n] of HDR.arrays){const C=T[dt];const by=n*C.BYTES_PER_ELEMENT;D[name]=new C(raw.buffer.slice(raw.byteOffset+o,raw.byteOffset+o+by));o+=by}
   const [tw,th]=HDR.ter;D.tw=tw;D.th=th;
@@ -202,7 +235,7 @@ async function decodeData(){
   const nb=HDR.nB;D.bRing0=new Uint32Array(nb+1);D.rV0=new Uint32Array(HDR.nBR+1);
   let r=0;for(let k=0;k<nb;k++){D.bRing0[k]=r;r+=D.bnr[k]}D.bRing0[nb]=r;
   let v=0;for(let k=0;k<HDR.nBR;k++){D.rV0[k]=v;v+=D.brl[k]}D.rV0[HDR.nBR]=v;
-  prepRoads();prepRails();
+  await yieldUI();prepRoads();await yieldUI();prepRails();
 }
 // ---------- road topology
 function prepRoads(){
@@ -2245,7 +2278,10 @@ function buildSupermarket(grp,G,P,Sg,GR,y0,baseY){
   const flushBoxBatches=()=>{
     for(const [mat,matrices] of boxBatches){
       const mesh=new THREE.InstancedMesh(unitBox,mat,matrices.length);
-      for(let i=0;i<matrices.length;i++)mesh.setMatrixAt(i,matrices[i]);
+      // white per-instance colour: these materials are shared with instanced meshes that use instanceColor, and
+      // three r128 then reuses that program here and reads a null colour buffer (render threw every frame)
+      const white=new THREE.Color(1,1,1);
+      for(let i=0;i<matrices.length;i++){mesh.setMatrixAt(i,matrices[i]);mesh.setColorAt(i,white)}
       mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=true;mesh.receiveShadow=true;
       mesh.frustumCulled=false;commercialCenter.add(mesh);
     }
@@ -4098,6 +4134,7 @@ function carAhead(c,d){return [c.x+Math.sin(c.yaw)*d,c.z+Math.cos(c.yaw)*d]}
 function toggleCar(){
   if(!started)return;
   if(HELI.on){toast('Land first','leave the helicopter before driving');return}
+  if(MARINE.cur){toast('Get off the '+MARINE.cur.spec.name+' first','steer up to the quay or a beach');return}
   if(DRIVE.on){exitCar();return}
   if(curIndoor){toast('Can\'t drive here','go outside first');return}
   if(RIDE.on||PORTAL.cur)return;
@@ -5398,7 +5435,7 @@ const HELI={
     tryModelPath(0);
   },
   toggle(){
-    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit)return;
+    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur)return;
     if(!this.loaded){
       toast(this.loadError?'Helicopter unavailable':'Helicopter loading','Check the model asset and reload the game');
       return;
@@ -5649,7 +5686,9 @@ function recommendedQuality(){
   if(cores>=4&&(!mem||mem>=4))return 'mid';
   return 'low';
 }
-const S={time:'day',season:'summer',q:TOUCH?'low':recommendedQuality()};
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const MOBILE=IOS||(TOUCH&&/Android|Mobi/i.test(navigator.userAgent));
+const S={time:'day',season:'summer',q:MOBILE?'mid':(TOUCH?'low':recommendedQuality())};
 try{const o=JSON.parse(localStorage.getItem('odesa2')||'{}');Object.assign(S,o)}catch(e){}
 function saveS(){try{localStorage.setItem('odesa2',JSON.stringify(S))}catch(e){}}
 let renderer,scene,camera,composer=null,bloomPass=null,fxaaPass=null,sunL,hemiL,sky,nightSky,seaMesh,pmrem,envRT=null,snowPts=null,PLR,started=false;
@@ -5668,6 +5707,7 @@ function syncMultiplayerState(){
   };
   if(typeof CARS!=='undefined')for(let i=0;i<CARS.length;i++){const c=CARS[i];write('traffic-'+i,c.x,c.y,c.z,c.yaw,c.type)}
   if(DRIVE.on&&DRIVE.car){const c=DRIVE.car;write('local-car',c.x,c.y,c.z,c.yaw,c.type)}
+  MARINE.crafts.forEach((c,i)=>write('boat-'+i,c.x,c.y,c.z,c.yaw,c.type));
   if(HELI.on){const p=HELI.root.position;write('local-heli',p.x,p.y,p.z,HELI.yaw,'helicopter');players.local.flight={velocity:HELI.velocity.toArray(),pitch:HELI.pitch,roll:HELI.roll,throttle:HELI.throttle}}
   else delete players.local.flight;
 }
@@ -5700,13 +5740,25 @@ const TOD={
 };
 const QUAL={low:{pr:.7,shadow:512,sr:26,bloom:false,R:300,trees:90,tdens:.25,cars:3,peds:4},mid:{pr:1,shadow:1024,sr:55,bloom:true,R:520,trees:320,tdens:1,cars:14,peds:22},high:{pr:2,shadow:2048,sr:85,bloom:true,R:640,trees:380,tdens:1,cars:18,peds:28}};
 if(!QUAL[S.q])S.q=recommendedQuality();
-function Qp(){return QUAL[S.q]||QUAL.mid}
+// Mobile Safari budget: one 1024 shadow map, no half-float bloom target, chunks within 450 m.
+// Above this the tab runs out of GPU memory and iOS silently drops the WebGL context.
+const MOBILE_CAP={pr:1.5,shadow:1024,sr:55,R:450,trees:260,cars:10,peds:16};
+const QUAL_MOBILE={};
+function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q]?S.q:'mid';
+  if(!QUAL_MOBILE[key]){const m=Object.assign({},q,{bloom:false});for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
+  return QUAL_MOBILE[key]}
 let lowRenderScale=1;
 function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)}
 
 // ---------- renderer / post ----------
 function setupRenderer(){
-  renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:S.q==='high',powerPreference:'high-performance',stencil:true,depth:true});renderer.info.autoReset=false;
+  renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:S.q==='high'&&!MOBILE,powerPreference:'high-performance',stencil:true,depth:true});renderer.info.autoReset=false;
+  // If the GPU drops the context anyway, step the quality down and reload instead of leaving a black screen.
+  $('c').addEventListener('webglcontextlost',e=>{e.preventDefault();
+    const order=['low','mid','high'],i=order.indexOf(S.q);if(i>0){S.q=order[i-1];saveS()}
+    const b=$('bStart');if(b)b.textContent='Graphics reset — reloading…';
+    setupRenderer.lostT=setTimeout(()=>location.reload(),1500)},false);
+  $('c').addEventListener('webglcontextrestored',()=>{clearTimeout(setupRenderer.lostT);location.reload()},false);
   renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   pmrem=new THREE.PMREMGenerator(renderer);
@@ -6028,6 +6080,7 @@ function updateCityLOD(dt){
 }
 function teleportRaw(x,z,yaw,syncRadius=280){
   if(RIDE.on){RIDE.on=false;RIDE.tram=null}
+  if(MARINE.cur)MARINE.exit(true);
   if(PORTAL.cur){PORTAL.cur=null;PORTAL.setCity(true);for(const n in PORTAL.built)PORTAL.built[n].grp.visible=false}
   if(typeof DRIVE!=='undefined'&&DRIVE.on){DRIVE.on=false;DRIVE.v=0;$('bCar').classList.remove('on');$('spd').hidden=true;engineOn(false);PLR.root.visible=true}
   player.x=x;player.z=z;player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null;player.yaw=yaw||0;cam.yaw=player.yaw;cam.init=false;
@@ -6182,6 +6235,7 @@ function surfaceAt(x,z,y){
 function stepCamera(dt){
   if(window.DBGCAM){const c=window.DBGCAM;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);return}
   if(HELI.on&&started)return HELI.stepCamera(dt);
+  if(MARINE.cur&&started)return MARINE.stepCamera(dt);
   if(DRIVE.on&&started)return stepCarCamera(dt);
   if(RIDE.on&&started)return stepTramCamera(dt);
   const tx=player.x,ty=player.y+(player.scoot?1.5:(player.sit?1.0:1.35)),tz=player.z;
@@ -6283,6 +6337,7 @@ function updateHUD(dt){
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
   if(DRIVE.on)best={label:'Get out of the car',fn:exitCar};
   if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':'Get off the tram',fn:leaveTram};
+  if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
   curAct=best;const ab=$('bAct');if(best){ab.hidden=false;ab.textContent=(TOUCH?'':'E · ')+best.label}else ab.hidden=true;
   if(miniT<=0){miniT=.1;drawMini()}
 }
@@ -6364,7 +6419,7 @@ function setupInput(){
   addEventListener('keydown',e=>{if(!started)return;inp.k[e.code]=true;
     if(e.code==='Space'){inp.jump=true;e.preventDefault()}
     if(e.code==='KeyE'&&!HELI.on)doAction();
-    if(e.code==='KeyF'&&!HELI.on)toggleScoot();
+    if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!MARINE.keyF())toggleScoot();
     if(e.code==='KeyC')toggleCar();
     if(e.code==='KeyV'&&!e.repeat)HELI.toggle();
     if(e.code==='KeyQ'&&!HELI.on&&(typeof SPK!=='undefined')&&SPK)SPK.toggleCarry();
@@ -6479,10 +6534,12 @@ async function boot(){
   PLR=makePlayer();PLR.root.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeAvatar(PLR.root);scene.add(PLR.root);
   initPeopleMeshes(scene,100);initCarMeshes(scene,20);
   HELI.init(scene);
+  try{MARINE.init(scene)}catch(e){console.error('marine',e)}
   applyQuality();applyTime();
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   $('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
-  warmupShaders(true);
+  // unhiding every interior to compile it doubles GPU memory for a moment — too much for mobile Safari
+  warmupShaders(!MOBILE);
   buildPlaceList();
   window.addEventListener('resize',onResize);
   setupInput();
@@ -6497,7 +6554,7 @@ function loop(t){
   let dt=Math.min(.05,(t-last)/1000);last=t;
   UNI.uTime.value+=dt;
   if(started&&$('mapUI').hidden){
-    refreshCarObb();if(HELI.on)HELI.update(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(MARINE.cur)MARINE.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);updatePeds(dt,player,Qp().peds);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
@@ -6534,7 +6591,7 @@ function loop(t){
 }
 document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.time=b.dataset.t;saveS();if(renderer)applyTime()});
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{S.season=b.dataset.s;saveS();if(renderer)applyTime()});
-document.querySelectorAll('[data-g]').forEach(b=>{b.classList.toggle('on',b.dataset.g===S.q);b.onclick=()=>{S.q=b.dataset.g;saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));if(renderer){const wantAA=S.q==='high';if(renderer.getContext().getContextAttributes().antialias!==wantAA){location.reload();return}pixelScale=1;applyQuality();applyTime()}}});
+document.querySelectorAll('[data-g]').forEach(b=>{b.classList.toggle('on',b.dataset.g===S.q);b.onclick=()=>{S.q=b.dataset.g;saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));if(renderer){const wantAA=S.q==='high'&&!MOBILE;if(renderer.getContext().getContextAttributes().antialias!==wantAA){location.reload();return}pixelScale=1;applyQuality();applyTime()}}});
 if(TOUCH)$('keysTxt').textContent='Left half of the screen — walk, right half — turn the camera. The yellow button enters buildings and shops, sits on benches or boards the tram. In the car, “Jump” is the handbrake.';
 $('bStart').onclick=()=>{if(!renderer)return;started=true;$('menu').hidden=true;$('hud').hidden=false;
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
@@ -6619,10 +6676,10 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
+  drop(R){if(R.heli){R.heli.dispose();R.heli=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
-  mode(){if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
+  mode(){if(HELI.on)return 'heli';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
   carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
     out.push({x:R.x,y:R.y,z:R.z,yaw:R.yaw,pitch:0,roll:0,type:4,col:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6]})}return out},
@@ -6645,6 +6702,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const st={v:1,in:started?1:0,n:this.nameOf(),o:this.me.outfit,x:r2(player.x),y:r2(player.y),z:r2(player.z),r:r2(player.yaw),m:this.mode(),s:r2(player.spd||0),zn};
     if(ret){st.rx=r2(ret.x);st.rz=r2(ret.z);st.rr=r2(ret.yaw||0);st.zt=(ind&&ind.title)||''}
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0)}
+    // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
+    if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
     if(this.say){st.say=this.say.m;st.sayT=this.say.t}
     if(typeof GUN!=='undefined'){const g=GUN.pub();if(g)st.g=g}
     if(typeof HS!=='undefined'){const h=HS.pub();if(h)st.hs=h;if(HS.on&&HS.role==='H'&&HS.camo&&!HS.myFound)st.cc=parseInt(HS.camo.slice(1),16)}
@@ -6666,11 +6725,21 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const zn=this.zone();const k=1-Math.exp(-dt*12);
     for(const R of this.peers.values()){const s=R.st;
       const show=!!(s&&s.in&&(s.zn||'')===zn&&typeof s.x==='number');
-      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
+      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
       const okey=s.cc?100000+(s.cc|0):(s.o|0);if(!R.P||R.outfit!==okey){if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):(OUTFITS[s.o|0]||OUTFITS[0]).o);R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
       const nm=(s.n||'Friend').slice(0,16);
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
+      // flying friend: hide the walker, draw their Apache from the interpolation buffer
+      if(s.m==='heli'&&HELI.loaded){
+        if(!R.heli)R.heli=new PeerHeli();
+        if(R.hst!==s){R.hst=s;R.heli.push(s)}
+        const q=R.heli.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true}
+        R.P.root.visible=false;R.lo.visible=false;R.heli.root.visible=Math.hypot(R.x-player.x,R.z-player.z)<1500;
+        R.tag.visible=R.heli.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+4.2,R.z);
+        if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+4.7,R.z);R.bub.visible=R.bubT>0}
+        continue}
+      if(R.heli){R.heli.dispose();R.heli=null;R.hst=null;R.has=false}   // landed: snap the walker to where they got out
       if(!R.has||Math.hypot(s.x-R.x,s.z-R.z)>30){R.x=s.x;R.y=s.y;R.z=s.z;R.yaw=s.r||0;R.has=true}
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
@@ -7243,63 +7312,160 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ANIM.push(dt=>GUN.tick(dt))}
 };
 
+// ===================== watercraft at the sea terminal: a motor boat and a jet ski (F or the action button to board) =====================
+const WATERCRAFT_SPECS={
+  boat:{name:'motor boat',len:6.2,beam:2.3,depth:.95,draft:.35,maxSpeed:17,reverse:5,turn:.95,keel:.80,lean:.012,plane:.22,seat:[0,.5,-1.05],hull:0xf3f0e8,stripe:0x1f3f73,deck:0xb98a5a},
+  jetski:{name:'jet ski',len:3.1,beam:1.15,depth:.62,draft:.2,maxSpeed:22,reverse:3,turn:1.8,keel:.87,lean:.011,plane:.12,seat:[0,.42,-.3],hull:0xf2c14e,stripe:0x1c1c1e,deck:0x23262b},
+};
+const WATER_DRAG=.93;   // share of hull speed kept per 1/60 s; thrust is scaled so full throttle settles near maxSpeed
+let WAKE_TEX=null;
+class Watercraft{
+  constructor(type,x,z,yaw){
+    this.type=type;this.spec=WATERCRAFT_SPECS[type];this.x=x;this.z=z;this.yaw=yaw||0;
+    this.y=SL;this.vy=0;this.vx=0;this.vz=0;this.u=0;this.yawRate=0;this.throttle=0;this.rudder=0;this.pitch=0;this.roll=0;
+    this.occupied=false;this.ph=Math.random()*6.28;
+    this.root=new THREE.Group();this.build();this.sync();
+  }
+  static mat(c,r,m,extra){const x=new THREE.MeshStandardMaterial(Object.assign({color:new THREE.Color(c).convertSRGBToLinear(),roughness:r,metalness:m||0},extra||{}));return x}
+  // box hull pinched to a bow and V-shaped underneath; the waterline is y=0
+  hullGeo(){const s=this.spec,g=new THREE.BoxGeometry(s.beam,s.depth,s.len,2,2,10),p=g.attributes.position;
+    for(let i=0;i<p.count;i++){let x=p.getX(i),y=p.getY(i);const z=p.getZ(i),t=(z+s.len/2)/s.len,b=t>.55?(t-.55)/.45:0;
+      x*=1-.94*b*b;if(y<0){x*=.45;y+=b*s.depth*.55}else y+=b*s.depth*.12;p.setXYZ(i,x,y+s.depth/2-s.draft,z)}
+    g.computeVertexNormals();return g}
+  build(){const s=this.spec,M=Watercraft.mat,add=(geo,mat,x,y,z,rx)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(rx)m.rotation.x=rx;m.castShadow=true;this.root.add(m);return m};
+    const hullM=M(s.hull,.35,.1),strM=M(s.stripe,.4,.1),deckM=M(s.deck,.8),darkM=M(0x1a1c1f,.5,.3),top=s.depth-s.draft;
+    add(this.hullGeo(),hullM,0,0,0).receiveShadow=true;
+    for(const sx of [-1,1])add(new THREE.BoxGeometry(.03,.12,s.len*.55),strM,sx*(s.beam/2+.005),top-.2,-s.len*.2);
+    add(new THREE.BoxGeometry(s.beam*.86,.05,s.len*.55),deckM,0,top+.01,-s.len*.2);
+    if(this.type==='boat'){
+      add(new THREE.BoxGeometry(.7,.75,.55),hullM,.35,top+.38,.25);
+      add(new THREE.BoxGeometry(s.beam*.82,.5,.05),M(0x2a3a44,.1,.2,{transparent:true,opacity:.55}),0,top+.55,.62,-.45);
+      for(const z of [-.6,-1.6])add(new THREE.BoxGeometry(s.beam*.7,.35,.55),M(0xece6da,.9),0,top+.18,z);
+      add(new THREE.BoxGeometry(.42,.95,.38),darkM,0,top-.25,-s.len/2-.15);add(new THREE.BoxGeometry(.5,.45,.55),M(0xe8e8e8,.4,.2),0,top+.3,-s.len/2-.12);
+      for(const sx of [-1,1])add(new THREE.CylinderGeometry(.025,.025,s.len*.3,6),M(0xc8ccd0,.3,.9),sx*s.beam*.4,top+.4,0,Math.PI/2);
+    }else{
+      add(new THREE.BoxGeometry(.48,.22,1.25),darkM,0,top+.12,-.3);
+      add(new THREE.BoxGeometry(.75,.25,.7),hullM,0,top+.12,.65);
+      add(new THREE.CylinderGeometry(.04,.04,.5,6),darkM,0,top+.42,.45,-.5);
+      add(new THREE.BoxGeometry(.7,.05,.05),darkM,0,top+.65,.32);
+    }
+    if(!WAKE_TEX){const c=document.createElement('canvas');c.width=64;c.height=128;const x=c.getContext('2d');const g=x.createLinearGradient(0,0,0,128);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(255,255,255,.95)');x.fillStyle=g;x.fillRect(0,0,64,128);   // canvas bottom = v 0 = the stern
+      const h=x.createLinearGradient(0,0,64,0);h.addColorStop(0,'rgba(0,0,0,1)');h.addColorStop(.3,'rgba(0,0,0,0)');h.addColorStop(.7,'rgba(0,0,0,0)');h.addColorStop(1,'rgba(0,0,0,1)');x.globalCompositeOperation='destination-out';x.fillStyle=h;x.fillRect(0,0,64,128);WAKE_TEX=new THREE.CanvasTexture(c)}
+    const wg=new THREE.PlaneGeometry(1,1);wg.rotateX(-Math.PI/2);wg.translate(0,0,-.5);
+    this.wake=new THREE.Mesh(wg,new THREE.MeshBasicMaterial({map:WAKE_TEX,transparent:true,depthWrite:false,opacity:0}));this.wake.renderOrder=3;this.wake.userData.dyn=true;scene.add(this.wake);
+  }
+  // hull ends and middle must all be over water deeper than the draft, clear of quays and moored ships
+  navigable(x,z,yaw){const s=this.spec,fx=Math.sin(yaw)*s.len*.45,fz=Math.cos(yaw)*s.len*.45;
+    for(const [px,pz] of [[x+fx,z+fz],[x,z],[x-fx,z-fz]]){if(groundH(px,pz)>SL-s.draft-.1)return false;if(insideAny(px,pz,s.beam*.5,SL+.6))return false}
+    return true}
+  step(dt,thrIn,steerIn){const s=this.spec;
+    this.throttle+=(thrIn-this.throttle)*Math.min(1,dt*2.5);this.rudder+=(steerIn-this.rudder)*Math.min(1,dt*4);
+    const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),rx=Math.cos(this.yaw),rz=-Math.sin(this.yaw);
+    let u=this.vx*fx+this.vz*fz,w=this.vx*rx+this.vz*rz;
+    u+=this.throttle*(this.throttle>0?s.maxSpeed:s.reverse)*(1-WATER_DRAG)*60*dt;
+    u*=Math.pow(WATER_DRAG,dt*60);w*=Math.pow(s.keel,dt*60);   // the keel kills sideways slip much faster than forward glide
+    // the rudder only bites with water flowing past it, and reverses when going astern
+    const flow=Math.max(-1,Math.min(1,u/(s.maxSpeed*.3)));
+    this.yawRate+=(this.rudder*s.turn*flow-this.yawRate)*Math.min(1,dt*3);this.yaw+=this.yawRate*dt;
+    u*=1-Math.abs(this.rudder*flow)*.25*dt;
+    this.vx=fx*u+rx*w;this.vz=fz*u+rz*w;this.u=u;
+    if(Math.abs(u)+Math.abs(w)>.02){const nx=this.x+this.vx*dt,nz=this.z+this.vz*dt;
+      if(this.navigable(nx,nz,this.yaw)){this.x=nx;this.z=nz}
+      else{const sp=Math.hypot(this.vx,this.vz);if(this.occupied&&sp>3)crashSound(sp);this.vx*=-.25;this.vz*=-.25;this.throttle*=.3;this.yawRate*=.5}}
+    // buoyancy: a damped spring to the wave surface; at speed the hull planes up and the bow lifts
+    const t=UNI.uTime.value,a1=this.x*.21+t*1.3+this.ph,a2=this.z*.17-t*1.05;
+    const sp=Math.min(1,Math.abs(u)/s.maxSpeed),target=SL+Math.sin(a1)*.06+Math.sin(a2)*.05+s.plane*sp*sp;
+    this.vy+=((target-this.y)*28-this.vy*6.5)*dt;this.y+=this.vy*dt;
+    const pitchT=-(.07*sp+.05*Math.max(0,this.throttle-sp))+Math.cos(a1)*.025,rollT=Math.max(-.4,Math.min(.4,-this.yawRate*Math.abs(u)*s.lean))+Math.cos(a2)*.03;
+    this.pitch+=(pitchT-this.pitch)*Math.min(1,dt*3);this.roll+=(rollT-this.roll)*Math.min(1,dt*3);
+    this.sync()}
+  sync(){const s=this.spec;this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ');
+    const sp=Math.min(1,Math.abs(this.u)/s.maxSpeed);this.wake.visible=sp>.04;
+    if(this.wake.visible){this.wake.position.set(this.x-Math.sin(this.yaw)*s.len*.48,SL+.04,this.z-Math.cos(this.yaw)*s.len*.48);this.wake.rotation.y=this.yaw;this.wake.scale.set(s.beam*(1.1+sp*1.6),1,s.len*(.4+sp*2.2));this.wake.material.opacity=.55*sp}}
+  seatWorld(v){this.root.updateMatrixWorld();return v.set(...this.spec.seat).applyMatrix4(this.root.matrixWorld)}
+}
+const MARINE={crafts:[],cur:null,eng:null,_v:new THREE.Vector3(),
+  // the quay alongside the sea terminal pier: open water at the pier's side, bows pointing out to sea
+  init(world){
+    if(typeof PORT==='undefined'||!PORT||!PORT.F){console.warn('marine: no sea terminal pier, watercraft not spawned');return}
+    const F=PORT.F,yaw=Math.atan2(-F.ca,-F.sa);
+    for(const [type,u,v] of [['boat',-170,49.5],['jetski',-150,48.6]]){const c=new Watercraft(type,0,0,yaw);const p=this.findWater(c,...F.P(u,v));if(!p)continue;
+      c.x=p[0];c.z=p[1];c.sync();world.add(c.root);this.crafts.push(c);
+      INTERACT.push({get x(){return c.x},get z(){return c.z},r:7,label:'Board the '+c.spec.name,cond:()=>!this.cur&&this.free(),fn:()=>this.enter(c)})}
+  },
+  findWater(c,x,z){for(let r=0;r<=40;r+=1.5)for(let i=0;i<(r?16:1);i++){const a=i/16*6.283,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(c.navigable(px,pz,c.yaw))return [px,pz]}return null},
+  free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit},
+  nearest(maxd){let best=null,bd=maxd;for(const c of this.crafts){const d=Math.hypot(c.x-player.x,c.z-player.z);if(d<bd){bd=d;best=c}}return best},
+  keyF(){if(this.cur){this.exit();return true}if(!this.free())return false;const c=this.nearest(7);if(!c)return false;this.enter(c);return true},
+  enter(c){if(this.cur||!this.free())return;
+    if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
+    this.cur=c;c.occupied=true;cam.init=false;$('spd').hidden=false;this.sound(true);
+    toast(c.spec.name[0].toUpperCase()+c.spec.name.slice(1),(TOUCH?'joystick: throttle and steer':'W/S throttle · A/D steer')+' · F to get off near the quay or a beach')},
+  // step off onto the nearest dry ground within ~12 m; force (teleport) leaves the craft wherever it is
+  exit(force){const c=this.cur;if(!c)return;const spot=this.landSpot(c);
+    if(!spot&&!force){toast('Too far from land','steer up to the pier or a beach to get off');return}
+    this.cur=null;c.occupied=false;$('spd').hidden=true;this.sound(false);cam.init=false;
+    PLR.root.rotation.set(0,c.yaw,0,'XYZ');
+    if(spot){player.x=spot[0];player.z=spot[1];player.y=groundAt(spot[0],spot[1],99)}
+    player.vx=player.vz=player.vy=0;player.air=false;player.yaw=c.yaw},
+  landSpot(c){for(let r=2;r<=12;r+=1)for(let i=0;i<16;i++){const a=i/16*6.283,x=c.x+Math.cos(a)*r,z=c.z+Math.sin(a)*r,g=groundH(x,z);if(g>SL+.3&&!insideAny(x,z,.35,g+1))return [x,z]}return null},
+  update(dt){if(PORTAL.cur)return;
+    for(const c of this.crafts){
+      if(c!==this.cur){if(Math.hypot(c.x-player.x,c.z-player.z)<700)c.step(dt,0,0);continue}
+      let thr=inp.jy,str=-inp.jx;const k=inp.k;
+      if(k.KeyW||k.ArrowUp)thr+=1;if(k.KeyS||k.ArrowDown)thr-=1;if(k.KeyA||k.ArrowLeft)str+=1;if(k.KeyD||k.ArrowRight)str-=1;
+      c.step(dt,Math.max(-1,Math.min(1,thr)),Math.max(-1,Math.min(1,str)))}},
+  // the rider sits on the craft; chunks, HUD and co-op follow player.x/z
+  ride(dt){const c=this.cur;inp.jump=false;
+    player.x=c.x;player.z=c.z;player.y=c.y;player.yaw=c.yaw;player.spd=0;
+    const p=c.seatWorld(this._v);PLR.root.position.copy(p);PLR.root.rotation.set(c.pitch,c.yaw,c.roll,'YXZ');animPlayer(PLR,{spd:0,mode:'sit'},dt);
+    $('spdN').textContent=Math.round(Math.abs(c.u)*3.6);
+    if(this.eng&&AUD.ctx){const T=AUD.ctx.currentTime,sp=Math.abs(c.u)/c.spec.maxSpeed,f0=(c.type==='jetski'?62:44)+sp*110+Math.abs(c.throttle)*35;
+      this.eng.o.frequency.setTargetAtTime(f0,T,.06);this.eng.f.frequency.setTargetAtTime(500+sp*1500,T,.08);this.eng.g.gain.setTargetAtTime(.03+Math.abs(c.throttle)*.05,T,.1)}},
+  sound(on){if(typeof AUD==='undefined'||!AUD||!AUD.ok)return;const a=AUD.ctx;
+    if(!this.eng){const o=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o.type='sawtooth';f.type='lowpass';f.Q.value=2;g.gain.value=0;o.connect(f);f.connect(g);g.connect(AUD.sfx);o.start();this.eng={o,f,g}}
+    this.eng.g.gain.setTargetAtTime(on?.04:0,a.currentTime,.2)},
+  stepCamera(dt){const c=this.cur,dist=Math.max(c.spec.len*1.3,cam.dist*1.5),pitch=Math.max(.12,cam.pitch*.8);
+    if(!inp.dragging&&!TOUCH_LOOK.active)cam.yaw+=((c.yaw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*2);
+    const cp=Math.cos(pitch),sp=Math.sin(pitch);
+    const wx=c.x-Math.sin(cam.yaw)*cp*dist,wy=Math.max(SL+.8,c.y+sp*dist+1.2),wz=c.z-Math.cos(cam.yaw)*cp*dist;
+    if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}
+    const b=Math.min(1,dt*5);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
+    camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(c.x,c.y+1.1,c.z)}
+};
+
+// ===================== a co-op friend's helicopter =====================
+// A clone of the local Apache driven from a short buffer of received states, played back a little more
+// than one packet late. Packets arrive unevenly (~9 Hz), so drawing the newest one directly would jitter.
+class PeerHeli{
+  constructor(){
+    this.root=new THREE.Group();this.model=HELI.modelRoot.clone(true);this.root.add(this.model);
+    this.main=PeerHeli.twin(this.model,HELI.modelRoot,HELI.mainRotor);this.tail=PeerHeli.twin(this.model,HELI.modelRoot,HELI.tailRotor);
+    this.buf=[];this.gap=110;this.lastT=0;this.st=null;scene.add(this.root);
+  }
+  // the node in the clone at the same child-index path as `node` in the original
+  static twin(clone,src,node){if(!node)return null;const path=[];for(let o=node;o&&o!==src;o=o.parent){if(!o.parent)return null;path.unshift(o.parent.children.indexOf(o))}
+    let o=clone;for(const i of path)o=o&&o.children[i];return o||null}
+  push(s){const now=performance.now(),h=Array.isArray(s.h)?s.h:[0,0,.62],L=this.buf[this.buf.length-1];
+    const q={t:now,x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+h[0]||0,r:+h[1]||0,th:h[2]===undefined?.62:+h[2]};
+    if(L&&q.x===L.x&&q.y===L.y&&q.z===L.z&&q.yaw===L.yaw&&q.p===L.p&&q.r===L.r)return;   // repeated presence, not a new packet
+    if(L&&Math.hypot(q.x-L.x,q.y-L.y,q.z-L.z)>80){this.buf.length=0;this.st=null}        // teleport: snap
+    if(this.lastT)this.gap+=(Math.min(600,now-this.lastT)-this.gap)*.2;this.lastT=now;
+    this.buf.push(q);if(this.buf.length>16)this.buf.shift()}
+  sample(now){const b=this.buf;if(!b.length)return null;const t=now-Math.max(120,Math.min(350,this.gap*1.7)),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+    const mix=(a,c,u)=>({x:a.x+(c.x-a.x)*u,y:a.y+(c.y-a.y)*u,z:a.z+(c.z-a.z)*u,yaw:a.yaw+wrap(c.yaw-a.yaw)*u,p:a.p+(c.p-a.p)*u,r:a.r+(c.r-a.r)*u,th:a.th+(c.th-a.th)*u});
+    if(t<=b[0].t)return b[0];
+    for(let i=1;i<b.length;i++)if(t<=b[i].t)return mix(b[i-1],b[i],(t-b[i-1].t)/Math.max(1,b[i].t-b[i-1].t));
+    // late packet: carry on along the last segment for at most a quarter second
+    if(b.length<2)return b[0];const a=b[b.length-2],c=b[b.length-1];return mix(a,c,1+Math.min(250,t-c.t)/Math.max(1,c.t-a.t))}
+  update(dt){const q=this.sample(performance.now());if(!q)return null;
+    if(!this.st)this.st=Object.assign({},q);else{const k=1-Math.exp(-dt*18),s=this.st;   // light final smoothing over late-packet corrections
+      s.x+=(q.x-s.x)*k;s.y+=(q.y-s.y)*k;s.z+=(q.z-s.z)*k;s.yaw+=Math.atan2(Math.sin(q.yaw-s.yaw),Math.cos(q.yaw-s.yaw))*k;s.p+=(q.p-s.p)*k;s.r+=(q.r-s.r)*k;s.th+=(q.th-s.th)*k}
+    const s=this.st;this.root.position.set(s.x,s.y,s.z);this.root.rotation.set(s.p,s.yaw,s.r,'YXZ');
+    if(this.main)this.main.rotation.y+=dt*(12+s.th*34);if(this.tail)this.tail.rotation.z+=dt*(22+s.th*45);
+    return s}
+  dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local Apache
+}
+
 boot();
-// ================
-// PHASE B: MARINE & MULTIPLAYER AUTO-INJECTOR
-// ================
-class Watercraft {
-  constructor(scene, meshData = {}) {
-    this.mesh = meshData.mesh || new THREE.Mesh();
-    this.scene = scene;
-    this.type = meshData.type || 'boat';
-    this.active = false;
-    this.velocity = new THREE.Vector3(0, 0, 0);
-    this.engineTorque = 0; this.steeringAngle = 0; this.currentYaw = 0;
-    this.maxSpeed = 16; this.maxReverseSpeed = -6; this.acceleration_rate = 0.12;
-    this.velocityDamping = 0.93; this.inputRef = null;
-  }
-  linkInput(inObj) { this.inputRef = inObj; }
-  processInput(k) {
-    if (!this.active) return;
-    if (k['W'] || k['w']) this.engineTorque = Math.min(this.engineTorque + 0.15, 1.0);
-    else if (k['S'] || k['s']) this.engineTorque = Math.max(this.engineTorque - 0.15, -1.0);
-    else this.engineTorque *= 0.8;
-    if (k['A'] || k['a']) this.steeringAngle = Math.max(this.steeringAngle - 0.1, -1.0);
-    else if (k['D'] || k['d']) this.steeringAngle = Math.min(this.steeringAngle + 0.1, 1.0);
-    else this.steeringAngle *= 0.7;
-  }
-  update(dt) {
-    if (!this.active || !this.mesh) return;
-    this.currentYaw += this.steeringAngle * 0.05 * Math.min(1, Math.abs(this.velocity.z));
-    const target = this.engineTorque * (this.engineTorque > 0 ? this.maxSpeed : this.maxReverseSpeed);
-    this.velocity.z += (target - this.velocity.z) * this.acceleration_rate;
-    this.velocity.z *= this.velocityDamping;
-    const wVel = this.velocity.clone().applyAxisAngle(new THREE.Vector3(0,1,0), this.currentYaw);
-    this.mesh.position.add(wVel.multiplyScalar(dt));
-    if (typeof groundH === 'function') this.mesh.position.y = groundH(this.mesh.position.x, this.mesh.position.z) + 0.2;
-    this.mesh.rotation.set(0, this.currentYaw, -this.steeringAngle * 0.05, 'YXZ');
-    player.x = this.mesh.position.x; player.z = this.mesh.position.z; player.y = this.mesh.position.y + 0.4; player.yaw = this.currentYaw;
-  }
-}
-let activeWatercraft = [];
-function initMarineSandbox() {
-  const bG = new THREE.Group();
-  const hM = new THREE.MeshStandardMaterial({ color: 0xf5f1e8, roughness: 0.2, metalness: 0.6 });
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 4.0), hM); hull.castShadow = true; bG.add(hull);
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.2, 4), hM); nose.rotation.x = Math.PI/2; nose.position.set(0,0,2.2); bG.add(nose);
-  scene.add(bG);
-  // Спавним лодку прямо на Морвокзале (Sea Terminal), чтобы не искать на пляже!
-  bG.position.set(-80.0, typeof SL !== 'undefined' ? SL : 0.0, 420.0);
-  const boat = new Watercraft(scene, { mesh: bG, type: 'boat' });
-  if (typeof inp !== 'undefined') boat.linkInput(inp);
-  activeWatercraft.push(boat);
-}
-// Авто-активация систем при загрузке мира
-setTimeout(() => {
-  if (typeof scene !== 'undefined') {
-    initMarineSandbox();
-    if (typeof QUAL !== 'undefined') { QUAL.current = "Medium"; } // Средняя стабильная графика без вылетов
-    console.log("Лодки на Морвокзале заспавнены!");
-  }
-}, 4000);
 </script>
