@@ -6287,6 +6287,8 @@ function stepPlayer(dt){
   else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
     else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
   if(player.y<SL-.7)player.y=Math.max(player.y,SL-.75);
+  // anti-fall layer: if a stair / floor edge let the feet sink more than 1.5 m under the floor found from head height, lift back onto it
+  if(!PORTAL.cur&&!player.air&&started){const gs=groundAt(player.x,player.z,player.y+2);if(Number.isFinite(gs)&&gs>SL&&player.y<gs-1.5){player.y=gs;player.vy=0}}
   if(window.safetyNetCheck)window.safetyNetCheck(player);
   PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   const ph0=PLR.phase;
@@ -6443,6 +6445,15 @@ function drawMini(){
   }
   const h=PLACES[0];let hx=(h.x-player.x)*scale,hz=(h.z-player.z)*scale;const hl=Math.hypot(hx,hz);if(hl>R-10){hx*=(R-10)/hl;hz*=(R-10)/hl}
   x.fillStyle='#f2c14e';x.strokeStyle='#0b1b22';x.lineWidth=3;x.beginPath();x.arc(hx,hz,9,0,7);x.fill();x.stroke();
+  // points of interest (letter blips) and co-op friends (pink, pinned to the rim when far away)
+  {const PL=id=>PLACES.find(p=>p.id===id),poi=[['T','#e8452f',62.15,54.87,0,0,'Tavria V'],['L','#c2185b',62.15,54.87,13,-9,'La Trattoria']];
+   for(const [id,l,c] of [['morvokzal','M','#1b6fb5'],['zabka','Ż','#2e9e4f'],['azs','O','#e07b1f'],['dealer','P','#7a3fb0']]){const p=PL(id);if(p)poi.push([l,c,p.x,p.z,0,0])}
+   x.font='700 11px system-ui';x.textAlign='center';x.textBaseline='middle';
+   for(const [l,c,wx,wz,ox,oz] of poi){const px=(wx-player.x)*scale,pz=(wz-player.z)*scale;if(Math.hypot(px,pz)>R-8)continue;
+     x.save();x.translate(px,pz);x.rotate(-(cam.yaw+Math.PI));x.fillStyle=c;x.strokeStyle='#fff';x.lineWidth=2;x.beginPath();x.arc(ox,oz,8,0,7);x.fill();x.stroke();x.fillStyle='#fff';x.fillText(l,ox,oz+.5);x.restore()}
+   for(const R_ of COOP.peers.values()){const s=R_.st;if(!s||!s.in||(s.zn||'')!=='')continue;const wx=R_.has?R_.x:s.x,wz=R_.has?R_.z:s.z;if(typeof wx!=='number')continue;
+     let px=(wx-player.x)*scale,pz=(wz-player.z)*scale;const pl=Math.hypot(px,pz);if(pl>R-10){px*=(R-10)/pl;pz*=(R-10)/pl}
+     x.save();x.translate(px,pz);x.rotate(-(cam.yaw+Math.PI));x.fillStyle='#ff4fa3';x.strokeStyle='#fff';x.lineWidth=2.5;x.beginPath();x.arc(0,0,8,0,7);x.fill();x.stroke();x.fillStyle='#fff';x.fillText(((s.n||'F')[0]||'F').toUpperCase(),0,.5);x.restore()}}
   // offshore island: permanent green blip, pinned to the rim when it is out of range
   if(typeof EXT!=='undefined'&&EXT.island){let ix=(EXT.island.x-player.x)*scale,iz=(EXT.island.z-player.z)*scale;const il=Math.hypot(ix,iz);if(il>R-10){ix*=(R-10)/il;iz*=(R-10)/il}
     x.fillStyle='#2fd37a';x.strokeStyle='#0b1b22';x.lineWidth=3;x.beginPath();x.moveTo(ix,iz-9);x.lineTo(ix+9,iz);x.lineTo(ix,iz+9);x.lineTo(ix-9,iz);x.closePath();x.fill();x.stroke()}
@@ -6818,7 +6829,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
       const lk=Array.isArray(s.lk)?s.lk.filter(x=>typeof x==='string').slice(0,4):[];
       const okey=s.cc?'c'+(s.cc|0):(s.o|0)+':'+lk.join(',');if(!R.P||R.outfit!==okey){if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):WARDROBE.outfit((OUTFITS[s.o|0]||OUTFITS[0]).o,lk));R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
-      const nm=(s.n||'Friend').slice(0,16);
+      // name tag text carries the live distance, e.g. "Andrii [340m]" (re-drawn per 5 m step, only past 25 m)
+      const dd=Math.hypot((R.has?R.x:s.x)-player.x,((R.has?R.y:s.y)||0)-player.y,(R.has?R.z:s.z)-player.z),nm=(s.n||'Friend').slice(0,16)+(dd>25?' ['+Math.round(dd/5)*5+'m]':'');
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.material.fog=false;R.tag.frustumCulled=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
       // flying friend: hide the walker, draw their Apache from the interpolation buffer
