@@ -7669,6 +7669,16 @@ INTERIORS.mall=()=>simpleInterior('mall',7,{w:26,d:20,h:5,floor:0xe9e4da,fr:.25,
     CLOTHES.filter(c=>c.slot==='bottom').forEach((c,i)=>rackAt(c,-5.1+i*3.4,D-.7,Math.PI));
     CLOTHES.filter(c=>c.slot==='shoes').forEach((c,i)=>rackAt(c,12.1,4+i*2.3,-Math.PI/2));
     CLOTHES.filter(c=>c.slot==='hair').forEach((c,i)=>rackAt(c,12.1,12+i*2.3,-Math.PI/2));
+    // hair salon corner: barber chair, seated client and a standing barber (smooth lofted silhouettes); the clippers buzz nearby
+    {const sx=ox+10.6,sz=oz+16.5,M=(c,r,m)=>new THREE.MeshStandardMaterial({color:new THREE.Color(c).convertSRGBToLinear(),roughness:r,metalness:m||0});
+     const g=new THREE.Group();g.position.set(sx,Y,sz);g.rotation.y=Math.PI/2;grp.add(g);   // faces the west
+     xb(g,.1,.5,.1,0,.25,0,M(0x2a2a2e,.4,.8));xb(g,.7,.12,.7,0,.55,0,M(0x1b1b1f,.6));xb(g,.7,.7,.12,0,.95,-.32,M(0x1b1b1f,.6));
+     xloft(g,[[.2,.2,.62,1.12,.08],[-.2,.24,.62,1.2,.1]],M(0x3f6fb5,.8));   // client torso
+     const hd=new THREE.Mesh(new THREE.SphereGeometry(.14,12,10),M(0xe9c3a0,.7));hd.position.set(0,1.35,0);g.add(hd);
+     const bb=new THREE.Group();bb.position.set(.5,0,.5);g.add(bb);xloft(bb,[[.2,.2,0,1.45,.1],[-.2,.24,0,1.5,.12]],M(0x222226,.8));
+     const bh=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),M(0xd9b08a,.7));bh.position.set(0,1.66,0);bb.add(bh);
+     const mir=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.1),M(0xbfd8e8,.05,.9));mir.position.set(-.1,1.6,-1.2);g.add(mir);
+     window.MALL_SALON={x:sx,z:sz};LOW_OBB.push(sx,sz,.5,.5,1,0)}
     neonSign(grp,'TOPS',ox-12.88,Y+3.9,oz+10,Math.PI/2,3.6,'#ff6ad5');
     neonSign(grp,'DENIM',ox,Y+3.9,oz+D-.12,Math.PI,4.2,'#6ad1ff');
     neonSign(grp,'SHOES',ox+12.88,Y+3.9,oz+6.3,-Math.PI/2,3.6,'#ffd36a');
@@ -8222,6 +8232,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(probe){let spot=null;for(let r=6;r<=70&&!spot;r+=4)for(let i=0;i<16&&!spot;i++){const a=i/16*6.283,x=probe.x+Math.cos(a)*r,z=probe.z+Math.sin(a)*r;if(groundH(x,z)<SL-3.2&&probe.navigable(x,z,probe.yaw))spot=[x,z]}
       if(spot)this.addVehicle('sub',spot[0],spot[1],probe.yaw)}
     try{this.buildIsland(world)}catch(e){console.error('island',e)}
+    try{PRIVOZ.build(world)}catch(e){console.error('privoz',e)}
+    ANIM.push(dt=>{PRIVOZ.tick(dt);SALON.tick(dt)});
   },
   // ----- tiny offshore island with houses for sale (height comes from a FLAT hook, so boats, feet and cars all respect it) -----
   buildIsland(world){
@@ -8275,6 +8287,43 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
    EXT.shatter(this.x,this.y+.8,this.z,28,[this.spec.hull,this.spec.stripe,0x222222,0xff7a1a],10,0,0);this.root.visible=false;this.wake.visible=false;this.u=0;this.vx=this.vz=0;
    if(MARINE.cur===this){MARINE.exit(true);toast('Your '+this.spec.name+' was destroyed','')}};
  Watercraft.prototype.revive=function(){this.dead=false;this.hp=100;this.x=this.home[0];this.z=this.home[1];this.u=0;this.vx=this.vz=0;this.root.visible=true;this.sync()}}
+
+// ---------- Privoz market: rows of stalls with awnings, goods and clothes racks, plus shouting vendors ----------
+const PRIVOZ={x:0,z:0,grp:null,t:3,talk:null,
+  build(world){
+    const L=LMK.privoz;if(!L)return;const a=L.a||0,ca=Math.cos(a),sa=Math.sin(a);this.x=L.x;this.z=L.y;
+    const g=this.grp=new THREE.Group();world.add(g);
+    const M=(c,r)=>new THREE.MeshStandardMaterial({color:new THREE.Color(c).convertSRGBToLinear(),roughness:r});
+    const wood=M(0x7a5a3a,.8),pole=M(0x9a9da0,.5),cloth=[0x2f7d6b,0xd9b13a,0xc0392b,0x2f6db0,0xe8e4da,0x8a4ab0].map(c=>M(c,.9)),
+      fish=M(0xb8c4cc,.35),tom=M(0xd8372a,.7),greens=M(0x4f9a3f,.8),orange=M(0xf08a1c,.7),crate=M(0xb98a5a,.9);
+    const goodsMat=[fish,tom,greens,orange],bg=new THREE.BoxGeometry(1,1,1),bar=(w,h,d,x,y,z,m,p)=>{const o=new THREE.Mesh(bg,m);o.scale.set(w,h,d);o.position.set(x,y,z);o.castShadow=false;p.add(o);return o};
+    for(let row=0;row<4;row++)for(let i=0;i<8;i++){
+      const u=(i-3.5)*4.4,v=(row-1.5)*8,wx=L.x+ca*u-sa*v,wz=L.y+sa*u+ca*v,gy=groundH(wx,wz);if(gy<SL+.5)continue;
+      const s=new THREE.Group();s.position.set(wx,gy,wz);s.rotation.y=a+(row%2?Math.PI:0);g.add(s);
+      bar(2.6,.9,1.0,0,.45,.2,wood,s);bar(2.7,.06,1.1,0,.93,.2,crate,s);
+      for(const sx of [-1.3,1.3])bar(.07,2.3,.07,sx,1.15,-.35,pole,s);
+      xloft(s,[[.9,1.4,2.3,2.4,.04],[-.5,1.4,2.05,2.12,.04]],cloth[(row*3+i)%cloth.length]);   // sloped awning
+      if(row<2){for(let k=0;k<5;k++)bar(.4,.12+.04*(k%2),.5,-1.0+k*.5,1.02,.2,goodsMat[(i+k+row)%4],s)}
+      else{bar(.05,.05,1.9,0,1.9,-.2,pole,s);s.children[s.children.length-1].rotation.y=Math.PI/2;for(let k=0;k<6;k++)bar(.3,.7,.04,-1+k*.4,1.5,-.2,cloth[(k+i)%cloth.length],s)}
+      LOW_OBB.push(wx,wz,1.4*Math.abs(Math.cos(a))+.5*Math.abs(Math.sin(a)),1.4*Math.abs(Math.sin(a))+.5*Math.abs(Math.cos(a)),1,0);
+    }
+    PLACES.push({id:'privoz',name:'Privoz market',sub:'Привоз · fish, fruit and loud vendors',x:L.x-ca*0+sa*30,z:L.y-ca*30,yaw:a});
+    const d=this.talk=document.createElement('div');d.style.cssText='position:absolute;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:8px 14px;border-radius:14px;background:rgba(11,27,34,.78);color:#fff;font:700 15px system-ui;z-index:6;pointer-events:none;opacity:0;transition:opacity .25s';document.body.appendChild(d);
+  },
+  PHRASES:['Рыба по 60 грн!','Свежая кефаль, только с моря!','Помидоры сладкие, как мёд!','Девушка, подходите, не стесняйтесь!','Бычки, бычки жареные!','Тарань, тарань!','Шо вы хотите за эти деньги?','Таки берите, не пожалеете!','Одесские огурчики, хрустят!','Сметана, творог, домашнее!'],
+  tick(dt){if(!this.grp||!started)return;const d=Math.hypot(player.x-this.x,player.z-this.z);this.grp.visible=d<700;
+    if(d>90||PORTAL.cur||HELI.on)return;this.t-=dt;if(this.t>0)return;this.t=3.5+Math.random()*4.5;
+    const ph=this.PHRASES[(Math.random()*this.PHRASES.length)|0];this.talk.textContent='🗣 '+ph;this.talk.style.opacity=1;clearTimeout(this.hide);this.hide=setTimeout(()=>this.talk.style.opacity=0,2800);
+    if(AUD&&AUD.ok){const vol=.05*Math.max(.2,1-d/90),n=3+((Math.random()*4)|0),f=130+Math.random()*90;   // formant-ish syllable blips + crowd murmur
+      for(let i=0;i<n;i++)AUD.tone(f*(1+Math.random()*.5),f*(.7+Math.random()*.3),.11,vol,'sawtooth',undefined,i*.13);AUD.burst(700,300,.9,vol*.7,'bandpass',1)}}};
+// ---------- hair salon clipper buzz in the Odesa Mall ----------
+const SALON={o:null,g:null,tick(dt){
+  if(typeof AUD==='undefined'||!AUD||!AUD.ok||!window.MALL_SALON){return}
+  const inMall=PORTAL.cur==='mall',d=inMall?Math.hypot(player.x-MALL_SALON.x,player.z-MALL_SALON.z):99,target=inMall&&d<16?.05*(1-d/16):0;
+  if(!this.o){if(!target)return;const c=AUD.ctx,o=c.createOscillator(),lfo=c.createOscillator(),lg=c.createGain(),am=c.createGain(),f=c.createBiquadFilter(),out=c.createGain();
+    o.type='sawtooth';o.frequency.value=105;lfo.frequency.value=34;lg.gain.value=.5;am.gain.value=.5;f.type='lowpass';f.frequency.value=1400;out.gain.value=0;
+    lfo.connect(lg);lg.connect(am.gain);o.connect(f);f.connect(am);am.connect(out);out.connect(AUD.sfx||c.destination);o.start();lfo.start();this.o=o;this.g=out}
+  this.g.gain.setTargetAtTime(target,AUD.ctx.currentTime,.15)}};
 
 // ---------- weapon 9: tactical nuke ----------
 const TAC={list:[],waves:[],box:new THREE.Box3(),ctr:new THREE.Vector3(),
