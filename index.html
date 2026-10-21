@@ -7995,6 +7995,14 @@ const LV_SPECS={
   sub:{name:'submarine',len:5.4,wb:4,max:10,acc:4,steer:.45,r:1.6}};
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 function xb(parent,w,h,d,x,y,z,mat,rx,ry,rz){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;parent.add(m);return m}
+// smooth body from sections [z,halfWidth,yBottom,yTop,cornerRadius] (front to back), capped at both ends
+function xloft(parent,secs,mat){const N=4,pos=[],idx=[],ring=s=>{const [z,hw,y0,y1,r]=s,out=[];
+    for(const [cx,cy,a0] of [[hw-r,y1-r,0],[-(hw-r),y1-r,Math.PI/2],[-(hw-r),y0+r,Math.PI],[hw-r,y0+r,Math.PI*1.5]])for(let i=0;i<=N;i++){const a=a0+i/N*Math.PI/2;out.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r,z])}return out};
+  const rings=secs.map(ring),M=rings[0].length;for(const rg of rings)for(const p of rg)pos.push(...p);
+  for(let k=0;k<rings.length-1;k++)for(let i=0;i<M;i++){const a=k*M+i,b=k*M+(i+1)%M,c=(k+1)*M+i,d=(k+1)*M+(i+1)%M;idx.push(a,c,b,b,c,d)}
+  for(const [k,flip] of [[0,0],[rings.length-1,1]]){const c=pos.length/3,s=secs[k];pos.push(0,(s[2]+s[3])/2,s[0]);for(let i=0;i<M;i++){const a=k*M+i,b=k*M+(i+1)%M;flip?idx.push(c,a,b):idx.push(c,b,a)}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  const m=new THREE.Mesh(g,mat);m.castShadow=true;m.material.side=THREE.DoubleSide;parent.add(m);return m}
 // a bar between two points (the parent must still be at the origin while building)
 function xbar(parent,a,b,th,mat){const A=new THREE.Vector3(...a),B=new THREE.Vector3(...b),m=new THREE.Mesh(new THREE.BoxGeometry(th,th,A.distanceTo(B)),mat);m.position.copy(A).add(B).multiplyScalar(.5);m.lookAt(B);m.castShadow=true;parent.add(m);return m}
 
@@ -8013,7 +8021,9 @@ class LiteVehicle{
     this.root.add(piv);this.wheels.push({piv,spin,r,front})}
   buildGWagon(){const B=this.body,paint=XM(0x060607,.16,.85),glass=XM(0x0d141b,.05,.9),trim=XM(0x16171a,.6,.4),chrome=XM(0xc9ccd2,.2,1),lamp=XM(0xfff3c0,.3,0,{emissive:0xffe9a0,emissiveIntensity:1.2}),tail=XM(0x8a0f12,.4,0,{emissive:0xc01018,emissiveIntensity:.8});
     this.cols=[0x060607,0x16171a,0xc9ccd2];
-    xb(B,2.0,.85,4.5,0,.95,0,paint);xb(B,1.92,.12,1.5,0,1.43,1.4,paint);xb(B,1.92,.98,2.7,0,1.92,-.4,paint);
+    // smooth lofted body: rounded-rectangle sections along the length (hw, bottom, top, corner radius)
+    xloft(B,[[2.25,.92,.52,1.2,.2],[2.1,.99,.46,1.32,.25],[1.2,1.0,.4,1.4,.2],[-1.0,1.0,.4,1.4,.12],[-2.1,.99,.42,1.38,.12],[-2.25,.92,.5,1.3,.18]],paint);
+    xloft(B,[[1.05,.84,1.4,2.2,.14],[.7,.93,1.4,2.4,.16],[-1.7,.93,1.4,2.4,.14],[-1.95,.88,1.4,2.3,.14]],paint);
     xb(B,1.7,.6,.05,0,1.9,.98,glass,-.16);xb(B,1.7,.55,.05,0,1.95,-1.78,glass);
     for(const s of [-1,1]){xb(B,.05,.52,2.3,s*.97,1.98,-.4,glass);xb(B,.14,.2,1.05,s*1.03,.78,1.45,trim);xb(B,.14,.2,1.05,s*1.03,.78,-1.45,trim);xb(B,.08,.06,.34,s*1.0,1.38,1.0,chrome)}
     for(const s of [-.75,.75]){xb(B,.36,.22,.05,s,1.18,2.27,lamp);xb(B,.3,.2,.05,s,1.12,-2.27,tail)}
