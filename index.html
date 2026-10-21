@@ -6043,6 +6043,10 @@ function* buildChunkGen(id){
   yield;
   buildBarriers(id,P,segs,cols);buildRails(id,P,null,(x,z)=>{for(const c of cols)if(colPolyHit(c,x,z,-.01))return true;return false});
   yield;
+  // road clearance: no low obstacle (bench, prop, play kit...) may keep a collider centred on driving asphalt
+  {const onRoad=(x,z)=>nearRoad(id,x,z,-SW[0]);
+   for(let i=cirs.length-3;i>=0;i-=3)if(onRoad(cirs[i],cirs[i+1]))cirs.splice(i,3);
+   for(let i=lobb.length-6;i>=0;i-=6)if(onRoad(lobb[i],lobb[i+1]))lobb.splice(i,6)}
   const c={id,ground:gr.mesh,bld:null,props:null,signs:null,grx:null,parked,benches,cols,doors:doors.filter(d=>DOOR_KIND[d.code]),segs:new Float32Array(segs),cirs:new Float32Array(cirs),lampPos:new Float32Array(lampPos),obb:new Float32Array(obb),lobb:new Float32Array(lobb)};
   if(g.n){c.bld=new THREE.Mesh(g.build(),MATS.bld);c.bld.castShadow=c.bld.receiveShadow=true;c.bld.matrixAutoUpdate=false}
   const pg=P.build();if(pg){c.props=new THREE.Mesh(pg,MATS.props);c.props.castShadow=c.props.receiveShadow=true;c.props.matrixAutoUpdate=false}
@@ -8233,6 +8237,10 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       if(spot)this.addVehicle('sub',spot[0],spot[1],probe.yaw)}
     try{this.buildIsland(world)}catch(e){console.error('island',e)}
     try{PRIVOZ.build(world)}catch(e){console.error('privoz',e)}
+    // sea / terrain intersection mask: bias the sea plane back in depth (kills shoreline and under-floor z-fighting) and drop it
+    // entirely inside interiors that have no sea view, so it can never show through their floors. SL itself is untouched.
+    for(const m of [seaMesh,seaNear])if(m){m.material.polygonOffset=true;m.material.polygonOffsetFactor=2;m.material.polygonOffsetUnits=4;m.material.needsUpdate=true}
+    ANIM.push(()=>{const hide=!!PORTAL.cur&&PORTAL.cur!=='flat';if(seaMesh)seaMesh.visible=!hide;if(seaNear)seaNear.visible=!hide});
     ANIM.push(dt=>{PRIVOZ.tick(dt);SALON.tick(dt)});
   },
   // ----- tiny offshore island with houses for sale (height comes from a FLAT hook, so boats, feet and cars all respect it) -----
