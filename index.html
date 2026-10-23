@@ -4711,7 +4711,7 @@ const INTERIORS={
       plate.position.set(ox+doorX,INT_Y+2.55,oz+9.72);grp.add(plate);
       INTERACT.push({x:ox+doorX+.48,z:oz+8.9,y:floorY+1,r:1.8,label:'Open Flat '+apartment,cond:()=>grp.visible,
         fn:()=>PORTAL.enter('flat',null,{ent:PORTAL.opt.ent,floor:selectedFloor,unit:apartment})});
-      knob.userData.apartment=apartment;
+      if(knob)knob.userData.apartment=apartment;   // P.box returns nothing for batched boxes: this used to throw and the stairwell never opened
     }
     const pg=P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));
     const l=new THREE.PointLight(0xfff0d0,0,12,1.6);l.position.set(ox,INT_Y+2.7,oz+3.5);l.userData.i=1.1;grp.add(l);
@@ -8216,17 +8216,35 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     const wx=v.x-Math.sin(cam.yaw)*cp*d,wz=v.z-Math.cos(cam.yaw)*cp*d,wy=Math.max(ty+sp*d,groundH(wx,wz)+.5);
     if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*10);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(v.x+Math.sin(v.yaw)*2,ty,v.z+Math.cos(v.yaw)*2)},
+  // bring a vehicle to the player: land ones 6 m ahead on solid ground, the submarine into deep water within 40 m
+  summon(kind){const v=this.veh.find(q=>q.kind===kind);if(!v)return toast('Not available','');
+    if(this.cur||!MARINE.free()||player.scoot){toast('Get off first','then summon a vehicle');return}
+    if(v.dead){v.revive()}v.repair();v.v=0;v.steerA=0;
+    if(kind==='sub'){let spot=null;const fake={spec:WATERCRAFT_SPECS.boat};
+      for(let r=4;r<=40&&!spot;r+=4)for(let i=0;i<18&&!spot;i++){const a=i/18*6.283+r*.37,x=player.x+Math.cos(a)*r,z=player.z+Math.sin(a)*r;if(groundH(x,z)<SL-2.2&&Watercraft.prototype.navigable.call(fake,x,z,a))spot=[x,z]}
+      if(!spot){toast('Submarine needs deep water','walk to the sea shore (Velykyi Fontan beach) and try again');return}
+      v.x=spot[0];v.z=spot[1];v.yaw=Math.atan2(spot[0]-player.x,spot[1]-player.z);v.y=SL-.25;v.sync();this.enter(v);return}   // you can't wade 30 m out, so you start inside it
+    let best=null;for(const d of [6,8,10,5,12])for(const a of [0,.6,-.6,1.2,-1.2]){const x=player.x+Math.sin(cam.yaw+a)*d,z=player.z+Math.cos(cam.yaw+a)*d,gy=groundH(x,z);
+      if(gy>SL+.5&&!insideAny(x,z,2.4,gy+.6)&&!insideAny(x,z,2.4,gy+1.6)){best=[x,z,cam.yaw+a+Math.PI/2];break}if(best)break}
+    if(!best){toast('No room here','move to an open street and try again');return}
+    v.x=best[0];v.z=best[1];v.yaw=best[2];v.y=groundH(v.x,v.z);v.sync();toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1)+' ready','press E to get in')},
   addVehicle(kind,x,z,yaw){const v=new LiteVehicle(kind,x,z,yaw);v.home=[x,z,yaw];scene.add(v.root);this.veh.push(v);
     INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:3.6,get label(){return (kind==='bike'?'Ride the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot,fn:()=>EXT.enter(v)});return v},
   init(world){
     const ab=$('actBtns');for(const [id,txt,type] of [['bBoat','🚤 Boat','boat'],['bJet','🌊 Jet ski','jetski']]){const b=document.createElement('button');b.id=id;b.textContent=txt;b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
     this.boatBtn=$('bBoat');this.jetBtn=$('bJet');
+    // vehicle garage: one button opens a row that brings the G-Wagon, Lamborghini, bicycle or submarine to you
+    {const vb=document.createElement('button');vb.id='bVeh';vb.textContent='🚗 Vehicles';ab.appendChild(vb);
+     const pn=document.createElement('div');pn.id='vehPanel';pn.hidden=true;pn.style.cssText='position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(250px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;z-index:7';document.body.appendChild(pn);
+     for(const [k,t] of [['gwagon','🖤 G-Wagon'],['lambo','🏎 Lamborghini'],['bike','🚲 Bicycle'],['sub','🌊 Submarine']]){const b=document.createElement('button');b.textContent=t;b.onclick=()=>{pn.hidden=true;EXT.summon(k)};pn.appendChild(b)}
+     vb.onclick=()=>{pn.hidden=!pn.hidden};
+     addEventListener('keydown',e=>{if(!started||e.repeat)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyU')pn.hidden=!pn.hidden})}
     addEventListener('keydown',e=>{if(!started||e.repeat)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyB')MARINE.spawnNear('boat');else if(e.code==='KeyJ')MARINE.spawnNear('jetski')});
     ANIM.push(dt=>EXT.tick(dt));
     // land vehicles in front of Entry 2, behind where you spawn
     const h=PLACES.find(p=>p.id==='home');
     if(h){const fx=Math.sin(h.yaw),fz=Math.cos(h.yaw),lx=Math.cos(h.yaw),lz=-Math.sin(h.yaw);
-      for(const [kind,b,l,yw] of [['gwagon',-9,-6,h.yaw+Math.PI/2],['lambo',-9,6,h.yaw+Math.PI/2],['bike',-4,-3,h.yaw]]){
+      for(const [kind,b,l,yw] of [['gwagon',-14,-24,h.yaw+Math.PI/2],['lambo',-14,-30,h.yaw+Math.PI/2],['bike',-12,-20,h.yaw]]){
         const x=h.x+fx*b+lx*l,z=h.z+fz*b+lz*l,c=collide(x,z,2.4,groundH(x,z)+.6),gy=groundH(c[0],c[1])+.6;
         let best=yw,bd=-1;   // park facing the longest free runway
         for(const a of [yw,yw+Math.PI,yw+Math.PI/2,yw-Math.PI/2]){let d=0;while(d<40&&!insideAny(c[0]+Math.sin(a)*(d+3),c[1]+Math.cos(a)*(d+3),1.4,gy))d+=2;if(d>bd){bd=d;best=a}}
