@@ -1944,6 +1944,7 @@ function addBlock(cx,cz,w,d,a){STATIC_BLOCK.push(cx,cz,w/2,d/2,Math.cos(a),Math.
 function addWall(cx,cz,w,d,a,y0,y1){STATIC_WALLS.push({cx,cz,hw:w/2,hd:d/2,ca:Math.cos(a),sa:Math.sin(a),y0,y1})}
 // wall segment between two points (thickness t)
 function wallSeg(x0,z0,x1,z1,t,y0,y1){const L=Math.hypot(x1-x0,z1-z0);addWall((x0+x1)/2,(z0+z1)/2,L,t,Math.atan2(z1-z0,x1-x0),y0,y1)}
+function holdSpecial(f){f.hold=1;SPECIAL.push(f)}
 function specialGround(x,z,y){let best=null;for(const f of SPECIAL){const r=f(x,z,y===undefined?99:y);if(r&&(!best||r.pri>best.pri))best=r}return best}
 function LAND_UPDATE(dt){for(const f of ANIM)f(dt)}
 function frame(cx,cz,a){const ca=Math.cos(a),sa=Math.sin(a);return {P:(u,v)=>[cx+u*ca-v*sa,cz+u*sa+v*ca],ca,sa,inv:(x,z)=>{const dx=x-cx,dz=z-cz;return [dx*ca+dz*sa,-dx*sa+dz*ca]}}}
@@ -2038,7 +2039,7 @@ async function buildAllLandmarks(scene){
   // flat pads under places that must be level (the real relief blends into them)
   addFlat(HOME.cx,HOME.cz,72,40);
   {const o=LMK.opera;addFlatRect(o.x,o.y,o.a,o.w+60,o.d+40,30)}
-  {const o=LMK.station;const a=Math.atan2(12,104);addFlatRect(721+52*Math.cos(a)-15*Math.sin(a),-8851+52*Math.sin(a)+15*Math.cos(a),a,150,110,40)}
+  {const o=LMK.station;const a=Math.atan2(12,104);addFlatRect(721+52*Math.cos(a)-5*Math.sin(a),-8851+52*Math.sin(a)+5*Math.cos(a),a,150,134,40)}
   const grp=new THREE.Group();scene.add(grp);LANDMARK_GRP=grp;
   const G=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2});GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});
   const steps=[['home',()=>buildHome(grp,G,P,Sg,GRX)],['stairs',()=>buildStairs(grp,P,GRX)],['station',()=>buildStation(grp,G,P,Sg,GRX)],['lighthouse',()=>buildLighthouse(grp,P)],
@@ -2976,27 +2977,16 @@ function buildStation(grp,G,P,Sg,GR){
   const C0=37,C1=68,CH=23.5;
   {const hall=new THREE.MeshStandardMaterial({color:0xe2d4b6,roughness:.85,side:THREE.DoubleSide});
    const wall=(ua,ub,va,vb,ya,yb,m)=>{const g=new THREE.BoxGeometry(Math.max(.05,ub-ua),yb-ya,Math.max(.05,vb-va));const mm=new THREE.Mesh(g,m||hall);const c=F.P((ua+ub)/2,(va+vb)/2);mm.position.set(c[0],y0+(ya+yb)/2,c[1]);mm.rotation.y=-a;mm.castShadow=mm.receiveShadow=true;grp.add(mm);return mm};
-   // front & back walls with 3 arches each (arch openings glazed; centre arch has doors at ground)
-   const archTex=(()=>{const cv=document.createElement('canvas');cv.width=512;cv.height=512;const x=cv.getContext('2d');x.fillStyle=cream;x.fillRect(0,0,512,512);
-     const s=512/31;const Y=m=>512-m*s;const arch=(cx)=>{const w=6.6,y0b=2.2,h=10.5;x.fillStyle='#f3ead8';x.beginPath();x.rect((cx-w/2-.5)*s,Y(y0b+h),(w+1)*s,h*s);x.arc(cx*s,Y(y0b+h),(w/2+.5)*s,Math.PI,0);x.fill();
-       const g=x.createLinearGradient(0,Y(y0b+h+w/2),0,Y(y0b));g.addColorStop(0,'#7b93a4');g.addColorStop(.6,'#2a3a46');g.addColorStop(1,'#161f26');x.fillStyle=g;x.beginPath();x.rect((cx-w/2)*s,Y(y0b+h),w*s,h*s);x.arc(cx*s,Y(y0b+h),w/2*s,Math.PI,0);x.fill();
-       x.strokeStyle='#e9e1cf';x.lineWidth=3;x.beginPath();for(let k=1;k<6;k++){const xx=cx-w/2+w*k/6;x.moveTo(xx*s,Y(y0b));x.lineTo(xx*s,Y(y0b+h+Math.sqrt(Math.max(0,(w/2)**2-(xx-cx)**2))))}for(let k=1;k<7;k++){const yy=y0b+h*k/7;x.moveTo((cx-w/2)*s,Y(yy));x.lineTo((cx+w/2)*s,Y(yy))}x.stroke();
-       x.fillStyle='#5b3a22';x.fillRect((cx-1.4)*s,Y(y0b+.0+3.6),2.8*s,3.6*s);x.fillStyle='#c79c4c';x.fillRect((cx-.05)*s,Y(3.6+2.2),.1*s,3.6*s)};
-     arch(5.2);arch(15.5);arch(25.8);x.fillStyle='#f3ead8';x.fillRect(0,Y(19),512,.8*s);x.fillRect(0,Y(23.5),512,.5*s);
-     x.fillStyle='#fff';x.beginPath();x.arc(15.5*s,Y(20.6),.9*s,0,6.283);x.fill();x.strokeStyle='#333';x.lineWidth=3;x.beginPath();x.moveTo(15.5*s,Y(20.6));x.lineTo(15.5*s,Y(21.2));x.moveTo(15.5*s,Y(20.6));x.lineTo(15.9*s,Y(20.6));x.stroke();
-     x.fillStyle='#9a8f78';x.font=`700 ${(.7*s)|0}px Georgia,serif`;x.textAlign='center';x.fillText('1905',5.2*s,Y(17.6));x.fillText('1917',15.5*s,Y(17.6));x.fillText('1944',25.8*s,Y(17.6));
-     const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t})();
-   const front=new THREE.Mesh(new THREE.PlaneGeometry(C1-C0,CH),new THREE.MeshStandardMaterial({map:archTex,roughness:.8}));
-   for(const [vv,rot] of [[-.02,Math.PI],[33.02,0]]){const m=front.clone();const c=F.P((C0+C1)/2,vv);m.position.set(c[0],y0+CH/2,c[1]);m.rotation.y=-a+rot;grp.add(m)}
+   // front and back walls with real arched openings are built with the hall interior below
    for(const uu of [C0,C1])wall(uu-.4,uu+.4,0,33,0,CH,plain);
    wall(C0,C1,0,33,CH-.4,CH,plain);   // flat roof under the drum
    // paired corinthian columns on the front (4 pairs) + entablature
    const colM=new THREE.MeshStandardMaterial({color:0xefe6d2,roughness:.7});
-   for(const uu of [C0+.4,C0+10.6,C0+20.9,C1-.4]){for(const dv of [-.9,.9]){const p=F.P(uu+dv*.6,-1.3);const c=new THREE.Mesh(new THREE.CylinderGeometry(.55,.62,17,14),colM);c.position.set(p[0],y0+1.2+8.5,p[1]);c.castShadow=true;grp.add(c);
+   for(const uu of [C0+.4,C0+10.6,C0+20.9,C1-.4]){for(const dv of [-.9,.9]){const p=F.P(uu+dv*.6,-1.3);const c=new THREE.Mesh(new THREE.CylinderGeometry(.55,.62,17,14),colM);c.position.set(p[0],y0+1.2+8.5,p[1]);c.castShadow=true;grp.add(c);STATIC_CIR.push(p[0],p[1],.75);
      const cap=new THREE.Mesh(new THREE.BoxGeometry(1.5,.9,1.5),colM);cap.position.set(p[0],y0+18.6,p[1]);cap.rotation.y=-a;grp.add(cap);const base=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.2,1.5),colM);base.position.set(p[0],y0+.6,p[1]);base.rotation.y=-a;grp.add(base)}}
    wall(C0-1,C1+1,-2.6,0,19,20.6,colM);wall(C0-1,C1+1,-2.8,0,20.6,21.2,colM);
    // steps to the square
-   for(let k=0;k<5;k++)wall(C0-2,C1+2,-4.2-k*.4,-2.6,0,.2*(5-k),new THREE.MeshStandardMaterial({color:0xb7b0a2,roughness:.8}));
+   {const stoneM=new THREE.MeshStandardMaterial({color:0xb7b0a2,roughness:.8});wall(C0-1,C1+1,-2.6,0,0,1.0,stoneM);for(let k=0;k<4;k++)wall(C0-2,C1+2,-2.6-.4*(k+1),-2.6-.4*k,0,1.0-.2*(k+1),stoneM)}
    // drum + dome + lantern + flag
    const dc=F.P((C0+C1)/2,16.5);
    {const drumTex=(()=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=128;const x=cv.getContext('2d');x.fillStyle='#ece2cb';x.fillRect(0,0,1024,128);for(let k=0;k<24;k++){const cx=(k+.5)*1024/24;x.fillStyle='#f6efe0';x.fillRect(cx-16,10,32,108);x.fillStyle='#2c3a44';x.beginPath();x.rect(cx-11,40,22,62);x.arc(cx,40,11,Math.PI,0);x.fill()}x.fillStyle='#d9ccb0';x.fillRect(0,0,1024,8);x.fillRect(0,118,1024,10);const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return t})();
@@ -3019,25 +3009,82 @@ function buildStation(grp,G,P,Sg,GR){
      const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:t,transparent:true,alphaTest:.3,roughness:.5,emissive:0x3a6cff,emissiveMap:t,emissiveIntensity:.0}));const c=F.P(u,v);m.position.set(c[0],y0+y,c[1]);m.rotation.y=-a+rot;grp.add(m);LIGHT_SIGNS.push(m.material);return m};
    letters('ВОКЗАЛ',30,-.3,21.2,11,1.9,Math.PI);letters('ВОКЗАЛ',75,-.3,21.2,11,1.9,Math.PI);
    letters('ЛАСКАВО ПРОСИМО В МІСТО-ГЕРОЙ ОДЕСУ!',52.5,35.4,20.6,52,2.2,0);
-   // hall interior: marble floor, chandeliers, benches, ticket windows, departures board
-   groundQuad(GR,[F.P(C0+.4,0),F.P(C1-.4,0),F.P(C1-.4,33),F.P(C0+.4,33)],6,y0+.12);
-   wall(C0+.4,C1-.4,.3,.35,0,CH-.5,hall);wall(C0+.4,C1-.4,32.65,32.7,0,CH-.5,hall);wall(C0+.4,C1-.4,0,33,CH-.6,CH-.45,new THREE.MeshStandardMaterial({color:0xf0e6cf,roughness:.8,side:THREE.DoubleSide}));
+   // hall interior: raised marble floor (same level as the porch and the platforms), carpet, pilasters, coffered ceiling, windows, chandeliers, benches, ticket windows, departures board
+   const HF=1.0;
+   groundQuad(GR,[F.P(C0+.4,0),F.P(C1-.4,0),F.P(C1-.4,33),F.P(C0+.4,33)],6,y0+HF);
+   // real thick front and back walls with three arched openings (the old flat textured planes hid solid walls behind them)
+   const AX=[5.2,15.5,25.8],AW=3.3,AS=13.7,AB=1.0;
+   {const stucco=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');x.fillStyle='#e6d9bc';x.fillRect(0,0,256,256);
+      for(let i=0;i<2200;i++){x.fillStyle=`rgba(${120+Math.random()*60|0},${105+Math.random()*50|0},${80+Math.random()*40|0},${Math.random()*.08})`;x.fillRect(Math.random()*256,Math.random()*256,1+Math.random()*3,1+Math.random()*3)}
+      x.strokeStyle='rgba(120,100,70,.2)';x.lineWidth=2;for(let k=0;k<8;k++){x.beginPath();x.moveTo(0,k*32+1);x.lineTo(256,k*32+1);x.stroke()}
+      const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1/8,1/8);t.anisotropy=8;return t})();
+    const wallMat=new THREE.MeshStandardMaterial({map:stucco,roughness:.9,side:THREE.DoubleSide});
+    const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(C1-C0,0);sh.lineTo(C1-C0,CH);sh.lineTo(0,CH);sh.lineTo(0,0);
+    for(const cx of AX){const h=new THREE.Path();h.moveTo(cx-AW,AB);h.lineTo(cx-AW,AS);h.absarc(cx,AS,AW,Math.PI,0,true);h.lineTo(cx+AW,AB);h.lineTo(cx-AW,AB);sh.holes.push(h)}
+    const wg=new THREE.ExtrudeGeometry(sh,{depth:.9,bevelEnabled:false,curveSegments:20});
+    const av=new THREE.Shape();av.moveTo(-AW-.7,AB);av.lineTo(-AW-.7,AS);av.absarc(0,AS,AW+.7,Math.PI,0,true);av.lineTo(AW+.7,AB);av.lineTo(AW,AB);av.lineTo(AW,AS);av.absarc(0,AS,AW,0,Math.PI,false);av.lineTo(-AW,AB);av.lineTo(-AW-.7,AB);
+    const avg=new THREE.ExtrudeGeometry(av,{depth:.3,bevelEnabled:false,curveSegments:20}),avMat=new THREE.MeshStandardMaterial({color:0xf1e9d6,roughness:.7});
+    // glazing of the arches: bronze mullions + tinted glass, painted on a plane that follows the arch outline
+    const glaze=(sky)=>{const PW=330,PH=620,cv=document.createElement('canvas');cv.width=PW;cv.height=PH;const x=cv.getContext('2d');const cx=PW/2,sy=(AS-4.6)*50;
+      x.save();x.beginPath();x.moveTo(0,PH);x.lineTo(0,PH-sy);x.arc(cx,PH-sy,PW/2,Math.PI,0,false);x.lineTo(PW,PH);x.closePath();x.clip();
+      if(sky){const gr=x.createLinearGradient(0,0,0,PH);gr.addColorStop(0,'#b9d9ee');gr.addColorStop(1,'#eef4f8');x.fillStyle=gr;x.fillRect(0,0,PW,PH)}
+      else{const gr=x.createLinearGradient(0,0,0,PH);gr.addColorStop(0,'rgba(98,140,165,.62)');gr.addColorStop(1,'rgba(40,62,78,.7)');x.fillStyle=gr;x.fillRect(0,0,PW,PH)}
+      x.strokeStyle='#4a3829';x.lineWidth=5;x.beginPath();for(let k=1;k<6;k++){x.moveTo(k*PW/6,0);x.lineTo(k*PW/6,PH)}for(let k=1;k<12;k++){x.moveTo(0,PH-k*60);x.lineTo(PW,PH-k*60)}x.stroke();
+      x.lineWidth=7;x.beginPath();x.arc(cx,PH-sy,PW/2-14,Math.PI,0,false);x.stroke();x.restore();
+      x.strokeStyle='#3a2c20';x.lineWidth=12;x.beginPath();x.moveTo(0,PH);x.lineTo(0,PH-sy);x.arc(cx,PH-sy,PW/2,Math.PI,0,false);x.lineTo(PW,PH);x.stroke();
+      const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t};
+    const glassM=new THREE.MeshStandardMaterial({map:glaze(false),transparent:true,depthWrite:false,roughness:.1,metalness:.3,side:THREE.DoubleSide}),skyM=new THREE.MeshBasicMaterial({map:glaze(true),side:THREE.DoubleSide,toneMapped:false});
+    const bronze=new THREE.MeshStandardMaterial({color:0x3a2c20,metalness:.5,roughness:.4}),gh=AS+AW-4.6;
+    for(const [v0,vg,dir] of [[-.9,-.45,-1],[33,33.45,1]]){
+      const m=new THREE.Mesh(wg,wallMat);const c=F.P(C0,v0);m.position.set(c[0],y0,c[1]);m.rotation.y=-a;m.castShadow=m.receiveShadow=true;grp.add(m);
+      for(const cx of AX){
+        const ac=F.P(C0+cx,dir<0?v0-.3:v0+.9);const r=new THREE.Mesh(avg,avMat);r.position.set(ac[0],y0,ac[1]);r.rotation.y=-a;r.castShadow=true;grp.add(r);
+        const gp=F.P(C0+cx,vg);const pl=new THREE.Mesh(new THREE.PlaneGeometry(2*AW,gh),glassM);pl.position.set(gp[0],y0+4.6+gh/2,gp[1]);pl.rotation.y=-a;grp.add(pl);
+        wall(C0+cx-AW,C0+cx+AW,vg-.2,vg+.2,4.4,4.75,bronze);for(const s of [-1,1])wall(C0+cx+s*AW-.12,C0+cx+s*AW+.12,vg-.25,vg+.25,AB,4.6,bronze);
+        // a keystone above each arch
+        wall(C0+cx-.45,C0+cx+.45,dir<0?v0-.5:v0+.9,dir<0?v0-.0:v0+1.4,AS+AW+.1,AS+AW+1.2,avMat)}}
+    // clock over the middle arch
+    {const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');x.fillStyle='#f6f2e6';x.beginPath();x.arc(128,128,124,0,6.283);x.fill();x.strokeStyle='#8c7a52';x.lineWidth=10;x.stroke();x.strokeStyle='#222';x.lineWidth=4;
+     for(let k=0;k<12;k++){const an=k*Math.PI/6;x.beginPath();x.moveTo(128+Math.sin(an)*100,128-Math.cos(an)*100);x.lineTo(128+Math.sin(an)*116,128-Math.cos(an)*116);x.stroke()}x.lineWidth=9;x.beginPath();x.moveTo(128,128);x.lineTo(128+Math.sin(.5)*60,128-Math.cos(.5)*60);x.stroke();x.lineWidth=6;x.beginPath();x.moveTo(128,128);x.lineTo(128-Math.sin(1.6)*88,128+Math.cos(1.6)*88);x.stroke();
+     const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;const m=new THREE.Mesh(new THREE.CircleGeometry(1.0,32),new THREE.MeshBasicMaterial({map:t,toneMapped:false}));const c=F.P(C0+15.5,-.96);m.position.set(c[0],y0+18.2,c[1]);m.rotation.y=-a+Math.PI;grp.add(m)}
+    // sky-lit windows in the side walls
+    for(const [uu,rot] of [[C0+.46,Math.PI/2],[C1-.46,-Math.PI/2]])for(const vv of [5.5,16.5,27.5]){const p=F.P(uu,vv);const w=new THREE.Mesh(new THREE.PlaneGeometry(2*AW,gh),skyM);w.position.set(p[0],y0+4.6+gh/2,p[1]);w.rotation.y=rot-a;grp.add(w)}
+   }
+   // coffered ceiling
+   {const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');x.fillStyle='#efe5cc';x.fillRect(0,0,256,256);x.fillStyle='#d8c9a4';x.fillRect(22,22,212,212);x.fillStyle='#f6eed9';x.fillRect(34,34,188,188);x.strokeStyle='#c9a24a';x.lineWidth=6;x.strokeRect(28,28,200,200);x.fillStyle='#c9a24a';x.beginPath();x.arc(128,128,14,0,6.283);x.fill();
+    const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(8,8.5);t.anisotropy=8;
+    const g2=new THREE.PlaneGeometry(C1-C0-.8,33);g2.rotateX(Math.PI/2);const m=new THREE.Mesh(g2,new THREE.MeshStandardMaterial({map:t,roughness:.8}));const c=F.P((C0+C1)/2,16.5);m.position.set(c[0],y0+CH-.55,c[1]);m.rotation.y=-a;grp.add(m)}
+   // pilasters, wainscot, carpet
+   {const cream2=sRGB('#eadfc4'),gold=sRGB('#c9a24a'),wood=sRGB('#6e4a2c'),red=sRGB('#7d1f27');
+    for(const uu of [C0+.8,C1-.8])for(const vv of [1,11,22,32]){const p=F.P(uu,vv);P.box(p[0],y0+HF+9.5,p[1],.9,19,.9,-a,cream2,9);P.box(p[0],y0+HF+19.2,p[1],1.2,.5,1.2,-a,gold,1);P.box(p[0],y0+HF+.3,p[1],1.2,.6,1.2,-a,gold,1)}
+    for(const uu of [C0+.5,C1-.5]){const p=F.P(uu,16.5);P.box(p[0],y0+HF+1.2,p[1],.16,2.4,32,-a,wood,5)}
+    const cc=F.P((C0+C1)/2,16.5);P.box(cc[0],y0+HF+.03,cc[1],4.6,.05,31.4,-a,red,5);for(const s of [-1,1]){const e=F.P((C0+C1)/2+s*2.35,16.5);P.box(e[0],y0+HF+.045,e[1],.16,.05,31.4,-a,gold,1)}}
    for(const vv of [10,22])for(const uu of [C0+8,C1-8]){const p=F.P(uu,vv);miniChandelier(grp,{gold:new THREE.MeshStandardMaterial({color:0xd0a645,roughness:.32,metalness:.85}),crystal:new THREE.MeshStandardMaterial({color:0xfff4d8,emissive:0xffd890,emissiveIntensity:2.2})},p[0],y0+CH-4,p[1])}
-   for(const vv of [8,12,16,20,24])for(const uu of [C0+6,C0+12,C0+18,C1-18,C1-12,C1-6]){const p=F.P(uu,vv);propBench2(P,p[0],y0+.12,p[1],-a+Math.PI/2,HOME_BENCHES);LOW_OBB.push(p[0],p[1],.95,.32,F.sa,-F.ca)}
+   {const p=F.P((C0+C1)/2,16.5);miniChandelier(grp,{gold:new THREE.MeshStandardMaterial({color:0xd0a645,roughness:.32,metalness:.85}),crystal:new THREE.MeshStandardMaterial({color:0xfff4d8,emissive:0xffd890,emissiveIntensity:2.2})},p[0],y0+CH-4.5,p[1])}
+   for(const vv of [7,12,17,22,27])for(const uu of [C0+8,C1-8]){const p=F.P(uu,vv);propBench2(P,p[0],y0+HF,p[1],-a+Math.PI/2,HOME_BENCHES);LOW_OBB.push(p[0],p[1],.95,.32,F.sa,-F.ca)}
+   // ticket windows along both side walls
+   {const wood=sRGB('#6b4a35'),glassC=sRGB('#c6d8e4');for(const uu of [C0+1.7,C1-1.7])for(const vv of [6,11,16,21,26]){const p=F.P(uu,vv),q=F.P(uu+(uu<C0+10?-.55:.55),vv);P.box(p[0],y0+HF+.55,p[1],1.0,1.1,3.2,-a,wood,5);P.box(q[0],y0+HF+1.75,q[1],.06,1.4,3.2,-a,glassC,2);LOW_OBB.push(p[0],p[1],.5,1.6,F.ca,F.sa)}}
    {const b=(()=>{const cv=document.createElement('canvas');cv.width=1024;cv.height=512;const x=cv.getContext('2d');x.fillStyle='#0b0e13';x.fillRect(0,0,1024,512);x.fillStyle='#ffd14a';x.font='700 44px "Golos Text",Arial';x.fillText('ВІДПРАВЛЕННЯ',40,64);
      const rows=[['086','КИЇВ','22:15','5'],['146','ЛЬВІВ','23:40','3'],['6311','ПОДІЛЬСЬК','07:12','8'],['6403','ЧОРНОМОРСЬК','07:48','6'],['105','ХАРКІВ','17:25','2'],['6011','ВИЛКОВЕ','09:30','7']];
      x.font='600 36px "Golos Text",Arial';rows.forEach((r2,i)=>{x.fillStyle=i%2?'#e9edf2':'#ffffff';x.fillText(r2[0],40,130+i*60);x.fillText(r2[1],180,130+i*60);x.fillStyle='#7ee08a';x.fillText(r2[2],700,130+i*60);x.fillStyle='#ffd14a';x.fillText(r2[3],900,130+i*60)});
      const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return t})();
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(9,4.5),new THREE.MeshBasicMaterial({map:b,toneMapped:false}));const p=F.P((C0+C1)/2,32.5);m.position.set(p[0],y0+9,p[1]);m.rotation.y=-a+Math.PI;grp.add(m)}
-   for(let k=0;k<6;k++){const p=F.P(C0+3+k*5,2.2);P.box(p[0],y0+1.3,p[1],3,2.6,.9,-a,sRGB('#6b4a35'),5);const q=F.P(C0+3+k*5,1.75);P.box(q[0],y0+1.6,q[1],1.6,1.0,.05,-a,sRGB('#c6d8e4'),2)}
-   // colliders: walls with door gaps in the arches
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(9,4.5),new THREE.MeshBasicMaterial({map:b,toneMapped:false,side:THREE.DoubleSide}));const p=F.P((C0+C1)/2,8);m.position.set(p[0],y0+HF+13,p[1]);m.rotation.y=-a;grp.add(m);
+    for(const s of [-3.5,3.5]){const r=F.P((C0+C1)/2+s,8);P.box(r[0],y0+HF+19,r[1],.08,12,.08,0,sRGB('#444'),1)}}
+   // colliders: front and back walls with a gap in every arch, solid side walls, columns
    const seg=(ua,va,ub,vb,y1)=>{const p=F.P(ua,va),q=F.P(ub,vb);wallSeg(p[0],p[1],q[0],q[1],.6,y0-2,y0+(y1||30))};
-   for(const vv of [0,33]){seg(C0,vv,(C0+C1)/2-1.6,vv);seg((C0+C1)/2+1.6,vv,C1,vv)}
+   for(const vv of [-.45,33.45]){let ua=C0;for(const cx of AX){seg(ua,vv,C0+cx-2.7,vv);ua=C0+cx+2.7}seg(ua,vv,C1,vv)}
    seg(C0,0,C0,33);seg(C1,0,C1,33);
    const lights=[];const pl=(u,v,yy,c,i,d)=>{const l=new THREE.PointLight(c,0,d,1.5);const p=F.P(u,v);l.position.set(p[0],y0+yy,p[1]);l.userData.i=i;grp.add(l);lights.push(l)};
    pl((C0+C1)/2,16,CH-5,0xffe7c4,2.2,40);
    INDOORS.push({name:'station',title:'Railway Station',sub:'main hall',floor:'marble',exp:1.0,lights,test:(x,z,y)=>{const [u,v]=F.inv(x,z);return u>C0&&u<C1&&v>0&&v<33&&y<y0+10},ceil:()=>y0+CH-1});
-   SPECIAL.push((x,z)=>{const [u,v]=F.inv(x,z);if(u>C0-2&&u<C1+2&&v>-4.2&&v<-2.6){const k=Math.min(4,Math.max(0,Math.floor((-2.6-v)/.4)));return {h:y0+.2*(5-k),pri:2,surf:'stone'}}if(u>C0&&u<C1&&v>=-2.6&&v<33)return {h:y0+(v<0?1:.12),pri:2,surf:v<0?'stone':'marble'};return null});
+   holdSpecial((x,z)=>{const [u,v]=F.inv(x,z);if(u>C0-2&&u<C1+2&&v>-4.2&&v<-2.6){const k=Math.min(3,Math.max(0,Math.floor((-2.6-v)/.4)));return {h:y0+1.0-.2*(k+1),pri:2,surf:'stone'}}
+     if(u>C0-1&&u<C1+1&&v>=-2.6&&v<0)return {h:y0+1.0,pri:2,surf:'stone'};
+     if(u>C0&&u<C1&&v>=0&&v<33.9)return {h:y0+1.0,pri:2,surf:'marble'};
+     if(u>C0+1&&u<C1-1&&v>=33.9&&v<46){const t=(v-33.9)/12.1;return {h:y0+1.0*(1-t)+.02*t,pri:2,surf:'stone'}}return null});
+   // gentle ramp behind the hall down to the track level (the platforms start a few metres further on)
+   {const Q=(u,v,y)=>{const w=F.P(u,v);return [w[0],y,w[1]]},g=P.g,sc=()=>({color:sRGB('#b9b2a4'),aM:9}),sd=()=>({color:sRGB('#8a8479'),aM:9});
+    quadN(g,[Q(C0+1,33.9,y0+1.0),Q(C1-1,33.9,y0+1.0),Q(C1-1,46,y0+.02),Q(C0+1,46,y0+.02)],[0,1,0],sc);
+    for(const uu of [C0+1,C1-1])quadN(g,[Q(uu,33.9,y0+1.0),Q(uu,33.9,y0),Q(uu,46,y0),Q(uu,46,y0+.02)],[uu<C0+10?-F.ca:F.ca,0,uu<C0+10?-F.sa:F.sa],sd)}
   }
   // other wing buildings colliders
   for(const [ua,ub,va,vb] of [[0,23,2,34],[82,105,2,34],[23,37,0,35],[68,82,0,35]]){const c=F.P((ua+ub)/2,(va+vb)/2);addOBB(c[0],c[1],ub-ua,vb-va,a)}
@@ -3087,7 +3134,7 @@ function buildPlatforms(grp,P,GR,F,y0){
         if(j%2===0){const c=F.P((p0.a+p0.b)/2,p0.v);P.box(c[0],p0.top+2.2,c[1],.25,4.4,.25,0,postC,1)}}}
     // walkable surface: the slab height at (u,v), interpolated between the slices
     const v0=pts[0].v,vN=pts[pts.length-1].v;
-    SPECIAL.push((x,z)=>{const [u,v]=F.inv(x,z);if(v<v0||v>vN)return null;const k=Math.min(pts.length-2,Math.floor((v-v0)/DV)),p0=pts[k],p1=pts[k+1],t=(v-p0.v)/DV;
+    holdSpecial((x,z)=>{const [u,v]=F.inv(x,z);if(v<v0||v>vN)return null;const k=Math.min(pts.length-2,Math.floor((v-v0)/DV)),p0=pts[k],p1=pts[k+1],t=(v-p0.v)/DV;
       if(u<p0.a+(p1.a-p0.a)*t||u>p0.b+(p1.b-p0.b)*t)return null;return {h:p0.top+(p1.top-p0.top)*t,pri:1,surf:'stone',wall:false}});
     // exit sign at the building end of every platform
     const e=pts[2],ec=F.P((e.a+e.b)/2,e.v);exits.push([ec[0],ec[1],e.top])}
@@ -6478,6 +6525,9 @@ function groundAt(x, z, playerY) {
   // ship decks and gangways (function surfaces flagged .deck): the highest one the player can step onto
   let deckH=null;for(const f of SPECIAL)if(typeof f==='function'&&f.deck){const r=f(x,z,playerY);if(r&&(deckH===null||r.h>deckH))deckH=r.h}
   if(deckH!==null)return deckH;
+  // raised walkable surfaces flagged .hold: the walk gate in stepPlayer already uses them, so the ground-follow must too, otherwise you sink through them
+  let holdH=null;for(const f of SPECIAL)if(typeof f==='function'&&f.hold){const r=f(x,z,playerY);if(r&&Number.isFinite(r.h)&&(holdH===null||r.h>holdH))holdH=r.h}
+  if(holdH!==null)return holdH;
   return gH;
 }
 
