@@ -343,7 +343,21 @@ function shBuildMall(grp,P,GR,at){const F=lotFrame(at.x,at.z,at.yaw),y0=rawH(at.
   for(const u of [-12,12,-28,28]){const q=F.P(u,fv+4);propGlobeLamp(P,q[0],y0,q[1],ry);EXTRA_LAMPS.push([q[0],y0+3.7,q[1],2.4])}
   for(const u of [-31,31])lotFlag(P,F,u,fv+2,y0);
   PARKED_DIRTY=true;
+  shMallBusStop(P,F,fv);
   const pp=F.P(0,fv+14);PLACES.push({id:'mall',name:'Odesa Mall',sub:'4 floors · Lidl, Tavria V, Nike, Adidas, food court',x:pp[0],z:pp[1],yaw:ry+Math.PI,pin:'#ff4fa3',poi:['M','#ff4fa3'],r:150})}
+
+// bus stop right at the mall: a shelter on the pavement of the street the mall front looks at, registered so live buses on that street really stop there
+function shMallBusStop(P,F,fv){const dp=F.P(0,fv+6);
+  for(let k=14;k<=70;k+=4){const x=dp[0]+F.n[0]*k,z=dp[1]+F.n[1]*k,id=chunkIdAt2(x,z);if(id<0)continue;const q=nearRoadPt(id,x,z);if(!q||q.d>6||q.c>1)continue;
+    const want=((dp[0]-q.px)*q.nx+(dp[1]-q.pz)*q.nz)>=0?1:-1,dd=HW[q.c]+SW[q.c]*.55+1.1,tx=q.nz,tz=-q.nx;
+    for(const sh of [0,-9,9,-18,18]){                                  // slide along the road when the first spot is taken
+      const fx=q.px+q.nx*want*dd+tx*sh,fz=q.pz+q.nz*want*dd+tz*sh;
+      if(insideAny(fx,fz,2.2)||blockedStatic(fx,fz,2.2)||shBuildingNear(fx,fz,2.2))continue;
+      const ry=roadYaw(id,fx,fz);busShelter(P,fx,groundH(fx,fz),fz,ry,false);addOBB(fx,fz,3.8,1.5,-ry);
+      addBusStop(q.px+tx*sh,q.pz+tz*sh,q.nx*want,q.nz*want);
+      return true}
+    return false}
+  return false}
 
 // a standalone brand shop on its own lot; the interior is built the first time you walk in
 function shBuildShop(grp,P,GR,spec,at){const F=lotFrame(at.x,at.z,at.yaw),y0=rawH(at.x,at.z),ry=F.yaw,W=spec.W||16,Dp=spec.Dp||11,H=spec.H||5;lotPad(F,W+10,Dp+12,y0);
