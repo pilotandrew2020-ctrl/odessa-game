@@ -103,6 +103,23 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #netCode{width:84px;flex:none;font:inherit;font-size:16px;letter-spacing:.2em;text-align:center;color:var(--chalk);background:rgba(245,241,232,.08);border:1px solid var(--line);border-radius:12px;padding:9px 8px;-webkit-user-select:text;user-select:text}
 #netStatus{font-size:12.5px;color:var(--muted);line-height:1.4}#netStatus.ok{color:var(--sun);font-weight:700;font-size:14px}
 #coOutfits{display:flex;gap:6px;flex-wrap:wrap}#coOutfits button{padding:8px 11px;font-size:13px}
+/* ===== touch controls v2: round, readable, thumb-sized and kept out of the middle of the view ===== */
+#actBtns{right:max(106px,calc(env(safe-area-inset-right) + 106px));bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:0;border:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;grid-template-columns:repeat(3,54px)!important;gap:8px}
+#actBtns button{width:54px;height:54px;border-radius:50%;padding:0;border:1.5px solid rgba(255,255,255,.55);background:rgba(14,30,38,.5);backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 10px rgba(0,0,0,.35);touch-action:none;transition:transform .08s,background .12s}
+#actBtns button i{font-style:normal;font-size:21px;line-height:1}
+#actBtns button b{font:700 8.5px/1 var(--f-body);letter-spacing:.07em;text-transform:uppercase;opacity:.92}
+#actBtns button:active{transform:scale(.93);background:rgba(242,193,78,.88);color:var(--ink)}
+#actBtns button.on{background:var(--sun);color:var(--ink);border-color:#fff}
+#actBtns #bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:80px!important;height:80px!important;background:rgba(242,193,78,.9);color:var(--ink);border-color:#fff}
+#actBtns #bJump i{font-size:30px}
+#bAct{right:max(16px,env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom,0px));max-width:min(70vw,360px);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+body #gunFire{right:max(24px,calc(env(safe-area-inset-right) + 24px));bottom:calc(106px + env(safe-area-inset-bottom,0px));width:74px;height:74px;touch-action:none;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+body #gunDet{right:max(108px,calc(env(safe-area-inset-right) + 108px));bottom:calc(122px + env(safe-area-inset-bottom,0px));touch-action:none}
+body #gunBar{left:max(100px,calc(env(safe-area-inset-left) + 100px));transform:none;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 480px);min-width:200px;overflow-x:auto;scrollbar-width:none}body #gunBar button{padding:6px 8px;font-size:11px;line-height:1.1;white-space:nowrap}
+body #gunBar::-webkit-scrollbar{display:none}
+body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
+#joy{width:44vw;height:56vh}
+@media (max-height:430px){#actBtns button{width:46px;height:46px}#actBtns{grid-template-columns:repeat(3,46px)!important;right:max(92px,calc(env(safe-area-inset-right) + 92px))}#actBtns #bJump{width:68px!important;height:68px!important}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(166px + env(safe-area-inset-bottom,0px))}}
 </style>
 <div id="app">
   <canvas id="c"></canvas>
@@ -115,7 +132,7 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
     <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">☔ Rain</button><button id="bMenu">Menu</button></div>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bRun">Run</button><button id="bJump">Jump</button><button id="bScoot">Scooter</button><button id="bSpk">Speaker</button><button id="bCar">Car</button><button id="bHeli">Heli</button></div>
+    <div id="actBtns"><button id="bRun"><i>🏃</i><b>Run</b></button><button id="bScoot"><i>🛴</i><b>Scooter</b></button><button id="bCar"><i>🚗</i><b>Car</b></button><button id="bHeli"><i>🚁</i><b>Heli</b></button><button id="bSpk"><i>🔊</i><b>Music</b></button><button id="bJump"><i>⤒</i><b>Jump</b></button></div>
     <div id="heliControls" hidden><button id="bFlyUp">UP</button><button id="bFlyDown">DOWN</button><button id="bFlyLeft">◀ LEFT</button><button id="bFlyRight">RIGHT ▶</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
@@ -4414,7 +4431,7 @@ function leaveTram(){const t=RIDE.tram;if(!t)return;if(t.kind==='funi')return fu
   for(const side of [1,-1])for(const off of [0,-4,4]){const x=t.x+fz*side*2.9+fx*off,z=t.z-fx*side*2.9+fz*off;if(!insideAny(x,z,.35,t.y+.5)){player.x=x;player.z=z;player.y=groundAt(x,z,t.y+1);player.vx=player.vz=0;cam.init=false;return}}
   player.x=t.x+fz*3;player.z=t.z-fx*3;player.y=groundAt(player.x,player.z,t.y+1)}
 function stepTramCamera(dt){const t=RIDE.tram;const tx=t.x,ty=t.y+(t.camH||2.4),tz=t.z;
-  if(!inp.dragging&&!TOUCH_LOOK.active&&t.kind!=='cable'&&t.kind!=='funi'){let tgt=t.yaw+(t.dir>0?0:0);let dy=tgt-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*.9)}
+  if(!freeLook()&&t.kind!=='cable'&&t.kind!=='funi'){let tgt=t.yaw+(t.dir>0?0:0);let dy=tgt-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*.9)}
   const dist=t.camDist||Math.max(13,cam.dist*2.2);const pitch=Math.max(.18,cam.pitch);const cp=Math.cos(pitch),sp=Math.sin(pitch);const dx=-Math.sin(cam.yaw)*cp,dy2=sp,dz=-Math.cos(cam.yaw)*cp;
   let d=dist;for(let s=4;s<=dist;s+=.5){const px=tx+dx*s,py=ty+dy2*s,pz=tz+dz*s;if(insideAny(px,pz,.25,py)||py<groundAt(px,pz,py)+.3){d=Math.max(4,s-.5);break}}
   const wx=tx+dx*d,wy=ty+dy2*d,wz=tz+dz*d;if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}
@@ -5759,7 +5776,8 @@ function syncMultiplayerState(){
 const cam={yaw:0,pitch:.3,dist:(innerHeight>innerWidth?5.6:4.6),x:0,y:0,z:0,init:false};
 const inp={k:{},jx:0,jy:0,jump:false,lookT:0};
 // camera is "free" (vehicle yaw must not drag it back) while dragging, or for 2.5 s after looking around with a weapon out
-function freeLook(){return inp.dragging||TOUCH_LOOK.active||(GUN.armed&&performance.now()-inp.lookT<2500)}
+// while armed the camera stays where you aimed: it neither swings back to follow the car's heading while you shoot, nor within 10 s of the last aim / shot
+function freeLook(){return inp.dragging||TOUCH_LOOK.active||(GUN.armed&&(GUN.held||performance.now()-inp.lookT<10000))}
 const INTERACT=[];   // {x,z,y,r,label,fn}
 // sit on any bench: city benches (per chunk) + the yard benches
 let benchNear=null;
@@ -7404,7 +7422,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   // distance along the ray to the first building / ground (so walls stop bullets)
   wallDist(o,d,max){for(let t=1;t<max;t+=1){const x=o.x+d.x*t,y=o.y+d.y*t,z=o.z+d.z*t;if(y<groundH(x,z))return t;if(insideAny(x,z,.15,y))return t}return max},
   fire(){
-    if(!this.canFire()||this.cd>0)return;const W=WEAPONS[this.w];
+    if(!this.canFire()||this.cd>0)return;const W=WEAPONS[this.w];inp.lookT=performance.now();
     if(W.c4){this.placeC4();return}
     if(W.melee){this.strike(W);return}
     if(W.tac){this.cd=W.cd;this.shots++;TAC.launch();this.push();return}
@@ -7527,8 +7545,9 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ui.vig=mk('div','gunVig');
     ui.bar=mk('div','gunBar');WEAPONS.forEach((W,i)=>{const b=document.createElement('button');b.textContent=W.k+' '+W.n.replace('Desert Eagle','Deagle').replace('.357 Magnum','.357').replace('Tactical Nuke','T-Nuke');b.onclick=()=>this.pick(i);ui.bar.appendChild(b)});
     ui.fire=mk('button','gunFire');ui.fire.textContent='FIRE';
-    const dn=e=>{e.preventDefault();this.held=true;this.fire()},up=e=>{e.preventDefault();this.held=false};
-    ui.fire.addEventListener('touchstart',dn,{passive:false});ui.fire.addEventListener('touchend',up);ui.fire.addEventListener('touchcancel',up);ui.fire.addEventListener('mousedown',dn);addEventListener('mouseup',()=>{this.held=false});
+    // FIRE is its own pointer: the finger that holds it never interferes with the stick finger (move / gas) or the look finger
+    let fid=null;const dn=e=>{if(fid!==null)return;fid=e.pointerId;try{ui.fire.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault();this.held=true;this.fire()},up=e=>{if(e.pointerId!==fid)return;fid=null;this.held=false};
+    ui.fire.addEventListener('pointerdown',dn);ui.fire.addEventListener('pointerup',up);ui.fire.addEventListener('pointercancel',up);ui.fire.addEventListener('lostpointercapture',up);
     ui.det=mk('button','gunDet');ui.det.onclick=()=>this.detonate();ui.det.hidden=true;
     ui.hudw=mk('div','gunHud');ui.wn=document.createElement('div');ui.hp=document.createElement('i');const hb=document.createElement('div');hb.className='hpb';hb.appendChild(ui.hp);ui.kd=document.createElement('div');ui.hudw.append(ui.wn,hb,ui.kd);
     ui.board=mk('div','gunBoard');ui.down=mk('div','gunDown');ui.down.textContent='You were tagged — respawning…';ui.down.hidden=true;
@@ -8027,7 +8046,7 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
     this.seatXform(o.root,this.idx,this._v,this._q);player.x=this._v.x;player.y=this._v.y;player.z=this._v.z;player.yaw=o.root.rotation.y;player.spd=0;inp.jump=false;
     PLR.root.visible=o.kind!=='sub';PLR.root.position.copy(this._v);PLR.root.quaternion.copy(this._q);animPlayer(PLR,{spd:0,mode:o.lv?o.lv.seatPose(this.idx):'sit',role:'pass'},dt)},
   stepCamera(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o)return;const heli=o.kind==='heli',p=o.root.position,yw=o.root.rotation.y,dist=Math.max(heli?9:6.4,cam.dist*(heli?2:1.2)),pitch=Math.max(.12,cam.pitch);
-    if(!inp.dragging&&!TOUCH_LOOK.active)cam.yaw+=((yw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*1.5);
+    if(!freeLook())cam.yaw+=((yw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*1.5);
     const cp=Math.cos(pitch),sp=Math.sin(pitch),wx=p.x-Math.sin(cam.yaw)*cp*dist,wy=p.y+sp*dist+(heli?2:1.4),wz=p.z-Math.cos(cam.yaw)*cp*dist;
     if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*5);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x,p.y+(heli?1.4:1.1),p.z)},
@@ -8166,11 +8185,11 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   addVehicle(kind,x,z,yaw){const v=new LiteVehicle(kind,x,z,yaw);v.home=[x,z,yaw];scene.add(v.root);this.veh.push(v);
     INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot,fn:()=>EXT.enter(v)});return v},
   init(world){
-    const ab=$('actBtns');for(const [id,txt,type] of [['bBoat','🚤 Boat','boat'],['bJet','🌊 Jet ski','jetski']]){const b=document.createElement('button');b.id=id;b.textContent=txt;b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
+    const ab=$('actBtns');for(const [id,txt,type] of [['bBoat','🚤|Boat','boat'],['bJet','🌊|Jet ski','jetski']]){const b=document.createElement('button');b.id=id;{const [ic,tx]=txt.split('|');b.innerHTML='<i>'+ic+'</i><b>'+tx+'</b>'}b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
     this.boatBtn=$('bBoat');this.jetBtn=$('bJet');
     // vehicle garage: one button opens a row that brings the G-Wagon, Lamborghini, bicycle or submarine to you
-    {const vb=document.createElement('button');vb.id='bVeh';vb.textContent='🚗 Vehicles';ab.appendChild(vb);
-     const pn=document.createElement('div');pn.id='vehPanel';pn.hidden=true;pn.style.cssText='position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(250px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;z-index:7';document.body.appendChild(pn);
+    {const vb=document.createElement('button');vb.id='bVeh';vb.innerHTML='<i>🚘</i><b>Garage</b>';ab.appendChild(vb);
+     const pn=document.createElement('div');pn.id='vehPanel';pn.hidden=true;pn.style.cssText='position:absolute;right:max(106px,calc(env(safe-area-inset-right) + 106px));bottom:calc(150px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;z-index:7';document.body.appendChild(pn);
      for(const [k,t] of [['gwagon','🖤 G-Wagon'],['lambo','🏎 Lamborghini'],['bike','🚲 Bicycle'],['sub','🌊 Submarine']]){const b=document.createElement('button');b.textContent=t;b.onclick=()=>{pn.hidden=true;EXT.summon(k)};pn.appendChild(b)}
      vb.onclick=()=>{pn.hidden=!pn.hidden};
      addEventListener('keydown',e=>{if(!started||e.repeat)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyU')pn.hidden=!pn.hidden})}
