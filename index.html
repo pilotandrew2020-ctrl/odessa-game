@@ -4520,20 +4520,21 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
   setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;if(seaNear)seaNear.visible=showWorld;
     for(const t of TREES.meshes){t.t.visible=showWorld;t.l.visible=showWorld}for(const t of CAR_T){t.mesh.visible=showWorld;t.wheels.visible=showWorld}for(const t of TRAMS)t.mesh.visible=showWorld;if(snowPts)snowPts.visible=showWorld&&S.season==='winter';
     for(const n in this.built){const B=this.built[n];setInteriorGroupVisible(B.grp,!v&&B===this.active)}},
-  enter(name,ret,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{
+  fail(e,name,f){console.error('[portal] could not open '+name,e);this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);const r=this.ret||PLACES[0];teleportRaw(r.x,r.z,r.yaw);toast('Closed for now','this place failed to open');f.style.opacity=0},
+  enter(name,ret,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{
       if(!this.cur)this.ret=ret;this.opt=opt||{};
       const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];
       if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
       this.place(B);
       if(DRIVE.on)exitCar();player.scoot=false;
-      toast(B.title,B.sub||'');f.style.opacity=0},380)},
+      toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
   exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       teleportRaw(r.x,r.z,r.yaw);f.style.opacity=0},380)},
-  go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
+  go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       this.opt=opt||{};const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
-      this.place(B);toast(B.title,B.sub||'');f.style.opacity=0},380)},
+      this.place(B);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
   place(B){player.x=B.spawn[0];player.z=B.spawn[1];player.y=B.spawnY||INT_Y;player.yaw=B.spawnYaw||0;cam.yaw=player.yaw;cam.init=false;
     player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null}};
 const INVENTORY={},BAG={};const PRICE={sausage:120,bread:28,juice:52,milk:38,apples:35,crisps:45,'ice cream':30,hematogen:22,'vitamin C':15};
@@ -6683,11 +6684,13 @@ async function boot(){
   COOP.init();
 }
 let last=performance.now();
+const _loopErr={};
+function safe(name,fn){try{fn()}catch(e){const n=performance.now();if(!_loopErr[name]||n-_loopErr[name]>5000){_loopErr[name]=n;console.error('[loop:'+name+']',e)}}}
 function loop(t){
   requestAnimationFrame(loop);
   let dt=Math.min(.05,(t-last)/1000);last=t;
   UNI.uTime.value+=dt;
-  if(started&&$('mapUI').hidden){
+  safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
@@ -6703,11 +6706,11 @@ function loop(t){
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);
     if((typeof AUD!=='undefined')&&AUD)AUD.update(dt);
     adaptRes(dt);
-  } else if(!started)cam.yaw+=dt*.06;
-  if(typeof LAND_UPDATE!=='undefined')LAND_UPDATE(dt);
-  updateChunks(started?7:4);updateCityLOD(dt);syncMultiplayerState();
-  stepCamera(dt);
-  if((lightTick++)%10===0)updateLampUniforms();
+  } else if(!started)cam.yaw+=dt*.06;});
+  safe('land',()=>{if(typeof LAND_UPDATE!=='undefined')LAND_UPDATE(dt)});
+  safe('chunks',()=>updateChunks(started?7:4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
+  safe('cam',()=>stepCamera(dt));
+  safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
   sky.position.copy(camera.position);nightSky.position.copy(camera.position);
   seaMesh.position.x=Math.round(camera.position.x/100)*100;seaMesh.position.z=Math.round(camera.position.z/100)*100;seaFollow();
@@ -6716,12 +6719,12 @@ function loop(t){
     _ST.addScaledVector(_SR,Math.round(a/tx)*tx-a).addScaledVector(_SV,Math.round(b/tx)*tx-b);   // snap to shadow texels: no crawling shadows
     sunL.target.position.copy(_ST);sunL.position.copy(_ST).addScaledVector(_SL,300);}
   else sunL.position.copy(sunDir).multiplyScalar(300).add(camera.position);
-  updateSnow(dt);if(window.GFX)GFX.update(dt);
+  updateSnow(dt);if(window.GFX)GFX.update(dt);});
   if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;warmupShaders(false)}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   renderer.info.reset();const _shk=(typeof FX!=='undefined'&&FX.ready)?FX.shakeOff(dt):null;if(_shk)camera.position.add(_shk);
-  if(composer)composer.render();else renderer.render(scene,camera);if(_shk)camera.position.sub(_shk);
-  adaptLowDrawCalls();
+  try{if(composer)composer.render();else renderer.render(scene,camera)}finally{if(_shk)camera.position.sub(_shk)}
+  safe('lowdc',adaptLowDrawCalls);
 }
 document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.time=b.dataset.t;saveS();if(renderer)applyTime()});
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{S.season=b.dataset.s;saveS();if(renderer)applyTime()});
@@ -6967,7 +6970,7 @@ const NET={active:false,code:'',cid:'',ws:null,rest:new Uint8Array(0),seen:new M
         const {out,rest}=MQ.parse(all);this.rest=rest;
         for(const p of out){
           if(p.type===2&&!done){clearTimeout(to);if(p.body[1]!==0){fail();return}done=true;ok=true;this.ws=ws;ws.send(MQ.sub('myodesa/v2/'+this.code+'/+'));res(true)}
-          else if(p.type===3)this.msg(p.body)}}};next()})},
+          else if(p.type===3){try{this.msg(p.body)}catch(e){console.warn('[net] bad packet',e)}}}}};next()})},
   msg(b){const tl=(b[0]<<8)|b[1];const topic=MQ.dec.decode(b.slice(2,2+tl));const id=topic.split('/').pop();if(id===this.cid)return;
     let st=null;try{st=JSON.parse(MQ.dec.decode(b.slice(2+tl)))}catch(e){return}
     if(!st||typeof st!=='object')return;
