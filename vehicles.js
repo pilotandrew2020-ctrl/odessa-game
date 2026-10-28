@@ -16,6 +16,8 @@ const LV_SEATS={
   bike:[{p:[0,.67,-.34],pose:'bike'}],
   sub:[{p:[0,-.35,.55],pose:'sit'},{p:[0,-.35,-.75],pose:'sit'}]};   // closed cabin: both are hidden inside, the second is a co-op passenger
 const LV_NAMES=['gwagon','lambo','bike','sub'];
+const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
+const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
 function lvGround(x,z){const g=groundH(x,z);return typeof groundAt==='function'?groundAt(x,z,g+1.5):g}
 const LAMBO_COLS=[0xf2c200,0x7ec40a,0xff6a13,0xc4161c,0x1b4bd1];   // Giallo Orion, Verde Mantis, Arancio Argos, Rosso Mars, Blu Cepheus
 
@@ -61,7 +63,7 @@ class LiteVehicle{
     this.suspP=0;this.suspR=0;this.vPrev=0;this.aLong=0;this.yawRate=0;this.brakeOn=false;this.colIdx=(opt&&opt.col!=null)?opt.col|0:-1;this.proxy=!!(opt&&opt.proxy);
     this.root=new THREE.Group();this.susp=new THREE.Group();this.body=new THREE.Group();this.root.add(this.susp);this.susp.add(this.body);this.root.userData.lv=this;
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
-    this.y=kind==='sub'?SL-.25:lvGround(x,z);
+    this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
     ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),sub:()=>this.buildSub()})[kind]();
     this.sync();
   }
@@ -165,13 +167,23 @@ class LiteVehicle{
     this.crank=new THREE.Group();this.crank.position.set(0,.29,-.04);this.root.add(this.crank);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.02,16),ch);ring.rotation.z=Math.PI/2;ring.position.x=.05;this.crank.add(ring);
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
-  buildSub(){const B=this.body,hull=XM(0xf2c21b,.4,.35),dk=XM(0x23303a,.5,.4),win=XM(0x66d9ff,.1,.2,{emissive:0x33b8e8,emissiveIntensity:1});this.cols=[0xf2c21b,0x23303a,0x66d9ff];
-    xb(B,1.8,1.5,4.4,0,0,0,hull);xb(B,1.4,1.2,.9,0,0,2.6,hull);xb(B,1.0,.85,.6,0,0,3.2,dk);xb(B,1.4,1.2,.8,0,0,-2.55,hull);xb(B,.9,.8,.6,0,0,-3.1,dk);
-    xb(B,.7,.8,1.4,0,1.05,.2,hull);xb(B,.06,.55,.06,0,1.7,.4,dk);xb(B,.06,.06,.3,0,1.95,.52,dk);xb(B,1.84,.12,3.2,0,.1,.3,dk);
-    xb(B,.08,1.5,.8,0,.2,-2.9,dk);xb(B,2.7,.08,.7,0,0,-2.9,dk);
-    for(const s of [-1,1])for(const z of [1.4,.5,-.4])xb(B,.05,.36,.36,s*.92,.15,z,win);
-    this.prop=new THREE.Group();this.prop.position.set(0,0,-3.5);B.add(this.prop);
-    for(let i=0;i<3;i++){const b=xb(this.prop,.12,.9,.05,0,0,0,dk);b.geometry.translate(0,.45,0);b.position.set(0,0,0);b.rotation.z=i*Math.PI*2/3}}
+  buildSub(){const B=this.body,hull=XM(0xf2c21b,.38,.3),dk=XM(0x23303a,.5,.4),win=XM(0x66d9ff,.1,.2,{emissive:0x33b8e8,emissiveIntensity:1}),red=XM(0xc8372d,.5,.25);this.cols=[0xf2c21b,0x23303a,0x66d9ff];
+    const R=1.0,N=30,pr=[];                       // streamlined hull: tapering tail, parallel body, rounded nose (lathe profile along the boat, y becomes z)
+    for(let i=0;i<=N;i++){const y=-3.6+i/N*7.2;let r;
+      if(y<-1.6){const k=Math.max(0,(y+3.6)/2);r=R*Math.pow(k,.7)}else if(y>2.3){const k=(y-2.3)/1.3;r=R*Math.sqrt(Math.max(0,1-k*k))}else r=R;
+      pr.push(new THREE.Vector2(Math.max(.05,r),y))}
+    const hg=new THREE.LatheGeometry(pr,32);hg.rotateX(Math.PI/2);hull.side=THREE.DoubleSide;const hm=new THREE.Mesh(hg,hull);hm.castShadow=true;B.add(hm);
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(R+.012,R+.012,.34,32,1,true),red);band.rotation.x=Math.PI/2;band.position.z=-.9;B.add(band);                 // painted ring round the middle
+    const sail=new THREE.Mesh(new THREE.CylinderGeometry(.33,.4,.95,22),hull);sail.scale.z=2.2;sail.position.set(0,R+.3,.3);sail.castShadow=true;B.add(sail);     // oval conning tower
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(.34,18,10,0,Math.PI*2,0,Math.PI/2),hull);cap.scale.z=2.2;cap.position.set(0,R+.775,.3);B.add(cap);
+    for(const s of [-1,1]){const p=new THREE.Mesh(new THREE.BoxGeometry(.62,.04,.4),dk);p.position.set(s*.62,R+.2,.82);p.rotation.z=s*.12;B.add(p)}      // sail dive planes
+    for(const s of [-1,1])for(const z of [1.5,.7,-.1]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.1,18),win);w.rotation.z=Math.PI/2;w.position.set(s*.965,.16,z);B.add(w)}   // viewing ports
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(.5,18,12,0,Math.PI*2,0,Math.PI/2),win);dome.rotation.x=Math.PI/2.4;dome.position.set(0,.18,2.75);dome.scale.set(1,1,.9);B.add(dome);   // bow viewing bubble
+    const per=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,8),dk);per.position.set(0,R+1.45,.55);B.add(per);const pt=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.16),dk);pt.position.set(0,R+1.8,.6);B.add(pt);
+    for(const rz of [0,Math.PI/2]){const f=new THREE.Mesh(new THREE.BoxGeometry(.05,1.9,.65),dk);f.rotation.z=rz;f.position.set(0,0,-3.0);B.add(f)}                  // stern cross fins
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.05,8,24),dk);ring.position.set(0,0,-3.78);B.add(ring);
+    this.prop=new THREE.Group();this.prop.position.set(0,0,-3.62);B.add(this.prop);
+    for(let i=0;i<4;i++){const b=xb(this.prop,.14,.46,.04,0,0,0,dk);b.geometry.translate(0,.23,0);b.position.set(0,0,0);b.rotation.z=i*Math.PI/2+.2}}
 
   sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ')}
   halt(){this.v=0;this.vx=this.vz=0;this.steerA=0;this.brakeOn=false}
@@ -231,9 +243,13 @@ class LiteVehicle{
     const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
     let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
-    const fl=Math.max(groundH(this.x,this.z)+1.1,SL-120),top=SL-.25;this.vy+=(up*3.5-this.vy)*Math.min(1,dt*3);this.y=Math.max(fl,Math.min(top,this.y+this.vy*dt));
-    this.pitch+=(-this.vy*.06-this.pitch)*Math.min(1,dt*3);this.roll+=(-this.steerA*this.v*.03-this.roll)*Math.min(1,dt*3);
-    if(this.y>=top-.05)this.y=top+Math.sin(UNI.uTime.value*1.3)*.06;
+    // vertical motion: ballast tanks and dive planes. Slow to respond, faster when moving; the sea floor stops it, the surface catches it softly
+    const fl=Math.max(groundH(this.x,this.z)+1.8,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
+    const rate=up*(2.2+2.2*pl);this.vy+=(rate-this.vy)*Math.min(1,dt*(up?1.1:.9));
+    if(this.vy>0&&this.y>top-1.4)this.vy*=Math.max(.25,(top-this.y)/1.4+.25);
+    this.y+=this.vy*dt;if(this.y<fl){this.y=fl;if(this.vy<0)this.vy*=-.1}if(this.y>top){this.y=top;if(this.vy>0)this.vy=0}
+    const wantP=Math.max(-.5,Math.min(.5,-this.vy*.11));this.pitch+=(wantP-this.pitch)*Math.min(1,dt*2.2);this.roll+=(-this.steerA*this.v*.03-this.roll)*Math.min(1,dt*3);
+    this.depth=SL-this.y;if(this.y>=top-.02)this.y=top+Math.sin(UNI.uTime.value*1.3)*.05+Math.sin(UNI.uTime.value*.7+this.x*.1)*.03;
     this.prop.rotation.z+=dt*(2+Math.abs(this.v)*3);this.sync()}
   // wheels, suspension (nose dives under braking, rolls out of corners), brake lights and headlights
   animate(dt){
@@ -253,7 +269,7 @@ class LiteVehicle{
   repair(){this.dmg=0;this.body.scale.set(1,1,1);this.body.rotation.set(0,0,0);this.body.position.y=0}
   kill(){if(this.dead)return;this.dead=true;this.respawnAt=performance.now()+30000;FX.init();FX.explode(this.x,this.y+.8,this.z,7);EXT.fireball(this.x,this.y+.8,this.z,5);EXT.shatter(this.x,this.y+.8,this.z,28,this.cols,10,0,0);
     this.root.visible=false;this.halt();if(EXT.cur===this)EXT.leave(this,true)}
-  revive(){this.dead=false;this.repair();this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL-.25:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
+  revive(){this.dead=false;this.repair();this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL+SUB_SURF:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
 }
 
 // a friend's vehicle: drawn from network snapshots, with the same model and colour as the one they drive

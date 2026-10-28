@@ -6087,7 +6087,7 @@ INTERACT.push({x:0,z:0,r:1e9,label:'Enter',cond:function(){if(PORTAL.cur||DRIVE.
   if(doorNear)this.label=DOOR_LBL[DOOR_KIND[doorNear.code]];return !!doorNear},
   fn:()=>{const d=doorNear;if(!d)return;PORTAL.enter(DOOR_KIND[d.code],{x:d.x+Math.sin(d.yaw)*1.2,z:d.z+Math.cos(d.yaw)*1.2,yaw:d.yaw},{sign:d.code})}});
 const INDOORS=[];    // {test(x,z,y)->bool, name, light}
-let indoorAmt=0,curIndoor=null,lastDistrict='';
+let indoorAmt=0,curIndoor=null,lastDistrict='',FP_AUTO=0;
 
 // ---------- presets ----------
 const TOD={
@@ -6669,6 +6669,14 @@ function stepCamera(dt){
   const k=Math.min(1,dt*12);cam.x+=(wx-cam.x)*k;cam.y+=(wy-cam.y)*k;cam.z+=(wz-cam.z)*k;
   camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(tx,ty,tz);
 }
+// below the sea surface: blue fog that thickens and darkens with depth, no sky and no sea sheet; the day's fog and sky come back when you surface
+const UW={on:false};
+function underwaterFx(){
+  const d=SL-camera.position.y,under=started&&d>.3&&!PORTAL.cur;
+  if(under){UW.on=true;const k=Math.min(1,d/110),n=S.time==='night'?.45:1;
+    scene.fog.color.setRGB((.05-.045*k)*n,(.36-.32*k)*n,(.5-.45*k)*n);scene.fog.density=.03+.02*k;
+    sky.visible=false;nightSky.visible=false;seaMesh.visible=false;if(seaNear)seaNear.visible=false;renderer.setClearColor(scene.fog.color,1)}
+  else if(UW.on){UW.on=false;applyTime();seaMesh.visible=true;if(seaNear)seaNear.visible=true}}
 function stepCarCamera(dt){
   const c=DRIVE.car;const tx=c.x,ty=c.y+1.45,tz=c.z;
   if(!freeLook()){let tgt=c.yaw;if(DRIVE.v<-1)tgt=c.yaw;let dy=tgt-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(DRIVE.v)>2?2.6:.8))}
@@ -6695,7 +6703,10 @@ function updateLampUniforms(){
 const EXTRA_LAMPS=[];
 function updateIndoor(dt){
   let cur=null;for(const r of INDOORS){if(r.test(player.x,player.z,player.y)){cur=r;break}}
-  if(cur!==curIndoor){curIndoor=cur;if((typeof AUD!=='undefined')&&AUD)AUD.setIndoor(cur?cur.name:null);if(cur&&cur.enter)cur.enter();if(!cur)toast('','')}
+  if(cur!==curIndoor){const prev=curIndoor;curIndoor=cur;if((typeof AUD!=='undefined')&&AUD)AUD.setIndoor(cur?cur.name:null);if(cur&&cur.enter)cur.enter();if(!cur)toast('','')
+    // flats, shops and rooms are walked in first person; the chase-camera distance comes back when you step outside (halls and the opera keep the chase view)
+    if(cur&&!prev&&started&&cur.name!=='station'&&cur.name!=='opera'){if(cam.dist>.75)FP_AUTO=cam.dist;cam.dist=.5;cam.init=false}
+    else if(!cur&&FP_AUTO){if(cam.dist<=.75)cam.dist=FP_AUTO;FP_AUTO=0;cam.init=false}}
   indoorAmt+=((cur?1:0)-indoorAmt)*Math.min(1,dt*3);
   UNI.uIndoor.value=indoorAmt;
   const T=TOD[S.time],W=S.season==='winter';
@@ -7018,6 +7029,7 @@ function loop(t){
     sunL.target.position.copy(_ST);sunL.position.copy(_ST).addScaledVector(_SL,300);}
   else sunL.position.copy(sunDir).multiplyScalar(300).add(camera.position);
   updateSnow(dt);if(window.GFX)GFX.update(dt);});
+  safe('uw',underwaterFx);
   if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;warmupShaders(false)}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   renderer.info.reset();const _shk=(typeof FX!=='undefined'&&FX.ready)?FX.shakeOff(dt):null;if(_shk)camera.position.add(_shk);
@@ -8360,8 +8372,11 @@ const LV_SPECS={
   gwagon:{name:'G-Wagon',len:4.6,wb:2.85,max:34,acc:9,brake:22,steer:.52,lat:10.5,grip:6,hgrip:2.8,r:1.25},
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
   bike:{name:'bicycle',len:1.8,wb:1.05,max:28,acc:9,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45},
-  sub:{name:'submarine',len:5.4,wb:4,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:1.6}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
+  sub:{name:'submarine',len:7.2,wb:4,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:1.9}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
+// depth gauge while piloting the submarine
+function depthHud(d,on){let e=document.getElementById('depthHud');if(!e){if(!on)return;e=document.createElement('div');e.id='depthHud';e.style.cssText='position:fixed;left:50%;top:13%;transform:translateX(-50%);padding:7px 16px;border-radius:10px;background:rgba(8,28,40,.66);color:#9fe7ff;font:700 15px/1 system-ui,sans-serif;letter-spacing:.1em;z-index:5;pointer-events:none;white-space:nowrap';document.body.appendChild(e)}
+  e.hidden=!on;if(on)e.textContent=(d<.7?'SURFACED':'DEPTH '+Math.round(d)+' m')+(d>100?' · deep':'')}
 function xb(parent,w,h,d,x,y,z,mat,rx,ry,rz){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;parent.add(m);return m}
 // smooth body from sections [z,halfWidth,yBottom,yTop,cornerRadius] (front to back), capped at both ends
 function xloft(parent,secs,mat){const N=4,pos=[],idx=[],ring=s=>{const [z,hw,y0,y1,r]=s,out=[];
@@ -8428,7 +8443,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       if(d.t>2.4)d.m.scale.multiplyScalar(Math.max(0,1-dt*2.5));if(d.t>3.2){d.on=false;d.m.visible=false}}
     for(let i=this.fires.length-1;i>=0;i--){const f=this.fires[i];f.t+=dt;const k=f.t/.7;f.m.scale.setScalar(f.r*(.4+k*1.6));f.m.material.opacity=Math.max(0,.9*(1-k));if(k>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();this.fires.splice(i,1)}}
     for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();
-      if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL-.25+Math.sin(UNI.uTime.value*1.1+v.x)*.06;v.sync()}
+      if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL+SUB_SURF+Math.sin(UNI.uTime.value*1.1+v.x)*.05;v.sync()}
       else if(v!==this.cur&&!v.dead&&v.lights)v.lights()}
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
     this.seaT-=dt;if(this.seaT<=0){this.seaT=.6;const show=started&&MARINE.free()&&!player.scoot&&!!MARINE.waterNear(40);this.boatBtn.hidden=!show;this.jetBtn.hidden=!show}
@@ -8438,7 +8453,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
     toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?'joystick: drive':keys)+' · E to get off'+(v.seats.length>1?' · a friend can climb in (E / F near the car)':''))},
   // shared clean-up for getting out, destruction and teleports
-  leave(v,destroyed){if(this.cur!==v)return;this.cur=null;v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
+  leave(v,destroyed){if(this.cur!==v)return;this.cur=null;depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
     if(destroyed)toast('Your '+v.spec.name+' was destroyed','')},
   exit(){const v=this.cur;if(!v)return;let spot;
     if(v.kind==='sub'){spot=MARINE.landSpot(v);if(!spot||v.y<SL-1.5){toast('Surface near land to get out','Space = rise · steer up to the shore or the island');return}}
@@ -8456,7 +8471,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     else{PLR.root.visible=true;const q=this._q||(this._q=new THREE.Quaternion()),p=this._p||(this._p=new THREE.Vector3());v.seatWorld(0,p,q);PLR.root.position.copy(p);PLR.root.quaternion.copy(q);
       animPlayer(PLR,{spd:0,mode:v.seatPose(0),role:'driver',steer:v.steerA,crank:v.pedal},dt)}
     LVSND.update(v,thr);
-    $('spdN').textContent=Math.round(Math.abs(v.v)*3.6)},
+    $('spdN').textContent=Math.round(Math.abs(v.v)*3.6);depthHud(sub?SL-v.y:0,sub)},
   stepCamera(dt){const v=this.cur,sub=v.kind==='sub';
     if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?2.6:.8))}
     const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(1+Math.min(.3,Math.abs(v.v)*.008)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
@@ -8470,7 +8485,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(this.cur||!MARINE.free()||player.scoot){toast('Get off first','then summon a vehicle');return}
     if(v.dead){v.revive()}v.repair();v.v=0;v.steerA=0;
     if(kind==='sub'){const m=this.nearestMooring();if(!m){toast('No mooring found','');return}
-      v.x=m.sub[0];v.z=m.sub[1];v.yaw=m.sub[2];v.home=m.sub.slice();v.y=SL-.25;v.halt();v.sync();
+      v.x=m.sub[0];v.z=m.sub[1];v.yaw=m.sub[2];v.home=m.sub.slice();v.y=SL+SUB_SURF;v.halt();v.sync();
       const d=Math.hypot(m.S[0]-player.x,m.S[1]-player.z);
       toast('Submarine · '+m.name,d<30?"moored at the water's edge · press E to board":'about '+fmtDist(d)+' away · pick "Submarine · '+m.name+'" in the map (M) to go there');return}
     let best=null;for(const d of [6,8,10,5,12])for(const a of [0,.6,-.6,1.2,-1.2]){const x=player.x+Math.sin(cam.yaw+a)*d,z=player.z+Math.cos(cam.yaw+a)*d,gy=groundH(x,z);
