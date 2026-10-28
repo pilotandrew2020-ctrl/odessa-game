@@ -189,12 +189,14 @@ function updateCarLights(night){
   if(night<.02||PORTAL.cur){U.uNCar.value=0;H.g.setDrawRange(0,PORTAL.cur?0:hn);H.g.attributes.position.needsUpdate=true;H.g.attributes.aC.needsUpdate=true;return}
   _cars.length=0;const cam=camera.position;
   for(const c of CARS){const dx=c.x-cam.x,dz=c.z-cam.z,d=dx*dx+dz*dz;if(d<220*220)_cars.push([d,c,0])}
+  if(typeof EXT!=='undefined')for(const v of EXT.veh){if(v.dead||v.kind==='sub'||v.kind==='bike'||(!v.occupied&&Math.abs(v.v)<.5))continue;   // only a car someone is driving has its lights on
+     const dx=v.x-cam.x,dz=v.z-cam.z,d=dx*dx+dz*dz;if(d<220*220)_cars.push([d,v,v===EXT.cur?1:0])}   // G-Wagon / Lamborghini
   if(DRIVE.on&&DRIVE.car&&!CARS.includes(DRIVE.car)){const c=DRIVE.car;_cars.push([(c.x-cam.x)**2+(c.z-cam.z)**2,c,1])}
   if(typeof COOP!=='undefined'&&COOP.online&&COOP.online()){try{for(const c of COOP.carList()){const dx=c.x-cam.x,dz=c.z-cam.z,d=dx*dx+dz*dz;if(d<220*220)_cars.push([d,c,0])}}catch(e){}}
   _cars.sort((a,b)=>a[0]-b[0]);
   let ns=0;
   for(let i=0;i<_cars.length&&hn+4<=HALO_N;i++){
-    const [d,c,mine]=_cars[i],t=(typeof CAR_T!=='undefined'&&CAR_T[c.type])||null,L=(t&&t.L)||4.2,W=(t&&t.W)||1.8,y=(c.y||0);
+    const [d,c,mine]=_cars[i],t=(typeof CAR_T!=='undefined'&&CAR_T[c.type])||null,L=(c.spec&&c.spec.len)||(t&&t.L)||4.2,W=c.spec?1.9:(t&&t.W)||1.8,y=(c.y||0);
     const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),rx=fz,rz=-fx;
     if(ns<6&&d<110*110){
       if(G.carLights)U.uCP.value[ns].set(c.x+fx*L*.42,y+.75,c.z+fz*L*.42,mine?4.4:2.6);
@@ -281,7 +283,7 @@ function setWeather(w){
   S.weather=w==='rain'?'rain':'clear';saveS();applyTime_();
   if(typeof toast!=='undefined')toast(S.weather==='rain'?'Rain':'Clear sky','');
 }
-function applyTime_(){const w=(S.weather==='rain'&&S.season!=='winter')?'rain':'clear';document.querySelectorAll('[data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===w))}
+function applyTime_(){const w=(S.weather==='rain'&&S.season!=='winter')?'rain':'clear';document.querySelectorAll('[data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===w));const rb=document.getElementById('bRain');if(rb)rb.classList.toggle('on',w==='rain')}
 function toggleWeather(){setWeather(S.weather==='rain'?'clear':'rain')}
 
 function update(dt){
