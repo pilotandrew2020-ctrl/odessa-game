@@ -1652,15 +1652,26 @@ function buildBarriers(id,P,segsOut,colsOut){
 }
 // ---------- rails ----------
 function buildRails(id,P,catOut,inBld){
-  const s0=D.rSegStart[id],s1=D.rSegStart[id+1];if(s0===s1)return;const R=D.rnodes,rn=D.rn;const steel=sRGB('#8e9295'),dark=sRGB('#2c2a28'),pole=sRGB('#7a7c7e');
+  const s0=D.rSegStart[id],s1=D.rSegStart[id+1];if(s0===s1)return;const R=D.rnodes,rn=D.rn;const steel=sRGB('#8e9295'),dark=sRGB('#2c2a28'),pole=sRGB('#7a7c7e');const BAL_T=sRGB('#7b756d'),BAL_S=sRGB('#6b665f'),SLEEP=sRGB('#4a3f36'),TRAM_S=sRGB('#8e8a84');
   for(let s=s0;s<s1;s++){const i=D.rSeg[s],k=D.rkind[D.rOf[i]];if(k===2)continue;const a=rn[i]*2,b=rn[i+1]*2;const ax=R[a],az=R[a+1],bx=R[b],bz=R[b+1];const L=Math.hypot(bx-ax,bz-az);if(L<.2)continue;
     if(blockedStatic((ax+bx)/2,(az+bz)/2,0))continue;
-    const tx=(bx-ax)/L,tz=(bz-az)/L,nx=-tz,nz=tx;const ry=Math.atan2(tx,tz);const g=k===0?.76:.762;const nSub=Math.max(1,Math.ceil(L/5));
-    for(let q=0;q<nSub;q++){const ta=q/nSub,tb=(q+1)/nSub;const px=ax+(bx-ax)*(ta+tb)/2,pz=az+(bz-az)*(ta+tb)/2;const l=L/nSub+.02;if(inBld&&inBld(px,pz))continue;const gy=groundH(px,pz)+(nearRoad(id,px,pz,0)?.13:0);
-      if(k===1){P.box(px,gy+.08,pz,3.2,.2,l,ry,sRGB('#6b5f52'),9);
-        const nsl=Math.max(1,Math.round(l/.6));for(let t=0;t<nsl;t++){const u=-l/2+(t+.5)*l/nsl;P.box(px+tx*u,gy+.2,pz+tz*u,2.5,.12,.22,ry,sRGB('#5a4e44'),5)}}
-      else P.box(px,gy+.02,pz,2.0,.06,l,ry,sRGB('#8e8a84'),9);
-      for(const sg of [-1,1])P.box(px+nx*g*sg,gy+(k===1?.33:.1),pz+nz*g*sg,.08,.12,l,ry,steel,6);
+    const tx=(bx-ax)/L,tz=(bz-az)/L,nx=-tz,nz=tx;const ry=Math.atan2(tx,tz);const g=k===0?.76:.762;const nSub=Math.max(1,Math.ceil(L/2.5));
+    // one continuous strip per track: the cross-sections at both ends are mitred with the neighbouring segments (also those in other chunks), so ballast and rails join without gaps
+    const way=D.rOf[i],wA=D.rstart[way],wB=D.rstart[way+1];
+    const mit=(dx0,dz0,dx1,dz1)=>{let sx=dx0+dx1,sz=dz0+dz1,l=Math.hypot(sx,sz);if(l<.3){sx=dx1;sz=dz1;l=1}sx/=l;sz/=l;const mx=-sz,mz=sx;return [mx,mz,1/Math.max(.55,mx*nx+mz*nz)]};
+    let nA=[nx,nz,1],nB=[nx,nz,1];
+    if(i>wA){const px=R[rn[i-1]*2],pz=R[rn[i-1]*2+1],l=Math.hypot(ax-px,az-pz);if(l>.05)nA=mit((ax-px)/l,(az-pz)/l,tx,tz)}
+    if(i+2<wB){const qx=R[rn[i+2]*2],qz=R[rn[i+2]*2+1],l=Math.hypot(qx-bx,qz-bz);if(l>.05)nB=mit(tx,tz,(qx-bx)/l,(qz-bz)/l)}
+    const smp=[];for(let q=0;q<=nSub;q++){const t=q/nSub;let mx=nA[0]+(nB[0]-nA[0])*t,mz=nA[1]+(nB[1]-nA[1])*t;const ml=Math.hypot(mx,mz)||1;mx/=ml;mz/=ml;const px=ax+(bx-ax)*t,pz=az+(bz-az)*t;
+      smp.push({x:px,z:pz,y:groundH(px,pz)+(nearRoad(id,px,pz,0)?.13:0),nx:mx,nz:mz,sc:nA[2]+(nB[2]-nA[2])*t})}
+    const at=(m,w,dy)=>[m.x+m.nx*w*m.sc,m.y+dy,m.z+m.nz*w*m.sc];
+    for(let q=0;q<nSub;q++){const m0=smp[q],m1=smp[q+1],px=(m0.x+m1.x)/2,pz=(m0.z+m1.z)/2,l=Math.hypot(m1.x-m0.x,m1.z-m0.z)+.02;if(inBld&&inBld(px,pz))continue;
+      const strip=(w0,d0,w1,d1,n,col,mat)=>quadN(P.g,[at(m0,w0,d0),at(m0,w1,d1),at(m1,w1,d1),at(m1,w0,d0)],n,()=>({color:col,aM:mat}));
+      if(k===1){strip(-2.25,.01,-1.55,.19,[-nx*.5,.86,-nz*.5],BAL_S,9);strip(-1.55,.19,1.55,.19,[0,1,0],BAL_T,9);strip(1.55,.19,2.25,.01,[nx*.5,.86,nz*.5],BAL_S,9);
+        const nsl=Math.max(1,Math.round(l/.6)),gyc=(m0.y+m1.y)/2;for(let t=0;t<nsl;t++){const u=-l/2+(t+.5)*l/nsl;P.box(px+tx*u,gyc+.25,pz+tz*u,2.5,.12,.22,ry,SLEEP,5)}}
+      else strip(-1,.07,1,.07,[0,1,0],TRAM_S,9);
+      const yb=k===1?.27:.04,yt=k===1?.39:.16;
+      for(const sg of [-1,1]){const w=g*sg;strip(w-.04,yt,w+.04,yt,[0,1,0],steel,6);strip(w-.04,yb,w-.04,yt,[-nx,0,-nz],steel,6);strip(w+.04,yt,w+.04,yb,[nx,0,nz],steel,6)}
     }
     // catenary poles (tram + electrified rail) every ~30 m
     const step=k===0?32:50;const c0=D.rnodes?Math.ceil(0):0;
@@ -3042,15 +3053,44 @@ function buildPlatforms(grp,P,GR,F,y0){
   // collect station rail segments (kind 1) inside the track field south of the building
   const R=D.rnodes,rn=D.rn;const tracks=[];
   for(let k=0;k<HDR.nRWays;k++){if(D.rkind[k]!==1)continue;const pts=[];for(let i=D.rstart[k];i<D.rstart[k+1];i++){const x=R[rn[i]*2],z=R[rn[i]*2+1];const [u,v]=F.inv(x,z);if(u>15&&u<115&&v>30&&v<330)pts.push([u,v])}if(pts.length>=2)tracks.push(pts)}
-  // sample track u positions at a few v
-  const PH=1.1,platC=sRGB('#9c968c'),edgeY=sRGB('#e8c21a');
-  for(let v=46;v<300;v+=24){const us=[];for(const t of tracks){for(let i=0;i<t.length-1;i++){const [u0,v0]=t[i],[u1,v1]=t[i+1];if((v0-v)*(v1-v)<=0&&Math.abs(v1-v0)>.01){us.push(u0+(u1-u0)*(v-v0)/(v1-v0))}}}
+  // platforms: between two neighbouring tracks (gap 7.5-16 m) a platform runs as ONE continuous slab — slices every 6 m are chained into strips, with continuous yellow edges, ramps at both ends and a canopy
+  const PH=1.1,DV=6,V0=34,V1=330,ryP=-Math.atan2(F.sa,F.ca),topC=sRGB('#aba59b'),sideC=sRGB('#8a8479'),edgeY=sRGB('#e8c21a'),roofC=sRGB('#7b8288'),postC=sRGB('#5d6166');
+  const nS=Math.floor((V1-V0)/DV)+1,slices=[];
+  for(let si=0;si<nS;si++){const v=V0+si*DV,us=[];
+    for(const t of tracks)for(let i=0;i<t.length-1;i++){const [u0,v0]=t[i],[u1,v1]=t[i+1];if((v0-v)*(v1-v)<=0&&Math.abs(v1-v0)>.01)us.push(u0+(u1-u0)*(v-v0)/(v1-v0))}
     us.sort((a,b)=>a-b);const uq=[];for(const u of us)if(!uq.length||u-uq[uq.length-1]>2)uq.push(u);
-    for(let i=0;i<uq.length-1;i++){const gap=uq[i+1]-uq[i];if(gap<7.5||gap>16)continue;const uc=(uq[i]+uq[i+1])/2,w=gap-3.4;const c=F.P(uc,v);const gy=groundH(c[0],c[1]);
-      P.box(c[0],gy+PH/2,c[1],w,PH,24.2,-Math.atan2(F.sa,F.ca),platC,9);for(const s of [-1,1]){const e=F.P(uc+s*(w/2-.25),v);P.box(e[0],gy+PH+.005,e[1],.5,.02,24.2,-Math.atan2(F.sa,F.ca),edgeY,9)}
-            SPECIAL.push((x,z)=>{const [u,vv]=F.inv(x,z);if(Math.abs(u-uc)<w/2&&Math.abs(vv-v)<12.1)return {h:gy+PH,pri:1,surf:'stone',wall:false};return null});
-      if(v<120){for(let q=-10;q<=10;q+=10){const p=F.P(uc,v+q);P.box(p[0],gy+PH+2.2,p[1],.25,4.4,.25,0,sRGB('#5d6166'),1)}const roof=F.P(uc,v);P.box(roof[0],gy+PH+4.5,roof[1],w+1.2,.25,24.4,-Math.atan2(F.sa,F.ca),sRGB('#7b8288'),1)}}
-  }
+    const pr=[];for(let i=0;i<uq.length-1;i++){const gap=uq[i+1]-uq[i];if(gap>=7.5&&gap<=16)pr.push([uq[i]+1.7,uq[i+1]-1.7])}slices.push(pr)}
+  const chains=[];let open=[];
+  for(let si=0;si<nS;si++){const next=[];
+    for(const [a,b] of slices[si]){const ch=open.find(c=>{const l=c.pts[c.pts.length-1];return !c.taken&&Math.min(b,l.b)-Math.max(a,l.a)>.5*Math.min(b-a,l.b-l.a)});
+      if(ch){ch.taken=true;ch.pts.push({si,a,b});next.push(ch)}else{const c={pts:[{si,a,b}],taken:true};chains.push(c);next.push(c)}}
+    for(const c of next)c.taken=false;open=next}
+  const exits=[];
+  for(const ch of chains){if(ch.pts.length<3)continue;
+    // smooth the edges and the height a little, then add a ramp slice at each end (the slab sinks to the ground over 6 m)
+    const pts=ch.pts.map((q,i,A)=>{const w=[A[Math.max(0,i-1)],q,A[Math.min(A.length-1,i+1)]];const v=V0+q.si*DV,a=(w[0].a+w[1].a+w[2].a)/3,b=(w[0].b+w[1].b+w[2].b)/3,c=F.P((a+b)/2,v);return {v,a,b,gy:groundH(c[0],c[1])}});
+    pts.forEach((q,i)=>{const w=[pts[Math.max(0,i-1)],q,pts[Math.min(pts.length-1,i+1)]];q.gs=(w[0].gy+w[1].gy+w[2].gy)/3});
+    const f=pts[0],l=pts[pts.length-1];pts.unshift({v:f.v-DV,a:f.a,b:f.b,gs:f.gs,ramp:true});pts.push({v:l.v+DV,a:l.a,b:l.b,gs:l.gs,ramp:true});
+    for(const q of pts)q.top=q.gs+(q.ramp?.02:PH);
+    const g=P.g,E=.55;
+    for(let j=0;j<pts.length-1;j++){const p0=pts[j],p1=pts[j+1];
+      const at=(q,u,dy)=>{const w=F.P(u,q.v);return [w[0],q.top+dy,w[1]]};
+      quadN(g,[at(p0,p0.a,0),at(p0,p0.b,0),at(p1,p1.b,0),at(p1,p1.a,0)],[0,1,0],()=>({color:topC,aM:9}));
+      quadN(g,[at(p0,p0.a,.012),at(p0,p0.a+E,.012),at(p1,p1.a+E,.012),at(p1,p1.a,.012)],[0,1,0],()=>({color:edgeY,aM:9}));
+      quadN(g,[at(p0,p0.b-E,.012),at(p0,p0.b,.012),at(p1,p1.b,.012),at(p1,p1.b-E,.012)],[0,1,0],()=>({color:edgeY,aM:9}));
+      const lo=q=>q.gs-.3;
+      quadN(g,[at(p0,p0.a,0),[F.P(p0.a,p0.v)[0],lo(p0),F.P(p0.a,p0.v)[1]],[F.P(p1.a,p1.v)[0],lo(p1),F.P(p1.a,p1.v)[1]],at(p1,p1.a,0)],[-F.ca,0,-F.sa],()=>({color:sideC,aM:9}));
+      quadN(g,[at(p0,p0.b,0),[F.P(p0.b,p0.v)[0],lo(p0),F.P(p0.b,p0.v)[1]],[F.P(p1.b,p1.v)[0],lo(p1),F.P(p1.b,p1.v)[1]],at(p1,p1.b,0)],[F.ca,0,F.sa],()=>({color:sideC,aM:9}));
+      // canopy over the platforms next to the building
+      if(!p0.ramp&&!p1.ramp&&p0.v<126){const m=F.P((p0.a+p0.b+p1.a+p1.b)/4,(p0.v+p1.v)/2);P.box(m[0],(p0.top+p1.top)/2+4.5,m[1],(p0.b-p0.a+p1.b-p1.a)/2+1.2,.25,DV+.06,ryP,roofC,1);
+        if(j%2===0){const c=F.P((p0.a+p0.b)/2,p0.v);P.box(c[0],p0.top+2.2,c[1],.25,4.4,.25,0,postC,1)}}}
+    // walkable surface: the slab height at (u,v), interpolated between the slices
+    const v0=pts[0].v,vN=pts[pts.length-1].v;
+    SPECIAL.push((x,z)=>{const [u,v]=F.inv(x,z);if(v<v0||v>vN)return null;const k=Math.min(pts.length-2,Math.floor((v-v0)/DV)),p0=pts[k],p1=pts[k+1],t=(v-p0.v)/DV;
+      if(u<p0.a+(p1.a-p0.a)*t||u>p0.b+(p1.b-p0.b)*t)return null;return {h:p0.top+(p1.top-p0.top)*t,pri:1,surf:'stone',wall:false}});
+    // exit sign at the building end of every platform
+    const e=pts[2],ec=F.P((e.a+e.b)/2,e.v);exits.push([ec[0],ec[1],e.top])}
+  for(const [ex,ez,ey] of exits)INTERACT.push({x:ex,z:ez,y:ey,r:2.4,label:'Exit to the station square',cond:()=>!PORTAL.cur&&!RIDE.on,fn:()=>{const q=F.P(52,-14);teleport({x:q[0],z:q[1],yaw:Math.atan2(F.P(52,40)[0]-q[0],F.P(52,40)[1]-q[1]),name:'Station square'})}});
   // standing trains (blue suburban EMU + long-distance coaches) on some tracks
   const trainM=new THREE.MeshStandardMaterial({color:0x2a5aa8,roughness:.45,metalness:.25}),stripeM=new THREE.MeshStandardMaterial({color:0xe8ecf0,roughness:.5}),winM=new THREE.MeshStandardMaterial({color:0x162029,roughness:.05}),roofM2=new THREE.MeshStandardMaterial({color:0x7d8489,roughness:.5,metalness:.3});
   let n=0;for(const t of tracks){if(n>=4)break;const pts=t.slice().sort((a,b)=>a[1]-b[1]);if(pts.length<2||pts[0][1]>60)continue;const [u0,v0]=pts[0];const L=Math.min(150,pts[pts.length-1][1]-v0);if(L<60)continue;
@@ -4297,12 +4337,14 @@ function toggleCar(){
   toast('Driving','W/S — gas & brake · A/D — steer · Space — handbrake · H — horn');
   engineOn(true);
 }
+// walking height at a spot: raised surfaces (platforms, steps, decks) count, not just the terrain under them
+function walkH(x,z,y){const sp=specialGround(x,z,y);return sp&&!PORTAL.cur?sp.h:groundAt(x,z,y)}
 function exitCar(){
   const c=DRIVE.car;DRIVE.on=false;DRIVE.v=0;$('bCar').classList.remove('on');$('spd').hidden=true;engineOn(false);
   // step out on the driver's (left) side, or wherever there is room
   for(const side of [1,-1]){for(const along of [0,1.5,-1.5]){const x=c.x+Math.cos(c.yaw)*1.7*side+Math.sin(c.yaw)*along,z=c.z-Math.sin(c.yaw)*1.7*side+Math.cos(c.yaw)*along;
-    if(!insideAny(x,z,.35,c.y+.5)&&!carAt(x,z,c.y+.5,.1)){player.x=x;player.z=z;player.y=groundAt(x,z,c.y+1);PLR.root.visible=true;player.vx=player.vz=0;return}}}
-  player.x=c.x+Math.cos(c.yaw)*1.8;player.z=c.z-Math.sin(c.yaw)*1.8;player.y=groundAt(player.x,player.z,c.y+1);PLR.root.visible=true;
+    if(!insideAny(x,z,.35,c.y+.5)&&!carAt(x,z,c.y+.5,.1)){player.x=x;player.z=z;player.y=walkH(x,z,c.y+1);PLR.root.visible=true;player.vx=player.vz=0;return}}}
+  player.x=c.x+Math.cos(c.yaw)*1.8;player.z=c.z-Math.sin(c.yaw)*1.8;player.y=walkH(player.x,player.z,c.y+1);PLR.root.visible=true;
 }
 function carFits(x,z,yaw){
   for(const d of [-1.6,0,1.6]){const px=x+Math.sin(yaw)*d,pz=z+Math.cos(yaw)*d;if(insideAny(px,pz,.95,player.y+.5)||carAt(px,pz,player.y+.5,.6))return false;
