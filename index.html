@@ -970,6 +970,8 @@ const FH2=[4.0,3.4,2.8,2.8,3.1,3.0,3.0,4.5,4.0,2.9,5.6,4.6],GF2=[4.6,0,0,0,4.5,3
 const CS2=[3.5,3.1,3.2,3.0,2.4,3.4,3.4,6,3.6,3.3,4.2,3.8];
 const HOME_ST=9,OPERA_ST=10,STATION_ST=11;
 function sRGB(h){const c=new THREE.Color(h);c.convertSRGBToLinear();return [c.r,c.g,c.b]}
+// a THREE.Color for material colours: sRGB() above returns a plain array (vertex colours), which a material silently ignores and renders white
+function sRGBc(h){return new THREE.Color(h).convertSRGBToLinear()}
 function cross3(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
 // add quad with outward normal n: verts p0..p3 (any order around), extra = per-vertex attrs fn(i)
 function quadN(g,ps,n,attr){
@@ -2226,7 +2228,7 @@ function buildHome(grp,G,P,Sg,GR){
       const rampYaw=Math.atan2(dx,dz),rampPitch=-Math.atan2(rise,run);
       const rampCenter=W2(0,3.9);
       rampLow=groundH(rampStart[0],rampStart[1]);rampHigh=y0+.52;
-      const ramp=new THREE.Mesh(new THREE.BoxGeometry(1.6,.28,length),new THREE.MeshStandardMaterial({color:sRGB('#7f8c8d'),roughness:.94}));
+      const ramp=new THREE.Mesh(new THREE.BoxGeometry(1.6,.28,length),new THREE.MeshStandardMaterial({color:sRGBc('#7f8c8d'),roughness:.94}));
       ramp.position.set(rampCenter[0],(rampLow+rampHigh)/2,rampCenter[1]);
       ramp.rotation.set(rampPitch,rampYaw,0);
       ramp.castShadow=true;ramp.receiveShadow=true;grp.add(ramp);
@@ -2234,7 +2236,7 @@ function buildHome(grp,G,P,Sg,GR){
       const sideAngle=Math.atan2(dz,dx);
       for(const side of [-1,1]){
         const edge=W2(side*.88,3.9);
-        const curb=new THREE.Mesh(new THREE.BoxGeometry(.14,.28,length),new THREE.MeshStandardMaterial({color:sRGB('#727d7e'),roughness:.94}));
+        const curb=new THREE.Mesh(new THREE.BoxGeometry(.14,.28,length),new THREE.MeshStandardMaterial({color:sRGBc('#727d7e'),roughness:.94}));
         curb.position.set(edge[0],(rampLow+rampHigh)/2+.14,edge[1]);curb.rotation.set(rampPitch,rampYaw,0);curb.castShadow=true;curb.receiveShadow=true;grp.add(curb);
         addWall(edge[0],edge[1],run,.18,sideAngle,y0-.05,y0+1.05);
       }
@@ -2286,11 +2288,11 @@ function buildSupermarket(grp,G,P,Sg,GR,y0,baseY){
   commercialCenter.position.set(62.15,baseY,54.87);
   commercialCenter.rotation.y=-Math.atan2(.243,.97);
   grp.add(commercialCenter);
-  const stone=new THREE.MeshStandardMaterial({color:sRGB('#d9d3c6'),roughness:.84});
-  const cafeMat=new THREE.MeshStandardMaterial({color:sRGB('#e2d5c1'),roughness:.8});
-  const glass=new THREE.MeshStandardMaterial({color:sRGB('#a9cbd0'),roughness:.2,metalness:.08,transparent:true,opacity:.38,side:THREE.DoubleSide});
-  const frame=new THREE.MeshStandardMaterial({color:sRGB('#29383c'),roughness:.5,metalness:.25});
-  const red=new THREE.MeshStandardMaterial({color:sRGB('#c9232b'),roughness:.58});
+  const stone=new THREE.MeshStandardMaterial({color:sRGBc('#d9d3c6'),roughness:.84});
+  const cafeMat=new THREE.MeshStandardMaterial({color:sRGBc('#e2d5c1'),roughness:.8});
+  const glass=new THREE.MeshStandardMaterial({color:sRGBc('#a9cbd0'),roughness:.2,metalness:.08,transparent:true,opacity:.38,side:THREE.DoubleSide});
+  const frame=new THREE.MeshStandardMaterial({color:sRGBc('#29383c'),roughness:.5,metalness:.25});
+  const red=new THREE.MeshStandardMaterial({color:sRGBc('#c9232b'),roughness:.58});
   const boxBatches=new Map(),boxMatrix=new THREE.Matrix4(),boxPosition=new THREE.Vector3(),boxScale=new THREE.Vector3(),boxRotation=new THREE.Quaternion(),boxEuler=new THREE.Euler();
   const unitBox=new THREE.BoxGeometry(1,1,1);
   const addBox=(geo,mat,x,y,z,rx,ry,rz)=>{
@@ -2331,7 +2333,7 @@ function buildSupermarket(grp,G,P,Sg,GR,y0,baseY){
   addBox(new THREE.BoxGeometry(shopWidth,.32,.42),cafeMat,0,groundHeight+.16,0,0,0,0);
   addBox(new THREE.BoxGeometry(shopWidth,.28,.42),cafeMat,0,groundHeight+cafeHeight-.14,0,0,0,0);
   // Repeated shelf bays sit behind the glazing rather than a solid decorative storefront block.
-  const shelfMetal=new THREE.MeshStandardMaterial({color:sRGB('#55595a'),roughness:.82,metalness:.12});
+  const shelfMetal=new THREE.MeshStandardMaterial({color:sRGBc('#55595a'),roughness:.82,metalness:.12});
   const goodsMat=new THREE.MeshStandardMaterial({map:retailGoodsTexture(),roughness:.78,side:THREE.DoubleSide});
   const productGeometry=new THREE.PlaneGeometry(2.16,.48),products=new THREE.InstancedMesh(productGeometry,goodsMat,60);
   const productMatrix=new THREE.Matrix4(),productPosition=new THREE.Vector3(),productRotation=new THREE.Quaternion(),productScale=new THREE.Vector3(1,1,1);
@@ -2387,8 +2389,8 @@ function buildSupermarket(grp,G,P,Sg,GR,y0,baseY){
   addLocalWall(-shopWidth/2,.22,-shopWidth/2,-6.4,.18,0,groundHeight);
   addLocalWall(shopWidth/2,.22,shopWidth/2,-6.4,.18,0,groundHeight);
   addLocalWall(-shopWidth/2,-6.4,shopWidth/2,-6.4,.65,0,groundHeight);
-  const marketFloor=new THREE.MeshStandardMaterial({color:sRGB('#77766e'),roughness:.88});
-  const cafeFloor=new THREE.MeshStandardMaterial({color:sRGB('#6d5945'),roughness:.82});
+  const marketFloor=new THREE.MeshStandardMaterial({color:sRGBc('#77766e'),roughness:.88});
+  const cafeFloor=new THREE.MeshStandardMaterial({color:sRGBc('#6d5945'),roughness:.82});
   addBox(new THREE.BoxGeometry(shopWidth-.36,.12,6.2),marketFloor,0,-.06,-3.2,0,0,0);
   addBox(new THREE.BoxGeometry(shopWidth-.36,.12,6.2),cafeFloor,0,groundHeight-.06,-3.2,0,0,0);
   SPECIAL.push((x,z,y)=>{
@@ -4663,10 +4665,10 @@ const INTERIORS={
     grp.visible=false;return {grp,spawn:[ox,oz+2.6],spawnYaw:0,title:'Pharmacy',sub:'hematogen and vitamin C at the counter',peds,onEnter(){PORTAL.peds=peds}}},
   trattoria(){const grp=new THREE.Group();scene.add(grp);const ox=INT_X+900,oz=INT_Z;
     const staticWallStart=STATIC_WALLS.length;
-    const floor=new THREE.MeshStandardMaterial({map:TX.wood,roughness:.7}),wallMat=new THREE.MeshStandardMaterial({color:sRGB('#e5d7c1'),roughness:.88});
+    const floor=new THREE.MeshStandardMaterial({map:TX.wood,roughness:.7}),wallMat=new THREE.MeshStandardMaterial({color:sRGBc('#e5d7c1'),roughness:.88});
     room(grp,ox,oz,-8,8,0,14,3,{floor,ceil:new THREE.MeshStandardMaterial({color:0xf3eee4,roughness:.9}),wall:wallMat},{gaps:[[0,8,2.2]]});
-    const bar=new THREE.MeshStandardMaterial({color:sRGB('#68422c'),roughness:.58});
-    const top=new THREE.MeshStandardMaterial({color:sRGB('#ded2bd'),roughness:.4});
+    const bar=new THREE.MeshStandardMaterial({color:sRGBc('#68422c'),roughness:.58});
+    const top=new THREE.MeshStandardMaterial({color:sRGBc('#ded2bd'),roughness:.4});
     const add=(geo,material,x,y,z)=>{const mesh=new THREE.Mesh(geo,material);mesh.position.set(ox+x,INT_Y+y,oz+z);mesh.castShadow=mesh.receiveShadow=true;grp.add(mesh);return mesh};
     add(new THREE.BoxGeometry(9,.95,1.3),bar,0,.5,12.2);add(new THREE.BoxGeometry(9,.12,1.42),top,0,1.04,12.2);
     const waiter=new THREE.Group();waiter.name='NPC_Waiter';waiter.position.set(ox,INT_Y,oz);
@@ -4683,7 +4685,7 @@ const INTERIORS={
       add(new THREE.CylinderGeometry(.09,.09,.18,8),top,side*.25,1.12,11.2);
     }
     grp.add(waiter);
-    const chairMat=new THREE.MeshStandardMaterial({color:sRGB('#75513b'),roughness:.8});
+    const chairMat=new THREE.MeshStandardMaterial({color:sRGBc('#75513b'),roughness:.8});
     for(const [x,z] of [[-5,3],[0,3],[5,3],[-5,7],[0,7],[5,7]]){
       add(new THREE.CylinderGeometry(.68,.68,.12,12),top,x,.78,z);
       add(new THREE.CylinderGeometry(.1,.12,.72,8),bar,x,.38,z);
