@@ -25,6 +25,12 @@ function bgType(b){const st=D.bst[b.k],h=(Math.imul(b.k+1,2654435761)>>>0)>>>4;
   if(st===INDUST)return {id:'bg_ware',label:'Enter the warehouse'};
   if(st===HIST||st===MOLD)return h%2?{id:'bg_cafe',label:'Enter the cafe'}:{id:'bg_hall',label:'Enter the lobby'};
   return {id:'bg_hall',label:'Enter the lobby'}}
+// walking straight into a shop, cafe or supermarket wall opens it (no need to find the button); BGW is the queue of shop interiors built in idle moments (see tickDoors)
+const BGW=[];let bgBumpT=0;
+function bgBump(dt,sp,fx,fz){const b=BG.cur;if(!b||sp<.5){bgBumpT=0;return false}
+  if(!/^bg_(market|cafe|phones|pharmacy|sweets|coffee|books|gifts|flowers|eva|optics|jewel|toys)$/.test(bgType(b).id)){bgBumpT=0;return false}
+  const dx=b.qx-player.x,dz=b.qz-player.z,d=Math.hypot(dx,dz);if(d>.8||(dx*fx+dz*fz)/Math.max(d,.01)<.75){bgBumpT=0;return false}
+  bgBumpT+=dt;if(bgBumpT<.35)return false;bgBumpT=0;bgEnter(b);return true}
 function bgEnter(b){if(!b)return;const t=bgType(b),ret={x:player.x,z:player.z,yaw:Math.atan2(player.x-b.qx,player.z-b.qz)};
   if(t.id==='stair')PORTAL.enter('stair',ret,{ent:1+b.k%4});else PORTAL.enter(t.id,ret)}
 
@@ -55,6 +61,7 @@ function installBldg(){
   {const i=idx++;INTERIORS.bg_house=()=>simpleInterior('bg_house',i,{w:10,d:8,h:2.8,floor:0x8a6a4a,fr:.5,wall:0xe8dcc4,title:'House',sub:'someone\'s living room',lights:[2,5.5],lcol:0xffe0b0,li:1.5,furnish:bgHouse})}
   {const i=idx++;INTERIORS.bg_hall=()=>simpleInterior('bg_hall',i,{w:12,d:10,h:3.6,floor:0xb9b3a6,fr:.35,wall:0xeee8d8,title:'Lobby',sub:'old stairs, a clock and a desk',lights:[3,7],lcol:0xfff0d8,li:1.6,furnish:bgHall})}
   {const i=idx++;INTERIORS.bg_ware=()=>simpleInterior('bg_ware',i,{w:14,d:12,h:5,floor:0x77746e,fr:.8,wall:0xa8a190,ceil:0x8d8a82,title:'Warehouse',sub:'crates and pallets',lights:[3,9],lcol:0xe8eef8,li:1.8,furnish:bgWare})}
+  for(const k of ['bg_market','bg_cafe'].concat(BG_SHOPS.map(v=>'bg_'+v[0])))BGW.push({name:k});
   const ent={x:0,z:0,y:0,r:3.2,label:'Enter',cond(){
       if(PORTAL.cur||RIDE.on||DRIVE.on||PASS.host||player.sit)return false;
       const t=performance.now();if(Math.hypot(player.x-BG.lx,player.z-BG.lz)>.6||t-BG.lt>400){BG.lx=player.x;BG.lz=player.z;BG.lt=t;BG.cur=bgFind(player.x,player.z)}

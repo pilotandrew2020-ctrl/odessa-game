@@ -3569,7 +3569,7 @@ function buildLanzheron(grp,G,P,Sg,GR){
      for(let k=0;k<6;k++){const gc=[col,white,sRGB('#f2c21b'),sRGB('#2a62b8'),sRGB('#d8432c')][k%5];P.box(fx-.22,hB+1.45+(k%3)*.45,wz-winW/2+.4+k*(winW-.8)/6,.1,.22,.28,0,gc,0)}
      for(let k=0;k<=3;k++)P.box(fx-.04,hB+2.15,wz-winW/2+k*winW/3,.2,2.05,.07,0,steel,6);
      if(s.door){const dz=zc+sw*.26;P.box(fx-.05,hB+3.4,dz,.3,1.5,sw*.34,0,steel,6);P.box(fx-.04,hB+1.2,dz,.1,2.3,.9,0,dgl,2);P.box(fx-.04,hB+1.2,dz+sw*.17,.3,2.4,.12,0,steel,6);P.box(fx-.04,hB+1.2,dz-sw*.17,.3,2.4,.12,0,steel,6);
-       const rx=fx+2.0,rz=dz;INTERACT.push({x:fx+.9,z:dz,y:hB,r:1.9,label:'Enter '+s.n.toLowerCase(),cond:()=>!PORTAL.cur&&!RIDE.on,fn:()=>PORTAL.enter('market',{x:rx,z:rz,yaw:Math.PI/2},{sign:0})})}
+       const rx=fx+2.0,rz=dz,go=()=>PORTAL.enter('market',{x:rx,z:rz,yaw:Math.PI/2},{sign:0});INTERACT.push({x:fx+.9,z:dz,y:hB,r:1.9,label:'Enter '+s.n.toLowerCase(),cond:()=>!PORTAL.cur&&!RIDE.on,fn:go});DOORS.push({x:fx,z:dz,nx:1,nz:0,tx:0,tz:1,w:1.6,y:hB,name:'market',opt:{sign:0},go})}
      // awning + sign + colour band
      P.box(fx+.7,hB+3.55,zc,1.8,.07,sw-.2,0,col,5,-.0);P.box(fx+1.55,hB+3.35,zc,.08,.35,sw-.2,0,white,1);
      P.box(fx+.7,hB+4.0,zc,1.3,.8,.18,0,col,9,0);
@@ -4626,7 +4626,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
       this.place(B);
       if(DRIVE.on)exitCar();player.scoot=false;
       toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
-  exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
+  exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];doorCd=2.5;this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       teleportRaw(r.x,r.z,r.yaw);f.style.opacity=0},380)},
   go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       this.opt=opt||{};const key=this.cacheKey(name,this.opt);
@@ -4634,6 +4634,25 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
       this.place(B);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
   place(B){player.x=B.spawn[0];player.z=B.spawn[1];player.y=B.spawnY||INT_Y;player.yaw=B.spawnYaw||0;cam.yaw=player.yaw;cam.init=false;
     player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null}};
+// shop doors: walking into the glass opens it, and the interior behind it is built — and drawn once so every shader is compiled — while the player is still on the way
+const DOORS=[];let doorCd=0,warmT=1;
+function warmInterior(d){const key=PORTAL.cacheKey(d.name,d.opt||{});let B=PORTAL.built[key];
+  if(!B){try{B=INTERIORS[d.name](d.opt||{});B.grp.userData.portalName=d.name;PORTAL.built[key]=B;setInteriorGroupVisible(B.grp,false);d.warm=1}catch(e){console.warn('[portal] warm failed',d.name,e);d.warm=3}return}
+  d.warm=2;
+  try{const pos=camera.position.clone(),q=camera.quaternion.clone();PORTAL.setCity(false);B.grp.visible=true;
+    camera.position.set(B.spawn[0],INT_Y+1.6,B.spawn[1]);camera.lookAt(B.spawn[0],INT_Y+1.2,B.spawn[1]+6);camera.updateMatrixWorld(true);renderer.render(scene,camera);
+    camera.position.copy(pos);camera.quaternion.copy(q);camera.updateMatrixWorld(true)}catch(e){console.warn('[portal] warm render failed',e)}
+  PORTAL.setCity(true)}
+function tickDoors(dt){doorCd=Math.max(0,doorCd-dt);warmT-=dt;
+  if(!started||PORTAL.cur||DRIVE.on||RIDE.on||HELI.on||player.sit||PASS.host||MARINE.cur||EXT.cur)return;
+  const sp=Math.hypot(player.vx||0,player.vz||0),fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);let warm=null,wd=900;
+  for(const d of DOORS){const rx=player.x-d.x,rz=player.z-d.z,q=rx*rx+rz*rz;if(q>900)continue;
+    if(doorCd<=0&&q<2.6&&Math.abs(player.y-d.y)<1.4&&sp>.4){const dn=rx*d.nx+rz*d.nz,dl=rx*d.tx+rz*d.tz;
+      if(dn>-.5&&dn<1.15&&Math.abs(dl)<d.w/2+.25&&-(fx*d.nx+fz*d.nz)>.4){doorCd=3;d.go();return}}
+    if((d.warm||0)<2&&q<wd){wd=q;warm=d}}
+  if(doorCd<=0&&typeof bgBump==='function'&&bgBump(dt,sp,fx,fz)){doorCd=3;return}
+  if(warmT<=0&&sp<6){if(warm){warmT=.8;warmInterior(warm)}
+    else if(sp<2&&typeof BGW!=='undefined'&&BGW.length){const w=BGW[0];warmT=1.2;warmInterior(w);if(w.warm>=2||w.warm===3)BGW.shift()}}}
 const INVENTORY={},BAG={};const PRICE={sausage:120,bread:28,juice:52,milk:38,apples:35,crisps:45,'ice cream':30,hematogen:22,'vitamin C':15};
 function unpaid(){return Object.values(INVENTORY).reduce((a,b)=>a+b,0)}
 function addItem(n,paid){const T=paid?BAG:INVENTORY;T[n]=(T[n]||0)+1;if(paid){toast('Bought: '+n,'₴'+(PRICE[n]||20)+' · in your bag');if(window.AUD)AUD.beep();return}
@@ -5137,8 +5156,9 @@ function shopDoor(grp,P,d,y0,opt){
   P.box(d.x+nx*.7,y0+.06,d.z+nz*.7,w+1.2,.12,1.5,ry,sRGB('#9a9a96'),9);
   if(opt.sign){const m=plateMesh([opt.sign],{w:512,h:128,size:opt.ssize||58,color:opt.fg||'#fff',bg:opt.bg||'#2a5aa0',weight:'800'},opt.sw||3.4,(opt.sw||3.4)*.25,.4);
     m.position.set(d.x+nx*.12+tx*0,y0+h+.95,d.z+nz*.12);m.rotation.y=ry;grp.add(m)}
-  INTERACT.push({x:d.x+nx*1.4,z:d.z+nz*1.4,y:y0,r:2.3,label:opt.label,cond:()=>!PORTAL.cur&&!RIDE.on,
-    fn:()=>PORTAL.enter(opt.interior,{x:d.x+nx*2.3,z:d.z+nz*2.3,yaw:ry})});
+  const go=()=>PORTAL.enter(opt.interior,{x:d.x+nx*2.3,z:d.z+nz*2.3,yaw:ry});
+  INTERACT.push({x:d.x+nx*1.4,z:d.z+nz*1.4,y:y0,r:2.3,label:opt.label,cond:()=>!PORTAL.cur&&!RIDE.on,fn:go});
+  DOORS.push({x:d.x,z:d.z,nx,nz,tx,tz,w,y:y0,name:opt.interior,go});
 }
 function buildNeighbourhood(grp,G,P,Sg,GR){
   const A=-1.22;
@@ -6521,6 +6541,7 @@ function updateHUD(dt){
     if(n!==lastDistrict){if(lastDistrict&&n!=='Chykalenka St, 59k')toast(n,s);lastDistrict=n;$('dName').textContent=n;$('dSub').textContent=s}
     const h=PLACES[0];const me=PORTAL.cur?PORTAL.ret||h:player;$('homeDir').textContent='Home · '+fmtDist(Math.hypot(h.x-me.x,h.z-me.z))+' · '+WALLET.fmt();
   }
+  safe('doors',()=>tickDoors(dt));
   // interaction prompt
   let best=null,bd=1e9;for(const it of INTERACT){if(it.cond&&!it.cond())continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
