@@ -3052,7 +3052,7 @@ function buildStation(grp,G,P,Sg,GR){
 function buildPlatforms(grp,P,GR,F,y0){
   // collect station rail segments (kind 1) inside the track field south of the building
   const R=D.rnodes,rn=D.rn;const tracks=[];
-  for(let k=0;k<HDR.nRWays;k++){if(D.rkind[k]!==1)continue;const pts=[];for(let i=D.rstart[k];i<D.rstart[k+1];i++){const x=R[rn[i]*2],z=R[rn[i]*2+1];const [u,v]=F.inv(x,z);if(u>15&&u<115&&v>30&&v<330)pts.push([u,v])}if(pts.length>=2)tracks.push(pts)}
+  for(let k=0;k<HDR.nRWays;k++){if(D.rkind[k]!==1)continue;const pts=[];pts.ref=-1;for(let i=D.rstart[k];i<D.rstart[k+1];i++){const x=R[rn[i]*2],z=R[rn[i]*2+1];const [u,v]=F.inv(x,z);if(u>15&&u<115&&v>30&&v<330){pts.push([u,v]);if(pts.ref<0)pts.ref=i}}if(pts.length>=2)tracks.push(pts)}
   // platforms: between two neighbouring tracks (gap 7.5-16 m) a platform runs as ONE continuous slab — slices every 6 m are chained into strips, with continuous yellow edges, ramps at both ends and a canopy
   const PH=1.1,DV=6,V0=34,V1=330,ryP=-Math.atan2(F.sa,F.ca),topC=sRGB('#aba59b'),sideC=sRGB('#8a8479'),edgeY=sRGB('#e8c21a'),roofC=sRGB('#7b8288'),postC=sRGB('#5d6166');
   const nS=Math.floor((V1-V0)/DV)+1,slices=[];
@@ -3091,17 +3091,11 @@ function buildPlatforms(grp,P,GR,F,y0){
     // exit sign at the building end of every platform
     const e=pts[2],ec=F.P((e.a+e.b)/2,e.v);exits.push([ec[0],ec[1],e.top])}
   for(const [ex,ez,ey] of exits)INTERACT.push({x:ex,z:ez,y:ey,r:2.4,label:'Exit to the station square',cond:()=>!PORTAL.cur&&!RIDE.on,fn:()=>{const q=F.P(52,-14);teleport({x:q[0],z:q[1],yaw:Math.atan2(F.P(52,40)[0]-q[0],F.P(52,40)[1]-q[1]),name:'Station square'})}});
-  // standing trains (blue suburban EMU + long-distance coaches) on some tracks
-  const trainM=new THREE.MeshStandardMaterial({color:0x2a5aa8,roughness:.45,metalness:.25}),stripeM=new THREE.MeshStandardMaterial({color:0xe8ecf0,roughness:.5}),winM=new THREE.MeshStandardMaterial({color:0x162029,roughness:.05}),roofM2=new THREE.MeshStandardMaterial({color:0x7d8489,roughness:.5,metalness:.3});
-  let n=0;for(const t of tracks){if(n>=4)break;const pts=t.slice().sort((a,b)=>a[1]-b[1]);if(pts.length<2||pts[0][1]>60)continue;const [u0,v0]=pts[0];const L=Math.min(150,pts[pts.length-1][1]-v0);if(L<60)continue;
-    const nCar=Math.floor(L/24);const grpT=new THREE.Group();
-    for(let k=0;k<nCar;k++){const vc=v0+8+k*24.5+12;let uc=u0;for(let i=0;i<pts.length-1;i++){if(pts[i][1]<=vc&&pts[i+1][1]>=vc){uc=pts[i][0]+(pts[i+1][0]-pts[i][0])*(vc-pts[i][1])/(pts[i+1][1]-pts[i][1]);break}}
-      const c=F.P(uc,vc);const gy=groundH(c[0],c[1]);const body=new THREE.Mesh(new THREE.BoxGeometry(3.3,3.5,23.8),trainM);body.position.set(c[0],gy+.5+1.75+.6,c[1]);body.rotation.y=-Math.atan2(F.sa,F.ca);grpT.add(body);
-      const st=new THREE.Mesh(new THREE.BoxGeometry(3.32,.35,23.82),stripeM);st.position.copy(body.position);st.position.y-=.6;st.rotation.copy(body.rotation);grpT.add(st);
-      const w=new THREE.Mesh(new THREE.BoxGeometry(3.34,.9,22),winM);w.position.copy(body.position);w.position.y+=.55;w.rotation.copy(body.rotation);grpT.add(w);
-      const rf=new THREE.Mesh(new THREE.CylinderGeometry(1.7,1.7,23.6,12,1,false,0,Math.PI),roofM2);rf.rotation.set(Math.PI/2,0,-Math.PI/2);rf.scale.set(1,1,.3);rf.position.copy(body.position);rf.position.y+=1.75;rf.rotation.y=0;rf.rotateOnWorldAxis(new THREE.Vector3(0,1,0),-Math.atan2(F.sa,F.ca)+Math.PI/2);grpT.add(rf);
-      const oc=F.inv(c[0],c[1]);addOBB(c[0],c[1],3.4,24,Math.atan2(F.sa,F.ca))}
-    grp.add(grpT);n++}
+  // trains standing at the platforms: every one of them can be boarded and runs down the line (see TRAINS)
+  {const cand=[];for(const t of tracks){const p0=t.reduce((a,q)=>q[1]<a[1]?q:a,t[0]);if(p0[1]<=60)cand.push([t,p0])}   // the station tracks start at the buffer stops next to the building
+    cand.sort((a,b)=>a[1][0]-b[1][0]);const uniq=cand.filter((c,i)=>!i||c[1][0]-cand[i-1][1][0]>6);
+    const pick=uniq.length>4?[0,1,2,3].map(i=>uniq[Math.round(i*(uniq.length-1)/3)]):uniq;
+    pick.forEach((c,i)=>spawnTrain(grp,F,c[0],c[1],[5,4,6,5][i]))}
 }
 
 // ===================== Морвокзал: sea terminal, Hotel «Одеса», pier, ships, Golden Child =====================
@@ -4450,13 +4444,13 @@ function tramMesh(){const g=new THREE.Group();
     const m=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.36),new THREE.MeshBasicMaterial({map:t,toneMapped:false}));m.position.set(0,2.92,s*(L/2+.07));m.rotation.y=s>0?0:Math.PI;g.add(m)}
   g.userData.L=L;return g}
 // walk the tram network from a start ref, preferring straight continuations
-function tramWalk(i0,dir,maxL){const R=D.rnodes,rn=D.rn,rs=D.rstart;const pts=[];let i=i0,d=dir,L=0;const seen=new Set();
+function tramWalk(i0,dir,maxL,kind=0){const R=D.rnodes,rn=D.rn,rs=D.rstart;const pts=[];let i=i0,d=dir,L=0;const seen=new Set();
   const wayOf=i=>D.rOf[i];const P=i=>[R[rn[i]*2],R[rn[i]*2+1]];
   pts.push(P(i));let hx=0,hz=0;
   for(let guard=0;guard<20000&&L<maxL;guard++){const k=wayOf(i);let j=i+d;
     if(j<rs[k]||j>=rs[k+1]){ // end of way: find continuation at this node
       const node=rn[i];let best=null,bs=.3;
-      for(let a=D.rAdjS[node];a<D.rAdjS[node+1];a++){const r=D.rAdj[a];if(r===i)continue;const k2=wayOf(r);if(D.rkind[k2]!==0)continue;
+      for(let a=D.rAdjS[node];a<D.rAdjS[node+1];a++){const r=D.rAdj[a];if(r===i)continue;const k2=wayOf(r);if(D.rkind[k2]!==kind)continue;
         for(const dd of [1,-1]){const n=r+dd;if(n<rs[k2]||n>=rs[k2+1])continue;if(seen.has(k2*2+(dd>0?1:0)))continue;const [x0,z0]=P(r),[x1,z1]=P(n);const l=Math.hypot(x1-x0,z1-z0)||1;const sc=((x1-x0)*hx+(z1-z0)*hz)/l;if(sc>bs){bs=sc;best=[r,dd]}}}
       if(!best)break;i=best[0];d=best[1];seen.add(wayOf(i)*2+(d>0?1:0));j=i+d}
     const [x0,z0]=P(i),[x1,z1]=P(j);const l=Math.hypot(x1-x0,z1-z0);if(l>.01){hx=(x1-x0)/l;hz=(z1-z0)/l;L+=l;pts.push([x1,z1])}i=j}
@@ -4538,13 +4532,14 @@ function updateTrams(dt){
     if(t.kind==='funi'){}
     else if(t.kind==='bus')busStep(t,dt);
     else if(t.kind==='pass')passStep(t,dt);
+    else if(t.kind==='train'){}
     else if(t.kind==='cable'){player.x=t.x+.15;player.z=t.z+.78;player.y=t.y+.12;player.yaw=Math.PI;player.vx=player.vz=0;
       PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt)}
     else{const fx=Math.sin(t.yaw),fz=Math.cos(t.yaw);player.x=t.x-fx*2.2+fz*.3;player.z=t.z-fz*2.2-fx*.3;player.y=t.y+.55;player.yaw=t.yaw+Math.PI/2;
     PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;animPlayer(PLR,{spd:0,mode:'walk'},dt)}}
 }
 function boardTram(t){if(!t)return;RIDE.on=true;RIDE.tram=t;player.vx=player.vz=0;player.scoot=false;$('bScoot').classList.remove('on');cam.init=false;toast('You\'re on the tram','let\'s go! At a stop press E to get off');if(window.AUD)AUD.beep()}
-function leaveTram(){const t=RIDE.tram;if(!t)return;if(t.kind==='funi')return funiLeave(t);if(t.kind==='bus')return busLeave(t);if(t.kind==='pass')return passLeave(t);if(t.kind==='cable')return cableLeave(t);if(t.v>.4){toast('Wait for the stop','the tram is moving');return}
+function leaveTram(){const t=RIDE.tram;if(!t)return;if(t.kind==='funi')return funiLeave(t);if(t.kind==='bus')return busLeave(t);if(t.kind==='pass')return passLeave(t);if(t.kind==='train')return trainLeave(t);if(t.kind==='cable')return cableLeave(t);if(t.v>.4){toast('Wait for the stop','the tram is moving');return}
   RIDE.on=false;RIDE.tram=null;const fx=Math.sin(t.yaw),fz=Math.cos(t.yaw);
   for(const side of [1,-1])for(const off of [0,-4,4]){const x=t.x+fz*side*2.9+fx*off,z=t.z-fx*side*2.9+fz*off;if(!insideAny(x,z,.35,t.y+.5)){player.x=x;player.z=z;player.y=groundAt(x,z,t.y+1);player.vx=player.vz=0;cam.init=false;return}}
   player.x=t.x+fz*3;player.z=t.z-fx*3;player.y=groundAt(player.x,player.z,t.y+1)}
@@ -4562,6 +4557,7 @@ function rideExitSpot(x,z,yaw,y,sides){
   for(const sd of sides)for(const al of [0,2,-2,4]){const px=x+cs*sd*2.9+sn*al,pz=z-sn*sd*2.9+cs*al;if(!insideAny(px,pz,.35,y+.5)){return [px,pz]}}
   return [x+cs*sides[0]*3.2,z-sn*sides[0]*3.2]}
 function initRides(){
+  initTrainRide();
   INTERACT.push({x:0,z:0,r:1e9,label:'Get on the bus',cond:()=>{if(RIDE.on||DRIVE.on||PORTAL.cur||player.sit)return false;busNear=null;
     for(const c of CARS){if(!c.route||c.v>2.4)continue;const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),dx=player.x-c.x,dz=player.z-c.z,a=dx*fx+dz*fz,b=dx*fz-dz*fx;
       if(Math.abs(a)<(c.type===8?6.4:3.6)&&Math.abs(b)<(c.type===8?3.8:3)&&Math.abs(player.y-c.y)<2.6){busNear=c;return true}}return false},fn:()=>boardBus(busNear)});
@@ -4584,6 +4580,103 @@ function busLeave(t){const c=t.car;if(c.v>2.5){toast('Wait for the stop','the bu
   RIDE.on=false;RIDE.tram=null;const p=rideExitSpot(c.x,c.z,c.yaw,c.y,[-1,1]);player.x=p[0];player.z=p[1];player.y=groundAt(p[0],p[1],c.y+1);player.vx=player.vz=0;cam.init=false}
 function passLeave(t){if(t.v>3){toast('Wait until the car stops','');return}
   const R=t.R;RIDE.on=false;RIDE.tram=null;const p=rideExitSpot(R.x,R.z,R.yaw,R.y,[-1,1]);player.x=p[0];player.z=p[1];player.y=groundAt(p[0],p[1],R.y+1);player.vx=player.vz=0;cam.init=false}
+
+// ===================== main-line trains: they stand at the station platforms; board any of them and it takes you down the line =====================
+const TRAINS=[],TRAIN_CAR=24.5,TRAIN_VMAX=33;let trainNear=null,TRAIN_ASSETS=null,TRAIN_HUD=false;
+const TRAIN_SEATS=[];for(let i=0;i<10;i++){const z=-9.9+i*2.2;if(Math.abs(Math.abs(z)-7.44)<1.4)continue;TRAIN_SEATS.push([-.95,z],[.95,z])}
+function trainAssets(){if(TRAIN_ASSETS)return TRAIN_ASSETS;
+  const PX=44,W=Math.round(23.8*PX),H=Math.round(3.3*PX),bay=23.8/8,X=m=>m*PX,Y=m=>H-m*PX;
+  const tex=(w,h,f)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;f(cv.getContext('2d'));const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t};
+  const holes=(x,fill)=>{for(let b=0;b<8;b++){const cx=(b+.5)*bay;const door=b===1||b===6;const r=door?[cx-.45,Y(2.6),.9,1.1]:[cx-.95,Y(2.5),1.9,1.25];
+    if(fill){x.fillStyle=fill;x.fillRect(X(r[0]),r[1],X(r[2]),X(r[3]))}else x.clearRect(X(r[0]),r[1],X(r[2]),X(r[3]))}};
+  const side=tex(W,H,x=>{x.fillStyle='#2a5aa8';x.fillRect(0,0,W,H);x.fillStyle='#22262b';x.fillRect(0,Y(.35),W,X(.35));
+    x.fillStyle='#f2c418';x.fillRect(0,Y(.62),W,X(.08));x.fillStyle='#e8ecf0';x.fillRect(0,Y(1.2),W,X(.12));x.fillRect(0,Y(3.2),W,X(.1));
+    for(const b of [1,6]){const cx=(b+.5)*bay;x.fillStyle='#3d72c4';x.fillRect(X(cx-.8),Y(3.0),X(1.6),X(2.65));x.fillStyle='#1a3c70';x.fillRect(X(cx-.02),Y(3.0),X(.04),X(2.65))}
+    x.fillStyle='#fff';x.font=`700 ${X(.22)|0}px "Golos Text",Arial,sans-serif`;x.textAlign='center';x.fillText('УКРЗАЛІЗНИЦЯ',X(11.9),Y(.84));
+    x.fillStyle='#7ee08a';x.fillRect(X(bay*2.5-.5),Y(.8),X(.9),X(.05));holes(x,null)});
+  const glass=tex(W,H,x=>{x.clearRect(0,0,W,H);holes(x,'rgba(150,195,225,.34)')});
+  const end=tex(160,160,x=>{x.fillStyle='#2a5aa8';x.fillRect(0,0,160,160);x.fillStyle='#e8ecf0';x.fillRect(0,128,160,6);x.fillStyle='#f2c418';x.fillRect(0,96,160,8);
+    x.fillStyle='#161d24';x.fillRect(10,16,140,70);x.fillStyle='rgba(150,195,225,.35)';x.fillRect(10,16,140,26);x.fillStyle='#22262b';x.fillRect(0,146,160,14);
+    x.fillStyle='#fff6d0';for(const cx of [24,136]){x.beginPath();x.arc(cx,116,9,0,6.283);x.fill()}x.fillStyle='#d83a2f';for(const cx of [46,114]){x.beginPath();x.arc(cx,116,5,0,6.283);x.fill()}});
+  // shell (floor, roof, ends, seats, undercarriage) as one vertex-coloured mesh
+  const C=h=>sRGB(h),parts=[];const B=(cx,cy,cz,sx,sy,sz,c)=>parts.push([cx,cy,cz,sx,sy,sz,C(c)]);
+  B(0,.72,0,3.2,.12,23.6,'#7a746c');B(0,3.72,0,3.3,.16,23.8,'#d9dcdf');B(0,3.9,6.5,1.8,.22,3.4,'#aeb3b7');B(0,3.9,-6.5,1.8,.22,3.4,'#aeb3b7');
+  for(const s of [-1,1])B(0,2.2,s*11.9,3.3,2.9,.18,'#2a5aa8');
+  B(0,.5,0,3.0,.4,22,'#23262a');B(0,.45,3,2.4,.62,6,'#3a3d40');B(0,.45,-3,2.4,.62,6,'#3a3d40');for(const s of [-1,1])B(0,.4,s*8,2.8,.7,3.6,'#202326');
+  for(let i=0;i<10;i++){const z=-9.9+i*2.2;if(Math.abs(Math.abs(z)-7.44)<1.4)continue;for(const sx of [-.95,.95]){B(sx,.98,z,1.0,.16,.95,'#2b5fb0');B(sx,1.4,z-.47,1.0,.65,.1,'#2b5fb0');B(sx,.86,z,.9,.1,.8,'#4a4e54')}}
+  for(const z of [-7.44,7.44])for(const sx of [-.45,.45])B(sx,2.2,z,.05,2.9,.05,'#c8ccd0');
+  const g=new GB({position:3,normal:3,color:3});
+  for(const [cx,cy,cz,sx,sy,sz,col] of parts){const b=new THREE.BoxGeometry(sx,sy,sz),p=b.attributes.position,n=b.attributes.normal,ix=b.index,o=g.n;
+    for(let i=0;i<p.count;i++)g.v({position:[p.getX(i)+cx,p.getY(i)+cy,p.getZ(i)+cz],normal:[n.getX(i),n.getY(i),n.getZ(i)],color:col});
+    for(let i=0;i<ix.count;i+=3)g.tri(o+ix.getX(i),o+ix.getX(i+1),o+ix.getX(i+2));b.dispose()}
+  const lamp=new THREE.BoxGeometry(.3,.04,21);
+  TRAIN_ASSETS={shell:g.build(),shellM:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.55,metalness:.15}),
+    planeG:new THREE.PlaneGeometry(23.8,3.3),endG:new THREE.PlaneGeometry(3.3,3.3),lamp,lampM:new THREE.MeshBasicMaterial({color:0xfff2d0}),
+    sideM:new THREE.MeshStandardMaterial({map:side,alphaTest:.5,side:THREE.DoubleSide,roughness:.4,metalness:.3}),
+    glassM:new THREE.MeshStandardMaterial({map:glass,transparent:true,depthWrite:false,side:THREE.DoubleSide,roughness:.08,metalness:.2}),
+    endM:new THREE.MeshStandardMaterial({map:end,roughness:.45,metalness:.25})};
+  return TRAIN_ASSETS}
+function trainCar(A,headA,headB){const g=new THREE.Group();const sh=new THREE.Mesh(A.shell,A.shellM);sh.castShadow=true;g.add(sh);
+  for(const s of [-1,1]){const w=new THREE.Mesh(A.planeG,A.sideM);w.position.set(s*1.655,2.1,0);w.rotation.y=s*Math.PI/2;g.add(w);
+    const gl=new THREE.Mesh(A.planeG,A.glassM);gl.position.set(s*1.668,2.1,0);gl.rotation.y=s*Math.PI/2;g.add(gl);
+    const l=new THREE.Mesh(A.lamp,A.lampM);l.position.set(s*.55,3.62,0);g.add(l)}
+  for(const [on,z] of [[headA,-1],[headB,1]])if(on){const e=new THREE.Mesh(A.endG,A.endM);e.position.set(0,2.1,z*11.93);e.rotation.y=z>0?0:Math.PI;g.add(e)}
+  return g}
+function makeRailLine(pts){const out=[pts[0]],cum=[0];for(let i=1;i<pts.length;i++){const [x0,z0]=out[out.length-1],[x1,z1]=pts[i];const l=Math.hypot(x1-x0,z1-z0);if(l<3.5&&i<pts.length-1)continue;out.push([x1,z1]);cum.push(cum[cum.length-1]+l)}
+  return {pts:out,cum,L:cum[cum.length-1],stops:[]}}
+function spawnTrain(grp,F,track,p0,nCar){
+  if(track.ref<0||nCar<2)return false;
+  let line=makeRailLine(tramWalk(track.ref,-1,2600,1).reverse().concat(tramWalk(track.ref,1,2600,1).slice(1)));if(line.L<900)return false;
+  const vA=p0[1]+8+nCar*TRAIN_CAR/2,uA=p0[0],at=s=>{const p=tramAt(line,s,0);return F.inv(p[0],p[1])};
+  let sH=-1,bd=1e9;for(let s=0;s<=line.L;s+=4){const [u,v]=at(s);const d=Math.abs(v-vA)+Math.abs(u-uA)*2;if(d<bd){bd=d;sH=s}}
+  if(bd>30)return false;
+  if(at(Math.min(line.L,sH+80))[1]<at(sH)[1]){line={pts:line.pts.slice().reverse(),cum:line.cum.map(c=>line.L-c).reverse(),L:line.L,stops:[]};sH=line.L-sH}   // v grows along the line = away from the building
+  const sEnd=Math.min(line.L-130,sH+2400);if(sEnd-sH<500)return false;
+  const A=trainAssets(),T={line,s:sH,sHome:sH,sEnd,goal:sEnd,dir:1,v:0,state:'wait',t:0,hold:6,n:nCar,cars:[],cx:0,cz:0};
+  for(let k=0;k<nCar;k++){const g=trainCar(A,k===0,k===nCar-1);grp.add(g);T.cars.push({g,off:(k-(nCar-1)/2)*TRAIN_CAR,x:0,y:0,z:0,yaw:0})}
+  TRAINS.push(T);placeTrain(T);return true}
+function placeTrain(T){const L=T.line;let sx=0,sz=0;
+  for(const c of T.cars){const s=T.s+c.off;const a=tramAt(L,s-8,0),b=tramAt(L,s+8,0),m=tramAt(L,s,0);
+    c.x=m[0];c.z=m[1];c.yaw=Math.atan2(b[0]-a[0],b[1]-a[1]);const ya=railY(a[0],a[1]),yb=railY(b[0],b[1]);c.y=(ya+yb)/2+.39;
+    const pitch=Math.atan2(yb-ya,Math.hypot(b[0]-a[0],b[1]-a[1]));const g=c.g;g.position.set(c.x,c.y,c.z);g.rotation.order='YXZ';g.rotation.set(-pitch,c.yaw,0);sx+=c.x;sz+=c.z}
+  T.cx=sx/T.cars.length;T.cz=sz/T.cars.length}
+function trainHit(x,z){for(const T of TRAINS){if(Math.hypot(T.cx-x,T.cz-z)>T.n*TRAIN_CAR/2+6)continue;for(const c of T.cars){const dx=x-c.x,dz=z-c.z,fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);if(Math.abs(dx*fx+dz*fz)<12.4&&Math.abs(dx*fz-dz*fx)<2.1)return true}}return false}
+function updateTrains(dt){
+  const rt=RIDE.on&&RIDE.tram&&RIDE.tram.kind==='train'?RIDE.tram:null;
+  for(const T of TRAINS){const mine=rt&&rt.T===T,d=Math.hypot(T.cx-player.x,T.cz-player.z);
+    if(T.state==='run'){
+      const dist=(T.goal-T.s)*T.dir;let block=1e9;
+      if(!mine&&!RIDE.on){const ld=T.cars[T.dir>0?T.n-1:0],fx=Math.sin(ld.yaw)*T.dir,fz=Math.cos(ld.yaw)*T.dir,dx=player.x-ld.x,dz=player.z-ld.z,a=dx*fx+dz*fz,b=Math.abs(dx*fz-dz*fx);if(a>0&&a<500&&b<2.4&&Math.abs(player.y-ld.y)<3)block=a-26}
+      const vt=Math.min(TRAIN_VMAX,Math.sqrt(2*1.3*Math.max(0,Math.min(dist,block)-.5)));
+      T.v+=Math.max(-1.6*dt,Math.min(.95*dt,vt-T.v));if(T.v<0)T.v=0;T.s+=T.v*dt*T.dir;
+      if(dist<.8&&T.v<.35){T.s=T.goal;T.v=0;T.t=0;const home=T.goal===T.sHome;T.state=home?'wait':'stop';T.hold=14;
+        if(mine){toast(home?'Odesa-Holovna':'End of the line','E — get off the train');if(window.AUD)AUD.tone(880,880,.18,.05,'sine')}}
+      placeTrain(T)}
+    else{T.t+=dt;
+      const go=T.state==='wait'?(mine&&T.t>T.hold):(T.t>(mine?14:d<60?60:10));
+      if(go){const out=T.state==='wait';T.state='run';T.dir=out?1:-1;T.goal=out?T.sEnd:T.sHome;if(mine){toast('The train departs','hold on — E to get off at the next stop');if(window.AUD)AUD.tone(660,660,.25,.06,'sine')}}}
+    const vis=d<900||mine;for(const c of T.cars)if(c.g.visible!==vis)c.g.visible=vis;
+    if(mine){const c=T.cars[rt.k];rt.x=c.x;rt.y=c.y;rt.z=c.z;rt.v=T.v;rt.dir=T.dir;rt.yaw=c.yaw+(T.dir<0?Math.PI:0);
+      const lx=Math.cos(c.yaw),lz=-Math.sin(c.yaw),fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),s=rt.seat;
+      const sx=c.x+lx*s[0]+fx*s[1],sz=c.z+lz*s[0]+fz*s[1];seatPlayer(rt,sx,c.y+.57,sz,rt.yaw,dt);rt.x=sx;rt.y=c.y+.57;rt.z=sz;   // the camera orbits the rider, inside the car
+      $('spd').hidden=false;$('spdN').textContent=Math.round(T.v*3.6);TRAIN_HUD=true}}
+  if(TRAIN_HUD&&!rt){TRAIN_HUD=false;if(!DRIVE.on)$('spd').hidden=true}}
+function boardTrain(n){if(!n)return;const {T,k}=n,c=T.cars[k];
+  const dx=player.x-c.x,dz=player.z-c.z,fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),pa=dx*fx+dz*fz,pb=dx*fz-dz*fx;
+  let best=TRAIN_SEATS[1],bd=1e9;for(const s of TRAIN_SEATS){if(Math.abs(s[1])>8)continue;const d=(s[0]-pb)**2+(s[1]-pa)**2;if(d<bd){bd=d;best=s}}
+  T.t=0;if(T.state==='wait')T.hold=6;
+  rideStart({kind:'train',T,k,seat:best,x:c.x,y:c.y,z:c.z,yaw:c.yaw,v:0,dir:T.dir,camDist:3.8,camH:1.25},'You\'re on the train',T.state==='wait'?'it leaves in a few seconds · E to get off at a stop':'E to get off at a stop')}
+function trainLeave(R){const T=R.T;if(T.v>.4){toast('Wait for the stop','the train is moving');return}
+  const c=T.cars[R.k],cs=Math.cos(c.yaw),sn=Math.sin(c.yaw);let best=null,bs=-1e9;
+  for(const sd of [1,-1])for(const al of [0,3,-3,6,-6]){const px=c.x+cs*sd*3+sn*al,pz=c.z-sn*sd*3+cs*al;if(insideAny(px,pz,.35,c.y+.5)||trainHit(px,pz))continue;
+    const sc=walkH(px,pz,c.y+1)-groundH(px,pz)-Math.abs(al)*.01;if(sc>bs){bs=sc;best=[px,pz]}}
+  if(!best)best=[c.x+cs*3.2,c.z-sn*3.2];
+  RIDE.on=false;RIDE.tram=null;player.x=best[0];player.z=best[1];player.y=walkH(best[0],best[1],c.y+1);player.vx=player.vz=0;cam.init=false}
+function initTrainRide(){
+  INTERACT.push({x:0,z:0,r:1e9,label:'Board the train',cond:()=>{if(RIDE.on||DRIVE.on||PORTAL.cur||player.sit)return false;trainNear=null;
+    for(const T of TRAINS){if(T.state==='run'||T.v>.4||Math.hypot(T.cx-player.x,T.cz-player.z)>T.n*TRAIN_CAR/2+12)continue;
+      for(let k=0;k<T.n;k++){const c=T.cars[k],dx=player.x-c.x,dz=player.z-c.z,fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),a=dx*fx+dz*fz,b=dx*fz-dz*fx;
+        if(Math.abs(a)<12.6&&Math.abs(b)<5&&Math.abs(player.y-c.y)<2.8){trainNear={T,k};return true}}}return false},fn:()=>boardTrain(trainNear)})}
 
 // ===================== portal interiors: supermarket, pharmacy, stairwell + lift, apartment =====================
 const INT_X=30000,INT_Z=0,INT_Y=0,FLAT_FLOOR_HEIGHT=FH2[HOME_ST];
@@ -6388,7 +6481,7 @@ function groundAt(x, z, playerY) {
 }
 
 const CAR_OBB=[];const CAR_HL=CAR_DEFS.map(d=>d.front+.15),CAR_HH=CAR_DEFS.map(d=>d.top.reduce((a,t)=>Math.max(a,t[1]),0)+.1);
-function refreshCarObb(){CAR_OBB.length=0;for(const t of TRAMS){if(Math.abs(t.x-player.x)>14||Math.abs(t.z-player.z)>14)continue;CAR_OBB.push(t.x,t.z,1.3,7.6,Math.cos(t.yaw),-Math.sin(t.yaw))}if(DRIVE.car&&!DRIVE.on){const c=DRIVE.car;CAR_OBB.push(c.x,c.z,.95,2.15,Math.cos(c.yaw),-Math.sin(c.yaw))}for(const c of CARS){if(Math.abs(c.x-player.x)>12||Math.abs(c.z-player.z)>12)continue;const ca=Math.cos(c.yaw),sa=Math.sin(c.yaw);CAR_OBB.push(c.x,c.z,.95,CAR_HL[c.type]||2.3,ca,-sa)}}
+function refreshCarObb(){CAR_OBB.length=0;for(const T of TRAINS){if(Math.hypot(T.cx-player.x,T.cz-player.z)>T.n*TRAIN_CAR/2+30)continue;for(const c of T.cars){if(Math.abs(c.x-player.x)>16||Math.abs(c.z-player.z)>16)continue;CAR_OBB.push(c.x,c.z,1.7,12.1,Math.cos(c.yaw),-Math.sin(c.yaw))}}for(const t of TRAMS){if(Math.abs(t.x-player.x)>14||Math.abs(t.z-player.z)>14)continue;CAR_OBB.push(t.x,t.z,1.3,7.6,Math.cos(t.yaw),-Math.sin(t.yaw))}if(DRIVE.car&&!DRIVE.on){const c=DRIVE.car;CAR_OBB.push(c.x,c.z,.95,2.15,Math.cos(c.yaw),-Math.sin(c.yaw))}for(const c of CARS){if(Math.abs(c.x-player.x)>12||Math.abs(c.z-player.z)>12)continue;const ca=Math.cos(c.yaw),sa=Math.sin(c.yaw);CAR_OBB.push(c.x,c.z,.95,CAR_HL[c.type]||2.3,ca,-sa)}}
 function carAt(x,z,y,m){if(typeof CARS==='undefined')return false;const L=DRIVE.car&&!DRIVE.on?CARS.concat([DRIVE.car]):CARS;for(const c of L){const dx=x-c.x,dz=z-c.z;if(Math.abs(dx)>4||Math.abs(dz)>4)continue;if(y>c.y+(CAR_HH[c.type]||1.6)+.2)continue;
   const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);const a=dx*fx+dz*fz,b=dx*fz-dz*fx;if(Math.abs(a)<(CAR_HL[c.type]||2.3)+m&&Math.abs(b)<1+m)return true}return false}
 function insideCircles(circles,x,z,m){
@@ -6588,7 +6681,7 @@ function updateHUD(dt){
   let best=null,bd=1e9;for(const it of INTERACT){if(it.cond&&!it.cond())continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
   if(DRIVE.on)best={label:'Get out of the car',fn:exitCar};
-  if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':'Get off the tram',fn:leaveTram};
+  if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':RIDE.tram&&RIDE.tram.kind==='train'?'Get off the train':'Get off the tram',fn:leaveTram};
   if(PASS.host)best={label:'Get out',fn:()=>PASS.leave('Got out')};
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
   if(EXT.cur)best={label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
@@ -6835,7 +6928,7 @@ function loop(t){
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();MARINE.update(dt);if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
-    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
+    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
@@ -6959,7 +7052,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   drop(R){if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
-  mode(){if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
+  mode(){if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
   carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
     R.drw={x:R.x,y:R.y,z:R.z,yaw:R.yaw};   // exactly where this car is drawn this frame: a passenger is seated from this, not from the newer network state
