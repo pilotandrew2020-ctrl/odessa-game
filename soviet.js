@@ -257,6 +257,7 @@ function svStair(opt){
   // ceiling lamps (old frosted globes) and the stairs / exit interactions
   for(const [x,z] of [[1.6,3.0],[1.6,8.0],[-1.7,8.2]])Cy(x,H-.2,z,.3,.3,.35,'#f4f0e0',3);
   if(fl===1)INTERACT.push({x:ox,z:oz+.5,r:1.5,label:'Go out to the yard',fn:()=>PORTAL.exit()});
+  if(fl===1){let leaving=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||leaving)return;if(player.z<oz+.1&&Math.abs(player.x-ox)<3.6&&!RIDE.on){leaving=1;PORTAL.exit();setTimeout(()=>{leaving=0},1800)}})}   // walk out through the entrance door
   if(fl<10)INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Climb the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl+1})});
   if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl-1})});
   addWall(ox-2.5,oz+5.8,2.6,8.4,0,INT_Y-1,INT_Y+5.5);addWall(ox-.4,oz+6.5,1.6,7.0,0,INT_Y-1,INT_Y+5.5);
