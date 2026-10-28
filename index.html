@@ -4860,7 +4860,9 @@ let DOOR_MAT=null;
 const INTERIOR_TEXTURES=new Map();
 function sharedInteriorTexture(key,create){if(!INTERIOR_TEXTURES.has(key))INTERIOR_TEXTURES.set(key,create());return INTERIOR_TEXTURES.get(key)}
 function room(grp,ox,oz,x0,x1,z0,z1,h,mats,opt){opt=opt||{};const add=(g,m,x,y,z)=>{const me=new THREE.Mesh(g,m);me.position.set(ox+x,INT_Y+y,oz+z);me.receiveShadow=true;grp.add(me);return me};
-  add(new THREE.BoxGeometry(x1-x0,.1,z1-z0),mats.floor,(x0+x1)/2,-.05,(z0+z1)/2);add(new THREE.BoxGeometry(x1-x0,.1,z1-z0),mats.ceil,(x0+x1)/2,h+.05,(z0+z1)/2);
+  if(opt.hole){const [hx0,hx1,hz0,hz1]=opt.hole,fp=(a0,a1,b0,b1)=>add(new THREE.BoxGeometry(a1-a0,.1,b1-b0),mats.floor,(a0+a1)/2,-.05,(b0+b1)/2);fp(x0,x1,z0,hz0);fp(x0,x1,hz1,z1);fp(x0,hx0,hz0,hz1);fp(hx1,x1,hz0,hz1)}   // opening in the floor (escalator well)
+  else add(new THREE.BoxGeometry(x1-x0,.1,z1-z0),mats.floor,(x0+x1)/2,-.05,(z0+z1)/2);
+  add(new THREE.BoxGeometry(x1-x0,.1,z1-z0),mats.ceil,(x0+x1)/2,h+.05,(z0+z1)/2);
   const wall=(xa,za,xb,zb)=>{const L=Math.hypot(xb-xa,zb-za);const m=add(new THREE.BoxGeometry(L,h,.2),mats.wall,(xa+xb)/2,h/2,(za+zb)/2);m.rotation.y=-Math.atan2(zb-za,xb-xa);wallSeg(ox+xa,oz+za,ox+xb,oz+zb,.3,INT_Y-1,INT_Y+h+1);return m};
   const gaps=opt.gaps||[];const edges=[[x0,z0,x1,z0],[x1,z0,x1,z1],[x1,z1,x0,z1],[x0,z1,x0,z0]];
   edges.forEach(([xa,za,xb,zb],ei)=>{const gs=gaps.filter(g=>g[0]===ei).sort((a,b)=>a[1]-b[1]);let t=0;const L=Math.hypot(xb-xa,zb-za);
