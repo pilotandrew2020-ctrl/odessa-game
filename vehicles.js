@@ -13,8 +13,8 @@
 const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
-  bike:[{p:[0,.72,-.36],pose:'bike'}],
-  sub:[]};
+  bike:[{p:[0,.67,-.34],pose:'bike'}],
+  sub:[{p:[0,-.35,.55],pose:'sit'},{p:[0,-.35,-.75],pose:'sit'}]};   // closed cabin: both are hidden inside, the second is a co-op passenger
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 function lvGround(x,z){const g=groundH(x,z);return typeof groundAt==='function'?groundAt(x,z,g+1.5):g}
 const LAMBO_COLS=[0xf2c200,0x7ec40a,0xff6a13,0xc4161c,0x1b4bd1];   // Giallo Orion, Verde Mantis, Arancio Argos, Rosso Mars, Blu Cepheus
