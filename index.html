@@ -289,7 +289,7 @@ function demAt(x,z){
   return .25*((a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz);
 }
 function coastH(sd){
-  if(sd<0)return SL+.25+Math.max(sd*.08,-14);
+  if(sd<0){const a=-sd;return SL+.25-Math.min(130,a*.12+a*a*.0017)}     // the seabed drops away: ~10 m at 50 m out, ~30 m at 100 m, 130 m deep from ~250 m (the shore-distance grid stops there), so a submarine can really dive
   return SL+.25+1.25*Math.min(sd,45)/45;
 }
 let FLAT=[];
@@ -5491,7 +5491,7 @@ const HELI={
     const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),want=wrap(cam.yaw-this.yaw);
     this.yawRate=(this.yawRate||0)+((Math.max(-2.8,Math.min(2.8,want*6.5)))-(this.yawRate||0))*Math.min(1,dt*12);
     this.yaw+=this.yawRate*dt;
-    const sn=Math.sin(this.yaw),cs=Math.cos(this.yaw),VF=fwdIn>0?30:17,VS=19,VU=10;
+    const sn=Math.sin(this.yaw),cs=Math.cos(this.yaw),VF=fwdIn>0?40:28,VS=28,VU=12;
     const tx=sn*fwdIn*VF-cs*sideIn*VS,tz=cs*fwdIn*VF+sn*sideIn*VS,ty=upIn*VU;
     const idle=!fwdIn&&!sideIn,vk=1-Math.exp(-dt*(idle?7.5:5.5)),vy=1-Math.exp(-dt*7);
     this.velocity.x+=(tx-this.velocity.x)*vk;this.velocity.z+=(tz-this.velocity.z)*vk;this.velocity.y+=(ty-this.velocity.y)*vy;
@@ -5544,7 +5544,9 @@ const AUD={
     this.carV=[0,1,2].map(()=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=40;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=380;const g=c.createGain();g.gain.value=0;const p=c.createStereoPanner?c.createStereoPanner():null;
       o.connect(f);f.connect(g);if(p){g.connect(p);p.connect(this.sfx)}else g.connect(this.sfx);o.start();return {o,f,g,p}});
     // scooter whine
-    this.sc={o:c.createOscillator(),g:c.createGain()};this.sc.o.type='sawtooth';const sf=c.createBiquadFilter();sf.type='lowpass';sf.frequency.value=900;this.sc.o.connect(sf);sf.connect(this.sc.g);this.sc.g.gain.value=0;this.sc.g.connect(this.sfx);this.sc.o.start();
+    // electric scooter: a quiet low motor hum (no rising whine, nothing like a siren) + soft tyre noise
+    this.sc={o:c.createOscillator(),g:c.createGain()};this.sc.o.type='triangle';const sf=c.createBiquadFilter();sf.type='lowpass';sf.frequency.value=380;this.sc.o.connect(sf);sf.connect(this.sc.g);this.sc.g.gain.value=0;this.sc.g.connect(this.sfx);this.sc.o.start();
+    {const ws=c.createBufferSource();ws.buffer=this.noise;ws.loop=true;const wf=c.createBiquadFilter();wf.type='bandpass';wf.frequency.value=500;wf.Q.value=.7;const wg=c.createGain();wg.gain.value=0;ws.connect(wf);wf.connect(wg);wg.connect(this.sfx);ws.start();this.scw={fl:wf,gn:wg}}
     // opera pad
     this.pad=c.createGain();this.pad.gain.value=0;this.pad.connect(this.master);this.pad.connect(this.rev);this.padT=0;
     this.birdT=0;this.gullT=0;this.crickT=0;this.chatLvl=0;
@@ -5572,23 +5574,29 @@ const AUD={
     const sd=sdAt(player.x,player.z);const seaNear=Math.max(0,1-Math.max(0,sd)/260);
     const out=ind?.12:1;
     let nCars=0;for(const k of CARS)if(Math.hypot(k.x-player.x,k.z-player.z)<120)nCars++;
-    this.city.gn.gain.setTargetAtTime(out*(.035+nCars*.006)*(night?.7:1),T,.5);
-    this.wind.gn.gain.setTargetAtTime(out*(.012+seaNear*.02+(win?.02:0)),T,.8);
-    const wave=.5+.5*Math.sin(T*.9)*Math.sin(T*.37+1);
-    this.sea.gn.gain.setTargetAtTime(out*seaNear*(.05+.09*wave),T,.25);this.sea.fl.frequency.setTargetAtTime(500+700*wave,T,.3);
+    // no constant low rumble over the map: the city bed is only a whisper and cars are heard only when they are close
+    this.city.gn.gain.setTargetAtTime(out*Math.min(.012,nCars*.0012)*(night?.7:1),T,.8);
+    this.wind.gn.gain.setTargetAtTime(out*(.004+seaNear*.01+(win?.012:0)),T,.9);
+    // sea: a slow, soft swell (low-passed surf that breathes in and out), with a few gentle bell notes drifting over it by day
+    const wave=.5+.5*Math.sin(T*.62)*Math.sin(T*.27+1);
+    this.sea.gn.gain.setTargetAtTime(out*seaNear*(.022+.05*wave),T,.7);this.sea.fl.frequency.setTargetAtTime(260+380*wave,T,.8);
+    this.bellT=(this.bellT||0)-dt;if(this.bellT<=0){this.bellT=5+Math.random()*7;if(!ind&&seaNear>.35&&!night){const sc=[440,494,587,659,740,880],n=sc[(Math.random()*sc.length)|0];this.tone(n,n,3.2,.012*seaNear,'sine',this.amb);if(Math.random()<.6)this.tone(n*1.5,n*1.5,3.0,.007*seaNear,'sine',this.amb,.35)}}
     this.chat.gn.gain.setTargetAtTime(this.chatLvl*.05,T,.3);this.chat.fl.frequency.setTargetAtTime(500+Math.random()*500,T,.05);
-    this.hum.gn.gain.setTargetAtTime(ind==='shop'?.05:0,T,.4);
+    this.hum.gn.gain.setTargetAtTime(ind==='shop'?.014:0,T,.4);
     // birds / gulls / crickets
     this.birdT-=dt;if(this.birdT<=0){this.birdT=.6+Math.random()*2.5;if(!ind&&day&&!win&&seaNear<.8){const f=2400+Math.random()*2200;for(let i=0;i<2+Math.floor(Math.random()*4);i++)this.tone(f*(1+Math.random()*.2),f*(.8+Math.random()*.6),.07+Math.random()*.05,.025,'sine',this.amb,i*.09)}}
-    this.gullT-=dt;if(this.gullT<=0){this.gullT=2+Math.random()*6;if(!ind&&!night&&seaNear>.15){const f=1000+Math.random()*300;this.tone(f,f*1.35,.35,.035*seaNear,'sawtooth',this.amb);this.tone(f*1.3,f*.9,.4,.03*seaNear,'sawtooth',this.amb,.33)}}
+    this.gullT-=dt;if(this.gullT<=0){this.gullT=5+Math.random()*10;if(!ind&&!night&&seaNear>.15){const f=820+Math.random()*180;   // soft sine "kee-ooo" calls, far away and gentle
+      this.tone(f,f*1.22,.55,.016*seaNear,'sine',this.amb);this.tone(f*1.25,f*.95,.7,.013*seaNear,'sine',this.amb,.4);if(Math.random()<.5)this.tone(f*1.1,f*1.3,.45,.008*seaNear,'sine',this.amb,1.25)}}
     this.crickT-=dt;if(this.crickT<=0){this.crickT=.25+Math.random()*.4;if(!ind&&night&&!win){for(let i=0;i<3;i++)this.tone(4400,4300,.03,.008,'sine',this.amb,i*.05)}}
     // cars: three nearest
     const near=CARS.map(k=>[Math.hypot(k.x-camera.position.x,k.z-camera.position.z),k]).sort((a,b)=>a[0]-b[0]).slice(0,3);
     const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw);
     this.carV.forEach((v,i)=>{const e=near[i];if(!e||ind){v.g.gain.setTargetAtTime(0,T,.2);return}const [d,k]=e;
-      v.o.frequency.setTargetAtTime(38+k.v*4.2+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(260+k.v*25,T,.2);v.g.gain.setTargetAtTime(.07/(1+d/7)*(.4+k.v/14),T,.15);
+      const prox=Math.max(0,1-d/34);   // traffic is only audible once it is really close — far streets do not drone
+      v.o.frequency.setTargetAtTime(38+k.v*4.2+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(260+k.v*25,T,.2);v.g.gain.setTargetAtTime(.06*prox*prox*(.3+k.v/14),T,.2);
       if(v.p){const rx=k.x-camera.position.x,rz=k.z-camera.position.z;const side=(rx*fz-rz*fx)/(d+1);v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,-side)),T,.1)}});
-    this.sc.o.frequency.setTargetAtTime(180+player.spd*45,T,.1);this.sc.g.gain.setTargetAtTime(this.scootOn&&player.spd>.3?.025:0,T,.15);
+    const sps=Math.min(28,player.spd||0);this.sc.o.frequency.setTargetAtTime(58+sps*2.2,T,.25);this.sc.g.gain.setTargetAtTime(this.scootOn&&sps>.3?.022:0,T,.25);
+    this.scw.gn.gain.setTargetAtTime(this.scootOn?Math.min(.03,sps*.0025):0,T,.2);this.scw.fl.frequency.setTargetAtTime(320+sps*28,T,.2);
     // opera pad (simple chord progression in the hall)
     const inHall=ind==='opera';this.pad.gain.setTargetAtTime(inHall?(SPK.playing&&SPK.carry?.03:.07):0,T,1);
     if(inHall){this.padT-=dt;if(this.padT<=0){this.padT=4;const prog=[[57,60,64,69],[53,57,60,65],[48,55,60,64],[55,59,62,67]];const ch=prog[Math.floor(T/4)%4];
@@ -6272,8 +6280,8 @@ function stepPlayer(dt){
   const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
   let mx=fx*iz+rx*ix,mz=fz*iz+rz*ix;
   const running=player.run||inp.k.ShiftLeft||inp.k.ShiftRight;
-  const vmax=player.scoot?9.5:(running?5.4*1.25:1.8*1.25);
-  const acc=player.scoot?(im>0?2.2:1.6):(player.air?2:10);
+  const vmax=player.scoot?28:(running?5.4*1.25:1.8*1.25);     // electric scooter: 100 km/h
+  const acc=player.scoot?(im>0?3.4:2.2):(player.air?2:10);
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
   let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
   [nx,nz]=collide(nx,nz,player.scoot?.45:.33,player.y);
@@ -7789,8 +7797,8 @@ function buildCruise(grp,F,a,o){
 
 // ===================== watercraft at the sea terminal: a motor boat and a jet ski (F or the action button to board) =====================
 const WATERCRAFT_SPECS={
-  boat:{name:'motor boat',len:6.2,beam:2.3,depth:.95,draft:.35,maxSpeed:17,reverse:8.5,turn:.95,keel:.80,lean:.012,plane:.22,seat:[0,.5,-1.05],hull:0xf3f0e8,stripe:0x1f3f73,deck:0xb98a5a},
-  jetski:{name:'jet ski',len:3.1,beam:1.15,depth:.62,draft:.2,maxSpeed:22,reverse:11,turn:1.8,keel:.87,lean:.011,plane:.12,seat:[0,.42,-.3],hull:0xf2c14e,stripe:0x1c1c1e,deck:0x23262b},
+  boat:{name:'motor boat',len:6.2,beam:2.3,depth:.95,draft:.35,maxSpeed:30,reverse:14,turn:.95,keel:.80,lean:.012,plane:.22,seat:[0,.5,-1.05],hull:0xf3f0e8,stripe:0x1f3f73,deck:0xb98a5a},
+  jetski:{name:'jet ski',len:3.1,beam:1.15,depth:.62,draft:.2,maxSpeed:36,reverse:16,turn:1.8,keel:.87,lean:.011,plane:.12,seat:[0,.42,-.3],hull:0xf2c14e,stripe:0x1c1c1e,deck:0x23262b},
 };
 const WATER_DRAG=.93;   // share of hull speed kept per 1/60 s; thrust is scaled so full throttle settles near maxSpeed
 let WAKE_TEX=null;
@@ -8014,8 +8022,8 @@ setInterval(()=>{if(started&&!document.hidden){WALLET.earn(500);toast('+₴500',
 const LV_SPECS={
   gwagon:{name:'G-Wagon',len:4.6,wb:2.85,max:34,acc:9,brake:22,steer:.52,lat:10.5,grip:6,hgrip:2.8,r:1.25},
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
-  bike:{name:'bicycle',len:1.8,wb:1.05,max:8.5,acc:3.4,brake:6.5,steer:.65,lat:6.2,grip:10,hgrip:3,r:.45},
-  sub:{name:'submarine',len:5.4,wb:4,max:10,acc:4,steer:.45,lat:4,grip:4,hgrip:4,r:1.6}};
+  bike:{name:'bicycle',len:1.8,wb:1.05,max:28,acc:9,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45},
+  sub:{name:'submarine',len:5.4,wb:4,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:1.6}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 function xb(parent,w,h,d,x,y,z,mat,rx,ry,rz){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;parent.add(m);return m}
 // smooth body from sections [z,halfWidth,yBottom,yTop,cornerRadius] (front to back), capped at both ends

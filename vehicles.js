@@ -231,7 +231,7 @@ class LiteVehicle{
     const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
     let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
-    const fl=Math.max(groundH(this.x,this.z)+1.1,SL-60),top=SL-.25;this.vy+=(up*3.5-this.vy)*Math.min(1,dt*3);this.y=Math.max(fl,Math.min(top,this.y+this.vy*dt));
+    const fl=Math.max(groundH(this.x,this.z)+1.1,SL-120),top=SL-.25;this.vy+=(up*3.5-this.vy)*Math.min(1,dt*3);this.y=Math.max(fl,Math.min(top,this.y+this.vy*dt));
     this.pitch+=(-this.vy*.06-this.pitch)*Math.min(1,dt*3);this.roll+=(-this.steerA*this.v*.03-this.roll)*Math.min(1,dt*3);
     if(this.y>=top-.05)this.y=top+Math.sin(UNI.uTime.value*1.3)*.06;
     this.prop.rotation.z+=dt*(2+Math.abs(this.v)*3);this.sync()}
