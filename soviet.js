@@ -13,6 +13,10 @@ function svTex(kind){if(SVT[kind])return SVT[kind];
       for(let k=0;k<5;k++){const a=k*1.256;x.beginPath();x.arc(cx+Math.cos(a)*pr*1.1,cy+Math.sin(a)*pr*1.1,pr,0,7);x.fill()}
       x.fillStyle='#e8c85a';x.beginPath();x.arc(cx,cy,pr*.6,0,7);x.fill();x.fillStyle='#8aa86a';
       x.beginPath();x.ellipse(cx+18,cy+11,10,4,.6,0,7);x.fill();x.beginPath();x.ellipse(cx-18,cy+11,10,4,-.6,0,7);x.fill()}}
+  else if(kind==='fur'){x.fillStyle='#8f7d69';x.fillRect(0,0,256,256);                                    // tabby: dark vertical bands, fine hair strokes, pale underside
+    for(let i=0;i<256;i+=28){x.fillStyle='rgba(58,44,34,.78)';x.beginPath();x.moveTo(i,0);for(let j=0;j<=256;j+=16)x.lineTo(i+5+Math.sin(j*.05+i)*4,j);for(let j=256;j>=0;j-=16)x.lineTo(i+17+Math.sin(j*.05+i)*4,j);x.fill()}
+    for(let k=0;k<1800;k++){const px=Math.random()*256,py=Math.random()*256;x.strokeStyle=Math.random()<.5?'rgba(255,240,215,.16)':'rgba(30,22,16,.16)';x.lineWidth=1;x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.random()*3-1.5,py+4+Math.random()*4);x.stroke()}
+    const g=x.createLinearGradient(0,170,0,256);g.addColorStop(0,'rgba(240,230,210,0)');g.addColorStop(1,'rgba(240,230,210,.85)');x.fillStyle=g;x.fillRect(0,170,256,86)}
   else if(kind==='rug'){x.fillStyle='#7b1822';x.fillRect(0,0,256,256);x.strokeStyle='#e0b95c';x.lineWidth=10;x.strokeRect(10,10,236,236);x.strokeStyle='#2c3f6b';x.lineWidth=7;x.strokeRect(30,30,196,196);
     x.fillStyle='#e0b95c';x.beginPath();x.moveTo(128,50);x.lineTo(200,128);x.lineTo(128,206);x.lineTo(56,128);x.closePath();x.fill();
     x.fillStyle='#2c3f6b';x.beginPath();x.moveTo(128,76);x.lineTo(176,128);x.lineTo(128,180);x.lineTo(80,128);x.closePath();x.fill();x.fillStyle='#7b1822';x.beginPath();x.arc(128,128,18,0,7);x.fill();
@@ -41,6 +45,32 @@ function svSph(grp,x,y,z,r,hex,sx,sy,sz,em){SV_SPH=SV_SPH||new THREE.SphereGeome
 // PB.cyl puts its base (not its centre) at y and rotates about that base: take a centre position and shift it so a cylinder can be placed by its middle
 function svCyl(P,x,y,z,r1,r2,len,seg,col,m,rx,rz,ry){rx=rx||0;rz=rz||0;ry=ry||0;const h2=len/2,y1=h2*Math.cos(rx),z1=h2*Math.sin(rx),x1=-y1*Math.sin(rz),y2=y1*Math.cos(rz);
   P.cyl(x-(x1*Math.cos(ry)+z1*Math.sin(ry)),y-y2,z-(-x1*Math.sin(ry)+z1*Math.cos(ry)),r1,r2,len,seg,col,m,rx,rz,ry)}
+// a sitting tabby cat (smooth furry ellipsoids + canvas fur, sways its tail, breathes, turns its head to whoever walks past); front = +z
+function svCat(grp,x,y,z,ry,sc){const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry||0;g.scale.setScalar(sc||1);grp.add(g);
+  const fur=new THREE.MeshStandardMaterial({map:svTex('fur'),roughness:1}),white=new THREE.MeshStandardMaterial({color:0xf1ebe0,roughness:1}),pink=new THREE.MeshStandardMaterial({color:0xd98a8a,roughness:.7}),
+    eye=new THREE.MeshStandardMaterial({color:0x9bc23a,roughness:.25,emissive:0x2c4210,emissiveIntensity:.5}),dark=new THREE.MeshBasicMaterial({color:0x0a0a0a}),sph=new THREE.SphereGeometry(1,22,16);
+  const E=(par,mat,px,py,pz,rx,ry2,rz,rotx)=>{const m=new THREE.Mesh(sph,mat);m.position.set(px,py,pz);m.scale.set(rx,ry2,rz);if(rotx)m.rotation.x=rotx;m.castShadow=true;par.add(m);return m};
+  const body=new THREE.Group();g.add(body);
+  E(body,fur,0,.115,-.06,.115,.115,.135);E(body,fur,0,.2,.035,.085,.12,.09,-.25);                    // haunches + chest
+  E(body,fur,-.085,.07,-.03,.05,.07,.1);E(body,fur,.085,.07,-.03,.05,.07,.1);E(body,white,0,.15,.095,.045,.075,.03,-.2);   // thighs, white bib
+  for(const s of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.03,.034,.15,10),white);leg.position.set(s*.045,.09,.09);leg.castShadow=true;body.add(leg);
+    E(body,white,s*.043,.016,.115,.03,.02,.043);E(body,white,s*.078,.016,.03,.034,.02,.05)}      // paws
+  const head=new THREE.Group();head.position.set(0,.33,.095);g.add(head);
+  E(head,fur,0,0,0,.072,.063,.066);E(head,white,0,-.022,.058,.036,.027,.031);E(head,pink,0,-.005,.087,.011,.008,.007);   // skull, muzzle, nose
+  for(const s of [-1,1]){E(head,eye,s*.033,.012,.052,.014,.012,.008);E(head,dark,s*.033,.012,.058,.004,.011,.004);     // eyes with slit pupils
+    const ear=new THREE.Mesh(new THREE.ConeGeometry(.03,.06,4),fur);ear.position.set(s*.045,.058,-.012);ear.rotation.z=-s*.28;ear.rotation.y=.8;ear.castShadow=true;head.add(ear);
+    const inn=new THREE.Mesh(new THREE.ConeGeometry(.018,.04,4),pink);inn.position.set(s*.045,.052,-.002);inn.rotation.z=-s*.28;inn.rotation.y=.8;head.add(inn)}
+  {const pts=[],B=[];for(const s of [-1,1])for(let k=0;k<3;k++){const a=(k-1)*.22;B.push(s*.025,-.015,.085,s*(.025+Math.cos(a)*.1),-.015+Math.sin(a)*.1,.085+.012)}
+    const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(B,3));head.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.55})))}
+  const tailG=new THREE.Group();tailG.position.set(0,.04,-.17);g.add(tailG);
+  const tp=[[0,0,0],[.07,.0,-.04],[.15,0,.0],[.17,0,.1],[.12,0,.18]].map(p=>new THREE.Vector3(p[0],p[1],p[2]));
+  const tail=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tp),20,.019,8,false),fur);tail.castShadow=true;tailG.add(tail);E(tailG,fur,.12,0,.18,.02,.019,.022);
+  let t=Math.random()*6,face=0;const wp=new THREE.Vector3();
+  ANIM.push(dt=>{if(!g.parent)return;g.getWorldPosition(wp);if(Math.abs(wp.x-camera.position.x)+Math.abs(wp.z-camera.position.z)>16)return;
+    t+=dt;body.scale.y=1+Math.sin(t*2.3)*.012;tailG.rotation.y=Math.sin(t*1.4)*.18;tailG.rotation.z=Math.sin(t*1.1)*.05;
+    const p=g.worldToLocal(new THREE.Vector3(player.x,wp.y,player.z));let want=0;if(p.length()<4)want=Math.max(-1,Math.min(1,Math.atan2(p.x,p.z)));
+    face+=(want-face)*Math.min(1,dt*3);head.rotation.y=face;head.rotation.x=Math.sin(t*.7)*.03});
+  return g}
 // batched-prop helpers bound to a flat's origin
 function svKit(grp,ox,oz,Y){const P=new PB(),c=sRGB;
   const K={P,
@@ -108,6 +138,7 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   // bread, board, tangerines
   B(5.6,1.56,21.4,.7,.03,.4,'#c8a070',5);B(5.9,1.64,21.34,.42,.14,.2,'#c28a4a',9);C(8.8,1.6,21.4,.22,.17,.1,'#e8e6e0',1);
   for(const [x,z] of [[8.74,21.38],[8.9,21.42],[8.82,21.3],[8.8,21.46]])S(x,1.72,z,.09,'#f08a1c');
+  MDL.put(grp,'russian_food_cans_01',{x:ox+9.2,y:Y+1.54,z:oz+21.35,ry:Math.PI+.2,w:.8});          // real Soviet tins: salt, condensed milk, sprats (Poly Haven, CC0)
   // stools with patterned cushions
   for(const [x,z] of [[4.15,15.0],[6.45,15.0],[5.3,16.1]]){C(x,.62,z,.28,.28,.06,'#f0ece0',1);C(x,.68,z,.27,.27,.05,'#a63c2a',1);C(x,.7,z,.2,.2,.03,'#e0b04a',1);
     for(const [dx,dz] of [[-.18,-.18],[.18,-.18],[-.18,.18],[.18,.18]])B(x+dx,.3,z+dz,.05,.6,.05,'#c4622d',6);solid(x,z,.3,.3)}
@@ -143,16 +174,16 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   // armchairs with patterned covers, a low table with champagne and tangerines
   const arm=(x,z,ry)=>place(x,z,ry,[[0,.4,0,1.3,.4,1.2,'#a8854f',1],[0,1.0,-.5,1.3,.9,.25,'#a8854f',1],[-.65,.7,0,.22,.7,1.2,'#8a6a3c',1],[.65,.7,0,.22,.7,1.2,'#8a6a3c',1],
     [0,.68,.05,1.0,.1,.9,'#c9a872',1],[-.5,.1,-.45,.1,.2,.1,wood,5],[.5,.1,-.45,.1,.2,.1,wood,5],[-.5,.1,.45,.1,.2,.1,wood,5],[.5,.1,.45,.1,.2,.1,wood,5]]);
-  arm(-2.1,1.6,-Math.PI/2);arm(-2.1,4.0,-Math.PI/2);solid(-2.1,1.6,.65,.7);solid(-2.1,4.0,.65,.7);
+  for(const z of [1.6,4.0])MDL.put(grp,'ArmChair_01',{x:ox-2.1,y:Y,z:oz+z,ry:-Math.PI/2,h:1.05});          // real upholstered armchairs (Poly Haven, CC0)
+  solid(-2.1,1.6,.65,.7);solid(-2.1,4.0,.65,.7);
   B(-3.4,.42,2.95,.9,.05,1.0,wood,5);for(const [dx,dz] of [[-.38,-.43],[.38,-.43],[-.38,.43],[.38,.43]])B(-3.4+dx,.2,2.95+dz,.06,.4,.06,wood,5);B(-3.4,.14,2.95,.8,.04,.9,wood,5);solid(-3.4,2.95,.5,.55);
   for(const z of [2.7,2.95]){C(-3.55,.68,z,.08,.08,.5,'#1b3a22',1);C(-3.55,.97,z,.04,.04,.14,'#d4af37',6)}
   C(-3.2,.5,3.25,.3,.2,.1,'#d8dde0',1);for(const [x,z] of [[-3.28,3.2],[-3.1,3.3],[-3.2,3.2],[-3.14,3.14],[-3.26,3.32]])S(x,.62,z,.1,'#f08a1c');
   // floor lamp with a glowing shade
   C(-2.1,.03,6.3,.3,.3,.06,'#3a2a1a',6);C(-2.1,.95,6.3,.035,.035,1.8,'#3a2a1a',6);C(-2.1,1.95,6.3,.42,.28,.46,'#f6f0dc',3);
   // old TV on a wooden cabinet with a cat figurine, bentwood chair
-  place(-3.4,10.45,Math.PI,[[0,.55,0,2.2,1.1,.8,wood,5],[0,.55,.41,2.0,.9,.02,'#5e3a1a',5],[-.9,.1,.3,.1,.2,.1,'#3a2410',5],[.9,.1,.3,.1,.2,.1,'#3a2410',5],
-    [0,1.65,0,1.3,.9,.8,'#6a6a68',1],[0,1.65,.41,1.05,.7,.03,'#1a1c1e',2],[0,1.65,.43,.95,.6,.02,'#6fb2dd',3],[.45,1.18,.2,.12,.1,.12,'#bbb',6],[.75,1.35,.2,.14,.32,.14,'#f4f1ea',1],[.75,1.55,.2,.18,.14,.14,'#f4f1ea',1]]);solid(-3.4,10.45,1.1,.45);
-  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
+  place(-3.4,10.45,Math.PI,[[0,.55,0,2.2,1.1,.8,wood,5],[0,.55,.41,2.0,.9,.02,'#5e3a1a',5],[-.9,.1,.3,.1,.2,.1,'#3a2410',5],[.9,.1,.3,.1,.2,.1,'#3a2410',5]]);solid(-3.4,10.45,1.1,.45);
+  MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
   // framed pictures: roses and an old family photo
   for(const [x,col] of [[-10.0,'#b8564a'],[-8.8,'#8a8a8a'],[-2.0,'#c98f5a']]){B(x,1.9,10.84,.7,.55,.04,'#3a2a1a',5);B(x,1.9,10.82,.6,.45,.03,col,9)}
   // the dining table: champagne, Olivier salad, tangerines, crystal bowls
@@ -163,7 +194,7 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   [[-6.9,8.8],[-7.7,10.2],[-9.1,10.3],[-8.8,5.7],[-7.6,6.0],[-9.9,6.3]].forEach(([x,z],k)=>{const a=k*.9;B(x,.2,z,.4+(k%3)*.1,.4,.4+(k%2)*.1,['#c0392b','#2a62b8','#e8b53a','#3f9a4a','#8a4ab0','#f4f4f0'][k],1,a);B(x,.2,z,.08,.42,.46,'#f4d03f',1,a)});
   for(const [x,z,coat,fur] of [[-10.1,8.9,'#c62828','#f4f1ea'],[-10.1,7.5,'#6fa8dc','#f4f1ea']]){C(x,.5,z,.26,.13,1.0,coat,1);C(x,.05,z,.27,.27,.1,fur,1);S(x,1.18,z,.15,'#f0c8a8');S(x,1.3,z,.17,coat,1,.7,1);C(x,1.0,z,.15,.15,.12,fur,1);if(coat==='#c62828')S(x,1.1,z+.1,.12,'#f4f1ea',1,1.3,.8)}
   // the cat watching the TV
-  S(-3.9,.38,5.3,.28,'#141414',.9,1.2,.9);S(-3.9,.78,5.3,.18,'#141414');B(-3.8,.9,5.3,.06,.12,.05,'#141414',1,0,.2);B(-4.0,.9,5.3,.06,.12,.05,'#141414',1,0,-.2);B(-3.55,.12,5.2,.5,.05,.06,'#141414',1,.4);
+  svCat(grp,ox-3.9,Y+.03,oz+5.3,.25,1.0);
   // dress the sofa-bed: backrest, arms, patterned cushions and a plaid; bentwood chairs round the dinner table
   B(-7.0,.95,5.2,.32,.95,4.2,'#c58f4f',1);B(-6.0,.95,3.25,2.2,.46,.3,'#c58f4f',1);B(-6.0,.95,7.15,2.2,.46,.3,'#c58f4f',1);
   [[3.9,'#a63c2a'],[4.95,'#e0b04a'],[6.0,'#2f7a7a']].forEach(([z,col],k)=>B(-6.62,1.05,z,.3,.62,.85,col,1,0,.18*(k-1)));
