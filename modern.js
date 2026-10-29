@@ -26,7 +26,7 @@ function mdBuild(){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+800+idx*200,oz=INT_Z;
   const E=shEnv(grp,ox,oz,H),L=[];HSTATE.cur={tvs:[],fires:[],taps:[]};const K=hsKit(E,S,L);
   // ----- shell: floor, ceiling, outer walls, the front door (a gap at x=-3.2 in the south wall) -----
-  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);
+  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);E.floor(-hw-.1,hw+.1,-.5,D+.1);
   K.wallX(D,-hw,hw,[]);K.wallZ(-hw,0,D,[]);K.wallZ(hw,0,D,[]);K.wallX(0,-hw,hw,[[-3.2,1.0]]);
   for(const s of [-1,1])E.box(s*(hw-.12),.1,D/2,.04,.2,D-.3,'#ffffff',0);
   E.box(-3.2,.012,.7,1.1,.024,.8,'#3a3a3e',0);

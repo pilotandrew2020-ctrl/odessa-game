@@ -56,7 +56,7 @@ function flBuild(k){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+800+def.idx*200,oz=INT_Z;
   const E=shEnv(grp,ox,oz,H),L=[];HSTATE.cur={tvs:[],fires:[],taps:[]};const K=hsKit(E,S,L);
   // ----- shell: floor, ceiling, outer walls and the front door -----
-  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);
+  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);E.floor(-hw-.1,hw+.1,-.5,D+.1);
   K.wallX(D,-hw,hw,[]);K.wallZ(-hw,0,D,[]);K.wallZ(hw,0,D,[]);K.wallX(0,-hw,hw,[[dx,1.0]]);
   for(const s of [-1,1])E.box(s*(hw-.12),.1,D/2,.04,.2,D-.3,'#ffffff',0);
   E.box(dx,.012,.7,1.1,.024,.8,'#3a3a3e',0);
@@ -95,7 +95,8 @@ const FL_LAYOUT={
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
     K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
     K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.3,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
-    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.75,2.52,0);flProp(E,'vintage_wooden_drawer_01',-1.95,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
+    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.75,2.52,0);flProp(E,'vintage_wooden_drawer_01',-1.95,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)
+    K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
     K.light(-2.3,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
     K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);flCurtains(E,K,hw-.12,5.2,-PI/2,1.2,1.3,1.2,['#9aa8c8','#efe9dc','#6f8a64']);flCurtains(E,K,2.8,D-.12,PI,1.2,1.1,1.75,['#9aa8c8','#efe9dc','#6f8a64']);
@@ -128,7 +129,7 @@ const FL_LAYOUT={
     E.box(hw-.125,H/2,5.7,.03,H,3.6,'#3d4650',5);                                        // slate accent wall behind the TV
     for(const x of [-.2,1.0,2.2]){E.box(x,2.3,2.2,.02,1.0,.02,'#222428',6);E.box(x,1.75,2.2,.34,.2,.34,'#fff3d6',3)}   // pendant lamps over the island
     // hall: a mirror, shoe cabinet and coat hooks; the bathroom behind it
-    K.wardrobe(-hw+.03,.95,PI/2,1.4);K.plant(-3.7,.45,1.1);
+    K.wardrobe(-hw+.03,.95,PI/2,1.4);
     K.shower(-4.85,4.29,PI,1.0);K.toilet(-3.8,4.29,PI);K.vanity(-hw+.05,2.9,PI/2,.9);K.rug(-4.3,3.0,0,1.2,.8,'#cdd9e0');K.light(-4.4,2.4,1.0,S.light,.9,7);K.light(-4.4,2.4,3.1,0xffffff,1.0,6);
     // sleeping alcove behind a glass partition
     K.bed(-4.55,D-.05,PI,1.4,S.accent);K.rug(-4.4,6.0,0,1.9,1.6,'#d6dade');K.window(-hw+.12,6.2,PI/2,1.1,1.8,1.5);K.light(-4.4,2.4,6.0,S.light,1.0,8);
@@ -137,7 +138,7 @@ const FL_LAYOUT={
     K.bx(.4,2.2,0,0,.46,0,2.2,.92,.8,'#e9eaec',5);K.bx(.4,2.2,0,0,.94,0,2.3,.05,.9,'#4a4f55',7);E.obb(.4,2.2,1.15,.45,0);for(const x of [-.3,1.1])K.chair(x,3.0,PI,'#2a2d32');
     K.table(3.4,2.7,0,1.8,.9,.76,'#d8c9ad');for(const x of [2.7,4.1]){K.chair(x,1.9,0,'#2a2d32');K.chair(x,3.5,PI,'#2a2d32')}
     // lounge facing the TV wall, with the glass wall behind
-    K.rug(1.8,5.7,0,3.6,2.8,'#b7bbc0');K.sofa(-.2,5.7,PI/2,2.6);K.table(1.4,5.7,PI/2,1.1,.6,.4,'#2a2d32');K.tv(hw-.03,5.7,-PI/2,1.7);K.sofa(2.6,6.6,PI,1.0,'#1d6a8a','#6fb0cc');K.plant(4.9,6.8,1.3);K.lamp(4.9,4.5,1.6);
+    K.rug(1.8,5.7,0,3.6,2.8,'#b7bbc0');K.sofa(-.2,5.7,PI/2,2.6);K.table(1.4,5.7,PI/2,1.1,.6,.4,'#2a2d32');K.tv(hw-.03,5.7,-PI/2,1.7);K.sofa(2.6,6.6,PI,1.0,'#1d6a8a','#6fb0cc');K.plant(4.9,6.8,1.3);K.plant(-2.8,3.5,1.1);K.lamp(4.9,4.5,1.6);
     // glass walls: the back wall and the east wall are windows from the sill almost to the ceiling
     K.window(.9,D-.12,PI,2.6,2.1,1.3);K.window(3.7,D-.12,PI,2.0,2.1,1.3);K.window(hw-.12,2.7,-PI/2,1.6,2.1,1.3);
     K.light(.9,2.6,2.4,S.light,1.3,12);K.light(2.6,2.6,5.6,0xffffff,1.3,12)}

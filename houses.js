@@ -110,7 +110,7 @@ function hsKit(E,S,L){
 
 // ---------- shell: floor, ceiling (with beams), outer walls with the front door ----------
 function hsShell(E,K,S,def){const W=def.W,D=def.D,H=def.H;
-  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);
+  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);E.floor(-W/2-.1,W/2+.1,-.5,D+.1);
   if(S.beams){for(let x=-W/2+1.6;x<W/2;x+=2.6)E.box(x,H-.14,D/2,.24,.28,D,'#4a2f1a',5);for(const z of [D*.33,D*.66])E.box(0,H-.1,z,W,.2,.22,'#4a2f1a',5)}
   K.wallX(D,-W/2,W/2,[],null);K.wallZ(-W/2,0,D,[],null);K.wallZ(W/2,0,D,[],null);K.wallX(0,-W/2,W/2,[[0,1.3]],null);
   E.act(0,.7,1.8,'Go outside',()=>PORTAL.exit());
