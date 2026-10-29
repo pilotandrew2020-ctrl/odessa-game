@@ -180,7 +180,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="homeDir">Home · 0 m</div>
     <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
-    <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">☔ Rain</button><button id="bMenu">Menu</button></div>
+    <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">☔ Rain</button><button id="bSnow" title="Snowfall on/off">❄ Snow</button><button id="bFog" title="Fog on/off">🌫 Fog</button><button id="bMenu">Menu</button></div>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
     <div id="actBtns"><button id="bRun"><i>🏃</i><b>Run</b></button><button id="bScoot"><i>🛴</i><b>Scooter</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M8 20v-5h8v5M8 17h8"/></svg></i><b>Garage</b></button><button id="bView"><i>🎥</i><b>3rd</b></button><button id="bHeli"><i>🚁</i><b>Heli</b></button><button id="bSpk"><i>🔊</i><b>Music</b></button><button id="bJump"><i>⤒</i><b>Jump</b></button></div>
@@ -220,7 +220,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
       <div class="mp" id="pSet" hidden><h2>Settings</h2>
         <div class="row"><label>Time</label><button data-t="day" class="on">Day</button><button data-t="dusk">Sunset</button><button data-t="night">Night</button></div>
         <div class="row"><label>Season</label><button data-s="summer" class="on">Summer</button><button data-s="winter">Winter</button></div>
-        <div class="row"><label>Weather</label><button data-w="clear" class="on">Clear</button><button data-w="rain">Rain</button></div>
+        <div class="row"><label>Weather</label><button data-w="clear" class="on">Clear</button><button data-w="rain">Rain</button><button data-w="snow">Snow</button><button data-w="fog">Fog</button></div>
         <div class="row"><label>Graphics</label><button data-g="low">Low</button><button data-g="mid" class="on">Medium</button><button data-g="high">High</button></div>
       </div>
       <div class="mp" id="pOnl" hidden><h2>Online co-op</h2>
@@ -2355,7 +2355,7 @@ function buildHome(grp,G,P,Sg,GR){
   for(let i=0;i<n;i++){const j=(i+1)%n;const ax=isl[i*2],az=isl[i*2+1],bx=isl[j*2],bz=isl[j*2+1];const L=Math.hypot(bx-ax,bz-az);if(L<6)continue;const tx=(bx-ax)/L,tz=(bz-az)/L;let nx=tz,nz=-tx;
     if(nx*((ax+bx)/2-ix)+nz*((az+bz)/2-iz)<0){nx=-nx;nz=-nz}
     for(let u=3;u<L-3;u+=2.7){if(r()<.28)continue;const x=ax+tx*u+nx*2.6,z=az+tz*u+nz*2.6;let skip=false;for(const [su,sv] of [[0,-hd],[0,hd],[-hw,0]]){const s=at(su,sv);if(Math.hypot(s[0]-x,s[1]-z)<3.5)skip=true}if(skip)continue;
-      PARKED_STATIC.push({x,y:y0+.1,z,yaw:Math.atan2(nx,nz)+(r()<.5?0:Math.PI),type:pickCarType(r),col:CAR_COLS[Math.floor(r()*CAR_COLS.length)],pitch:0,roll:0});LOW_OBB.push(x,z,1.0,2.3,tx,tz)}}
+      const ty=pickCarType(r);PARKED_STATIC.push({x,y:y0+.1,z,yaw:Math.atan2(nx,nz)+(r()<.5?0:Math.PI),type:ty,col:carColor(ty,r),pitch:0,roll:0});LOW_OBB.push(x,z,1.0,2.3,tx,tz)}}
   if(PARKED_STATIC.length)PARKED_DIRTY=true;
   // entrances: platform, steps, ramp + railings, canopy, light, intercom, number plate
   HOME_ENT=ents;const grey=sRGB('#9a9792'),rail=sRGB('#8a8e92');
@@ -4203,15 +4203,38 @@ const CAR_DEFS=[
   {L:4.32,W:1.65,wr:.3,wz:[1.27,-1.31],front:2.16,rear:-2.16,hl:.72,tl:.92,mirror:.95,tum:.82,round:.9,pillars:[-.6],alloy:false,seat:[.2,.22,.3],
    top:[[-2.16,.95],[-2.05,1.02],[-1.8,1.3],[-.2,1.4],[.5,1.38],[1.05,.98],[2.0,.86],[2.16,.66]],
    glass:[[-1.95,1.05],[-1.7,1.32],[.45,1.35],[1.0,1.0]]},
+  // 11: VAZ-2103 "Zhiguli" — the older boxy Fiat-124 sedan, usually white
+  {L:4.1,W:1.61,wr:.3,wz:[1.28,-1.28],front:2.05,rear:-2.05,hl:.68,tl:.84,mirror:.72,tum:.84,pillars:[-.2],y0:.3,alloy:false,seat:[.4,.3,.2],
+   top:[[-2.05,.95],[-1.92,.99],[-1.15,1.0],[-.68,1.35],[.28,1.36],[.76,1.0],[1.88,.93],[2.05,.76]],
+   glass:[[-1.15,1.0],[-.68,1.32],[.28,1.33],[.76,1.0]]},
+  // 12: GAZ-3102 Volga — long, upright, black "official" sedan
+  {L:4.98,W:1.8,wr:.33,wz:[1.55,-1.45],front:2.49,rear:-2.49,hl:.76,tl:.9,mirror:.98,tum:.82,pillars:[-.25],y0:.3,alloy:false,seat:[.4,.3,.2],round:.88,
+   top:[[-2.49,.92],[-2.38,1.0],[-1.55,1.02],[-.95,1.47],[.5,1.49],[1.1,1.0],[2.3,.92],[2.49,.72]],
+   glass:[[-1.5,1.02],[-.95,1.44],[.48,1.46],[1.05,1.02]]},
+  // 13: Mercedes-Benz W124 saloon — the 90s Mercedes you still meet on every street
+  {L:4.75,W:1.74,wr:.31,wz:[1.5,-1.4],front:2.37,rear:-2.37,hl:.72,tl:.9,mirror:.92,tum:.8,pillars:[-.25],round:.9,
+   top:[[-2.37,.98],[-2.28,1.08],[-1.6,1.1],[-1.0,1.38],[.3,1.4],[.95,1.05],[2.1,.9],[2.37,.68]],
+   glass:[[-1.55,1.1],[-.98,1.35],[.28,1.37],[.9,1.06]]},
+  // 14: low wedge supercar (Lamborghini-style) — a rare sight in traffic
+  {L:4.5,W:1.95,wr:.34,wz:[1.45,-1.35],front:2.25,rear:-2.25,hl:.52,tl:.62,mirror:.62,tum:.66,pillars:[],y0:.12,round:.9,
+   top:[[-2.25,.7],[-2.15,.9],[-1.5,1.0],[-.9,1.08],[.35,1.1],[1.0,.95],[1.7,.72],[2.25,.45]],
+   glass:[[-.95,1.0],[-.4,1.07],[.3,1.08],[.95,.94]]},
 ];
-function pickCarType(r){const v=r();return v<.17?0:v<.31?1:v<.42?2:v<.58?5:v<.72?6:v<.88?7:1}
+function pickCarType(r){const v=r();return v<.10?0:v<.19?1:v<.26?2:v<.36?5:v<.44?6:v<.52?7:v<.62?11:v<.71?12:v<.80?13:v<.82?14:1}
+// a body colour that suits the model: Zhiguli mostly white, Volga mostly black, supercars loud
+function carColor(type,r){const p=r();
+  if(type===11)return p<.62?0xf1f1ee:p<.74?0xc7b28d:p<.84?0x9b1b1e:p<.92?0x2e5a3c:0x1f3f73;
+  if(type===12)return p<.7?0x1c1c1e:p<.85?0xf1f1ee:0x8c9198;
+  if(type===13)return [0x1c1c1e,0xb8bcc2,0xf1f1ee,0x1f3f73,0x2c5a46][Math.floor(r()*5)];
+  if(type===14)return [0xe0a526,0xc22a2a,0x2e8a4a,0xe86a1c,0xf1f1ee][Math.floor(r()*5)];
+  return CAR_COLS[Math.floor(p*CAR_COLS.length)]}
 let PARKED_DIRTY=true;
 const PARKED_STATIC=[];
 function initCarMeshes(scene,N){
   CAR_MAT=patchMat(new THREE.MeshStandardMaterial({color:0xffffff,roughness:.25,metalness:.85,transparent:true,opacity:1}),{key:'car',vDecl:CAR_VS_DECL,vMain:CAR_VS_MAIN,fDecl:'varying vec3 vCol;varying float vM;varying vec3 vIC;',fSurf:CAR_SURF,noLamps:false});
   CAR_MAT.envMapIntensity=1.2;
   CAR_DEFS.forEach((d,i)=>{const t=(d.box&&typeof buildBoxVehicle==='function')?buildBoxVehicle(d):buildCarType(d);
-    const cap=i===4?2:i>=9?12:N+(i===3?40:160);   // 9, 10: dealer classics only
+    const cap=i===4?2:(i===9||i===10)?12:i===14?60:N+(i===3?40:160);   // 9, 10: dealer classics only; 14: rare supercar
     t.mesh=new THREE.InstancedMesh(t.geo,CAR_MAT,cap);t.wheels=new THREE.InstancedMesh(t.wgeo,CAR_MAT,cap*4);
     for(const m of [t.mesh,t.wheels]){m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m)}
     t.cap=cap;CAR_T.push(t)});
@@ -4303,7 +4326,7 @@ function spawnCar(px,pz,near){
   const rr=Math.random();let type=rr<.07?8:rr<.17?3:pickCarType(Math.random);
   if((type===8||type===3)&&c0>1){type=pickCarType(Math.random)}
   const route=(type===8||type===3)?routeFor(D.wOf[ri],type):null;
-  let col=CAR_COLS[Math.floor(Math.random()*CAR_COLS.length)];if(type===3)col=Math.random()<.6?0xf2c94c:0xf1f1ee;if(type===8)col=[0x2a5aa0,0xe0a526,0xc22a2a,0xf1f1ee,0x2e7d4f][Math.floor(Math.random()*5)];
+  let col=carColor(type,Math.random);if(type===3)col=Math.random()<.6?0xf2c94c:0xf1f1ee;if(type===8)col=[0x2a5aa0,0xe0a526,0xc22a2a,0xf1f1ee,0x2e7d4f][Math.floor(Math.random()*5)];
   const c=D.wcls[D.wOf[ri]];
   return {ri,dir,s:Math.random()*s.L,v:0,vmax:((type===8||type===3)?8.5:c===0?13:10)*(.8+Math.random()*.35),type,col,route,dw:0,lastStop:-1,x:s.ax,y:0,z:s.az,yaw:Math.atan2(s.tx,s.tz),roll:0,pitch:0};
 }
@@ -6400,7 +6423,7 @@ function* buildChunkGen(id){
   const r=rng(id*31+5);const parked=[];
   for(const L of lots){for(let q=-2;q<=2;q++){if(r()<.45)continue;const x=L.x+L.tx*q*2.8,z=L.z+L.tz*q*2.8;
     if(solid(x,z,1.6)||nearRoad(id,x,z,1.2)||blockedStatic(x,z,2))continue;
-    parked.push({x,y:groundH(x,z)+.02,z,yaw:Math.atan2(L.nx,L.nz)+(r()<.5?0:Math.PI),type:pickCarType(r),col:CAR_COLS[Math.floor(r()*CAR_COLS.length)],pitch:0,roll:0});lobb.push(x,z,1.0,2.25,L.tx,L.tz)}}
+    const ty=pickCarType(r);parked.push({x,y:groundH(x,z)+.02,z,yaw:Math.atan2(L.nx,L.nz)+(r()<.5?0:Math.PI),type:ty,col:carColor(ty,r),pitch:0,roll:0});lobb.push(x,z,1.0,2.25,L.tx,L.tz)}}
   // OSM point features
   for(const f of feats){const y=groundH(f.x,f.z);
     if(f.k===0){if(!solid(f.x,f.z,.8))treePts.push([f.x,f.z,f.a?3:(r()<.5?0:1),.8+r()*.5])}
@@ -6993,7 +7016,7 @@ function setupInput(){
   $('bScoot').onclick=toggleScoot;$('bAct').onclick=doAction;
   $('bSpk').onclick=()=>{if((typeof SPK!=='undefined')&&SPK)SPK.panel()};
   $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
-  $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather()};
+  $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
   $('bMenu').onclick=()=>{started=false;COOP.push(true);$('menu').hidden=false;$('hud').hidden=true;$('bStart').textContent='Continue'};
   $('mapMe').onclick=()=>{MAPV.cx=player.x;MAPV.cz=player.z;MAPV.s=.6;drawBigMap()};
   $('mapFit').onclick=()=>{mapFit();drawBigMap()};
