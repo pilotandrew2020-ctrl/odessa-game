@@ -56,7 +56,7 @@ const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,h
     const ht=this.el('div',null,'Drag to turn · ← → to switch · Enter to take it out',st);ht.id='garHint';
     this.panel=this.el('div',null,null,R);this.panel.id='garPanel';
     const br=this.el('div',null,null,R);br.id='garBar';this.go_=this.el('button',null,'Take it out  ▶',br);this.go_.id='garGo';
-    bb.onclick=()=>this.close();pv.onclick=()=>this.step(-1);nx.onclick=()=>this.step(1);this.go_.onclick=()=>this.take();
+    bb.onclick=()=>{UIS.back();this.close()};pv.onclick=()=>this.step(-1);nx.onclick=()=>this.step(1);this.go_.onclick=()=>this.take();
     st.addEventListener('pointerdown',e=>{this.drag={id:e.pointerId,x:e.clientX};this.hold=performance.now();try{st.setPointerCapture(e.pointerId)}catch(x){}});
     st.addEventListener('pointermove',e=>{if(!this.drag||e.pointerId!==this.drag.id)return;this.tYaw+=(e.clientX-this.drag.x)*.012;this.drag.x=e.clientX;this.hold=performance.now()});
     for(const k of ['pointerup','pointercancel','lostpointercapture'])st.addEventListener(k,()=>{this.drag=null});
@@ -104,11 +104,11 @@ const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,h
     if(e.car!==undefined)this.paint(e,this.colOf(e));
     [...this.list.children].forEach((b,j)=>b.classList.toggle('on',j===this.idx));const on=this.list.children[this.idx];if(on&&on.scrollIntoView)try{on.scrollIntoView({block:'nearest',inline:'nearest'})}catch(x){}
     this.nameB.textContent=e.name;this.nameS.textContent=e.sub;this.go_.textContent=(e.car!==undefined?'Take it out':e.lite==='bike'?'Ride it':e.lite==='sub'?'Send for it':'Call it')+'  ▶';
-    this.renderPanel(e);this.tYaw+=.4;this.hold=performance.now()},
+    this.renderPanel(e);this.tYaw+=.4;this.hold=performance.now();if(!this._opening)UIS.swap()},
   step(d){this.show(this.idx+d)},
   renderPanel(e){const P=this.panel;P.innerHTML='';
     if(e.car!==undefined){this.el('h3',null,'PAINT',P);const sw=this.el('div','crSw',null,P);sw.id='garSw';const cur=this.colOf(e);
-      CAR_COLS.forEach(c=>{const b=this.el('button','crDot'+(c===cur?' on':''),'',sw);b.style.background=this.hex(c);b.setAttribute('aria-label','paint '+this.hex(c));b.onclick=()=>{this.paint(e,c);sw.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}})}
+      CAR_COLS.forEach(c=>{const b=this.el('button','crDot'+(c===cur?' on':''),'',sw);b.style.background=this.hex(c);b.setAttribute('aria-label','paint '+this.hex(c));b.onclick=()=>{UIS.pick();this.paint(e,c);sw.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}})}
     else{this.el('h3',null,'THIS ONE',P);this.el('p',null,e.lite==='sub'?'It waits at the harbour mooring — the map shows the way. Dive up to 150 m, then press E to get out.':e.lite==='bike'?'Brought to the nearest free spot. Press E to hop on, F lets a friend ride along.':'Brought to you, facing the road. Press E to get in; a friend can ride along — E / F beside it.',P)}
     this.el('h3',null,'HOW IT FEELS',P);[['Speed',e.st[0]],['Handling',e.st[1]],['Room',e.st[2]]].forEach(([k,v])=>{const r=this.el('div','garSt',null,P);this.el('span',null,k,r);const b=this.el('i',null,'',r);b.style.setProperty('--v',v*20+'%')})},
   canOpen(){if(!started)return false;
@@ -123,10 +123,10 @@ const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,h
     if(last<0&&S.myCar){const j=this.LIST.findIndex(e=>e.car===S.myCar.type);if(j>=0)i=j}
     this.on=true;this.root.hidden=false;document.body.classList.add('garOn');this._exp=renderer.toneMappingExposure;this._pr=renderer.getPixelRatio();    // the world may be drawn at a reduced resolution; one vehicle can afford the full one
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);this._t=0;this.zoom=1;this.hold=performance.now();
-    this.spanC=2;this.wmC=4;this.yaw=this.tYaw=.7;this.show(i);
+    this.spanC=2;this.wmC=4;this.yaw=this.tYaw=.7;this._opening=true;this.show(i);this._opening=false;UIS.whoosh();
     for(const k of ['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowLeft'])try{window.dispatchEvent(new KeyboardEvent('keyup',{code:k,key:k}))}catch(x){}},
   close(){if(!this.on)return;this.on=false;this.root.hidden=true;document.body.classList.remove('garOn');if(this._exp!==undefined)renderer.toneMappingExposure=this._exp;if(this._pr){renderer.setPixelRatio(this._pr);renderer.setSize(innerWidth,innerHeight)}},
-  take(){const e=this.cur;if(!e)return;this.close();
+  take(){const e=this.cur;if(!e)return;UIS.go();this.close();
     try{S.garId=e.id;if(e.car!==undefined)S.myCar={type:e.car,col:this.colOf(e)};saveS()}catch(x){}
     if(DRIVE.on)exitCar();
     if(e.car!==undefined){DRIVE.car=null;toggleCar()}else EXT.summon(e.lite)},

@@ -31,7 +31,7 @@ function bdTube(pts,rad,seg,flat,seed){seg=seg||6;flat=flat||1;const P=pts.map(p
   return g}
 
 // the torso: waist → chest → shoulders → neck base (spine-local y, 0 .. .5)
-const BD_TORSO=[{y:-.045,rx:.19,rz:.117},{y:-.02,rx:.186,rz:.113},{y:0,rx:.172,rz:.104},{y:.06,rx:.181,rz:.109},{y:.16,rx:.196,rz:.114},{y:.27,rx:.215,rz:.124},{y:.36,rx:.235,rz:.132},{y:.415,rx:.238,rz:.12},{y:.452,rx:.19,rz:.103},{y:.482,rx:.097,rz:.076},{y:.5,rx:.062,rz:.058}];
+const BD_TORSO=[{y:-.045,rx:.19,rz:.117},{y:-.02,rx:.186,rz:.113},{y:0,rx:.172,rz:.104},{y:.06,rx:.181,rz:.109},{y:.16,rx:.193,rz:.112},{y:.27,rx:.206,rz:.119},{y:.36,rx:.22,rz:.127},{y:.415,rx:.222,rz:.116},{y:.452,rx:.172,rz:.099},{y:.482,rx:.085,rz:.072},{y:.5,rx:.05,rz:.052}];
 // front/back surface z of the torso at height y and sideways offset x (so shirt strips, straps and zips sit on the body instead of floating)
 function bdChest(y,x){const S=BD_TORSO;y=Math.max(S[0].y,Math.min(.5,y));let k=0;while(k<S.length-2&&y>S[k+1].y)k++;const a=S[k],b=S[k+1],t=(y-a.y)/((b.y-a.y)||1),rx=a.rx+(b.rx-a.rx)*t,rz=a.rz+(b.rz-a.rz)*t,q=Math.min(.98,Math.abs(x)/rx);return rz*Math.sqrt(1-q*q)}
 // a flat strip that follows the torso surface (front: side=1, back: side=-1) from (x0,y0) to (x1,y1)
@@ -42,10 +42,10 @@ function bdBand(x0,y0,x1,y1,w,side,off){const N=12,K=Math.max(1,Math.min(8,Math.
   // wind the faces so they point away from the body whichever way the strip runs
   const nr=g.attributes.normal;if(nr.getZ(0)*side<0){const ix=g.index.array;for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t}g.computeVertexNormals()}return g}
 
-const BD_ARM_UP=[{y:-.1,rx:.057,rz:.054},{y:-.2,rx:.052,rz:.049},{y:-.285,rx:.045,rz:.043},{y:-.3,rx:.043,rz:.042}];
-const BD_ARM_LO=[{y:.02,rx:.043,rz:.042},{y:-.04,rx:.049,rz:.046},{y:-.12,rx:.04,rz:.037},{y:-.19,rx:.03,rz:.028},{y:-.2,rx:.017,rz:.017}];
-const BD_SLEEVE=[{y:.05,rx:.037,rz:.035},{y:.032,rx:.068,rz:.064},{y:-.01,rx:.076,rz:.071},{y:-.1,rx:.073,rz:.069},{y:-.19,rx:.068,rz:.064},{y:-.202,rx:.066,rz:.062}];
-const BD_THIGH=[{y:.03,rx:.093,rz:.096},{y:-.08,rx:.09,rz:.094},{y:-.2,rx:.077,rz:.079},{y:-.31,rx:.063,rz:.065},{y:-.345,rx:.062,rz:.064}];
+const BD_ARM_UP=[{y:-.1,rx:.05,rz:.048},{y:-.2,rx:.046,rz:.044},{y:-.285,rx:.04,rz:.039},{y:-.3,rx:.039,rz:.038}];
+const BD_ARM_LO=[{y:.02,rx:.039,rz:.038},{y:-.04,rx:.044,rz:.042},{y:-.12,rx:.037,rz:.034},{y:-.19,rx:.028,rz:.026},{y:-.2,rx:.016,rz:.016}];
+const BD_SLEEVE=[{y:.05,rx:.034,rz:.032},{y:.032,rx:.062,rz:.058},{y:-.01,rx:.069,rz:.065},{y:-.1,rx:.067,rz:.063},{y:-.19,rx:.063,rz:.059},{y:-.202,rx:.061,rz:.057}];
+const BD_THIGH=[{y:.03,rx:.087,rz:.09},{y:-.08,rx:.084,rz:.088},{y:-.2,rx:.071,rz:.073},{y:-.31,rx:.059,rz:.061},{y:-.345,rx:.058,rz:.06}];
 const BD_SHIN=[{y:.03,rx:.052,rz:.054},{y:-.0,rx:.058,rz:.061},{y:-.04,rx:.062,rz:.066,cz:-.008},{y:-.12,rx:.054,rz:.058,cz:-.004},{y:-.2,rx:.044,rz:.047},{y:-.26,rx:.043,rz:.046},{y:-.27,rx:.03,rz:.03}];
 const BD_PELVIS=[{y:-.075,rx:.15,rz:.098},{y:-.03,rx:.178,rz:.106},{y:.04,rx:.176,rz:.104},{y:.092,rx:.164,rz:.1},{y:.1,rx:.12,rz:.08}];
 // shoes are lofted along their length (y here = z of the foot) then laid down: {y:forward, rx:half width, rz:half height, cz:-(vertical centre)}
@@ -79,7 +79,7 @@ function bdHand(s,lite){s=s||0;const V=(x,y,z)=>new THREE.Vector3(x,y,z);
 
 // ---------------------------------------------------------------- hair
 // the head profile: a rounded egg (narrow chin, full cheeks, domed crown) — headGeo() in index.html lathes it, the hair shell follows it
-const BD_HEAD=[[0,.4],[.012,.58],[.04,.74],[.09,.86],[.16,.94],[.26,.985],[.4,1],[.5,1],[.58,.99],[.7,.945],[.8,.875],[.88,.775],[.94,.635],[.98,.43],[.998,.22],[1,0]];
+const BD_HEAD=[[0,.3],[.025,.47],[.07,.66],[.13,.81],[.22,.93],[.34,.99],[.46,1],[.58,.985],[.7,.94],[.8,.87],[.88,.77],[.94,.63],[.98,.43],[.998,.22],[1,0]];
 function bdHeadPts(r,h){return BD_HEAD.map(p=>[r*p[1],h*p[0]])}
 function bdHeadR(y,r,h){const pts=bdHeadPts(r,h);
   for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];if(y>=a[1]&&y<=b[1])return a[0]+(b[0]-a[0])*(y-a[1])/Math.max(1e-6,b[1]-a[1])}return 0}
@@ -124,76 +124,57 @@ function bdHair(head,o,M,HR,HH){const st=o.hs||'swept';if(st==='bald')return;con
       sph(i%3?M.hair:M.hair2,x,y,z,.05,.05,.05)}}
 }
 
-// realistic face painted on the head's wrap-around texture (512x256 layout, drawn at 1024x512 when o.hi; the face at u=.5, v up).
+// realistic face painted on the head's wrap-around texture (same 512x256 layout as the old cartoon one: u around the head with the face at u=.5, v up).
 // Proportions follow a real face scaled to this head: brows at v .565, eyes .5, nose tip .345, mouth .225, chin .05.
-// o.male paints the sharp look: heavy straight brows, hooded eyes with no lash flick, thin dull lips, nasolabial folds, shadow under the cheekbones, and
-// o.bd (stubble / mous / beard) paints the beard growth in the brow colour. Without it the soft look is kept for the pedestrians.
 function bdFaceTex(o){
-  const W=512,H=256,K=o.hi?2:1,m=!!o.male,cv=document.createElement('canvas');cv.width=W*K;cv.height=H*K;const x=cv.getContext('2d');x.scale(K,K);
+  const W=512,H=256,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
   x.fillStyle=o.bg||'#ffffff';x.fillRect(0,0,W,H);
-  const R=(()=>{let s=1234567;return()=>(s=(s*1664525+1013904223)>>>0)/4294967296})(),cx=256,py=v=>(1-v)*H,ex=m?31:32,ey=py(.5);
+  const R=(()=>{let s=1234567;return()=>(s=(s*1664525+1013904223)>>>0)/4294967296})(),cx=256,py=v=>(1-v)*H,ex=32,ey=py(.5);
   // soft elliptical blob: centre, radii, colour in the middle fading to transparent
   const blob=(X,Y,rx,ry,rgb,a)=>{const g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'rgba('+rgb+','+a+')');g.addColorStop(1,'rgba('+rgb+',0)');x.save();x.translate(X,Y);x.scale(rx,ry);x.fillStyle=g;x.beginPath();x.arc(0,0,1,0,7);x.fill();x.restore()};
   // skin: pores / tiny freckles, cheek colour, shadow in the eye sockets, at the temples and under the lower lip, soft light on the forehead, nose bridge and chin
   for(let i=0;i<900;i++){x.fillStyle=R()<.5?'rgba(150,95,70,.05)':'rgba(255,245,235,.05)';x.fillRect(cx-110+R()*220,H*.12+R()*H*.7,1+R()*1.6,1+R()*1.6)}
-  blob(cx,py(.7),70,34,'255,235,215',.14);blob(cx,py(.45),9,46,'255,238,222',m?.16:.12);blob(cx,py(.1),20,12,'255,238,222',.12);
-  for(const s of [-1,1]){blob(cx+s*52,py(.34),30,22,'214,110,100',m?.06:.2);blob(cx+s*ex,ey+2,30,22,'110,60,46',m?.34:.2);blob(cx+s*88,py(.5),30,70,'80,40,30',m?.2:.15);blob(cx+s*40,py(.14),30,20,'80,40,30',m?.14:.1)}
-  blob(cx,py(.185),22,6,'90,45,35',m?.26:.2);
-  if(m)for(const s of [-1,1]){blob(cx+s*ex,ey-15,30,9,'70,38,28',.3);blob(cx+s*ex,ey+13,22,5,'95,58,48',.2);blob(cx+s*72,py(.22),20,34,'60,36,28',.16)}       // brow-ridge shadow, eye bags, hollow under the cheekbones
-  for(const s of [-1,1]){const X=cx+s*ex,up=m?9.5:13;
-    const almond=()=>{x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-up,X+s*14.5,ey-2);x.quadraticCurveTo(X+s*2,ey+(m?7:9),X-s*14.5,ey+1);x.closePath()};
+  blob(cx,py(.7),70,34,'255,235,215',.14);blob(cx,py(.45),9,46,'255,238,222',.12);blob(cx,py(.1),20,12,'255,238,222',.12);
+  for(const s of [-1,1]){blob(cx+s*52,py(.34),30,22,'214,110,100',.2);blob(cx+s*ex,ey+2,30,22,'110,60,46',.2);blob(cx+s*88,py(.5),30,70,'80,40,30',.15);blob(cx+s*40,py(.14),30,20,'80,40,30',.1)}
+  blob(cx,py(.185),22,6,'90,45,35',.2);
+  for(const s of [-1,1]){const X=cx+s*ex;
+    const almond=()=>{x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-13,X+s*14.5,ey-2);x.quadraticCurveTo(X+s*2,ey+9,X-s*14.5,ey+1);x.closePath()};
     // upper-lid crease and lid fold
-    x.strokeStyle=m?'rgba(70,40,30,.55)':'rgba(110,60,45,.4)';x.lineWidth=m?2.2:1.8;x.lineCap='round';x.beginPath();x.moveTo(X-s*12,ey-(m?5:6));x.quadraticCurveTo(X-s*1,ey-(m?13:17),X+s*15,ey-(m?5:6));x.stroke();
+    x.strokeStyle='rgba(110,60,45,.4)';x.lineWidth=1.8;x.lineCap='round';x.beginPath();x.moveTo(X-s*12,ey-6);x.quadraticCurveTo(X-s*1,ey-17,X+s*15,ey-6);x.stroke();
     x.fillStyle='#efe9e2';almond();x.fill();
     x.save();almond();x.clip();
     const ir=x.createRadialGradient(X-s*1,ey-.5,1,X-s*1,ey-.5,8.2);ir.addColorStop(0,o.iris||'#4a7cb8');ir.addColorStop(.62,o.iris||'#4a7cb8');ir.addColorStop(1,'#1a1612');
     x.fillStyle=ir;x.beginPath();x.arc(X-s*1,ey-.5,8.2,0,7);x.fill();
     x.fillStyle='#0c0a09';x.beginPath();x.arc(X-s*1,ey-.5,3.6,0,7);x.fill();
     x.fillStyle='rgba(255,255,255,.9)';x.beginPath();x.arc(X-s*1+3,ey-4,1.9,0,7);x.fill();x.beginPath();x.arc(X-s*1-2.5,ey+2.5,1,0,7);x.fill();
-    const lg=x.createLinearGradient(0,ey-10,0,ey+2);lg.addColorStop(0,m?'rgba(20,10,8,.8)':'rgba(20,10,8,.55)');lg.addColorStop(1,'rgba(20,10,8,0)');x.fillStyle=lg;x.fillRect(X-16,ey-10,32,13);
+    const lg=x.createLinearGradient(0,ey-10,0,ey+2);lg.addColorStop(0,'rgba(20,10,8,.55)');lg.addColorStop(1,'rgba(20,10,8,0)');x.fillStyle=lg;x.fillRect(X-16,ey-10,32,13);
     x.restore();
-    x.strokeStyle='#1d1310';x.lineWidth=m?2.5:3.2;x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-up,X+s*14.5,ey-2);x.stroke();                       // upper lashes
-    if(!m){x.lineWidth=1.8;x.beginPath();x.moveTo(X+s*14.5,ey-2);x.lineTo(X+s*18,ey-5);x.stroke()}
-    x.strokeStyle='rgba(120,70,60,.55)';x.lineWidth=1.3;x.beginPath();x.moveTo(X-s*13,ey+1.5);x.quadraticCurveTo(X+s*2,ey+(m?7.5:9.5),X+s*14,ey-1);x.stroke();               // lower lid
+    x.strokeStyle='#1d1310';x.lineWidth=3.2;x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-13,X+s*14.5,ey-2);x.stroke();                       // upper lashes
+    x.lineWidth=1.8;x.beginPath();x.moveTo(X+s*14.5,ey-2);x.lineTo(X+s*18,ey-5);x.stroke();
+    x.strokeStyle='rgba(120,70,60,.55)';x.lineWidth=1.3;x.beginPath();x.moveTo(X-s*13,ey+1.5);x.quadraticCurveTo(X+s*2,ey+9.5,X+s*14,ey-1);x.stroke();               // lower lid
     x.fillStyle='rgba(210,120,115,.7)';x.beginPath();x.arc(X-s*14,ey+1.5,2,0,7);x.fill();                                                                           // tear duct
-    // eyebrow: a soft base and hair strokes along an arch (the sharp look: thicker, lower, flatter, darker)
-    const bc=o.brow||'#5a3e26',bx0=X-s*16,by0=py(m?.535:.545),bx1=X+s*3,by1=py(m?.562:.585),bx2=X+s*24,by2=py(m?.528:.535);
-    x.strokeStyle=bc;x.globalAlpha=m?.45:.3;x.lineWidth=m?12:8;x.beginPath();x.moveTo(bx0,by0);x.quadraticCurveTo(bx1,by1-5,bx2,by2);x.stroke();x.globalAlpha=1;
-    for(let i=0,n=m?95:60;i<n;i++){const t=i/(n-1),tx=(1-t)*(1-t)*bx0+2*(1-t)*t*bx1+t*t*bx2,ty=(1-t)*(1-t)*by0+2*(1-t)*t*(by1-5)+t*t*by2,th=(.5-Math.abs(t-.35))*(m?9:7)+(m?4:2.5),j=(R()-.5)*th;
-      x.globalAlpha=(m?.65:.55)+R()*.4;x.lineWidth=m?1.4:1.1;x.beginPath();x.moveTo(tx-s*2,ty+j+th*.4);x.lineTo(tx+s*3,ty+j-th*.4-(t<.3?2:0));x.stroke()}x.globalAlpha=1}
+    // eyebrow: a soft base and ~60 hair strokes along an arch
+    const bc=o.brow||'#5a3e26',bx0=X-s*16,by0=py(.545),bx1=X+s*3,by1=py(.585),bx2=X+s*24,by2=py(.535);
+    x.strokeStyle=bc;x.globalAlpha=.3;x.lineWidth=8;x.beginPath();x.moveTo(bx0,by0);x.quadraticCurveTo(bx1,by1-5,bx2,by2);x.stroke();x.globalAlpha=1;
+    for(let i=0;i<60;i++){const t=i/59,tx=(1-t)*(1-t)*bx0+2*(1-t)*t*bx1+t*t*bx2,ty=(1-t)*(1-t)*by0+2*(1-t)*t*(by1-5)+t*t*by2,th=(.5-Math.abs(t-.35))*7+2.5,j=(R()-.5)*th;
+      x.globalAlpha=.55+R()*.4;x.lineWidth=1.1;x.beginPath();x.moveTo(tx-s*2,ty+j+th*.4);x.lineTo(tx+s*3,ty+j-th*.4-(t<.3?2:0));x.stroke()}x.globalAlpha=1}
   // nose: shaded sides of the bridge, wings, nostrils, bright tip, shadow underneath
-  for(const s of [-1,1]){blob(cx+s*11,py(.42),6,24,'125,72,56',m?.3:.2);blob(cx+s*17,py(.335),8,8,'160,88,72',m?.32:.26);x.fillStyle='rgba(55,22,18,.72)';x.beginPath();x.ellipse(cx+s*8,py(.318),4.8,2.8,s*.4,0,7);x.fill()}
-  blob(cx,py(.355),8,7,'255,240,228',m?.28:.34);blob(cx,py(.297),14,4,'90,45,35',m?.34:.26);
-  // nasolabial folds: from the nose wings down past the mouth corners
-  if(m)for(const s of [-1,1]){x.lineCap='round';for(const [w,a] of [[7,.06],[3.5,.13]]){x.strokeStyle='rgba(80,44,34,'+a+')';x.lineWidth=w;x.beginPath();x.moveTo(cx+s*21,py(.345));x.quadraticCurveTo(cx+s*35,py(.28),cx+s*32,py(.2));x.stroke()}}
-  // beard growth (stubble / moustache / full beard shadow): dots in the brow colour over the jaw, chin, cheeks and upper lip, never on the lips
-  if(m&&o.bd&&o.bd!=='none'){const bh=(o.brow||'#2a1a10').replace('#',''),sc=[0,2,4].map(i=>Math.round(parseInt(bh.substr(i,2),16)*.7)).join(',');
-    for(let i=0,n=o.bd==='beard'?7000:o.bd==='stubble'?4200:1500;i<n;i++){const dx=(R()*2-1)*128,v=R()*.42,ad=Math.abs(dx);
-      const top=o.bd==='mous'?(ad<44?.3:0):(ad<24?.285:.285+.13*Math.min(1,(ad-24)/60));if(v>top||(o.bd==='mous'&&v<.245)||(ad<28&&v>.205&&v<.258))continue;
-      x.fillStyle='rgba('+sc+','+(.1+R()*.26)+')';x.fillRect(cx+dx,py(v),.8+R()*.9,.8+R()*.9)}
-    if(o.bd!=='mous'){blob(cx,py(.1),70,32,sc,o.bd==='beard'?.28:.17);for(const s of [-1,1])blob(cx+s*62,py(.25),36,30,sc,o.bd==='beard'?.2:.1)}}
+  for(const s of [-1,1]){blob(cx+s*11,py(.42),6,24,'125,72,56',.2);blob(cx+s*17,py(.335),8,8,'160,88,72',.26);x.fillStyle='rgba(55,22,18,.72)';x.beginPath();x.ellipse(cx+s*8,py(.318),4.8,2.8,s*.4,0,7);x.fill()}
+  blob(cx,py(.355),8,7,'255,240,228',.34);blob(cx,py(.297),14,4,'90,45,35',.26);
   // mouth: philtrum, lips with a cupid's bow, dark parting line, corner shadows, chin light
-  const my=py(.228),mc=py(.236),ul=m?8:11,ll=m?14:20;
+  const my=py(.228),mc=py(.236);
   blob(cx,py(.265),5,10,'125,72,56',.12);
-  x.fillStyle=m?'rgba(150,88,80,.92)':'rgba(172,88,82,.92)';x.beginPath();x.moveTo(cx-26,mc);x.bezierCurveTo(cx-18,my-4,cx-9,my-ul,cx-4,my-ul+1);x.quadraticCurveTo(cx,my-ul*.55,cx+4,my-ul+1);x.bezierCurveTo(cx+9,my-ul,cx+18,my-4,cx+26,mc);x.quadraticCurveTo(cx,my+2,cx-26,mc);x.fill();
-  x.fillStyle=m?'rgba(164,100,92,.95)':'rgba(190,104,98,.95)';x.beginPath();x.moveTo(cx-26,mc);x.quadraticCurveTo(cx,my+2,cx+26,mc);x.bezierCurveTo(cx+20,my+ll*.75,cx+8,my+ll,cx,my+ll);x.bezierCurveTo(cx-8,my+ll,cx-20,my+ll*.75,cx-26,mc);x.fill();
-  blob(cx,my+ll/2,10,3.4,'255,226,216',m?.14:.4);
-  x.strokeStyle='rgba(70,26,24,.9)';x.lineWidth=m?2.4:2.1;x.lineCap='round';x.beginPath();x.moveTo(cx-27,mc-2);x.quadraticCurveTo(cx,my+2.5,cx+27,mc-2);x.stroke();
+  x.fillStyle='rgba(172,88,82,.92)';x.beginPath();x.moveTo(cx-26,mc);x.bezierCurveTo(cx-18,my-4,cx-9,my-11,cx-4,my-10);x.quadraticCurveTo(cx,my-6,cx+4,my-10);x.bezierCurveTo(cx+9,my-11,cx+18,my-4,cx+26,mc);x.quadraticCurveTo(cx,my+2,cx-26,mc);x.fill();
+  x.fillStyle='rgba(190,104,98,.95)';x.beginPath();x.moveTo(cx-26,mc);x.quadraticCurveTo(cx,my+2,cx+26,mc);x.bezierCurveTo(cx+20,my+15,cx+8,my+20,cx,my+20);x.bezierCurveTo(cx-8,my+20,cx-20,my+15,cx-26,mc);x.fill();
+  blob(cx,my+10,10,3.4,'255,226,216',.4);
+  x.strokeStyle='rgba(70,26,24,.9)';x.lineWidth=2.1;x.lineCap='round';x.beginPath();x.moveTo(cx-27,mc-2);x.quadraticCurveTo(cx,my+2.5,cx+27,mc-2);x.stroke();
   for(const s of [-1,1])blob(cx+s*28,mc-3,5,5,'90,40,34',.22);
-  blob(cx,py(.12),13,6,'255,238,224',m?.1:.14);
-  if(m)blob(cx,py(.158),11,5,'70,40,32',.2);                                        // chin cleft shadow
+  blob(cx,py(.12),13,6,'255,238,224',.14);
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
 
 // ears and a nose so the head is not a smooth egg (called by makePlayer)
-function bdFace(head,M,HR,HH,male){const V=(x,y,z)=>new THREE.Vector3(x,y,z),sph=(a,b,c,x,y,z,rx)=>{const g=new THREE.SphereGeometry(1,10,8);g.scale(a,b,c);const m=new THREE.Mesh(g,M.skin);m.position.set(x,y,z);if(rx)m.rotation.x=rx;head.add(m);return m};
-  for(const s of [-1,1]){const e=sph(male?.012:.011,male?.034:.03,male?.023:.022,s*HR*.985,HH*.47,-.006);e.rotation.z=-s*.12}
-  if(!male){sph(.0125,.017,.019,0,HH*.35,HR*.985,.25);return}
-  sph(.0135,.02,.021,0,HH*.35,HR*.985,.25);                           // nose: a longer tip
-  sph(.0075,.034,.011,0,HH*.435,HR*.985+.002,.2);                       // and a bridge
-  sph(.024,.013,.015,0,HH*.08,bdHeadR(HH*.08,HR,HH)-.008);              // a square chin that merges into the jaw
-  // brow ridge: a thin lip of skin right above the eyes (the painted shadow does most of the work), so the eyes sit deep under a heavy brow
-  const by=HH*.556,rr=bdHeadR(by,HR,HH),arc=1.45,g=new THREE.TorusGeometry(rr-.003,.0045,6,22,arc);g.rotateX(Math.PI/2);g.rotateY(-(Math.PI/2-arc/2));
-  const br=new THREE.Mesh(g,M.skin);br.position.y=by;head.add(br)}
+function bdFace(head,M,HR,HH){for(const s of [-1,1]){const g=new THREE.SphereGeometry(1,10,8);g.scale(.011,.03,.022);const e=new THREE.Mesh(g,M.skin);e.position.set(s*HR*.985,HH*.47,-.006);e.rotation.z=-s*.12;head.add(e)}
+  const n=new THREE.SphereGeometry(1,10,8);n.scale(.0125,.017,.019);const nm=new THREE.Mesh(n,M.skin);nm.position.set(0,HH*.35,HR*.985);nm.rotation.x=.25;head.add(nm)}
 
 // wet eyes: a flattened glossy cap over each painted eye that only adds the sun's / lamps' specular highlight (black diffuse + additive blending), so the eyes catch the light and move with the head
 let BD_CORNEA=null;

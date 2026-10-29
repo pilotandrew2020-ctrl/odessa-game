@@ -10,4 +10,6 @@
   Used for the armchairs in the flats, the 80s CRT television in the Soviet flat and the Soviet tins in its kitchen.
 - `assets/models/apache.glb` — helicopter model that was already in the project when the asset programme started; source and licence not recorded.
 
+- `sfx.js` — three interface sounds (a whoosh, a "tching" ping, a tick) cut from a recording supplied by the project owner (`videoplayback.m4b`), re-encoded to 22 kHz mono WAV and embedded as base64; no separate audio files.
+
 Everything else in the game (buildings, cars, characters, interiors) is procedural geometry generated in code, with no model files.
