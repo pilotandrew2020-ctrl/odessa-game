@@ -151,10 +151,14 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   for(const [x,z] of [[10.6,18.75],[10.35,18.6]]){C(x,.3,z,.1,.1,.55,'#2a6fb5',1);C(x,.6,z,.05,.05,.06,'#eee',1)}
   svGarland(grp,ox+1.6,Y+2.7,oz+21.15,ox+10.6,Y+2.7,oz+21.15,36,.28,[0xff2a1f,0x1fa8ff,0xffc61a,0x2dff6a]);
   K.done();
-  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>toast('Kitchen','the gas ring clicks, the kettle starts to whistle')});
-  INTERACT.push({x:ox+7.1,z:oz+20.2,r:1.5,label:'Wash your hands',fn:()=>toast('Kitchen','cold water, as always')});
+  // the flat is moved into the real building after it is built, so act targets are converted to world coordinates when used
+  const wp=(x,z,y)=>grp.localToWorld(new THREE.Vector3(x,y==null?Y:y,z));
+  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),tg=wp(ox+3.9,oz+21.25);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:tg.x,tz:tg.z,reach:.95,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
+  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
+  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.9,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
+  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.9,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
   INTERACT.push({x:ox+2.9,z:oz+20.4,r:1.5,label:'Look at the preserves',fn:()=>toast('Pickles, tomatoes, beans','grandma\'s jars for the whole winter')});
-  INTERACT.push({x:ox+10.2,z:oz+19.2,r:1.4,label:'Open the Dnepr fridge',fn:()=>toast('ДНЕПР','sausage, kefir and the Olivier salad for tonight')});
+  INTERACT.push({x:ox+10.2,z:oz+19.2,r:1.4,label:'Open the Dnepr fridge',fn:()=>{const tg=wp(ox+10.2,oz+21.1);if(ACT.start('fridge',{item:'kefir',tx:tg.x,tz:tg.z,reach:1.1,onEnd:cx=>{if(!cx)toast('ДНЕПР','kefir, and the Olivier salad is saved for midnight')}}))toast('ДНЕПР','the old fridge hums and rattles')}});
   INTERACT.push({x:ox+2.6,z:oz+19.4,r:1.5,label:'Look at the wall carpet',fn:()=>toast('Ковёр на стене','red, with a diamond pattern — warm against the draught and a tradition')});
   INTERACT.push({x:ox+2.6,z:oz+13.1,r:1.5,label:'Check the clock',fn:()=>toast('23:58','two minutes to the New Year')});
   INTERACT.push({x:ox+8.8,z:oz+20.3,r:1.4,label:'Take a tangerine',fn:()=>toast('Tangerine','smells like New Year')})}

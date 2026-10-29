@@ -102,7 +102,8 @@ function gkClock(grp,P,GR,x,z,ry){
   const tilt=new THREE.Group();tilt.rotation.x=-1.0;tilt.position.y=2.1;grpC.add(tilt);
   const face=new THREE.Mesh(new THREE.CircleGeometry(R,48),new THREE.MeshStandardMaterial({map:t,roughness:.95}));face.castShadow=true;tilt.add(face);
   const rim=new THREE.Mesh(new THREE.TorusGeometry(R,.28,8,48),new THREE.MeshStandardMaterial({color:sRGBc('#27582a'),roughness:.95}));tilt.add(rim);
-  const mound=new THREE.Mesh(new THREE.CylinderGeometry(R*.62,R*.95,2.3,28),new THREE.MeshStandardMaterial({color:sRGBc('#2d6a2a'),roughness:.95}));mound.position.y=1.0;grpC.add(mound);
+  // the bed under the face: a tilted drum that runs back from the dial's rear, so nothing pokes through the picture
+  {const g=new THREE.CylinderGeometry(R*.985,R*.985,6,40);g.rotateX(Math.PI/2);const drum=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:sRGBc('#2d6a2a'),roughness:.95}));drum.position.z=-3.12;tilt.add(drum)}
   const hand=(len,w,col)=>{const g=new THREE.Group();const m=new THREE.Mesh(new THREE.BoxGeometry(w,len,.14),new THREE.MeshStandardMaterial({color:col,roughness:.4,metalness:.3}));m.position.y=len/2-len*.12;g.add(m);g.position.z=.16;tilt.add(g);return g};
   const hh=hand(2.7,.34,0xf6d36b),mh=hand(3.9,.22,0xf6d36b),sh=hand(4.1,.08,0xcc2222);
   ANIM.push(()=>{if(!pkNear(x,z,260))return;const d=new Date(),s=d.getSeconds()+d.getMilliseconds()/1000,m=d.getMinutes()+s/60,h=(d.getHours()%12)+m/60;sh.rotation.z=-s/60*6.2832;mh.rotation.z=-m/60*6.2832;hh.rotation.z=-h/12*6.2832});
