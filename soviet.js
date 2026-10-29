@@ -231,20 +231,23 @@ function svStair(opt){
   const band=(x,z,w,d)=>{B(x,.95,z,w,1.9,d,GR,1);B(x,1.93,z,w+(w>d?0:.01),.05,d+(w>d?.01:0),GD,1)};
   band(-3.69,4.5,.03,10.8);band(3.69,4.5,.03,10.8);band(0,9.89,7.4,.03);band(-2.45,-.89,2.5,.03);band(2.45,-.89,2.5,.03);
   // flight 1: concrete steps with red-brown nosings rising along the left wall; mid landing; flight 2 doubling back above it
-  for(let i=0;i<12;i++){const zc=1.6+i*.4+.2,top=(i+1)*.2;B(-2.5,top/2,zc,2.6,top,.4,CON);B(-2.5,top-.035,zc-.15,2.6,.07,.12,NOS)}
-  B(-1.7,2.3,8.2,4.2,.2,3.6,CON);
-  for(let j=0;j<10;j++){const zc=6.2-j*.4,top=2.4+(j+1)*.2;B(-.4,top-.11,zc,1.6,.22,.4,CON);B(-.4,top-.035,zc+.15,1.6,.07,.12,NOS)}
-  B(-.4,3.36,4.4,1.6,.28,Math.hypot(3.6,1.8)+.7,'#7d7c77',9,0,Math.atan2(.2,.4));                    // solid underside of the second flight
-  B(-1.7,H-.1,3.0,4.2,.2,4.0,'#e9e6dc');
+  // the two flights really climb one storey (FLAT_FLOOR_HEIGHT = FH): 12 steps up to the mid landing (LH), 12 more to the next floor — you walk them, see `ramp` below
+  const FH=FLAT_FLOOR_HEIGHT,LH=FH/2,R=LH/12;
+  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*R;B(-2.5,top/2,zc,2.6,top,.4,CON);B(-2.5,top-.02,zc-.15,2.6,.04,.12,NOS)}
+  B(-1.7,LH-.1,8.2,4.2,.2,3.6,CON);
+  for(let j=0;j<12;j++){const zc=6.2-j*.4,top=LH+(j+1)*R;B(-.4,top-.11,zc,1.6,.22,.4,CON);B(-.4,top-.02,zc+.15,1.6,.04,.12,NOS)}
+  B(-.4,LH*1.5+R/2-.14,4.0,1.6,.28,Math.hypot(4.8,LH)+.3,'#7d7c77',9,0,Math.atan2(LH,4.8));          // solid underside of the second flight
+  B(-1.7,FH-.1,.3,4.2,.2,2.6,'#e9e6dc');                                                           // the next floor's slab over the arrival area
   // handrails and rods (green painted steel)
-  const slope=Math.atan2(.2,.4),rl=Math.hypot(.4,.2);
-  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*.2;B(-1.2,top+.5,zc,.035,.9,.035,RAIL,1)}
-  B(-1.2,1.65,4.0,.07,.07,Math.hypot(4.4,2.2),RAIL,1,0,-slope);
-  for(let j=0;j<6;j++){const zc=6.2-j*.4,top=2.4+(j+1)*.2;B(.4,top+.5,zc,.035,.9,.035,RAIL,1)}
-  B(.4,3.9,5.0,.07,.07,Math.hypot(2.4,1.2),RAIL,1,0,slope);
-  for(let k=0;k<6;k++)B(.4,2.9,6.6+k*.6,.035,.9,.035,RAIL,1);B(.4,3.4,8.2,.07,.07,3.6,RAIL,1);
+  const slope=Math.atan2(LH,4.8),rl=Math.hypot(4.8,LH);
+  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*R;B(-1.2,top+.5,zc,.035,.9,.035,RAIL,1)}
+  B(-1.2,LH/2+.95,4.0,.07,.07,rl,RAIL,1,0,-slope);
+  for(let j=0;j<12;j++){const zc=6.2-j*.4,top=LH+(j+1)*R;B(.4,top+.5,zc,.035,.9,.035,RAIL,1)}
+  B(.4,LH*1.5+R/2+.95,4.0,.07,.07,rl,RAIL,1,0,slope);
+  for(let k=0;k<6;k++)B(.4,LH+.45,6.6+k*.6,.035,.9,.035,RAIL,1);B(.4,LH+.9,8.2,.07,.07,3.6,RAIL,1);
   // window on the landing, a radiator under it and a pipe
-  B(-1.7,3.5,9.9,2.1,1.4,.08,'#f4f2ea');B(-1.7,3.5,9.88,1.9,1.2,.05,'#d6ecc4',3);B(-1.7,3.5,9.86,.05,1.2,.06,'#f4f2ea');B(-1.7,3.5,9.86,1.9,.05,.06,'#f4f2ea');B(-1.7,3.0,9.8,2.3,.06,.2,'#bfbfb8');
+  const WY=LH+1.55;B(-1.7,WY,9.9,2.1,1.4,.08,'#f4f2ea');B(-1.7,WY,9.88,1.9,1.2,.05,'#d6ecc4',3);B(-1.7,WY,9.86,.05,1.2,.06,'#f4f2ea');B(-1.7,WY,9.86,1.9,.05,.06,'#f4f2ea');B(-1.7,WY-.5,9.8,2.3,.06,.2,'#bfbfb8');
+  B(-1.7,WY-1.0,9.86,1.4,.7,.1,'#ece8da',6);for(let k=0;k<7;k++)B(-2.2+k*.17,WY-1.0,9.8,.06,.62,.06,'#d9d5c4',6);                      // a ribbed radiator under the window
   B(-3.6,2.2,9.7,.14,4.4,.14,'#d8d8cc',6);
   // right wall: mailboxes, floor sign, three flat doors (nearest the stairs / opposite the rail / on the small landing), electric panel
   B(3.6,1.6,.65,.1,1.2,1.2,'#4d6a86',1);for(let r=0;r<3;r++)for(let k=0;k<3;k++)B(3.54,1.2+r*.4,.25+k*.4,.03,.3,.34,'#3a526a',1);
@@ -266,18 +269,27 @@ function svStair(opt){
   for(const [x,z] of [[1.6,3.0],[1.6,8.0],[-1.7,8.2]])Cy(x,H-.2,z,.3,.3,.35,'#f4f0e0',3);
   if(fl===1)INTERACT.push({x:ox,z:oz+.5,r:1.5,label:'Go out to the yard',fn:()=>PORTAL.exit()});
   if(fl===1){let leaving=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||leaving)return;if(player.z<oz+.1&&Math.abs(player.x-ox)<3.6&&!RIDE.on){leaving=1;PORTAL.exit();setTimeout(()=>{leaving=0},1800)}})}   // walk out through the entrance door
-  INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Climb the stairs',cond:()=>fl<((PORTAL.opt&&PORTAL.opt.floors)||10),fn:()=>PORTAL.go('stair',{ent,floor:fl+1})});   // a five-storey block stops at five (opt.floors)
-  if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl-1})});
-  addWall(ox-2.5,oz+5.8,2.6,8.4,0,INT_Y-1,INT_Y+5.5);addWall(ox-.4,oz+6.5,1.6,7.0,0,INT_Y-1,INT_Y+5.5);
+  const maxFl=()=>((PORTAL.opt&&PORTAL.opt.floors)||10),nextOpt=a=>({ent,floor:fl+a,floors:PORTAL.opt&&PORTAL.opt.floors,style:PORTAL.opt&&PORTAL.opt.style,home:PORTAL.opt&&PORTAL.opt.home,arrive:a>0?'up':'down'});
+  INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Go up to the next floor',cond:()=>fl<maxFl(),fn:()=>PORTAL.go('stair',nextOpt(1))});   // a five-storey block stops at five (opt.floors); walking up the flights does the same
+  if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',nextOpt(-1))});   // lands you at the top of the lower floor's flights, then you walk down
+  // walking up: stepping off the top of flight 2 carries you to the next floor, next to the foot of its first flight
+  {let climbing=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||climbing||player.sit)return;const lx=player.x-ox,lz=player.z-oz;
+    if(fl<maxFl()&&lx>-1.2&&lx<.4&&lz>1.2&&lz<1.75&&player.y>floorY+FH-.35){climbing=1;PORTAL.go('stair',nextOpt(1));setTimeout(()=>{climbing=0},1800)}})}
+  // collision: the sides of the flights and landing (y-limited, so you can walk ON the stairs but not under or across them)
+  addWall(ox-1.2,oz+4.0,.1,4.8,0,INT_Y-1,INT_Y+FH+.4);addWall(ox+.45,oz+5.8,.1,8.4,0,INT_Y-1,INT_Y+FH+.4);addWall(ox-.4,oz+1.65,1.6,.1,0,INT_Y-1,INT_Y+1.0);
   const pg=P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));
   const l1=new THREE.PointLight(0xfff0d0,0,13,1.5),l2=new THREE.PointLight(0xfff0d0,0,13,1.5);l1.position.set(ox+1.5,INT_Y+H-.9,oz+3);l2.position.set(ox+1.2,INT_Y+H-.9,oz+8);l1.userData.i=.9;l2.userData.i=.75;grp.add(l1,l2);
-  SPECIAL.push((x,z)=>{if(!grp.visible)return null;const p=grp.worldToLocal(new THREE.Vector3(x,0,z));return Math.abs(p.x-ox)<=HW+.1&&p.z>=oz-2&&p.z<=oz+Z1+1?{h:floorY,pri:10,surf:'stone'}:null});
+  // floor height: flat, except on the two flights (smooth ramp through the treads) and the mid landing
+  const ramp=(lx,lz)=>{if(lx<-3.8||lx>.4||lz<1.6||lz>10.1)return 0;if(lz>6.4)return LH;if(lx<-1.2)return Math.min(LH,R*((lz-1.6)/.4+.5));return Math.min(FH,LH+R*((6.4-lz)/.4+.5))};
+  SPECIAL.push((x,z)=>{if(!grp.visible)return null;const lx=x-ox,lz=z-oz;return Math.abs(lx)<=HW+.1&&lz>=-2&&lz<=Z1+1?{h:floorY+ramp(lx,lz),pri:10,surf:'stone'}:null});
   grp.position.y=floorY;grp.updateMatrixWorld(true);
   const staticWalls=[];for(let i=staticWallStart;i<STATIC_WALLS.length;i++){const w=STATIC_WALLS[i];w.y0+=floorY;w.y1+=floorY;staticWalls.push([w,w.hw,w.hd])}
   for(let i=interactStart;i<INTERACT.length;i++){const it=INTERACT[i],prior=it.cond;it.y=it.y===undefined?floorY:it.y;it.cond=()=>grp.visible&&(!prior||prior())}
   grp.userData.interiorCollision={lowObbs:[],staticWalls};setInteriorGroupVisible(grp,false);
   INDOORS.push({name:'stair',title:'Stairwell',sub:'',floor:'stone',exp:.7,lights:[l1,l2],test:(x,z)=>x>ox-HW&&x<ox+HW&&z>oz+Z0&&z<oz+Z1+1,ceil:()=>floorY+H-.3});
-  grp.visible=false;return {grp,spawn:[ox+1.8,oz+2.0],spawnY:floorY,spawnYaw:0,title:'Stairwell',sub:'old lift · floor '+fl,peds:[],onEnter(){PORTAL.peds=[]}}}
+  grp.visible=false;return {grp,spawn:[ox+1.8,oz+2.0],spawnY:floorY,spawnYaw:0,title:'Stairwell',sub:'old lift · floor '+fl,peds:[],
+    onEnter(opt){PORTAL.peds=[];const a=opt&&opt.arrive;    // arriving by the stairs: up = beside the foot of the flights, down = on the top step of the lower floor's flight 2
+      if(a==='up'){this.spawn=[ox-.4,oz+1.1];this.spawnY=floorY;this.spawnYaw=-Math.PI/2}else if(a==='down'){this.spawn=[ox-.4,oz+2.9];this.spawnY=floorY+ramp(-.4,2.9)+.02;this.spawnYaw=0}else{this.spawn=[ox+1.8,oz+2.0];this.spawnY=floorY;this.spawnYaw=0}}}}
 
 // ===================== the big New Year tree in the middle of Derybasivska =====================
 function svTree(grp,P){
