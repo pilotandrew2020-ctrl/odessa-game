@@ -181,6 +181,7 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   B(-3.4,.42,2.95,.9,.05,1.0,wood,5);for(const [dx,dz] of [[-.38,-.43],[.38,-.43],[-.38,.43],[.38,.43]])B(-3.4+dx,.2,2.95+dz,.06,.4,.06,wood,5);B(-3.4,.14,2.95,.8,.04,.9,wood,5);solid(-3.4,2.95,.5,.55);
   for(const z of [2.7,2.95]){C(-3.55,.68,z,.08,.08,.5,'#1b3a22',1);C(-3.55,.97,z,.04,.04,.14,'#d4af37',6)}
   C(-3.2,.5,3.25,.3,.2,.1,'#d8dde0',1);for(const [x,z] of [[-3.28,3.2],[-3.1,3.3],[-3.2,3.2],[-3.14,3.14],[-3.26,3.32]])S(x,.62,z,.1,'#f08a1c');
+  MDL.put(grp,'vintage_wooden_drawer_01',{x:ox-9.0,y:Y,z:oz+.62,ry:0});solid(-9.0,.62,.86,.45);          // a real vintage chest of drawers against the south wall (Poly Haven, CC0)
   MDL.put(grp,'ClassicNightstand_01',{x:ox-6.0,y:Y,z:oz+2.75,ry:Math.PI});solid(-6.0,2.75,.3,.24);          // a real classic bedside table at the end of the sofa-bed (Poly Haven, CC0)
   // floor lamp with a glowing shade
   C(-2.1,.03,6.3,.3,.3,.06,'#3a2a1a',6);C(-2.1,.95,6.3,.035,.035,1.8,'#3a2a1a',6);C(-2.1,1.95,6.3,.42,.28,.46,'#f6f0dc',3);
