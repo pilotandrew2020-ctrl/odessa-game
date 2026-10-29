@@ -46,6 +46,13 @@ function actSfx(k){if(!window.AUD||!AUD.ok)return;
   else if(k==='gulp')AUD.tone(210,110,.1,.09,'sine');
   else if(k==='boil')AUD.burst(500,1500,.3,.035,'lowpass',.7);
   else if(k==='ding'){AUD.tone(1568,1568,.35,.12,'sine');AUD.tone(2093,2093,.4,.08,'sine',null,.1)}}
+// running water: ONE looping noise (high-passed, soft top, a slow wobble) faded in and out — repeating bursts sounded like gunfire
+function actWaterStream(on){const A=window.AUD;if(!A||!A.ok)return;const c=A.ctx;
+  if(!ACT.wtr){const s=c.createBufferSource();s.buffer=A.noise;s.loop=true;
+    const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=1100;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=5400;lp.Q.value=.3;
+    const m=c.createGain();m.gain.value=.78;const lfo=c.createOscillator();lfo.frequency.value=6.5;const lg=c.createGain();lg.gain.value=.22;lfo.connect(lg);lg.connect(m.gain);
+    const g=c.createGain();g.gain.value=0;s.connect(hp);hp.connect(lp);lp.connect(m);m.connect(g);g.connect(A.sfx);s.start();lfo.start();ACT.wtr=g}
+  ACT.wtr.gain.setTargetAtTime(on?.032:0,c.currentTime,on?.12:.18)}
 
 // ---------- start / end ----------
 function actInstall(){if(ACT.hooked)return;ACT.hooked=true;
@@ -68,7 +75,7 @@ ACT.start=function(kind,o){
   ACT.cur=a;return true};
 function actEnd(cancel){const a=ACT.cur;if(!a)return;ACT.cur=null;
   if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false);PLR.hdHold=null;for(const A of PLR.arms){A.ikp=null;A.hand.rotation.set(0,0,0)}}
-  if(a.o.F)a.o.F.set(0);if(a.o.lamp)a.o.lamp.material.color.setHex(0x223344);if(a.o.jetMesh)a.o.jetMesh.visible=false;
+  if(a.wOn)actWaterStream(false);if(a.o.F)a.o.F.set(0);if(a.o.lamp)a.o.lamp.material.color.setHex(0x223344);if(a.o.jetMesh)a.o.jetMesh.visible=false;
   if(a.cam0<=.75&&cam.dist>.75){cam.dist=a.cam0;cam.init=false}
   if(a.o.onEnd)a.o.onEnd(!!cancel)}
 
@@ -80,8 +87,8 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
   if(a.gx!==undefined&&a.t<.6){const k=Math.min(1,dt*5),nx=player.x+(a.gx-player.x)*k,nz=player.z+(a.gz-player.z)*k;if(!insideAny(nx,nz,.3,player.y+.5)){player.x=nx;player.z=nz}}
   if(cam.dist>.75){let cy=player.yaw+a.side*.85-cam.yaw;while(cy>Math.PI)cy-=6.283;while(cy<-Math.PI)cy+=6.283;cam.yaw+=cy*Math.min(1,dt*3)}
   const t=a.t,o=a.o,at=(x,y)=>t>=x&&t-dt<x;
-  if(a.kind==='wash'){const on=t>.5&&t<a.dur-.7;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on&&((t*8|0)!==((t-dt)*8|0)))actSfx('water');if(at(.5))actSfx('click')}
-  else if(a.kind==='pour'){const on=t>.5&&t<2.4;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on&&((t*8|0)!==((t-dt)*8|0)))actSfx('water');
+  if(a.kind==='wash'){const on=t>.5&&t<a.dur-.7;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on!==a.wOn){a.wOn=on;actWaterStream(on)}if(at(.5))actSfx('click')}
+  else if(a.kind==='pour'){const on=t>.5&&t<2.4;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on!==a.wOn){a.wOn=on;actWaterStream(on)}
     if(a.prop.userData.water)a.prop.userData.water.scale.y=.15+.85*actWin(t,.7,2.2);a.prop.visible=t>.2;
     for(const s of [3.5,4.5,5.5])if(at(s))actSfx('gulp')}
   else if(a.kind==='fridge'){if(o.F)o.F.set(actWin(t,.5,1.45)*(1-actWin(t,2.55,3.35)));if(at(.5))actSfx('thunk');if(at(3.3))actSfx('thunk');
@@ -192,7 +199,10 @@ function actFridge(E,x,z,ry,w,o){o=o||{};const H=o.h||1.9,Dp=.7,T=.03,c=Math.cos
   const geo=new THREE.BoxGeometry(w-.01,H-.03,.05);geo.translate((w-.01)/2,0,0);
   const door=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color(o.door||'#dfe3e7').convertSRGBToLinear(),roughness:.3,metalness:.55}));door.castShadow=true;
   const hg=new THREE.Mesh(new THREE.BoxGeometry(.03,.55,.04),new THREE.MeshStandardMaterial({color:0x8a9096,roughness:.25,metalness:.9}));hg.position.set(w-.1,.1,.05);door.add(hg);
-  const hp=loc(-w/2,Dp+.03);door.position.set(E.ox+hp[0],INT_Y+H/2,E.oz+hp[1]);door.rotation.y=ry;E.grp.add(door);
+  // rubber seal round the front: the door's back face rests on it, so no thin slit shows the dark inside (it shimmered)
+  bx(-w/2+T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(w/2-T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(0,H-.03,Dp+.006,w,.02,.012,'#2a2c30',1);bx(0,.16,Dp+.006,w,.02,.012,'#2a2c30',1);
+  door.castShadow=false;
+  const hp=loc(-w/2,Dp+.037);door.position.set(E.ox+hp[0],INT_Y+H/2,E.oz+hp[1]);door.rotation.y=ry;E.grp.add(door);
   const F={door,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62)};F.set(0);
   const label=o.label||'Open the fridge',items=['milk','juice','kefir','cola'];let n=0;
   E.act(F.stand[0],F.stand[1],1.5,label,()=>{const it=items[n++%items.length];const p=loc(0,Dp/2);

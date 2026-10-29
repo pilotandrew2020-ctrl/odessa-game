@@ -22,20 +22,23 @@ const CH_HATS=['None','Cap','Beanie','Bucket hat','Headphones'],CH_HT_ID=['none'
 const CH_NECK=['None','Scarf','Chain','Bow tie'],CH_NK_ID=['none','scarf','chain','bow'];
 const CH_BACK=['None','Crossbody bag','Backpack'],CH_BK_ID=['none','bag','pack'];
 const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble','mous','beard'];
-// code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
-const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2],cur:null,
+// code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can, face]
+// the default is a sharp-faced guy: tan skin, brown eyes, stubble, short dark-brown hair, black jacket, dark jeans, black sneakers, shades up, a gold chain
+const CHAR={def:[3,3,1, 1,3, 4,2, 0,1, 0,1, 1, 0,2, 2,0,0, 0],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2,2],cur:null,
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
-  load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}this.cur=this.clean(a);return this.cur},
+  load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
+    const OLD=[2,0,0,0,0,2,0,0,0,0,0,1,0,2,0,1,1];if(Array.isArray(a)&&a.length===OLD.length&&a.every((v,i)=>v===OLD[i]))a=null;     // the untouched old default (blond, striped tee) becomes the new sharp one
+    this.cur=this.clean(a);return this.cur},
   save(){try{localStorage.setItem('od_char',JSON.stringify(this.cur))}catch(e){}},
   // the code → makePlayer() options
   opts(a){a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
     const o={skin:CH_SKIN[a[0]],iris:CH_EYE[a[1]][1],bd:CH_BD_ID[a[2]],hs:CH_HS_ID[a[3]],hair:H[1],hair2:H[2],brow:H[3],ts,bs:CH_BS_ID[a[7]],jeans:J[1],cuff:J[2],
-      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16]};
+      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],fm:a[17]===0};
     if(ts==='sailor'){o.shirt=0xf3f1ec;o.tee1='#f4f4f0';o.tee2='#'+C[1].toString(16).padStart(6,'0')}
     else{o.shirt=C[1];if(ts==='over'){o.tee1='#f4f4f0';o.tee2='#1d2f6a'}}
     return o},
   random(){const r=n=>Math.floor(Math.random()*n),p=(n,z)=>Math.random()<z?0:1+r(n-1);
-    return [r(10),r(6),p(4,.65),r(9),r(12),r(6),r(16),r(4),r(10),r(3),r(8),p(6,.4),p(5,.6),r(16),p(4,.7),p(3,.5),r(2)]}};
+    return [r(10),r(6),p(4,.65),r(9),r(12),r(6),r(16),r(4),r(10),r(3),r(8),p(6,.4),p(5,.6),r(16),p(4,.7),p(3,.5),r(2),Math.random()<.75?0:1]}};
 CHAR.load();
 
 // ---------------------------------------------------------------- extra avatar parts
@@ -61,28 +64,27 @@ const CHP={
     else if(st==='curly'){cap(1.1,.7,.74);if(!hatOn)for(let i=0;i<18;i++){const t=i/17,a=i*2.399,rr=HR*(1.12-t*.55),x=Math.sin(a)*rr,z=Math.cos(a)*rr-.01,y=HH*(.62+.4*t);if(z>HR*.55&&y<HH*.82)continue;
       const g=new THREE.SphereGeometry(.052+.012*((i*7)%3),10,8);CHP.add(head,g,i%3?M.hair:M.hair2,x,y,z)}}},
   beard(head,o,M,HR,HH){const b=o.bd||'none';if(b==='none')return;
-    if(b==='stubble'){const g=new THREE.CylinderGeometry(HR*1.012,HR*1.01,HH*.32,20,1,true,-Math.PI*.58,Math.PI*1.16);g.translate(0,HH*.19,0);
-      CHP.add(head,g,CHP.mat(CHP.shade(o.hair||0x2a1a10,.5),.9,0,{transparent:true,opacity:.3,depthWrite:false}),0,0,0);return}
+    if(b==='stubble')return;     // painted on the face texture (bdFaceTex, o.bd) — a see-through shell looked like a mask
     if(b==='beard'){const cyl=(t0,len,h,yc)=>{const g=new THREE.CylinderGeometry(HR*1.04,HR*1.03,HH*h,18,1,true,t0,len);g.translate(0,HH*yc,0);head.add(new THREE.Mesh(g,M.hair))};
       cyl(-Math.PI*.64,Math.PI*1.28,.19,.095);cyl(Math.PI*.33,Math.PI*.31,.5,.22);cyl(-Math.PI*.64,Math.PI*.31,.5,.22)}   // jaw + sideburns, the mouth stays free
     for(const s of [-1,1]){const g=new THREE.SphereGeometry(1,10,8);g.scale(.036,.012,.02);CHP.add(head,g,M.hair,s*.024,HH*.322,HR*.985,0,0,-s*.28)}},
   glasses(head,o,M,HR,HH){const g=o.gl===undefined?'up':o.gl;if(g==='none')return;const hat=o.ht&&o.ht!=='none'&&o.ht!=='phones';
     if(g==='up'){if(hat)return;
       const gl=new THREE.Group();gl.position.set(0,HH*1.03,.07);gl.rotation.x=-.5;head.add(gl);
-      for(const s of [-1,1]){const l=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),M.glass);l.scale.set(.042,.03,.012);l.position.x=s*.05;gl.add(l)}
+      for(const s of [-1,1]){const l=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),M.glass);l.scale.set(.036,.03,.012);l.position.x=s*.042;gl.add(l)}
       gl.add(new THREE.Mesh(new THREE.BoxGeometry(.04,.008,.008),M.glass));
-      for(const s of [-1,1]){const arm=new THREE.Mesh(new THREE.BoxGeometry(.006,.006,.14),M.glass);arm.position.set(s*.09,0,-.07);gl.add(arm)}return}
+      for(const s of [-1,1]){const arm=new THREE.Mesh(new THREE.BoxGeometry(.006,.006,.14),M.glass);arm.position.set(s*.098,0,-.07);gl.add(arm)}return}
     const ey=HH*.5,fz=HR*.985,frame=g==='round'?CHP.mat(0xcaa24a,.35,.8):CHP.mat(0x15151a,.5,.2),
       lens=g==='sun'?M.glass:CHP.mat(g==='square'?0x9fd0ff:0xbfe3ff,.1,.1,{transparent:true,opacity:.22,depthWrite:false});
-    const arms=()=>{for(const s of [-1,1])CHP.add(head,new THREE.BoxGeometry(.006,.006,.165),g==='sun'||g==='neon'?M.glass:frame,s*.13,ey+.012,.058,0,-s*.245,0)};
-    if(g==='sun'){for(const s of [-1,1]){const l=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),lens);l.scale.set(.056,.037,.014);l.position.set(s*.056,ey,fz);head.add(l)}
+    const arms=()=>{for(const s of [-1,1])CHP.add(head,new THREE.BoxGeometry(.006,.006,.165),g==='sun'||g==='neon'?M.glass:frame,s*.108,ey+.012,.058,0,-s*.245,0)};
+    if(g==='sun'){for(const s of [-1,1]){const l=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),lens);l.scale.set(.046,.037,.014);l.position.set(s*.04,ey,fz);head.add(l)}
       CHP.add(head,new THREE.BoxGeometry(.034,.008,.01),M.glass,0,ey+.012,fz+.004);arms()}
-    else if(g==='round'){for(const s of [-1,1]){CHP.add(head,new THREE.TorusGeometry(.037,.0046,6,22),frame,s*.056,ey,fz);CHP.add(head,new THREE.CircleGeometry(.034,18),lens,s*.056,ey,fz)}
+    else if(g==='round'){for(const s of [-1,1]){CHP.add(head,new THREE.TorusGeometry(.037,.0046,6,22),frame,s*.04,ey,fz);CHP.add(head,new THREE.CircleGeometry(.034,18),lens,s*.04,ey,fz)}
       CHP.add(head,new THREE.BoxGeometry(.03,.005,.006),frame,0,ey+.012,fz+.004);arms()}
-    else if(g==='square'){for(const s of [-1,1]){const x=s*.056;
-      CHP.add(head,new THREE.BoxGeometry(.094,.006,.007),frame,x,ey+.03,fz);CHP.add(head,new THREE.BoxGeometry(.094,.006,.007),frame,x,ey-.03,fz);
-      CHP.add(head,new THREE.BoxGeometry(.006,.066,.007),frame,x-.047,ey,fz);CHP.add(head,new THREE.BoxGeometry(.006,.066,.007),frame,x+.047,ey,fz);
-      CHP.add(head,new THREE.PlaneGeometry(.088,.058),lens,x,ey,fz)}
+    else if(g==='square'){for(const s of [-1,1]){const x=s*.04;
+      CHP.add(head,new THREE.BoxGeometry(.08,.006,.007),frame,x,ey+.03,fz);CHP.add(head,new THREE.BoxGeometry(.08,.006,.007),frame,x,ey-.03,fz);
+      CHP.add(head,new THREE.BoxGeometry(.006,.066,.007),frame,x-.04,ey,fz);CHP.add(head,new THREE.BoxGeometry(.006,.066,.007),frame,x+.04,ey,fz);
+      CHP.add(head,new THREE.PlaneGeometry(.074,.058),lens,x,ey,fz)}
       CHP.add(head,new THREE.BoxGeometry(.026,.006,.007),frame,0,ey+.014,fz);arms()}
     else if(g==='neon'){const sh=new THREE.CylinderGeometry(HR*1.03,HR*1.03,.062,22,1,true,-Math.PI*.36,Math.PI*.72);
       const m=CHP.mat(0xff3aa0,.15,.5,{transparent:true,opacity:.62,emissive:0xff3aa0,emissiveIntensity:.35,side:THREE.DoubleSide,depthWrite:false});CHP.add(head,sh,m,0,ey,0);arms()}},
@@ -112,15 +114,15 @@ const CHP={
 // ---------------------------------------------------------------- the 3D window
 const CHT=[ // tabs → rows: k = index in the code, sw = colour swatches [name,hex], ch = text chips
   {n:'Looks',f:'full',rows:[{pre:1}]},
-  {n:'Body',f:'full',rows:[{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
+  {n:'Body',f:'full',rows:[{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Face',k:17,ch:['Sharp','Soft']},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
   {n:'Hair',f:'head',slot:'hair',rows:[{l:'Style',k:3,ch:CH_HAIRS},{l:'Colour',k:4,sw:CH_HAIR.map(h=>[h[0],'#'+h[1].toString(16).padStart(6,'0')])}]},
   {n:'Top',f:'torso',slot:'top',rows:[{l:'Style',k:5,ch:CH_TOPS},{l:'Colour',k:6,sw:CH_CLOTH.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Bottom',f:'legs',slot:'bottom',rows:[{l:'Style',k:7,ch:CH_BOTS},{l:'Colour',k:8,sw:CH_JEANS.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Shoes',f:'feet',slot:'shoes',rows:[{l:'Style',k:9,ch:CH_SHOES},{l:'Colour',k:10,sw:CH_SHOE.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Glasses',f:'head',rows:[{l:'Frames',k:11,ch:CH_GLASS}]},
   {n:'Extras',f:'full',rows:[{l:'Hat',k:12,ch:CH_HATS},{l:'Accessory colour',k:13,sw:CH_CLOTH.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])},{l:'Neckwear',k:14,ch:CH_NECK},{l:'On your back',k:15,ch:CH_BACK},{l:'In hand',k:16,ch:['Nothing','Lemonade can']}]}];
-const CH_LOOKS=[['Classic',null],['Navy',[3,3,0, 3,3, 2,4, 0,2, 0,1, 1, 0,2, 0,1,1]],['Red',[5,3,0, 1,4, 2,6, 0,5, 0,5, 1, 0,2, 0,1,1]],['Forest',[1,0,0, 4,5, 2,10, 0,1, 0,3, 1, 0,2, 0,1,1]],
-  ['Skater',[2,3,1, 1,2, 3,3, 3,2, 2,1, 0, 2,6, 0,2,0]],['Sailor',[3,0,0, 1,3, 1,4, 0,8, 0,1, 0, 3,1, 3,0,0]],['Street',[4,5,2, 2,4, 4,2, 0,2, 2,4, 2, 1,8, 2,0,0]],['Summer',[2,1,0, 3,0, 0,9, 1,4, 0,0, 3, 3,0, 0,1,0]]];
+const CH_LOOKS=[['Classic',null],['Hustler',[6,5,2, 1,4, 3,3, 3,2, 2,0, 0, 1,2, 2,0,0]],['Biker',[2,3,3, 8,3, 5,2, 0,1, 1,5, 2, 0,2, 0,0,0]],['Navy',[3,3,0, 3,3, 2,4, 0,2, 0,1, 1, 0,2, 0,1,1]],
+  ['Forest',[1,0,0, 4,5, 2,10, 0,1, 0,3, 1, 0,2, 0,1,1]],['Skater',[2,3,1, 1,2, 3,3, 3,2, 2,1, 0, 2,6, 0,2,0]],['Street',[4,5,2, 2,4, 4,2, 0,2, 2,4, 2, 1,8, 2,0,0]],['Summer',[2,1,0, 3,0, 0,9, 1,4, 0,0, 3, 3,0, 0,1,0]]];
 const CREATOR={on:false,mode:'play',done:false,built:false,tab:0,yaw:.5,tYaw:.5,drag:null,hold:0,zoom:1,spanC:2,yC:.82,wmC:1.2,P:null,dirty:true,
   $(i){return document.getElementById(i)},
   el(tag,cls,txt,par){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;if(par)par.appendChild(e);return e},
@@ -194,3 +196,18 @@ const MENU={init(){const nav=document.getElementById('mNav');if(!nav)return;
     const show=id=>{document.querySelectorAll('#mPanel .mp').forEach(p=>p.hidden=p.id!==id);nav.querySelectorAll('[data-p]').forEach(b=>b.classList.toggle('sel',b.dataset.p===id))};
     nav.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>show(b.dataset.p));
     const bc=document.getElementById('bChar');if(bc)bc.onclick=()=>CREATOR.open('menu');show('pAbout')}};
+
+// ---------------------------------------------------------------- interface sounds: two bright bell notes ("tching, tching") on a menu choice, one soft bell for a character option, a tiny tick on hover
+const UIS={t:0,hov:null,
+  ok(){const A=window.AUD;if(!A)return false;if(!A.ok)A.start();else if(A.ctx&&A.ctx.state==='suspended')A.ctx.resume();return !!A.ok},
+  bell(f,delay,vol){AUD.tone(f,f*.994,.55,vol,'sine',null,delay);AUD.tone(f*2.76,f*2.7,.18,vol*.3,'sine',null,delay);if(!delay)AUD.burst(7000,4200,.03,vol*.7,'highpass',.7)},
+  chime(){if(!this.ok())return;this.bell(1760,0,.08);this.bell(2349,.1,.065)},
+  pick(){if(!this.ok())return;this.bell(2093,0,.055)},
+  tick(){const A=window.AUD;if(!A||!A.ok||A.ctx.state!=='running')return;const n=performance.now();if(n-this.t<50)return;this.t=n;AUD.tone(3400,2700,.04,.03,'sine')},
+  init(){if(this.done)return;this.done=true;
+    const sel=e=>{const b=e.target&&e.target.closest&&e.target.closest('#menu button,#creator button,#garage button');return b&&!b.disabled?b:null};
+    document.addEventListener('click',e=>{const b=sel(e);if(!b)return;
+      if((b.closest('#creator')&&!b.closest('#crBar')&&!b.closest('#crHead'))||b.closest('#garList,#garSw,.garArr'))this.pick();else this.chime()},true);
+    document.addEventListener('mouseover',e=>{const b=sel(e);if(b!==this.hov){this.hov=b;if(b)this.tick()}});
+    document.addEventListener('mouseout',e=>{if(!e.relatedTarget)this.hov=null})}};
+UIS.init();
