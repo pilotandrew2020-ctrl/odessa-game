@@ -8,7 +8,7 @@
    =================================================================================================== */
 
 const MD={built:null,leaving:0,ready:false};
-const MD_STYLE={exp:.58,wood:'#b8976b',wall:'#efeeea',wm:0,floor:'#b79d7c',fm:5,trim:'#ffffff',ceil:'#f7f6f2',cm:0,beams:false,sofa:['#5b6672','#c9ced3'],accent:'#2f4858',light:0xfff0d8};
+const MD_STYLE={exp:.58,wood:'#b8976b',wall:'#efeeea',wm:0,floor:'#b79d7c',fm:5,trim:'#ffffff',ceil:'#f7f6f2',cm:0,beams:false,sofa:['#5b6672','#c9ced3'],sofaGlb:'Sofa_01',accent:'#2f4858',light:0xfff0d8};
 
 function installModern(){
   if(MD.ready)return;MD.ready=true;
@@ -47,6 +47,7 @@ function mdBuild(){
   flProp(E,'wooden_display_shelves_01',-1.3,3.4,0,.19,.54);          // a real light-wood cube shelf on the partition (Poly Haven, CC0)
   K.tv(-1.71,5.65,PI/2,1.5);K.shelf(hw-.03,7.45,-PI/2,1.8,2.1);K.plant(-1.15,8.0,1.2);K.lamp(2.95,8.05,1.55);
   K.window(1.4,D-.12,PI,2.2,1.5,1.55);K.window(3.8,D-.12,PI,1.2,1.5,1.55);K.art(-.5,D-.07,PI,.9,.6,1.9);
+  MDL.put(grp,'modern_ceiling_lamp_01',{x:ox+1.4,y:INT_Y+H-.95,z:oz+6.0});MDL.put(grp,'modern_ceiling_lamp_01',{x:ox-3.2,y:INT_Y+H-.95,z:oz+3.8,s:.8});   // real pendant lamps (Poly Haven, CC0) over the living room and the hall
   // ----- light: five soft points -----
   K.light(-3.2,2.5,1.2,S.light,1.1,9);K.light(-3.2,2.5,3.8,0xffffff,1.0,8);K.light(-3.2,2.5,6.9,S.light,1.1,9);K.light(1.4,2.5,6.0,S.light,1.3,13);K.light(2.4,2.5,2.4,0xffffff,1.3,12);
   E.fin();const pg=E.P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));

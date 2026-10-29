@@ -37,7 +37,10 @@ function hsKit(E,S,L){
   const light=(x,y,z,col,i,d)=>{const l=new THREE.PointLight(col,0,d||14,1.5);l.position.set(ox+x,INT_Y+y,oz+z);l.userData.i=i;E.grp.add(l);L.push(l);return l};K.light=light;
   const sit=(x,z,ry,label,y)=>E.act(x,z,1.7,label,()=>{if(player.sit)return;player.sit={x:ox+x,z:oz+z,y:INT_Y+(y||.12),yaw:ry};cam.yaw=ry;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')});
   // sofa / armchair: back edge at (x,z), facing ry
-  K.sofa=(x,z,ry,len,c1,c2)=>{c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
+  K.sofa=(x,z,ry,len,c1,c2)=>{
+    if(S.sofaGlb&&len>1.5){const s=Math.min(1.35,len/1.57),p=loc(x,z,ry)(0,.33*s+.02);   // a real Poly Haven sofa (CC0) in styles that ask for it; the sit act and collision stay the kit's
+      MDL.put(E.grp,S.sofaGlb,{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
+    c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
     bx(x,z,ry,0,.2,.47,len,.4,.92,c1);bx(x,z,ry,0,.68,.1,len,.62,.2,c1);for(const s of [-1,1])bx(x,z,ry,s*(len/2-.1),.5,.47,.2,.56,.92,c1);
     for(let i=0;i<n;i++){const u=-len/2+w*(i+.5);bx(x,z,ry,u,.47,.56,w-.2*(n>1?.15:.5)-.05,.15,.68,c2);bx(x,z,ry,u,.72,.24,w-.28,.36,.16,c2)}
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};

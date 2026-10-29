@@ -6,7 +6,7 @@
   The clip was cut and re-encoded (H.264, lower resolution) to keep the game small.
 
 ## 3D models
-- `assets/models/props/ArmChair_01.glb`, `Television_01.glb`, `russian_food_cans_01.glb`, `hanging_picture_frame_02.glb`, `ClassicNightstand_01.glb`, `wooden_display_shelves_01.glb`, `cassette_player.glb`, `brass_vase_03.glb`, `vintage_wooden_drawer_01.glb`, `coffee_table_round_01.glb`, `side_table_01.glb` — from **Poly Haven** (https://polyhaven.com/models), licensed **CC0** (public domain).
+- `assets/models/props/ArmChair_01.glb`, `Television_01.glb`, `russian_food_cans_01.glb`, `hanging_picture_frame_02.glb`, `ClassicNightstand_01.glb`, `wooden_display_shelves_01.glb`, `cassette_player.glb`, `brass_vase_03.glb`, `vintage_wooden_drawer_01.glb`, `coffee_table_round_01.glb`, `side_table_01.glb`, `Sofa_01.glb`, `modern_ceiling_lamp_01.glb` — from **Poly Haven** (https://polyhaven.com/models), licensed **CC0** (public domain).
   Used for the armchairs in the flats, the 80s CRT television in the Soviet flat, the Soviet tins in its kitchen the framed painting on the lounge wall the bedside table by the sofa-bed the cube shelf in the modern flat the cassette recorder by the Soviet TV the brass vase on the dinner table the chest of drawers by the south wall the round coffee table in the modern flat and the side table between the Soviet armchairs.
 - `assets/models/apache.glb` — helicopter model that was already in the project when the asset programme started; source and licence not recorded.
 
