@@ -5956,8 +5956,10 @@ const HELI={
     }else{
       $('heliControls').hidden=true;$('heliAim').hidden=true;this.liftInput=0;
       this.root.visible=false;PLR.root.visible=true;
-      player.x=this.root.position.x;player.z=this.root.position.z;player.y=groundAt(player.x,player.z,player.y);
-      player.yaw=this.yaw;player.vx=player.vz=player.vy=0;cam.init=false;
+      player.x=this.root.position.x;player.z=this.root.position.z;{const gy=groundAt(player.x,player.z,player.y),hy=this.root.position.y-1.25;
+        // high up you really drop (landing squash, streaming keeps pace) instead of being snapped to the ground in one frame
+        if(hy-gy>2.5){player.y=hy;player.air=true;player.vy=Math.min(0,this.velocity.y||0)}else{player.y=gy;player.vy=0}}
+      player.yaw=this.yaw;player.vx=player.vz=0;cam.init=false;
       toast('Landed','helicopter controls off');
     }
   },
@@ -6792,7 +6794,7 @@ function stepPlayer(dt){
   const g=groundAt(player.x,player.z,player.y);
   if(inp.jump&&!player.air){player.vy=player.scoot?4.2:7.2;player.air=true;if((typeof AUD!=='undefined')&&AUD)AUD.jump()}
   inp.jump=false;
-  if(player.air){player.vy-=13*dt;const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
+  if(player.air){player.vy=Math.max(-28,player.vy-13*dt);const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
     if(ny<=gLand){player.y=gLand;player.air=false;player.vy=0;if((typeof AUD!=='undefined')&&AUD)AUD.land()}else player.y=ny}
   else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
     else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
