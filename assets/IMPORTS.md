@@ -12,6 +12,7 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `models/props/ClassicNightstand_01.glb` | Poly Haven | CC0 | `soviet.js` lounge, bedside table at the sofa-bed (2k tris, diffuse only) |
 | `models/props/wooden_display_shelves_01.glb` | Poly Haven | CC0 | `modern.js` living room via `flProp()` in `flats.js` (3.2k tris, diffuse only) |
 | `models/props/cassette_player.glb` | Poly Haven | CC0 | `soviet.js` lounge, next to the TV (4.8k tris, diffuse only, `s:1.15`; `d:`/`w:`/`h:` mis-measure it because of node transforms) |
+| `models/props/brass_vase_03.glb` | Poly Haven | CC0 | `soviet.js` lounge dinner table (2.6k tris, diffuse only, real size ≈8×20 cm) |
 | `models/apache.glb` | already in the project | unknown | helicopter in `index.html` |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.

@@ -193,6 +193,7 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   MDL.put(grp,'hanging_picture_frame_02',{x:ox-10.0,y:Y+1.65,z:oz+10.84,ry:Math.PI,w:.75});                  // a real framed painting with glass (Poly Haven, CC0)
   // the dining table: champagne, Olivier salad, tangerines, crystal bowls
   for(const x of [-5.1,-4.75]){C(x,1.1,7.7,.09,.09,.5,'#1b3a22',1);C(x,1.38,7.7,.04,.04,.14,'#d4af37',6)}
+  MDL.put(grp,'brass_vase_03',{x:ox-4.0,y:Y+.85,z:oz+7.75,ry:0});                                  // a real brass vase on the dinner table (Poly Haven, CC0)
   C(-4.2,.91,8.3,.35,.25,.12,'#d8dde0',1);for(const [x,z] of [[-4.28,8.25],[-4.1,8.35],[-4.2,8.22],[-4.12,8.2],[-4.3,8.38]])S(x,1.03,z,.1,'#f08a1c');
   for(const [x,z] of [[-3.4,8.6],[-3.0,7.6],[-5.2,8.7]]){C(x,.91,z,.3,.2,.12,'#cfe6f0',1);C(x,.97,z,.24,.24,.04,'#f0e3b0',1)}
   // under the tree: wrapped gifts, a Ded Moroz and a Snegurochka (clear of the sofa and the north doorway)
