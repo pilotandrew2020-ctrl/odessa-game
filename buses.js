@@ -86,6 +86,7 @@ function buildBoxVehicle(def){
     const G2=cyl.toNonIndexed(),p=G2.attributes.position,n=G2.attributes.normal;for(let i=0;i<p.count;i+=3){const ids=[];for(let j=0;j<3;j++)ids.push(V([p.getX(i+j),p.getY(i+j),p.getZ(i+j)],[n.getX(i+j),n.getY(i+j),n.getZ(i+j)],BLK,6));g.tri(...ids)}cyl.dispose();G2.dispose()}
   for(const f of late)f();   // glass last: it blends over the interior and the far side instead of hiding it
   const geo=g.build();
+  if(typeof cxWheel==='function')return {geo,wgeo:cxWheel(def,{w:kind==='bus'?.3:.24,alloy:false}),W,L:def.L,wz:def.wz,wx:W/2-.08,wr:def.wr};
   const wg=new GB({position:3,normal:3,aCol:3,aM:1});
   const addWheelPart=(ge,m)=>{const G=ge.toNonIndexed(),p=G.attributes.position,n=G.attributes.normal;for(let i=0;i<p.count;i+=3){const ids=[];for(let j=0;j<3;j++)ids.push(wg.v({position:[p.getX(i+j),p.getY(i+j),p.getZ(i+j)],normal:[n.getX(i+j),n.getY(i+j),n.getZ(i+j)],aCol:[0,0,0],aM:m}));wg.tri(...ids)}};
   const tyre=new THREE.CylinderGeometry(def.wr,def.wr,kind==='bus'?.3:.24,16);tyre.rotateZ(Math.PI/2);

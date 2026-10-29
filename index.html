@@ -262,6 +262,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="soviet.js"></script>
 <script src="creator.js"></script>
 <script src="products.js"></script>
+<script src="carx.js"></script>
 <script src="buses.js"></script>
 <script src="houses.js"></script>
 <script src="pkdata.js"></script>
@@ -478,21 +479,29 @@ const clamp255=v=>v<0?0:v>255?255:v|0;
 function genTextures(){
   const N=128;
   // ---------- asphalt (RGB albedo, A height) ----------
-  TX.asphalt=dataTex(N,(d,N)=>{
-    const big=fbmSet(2,4,11),mid=fbmSet(16,3,13),fine=fbmSet(128,1,12),r=mkRand(5);
+  // 256 px per tile, so the grain of a real wearing course (bitumen with pale chippings) reads from a metre away
+  TX.asphalt=dataTex(256,(d,N)=>{
+    const big=fbmSet(2,4,11),mid=fbmSet(16,3,13),fine=fbmSet(128,1,12),grit=fbmSet(64,2,14),r=mkRand(5);
     const crack=new Float32Array(N*N);
-    for(let c=0;c<10;c++){let x=r()*N,y=r()*N,a=r()*6.28;const len=60+r()*200;for(let s=0;s<len;s++){a+=(r()-.5)*.5;x+=Math.cos(a);y+=Math.sin(a);
-      const xi=((x|0)%N+N)%N,yi=((y|0)%N+N)%N;crack[yi*N+xi]=1;crack[yi*N+(xi+1)%N]=Math.max(crack[yi*N+(xi+1)%N],.4)}}
-    const patches=[];for(let p=0;p<4;p++)patches.push([r()*N,r()*N,40+r()*120,30+r()*80,(r()-.5)*.08]);
+    // a few thin hairline cracks that wander and fork once, not a web
+    const hair=(x,y,a,len,w)=>{for(let s=0;s<len;s++){a+=(r()-.5)*.35;x+=Math.cos(a);y+=Math.sin(a);
+      const xi=((x|0)%N+N)%N,yi=((y|0)%N+N)%N;crack[yi*N+xi]=Math.max(crack[yi*N+xi],w);if(r()<.5)crack[yi*N+(xi+1)%N]=Math.max(crack[yi*N+(xi+1)%N],w*.45);
+      if(r()<.004&&w>.5)hair(x,y,a+(r()<.5?1:-1)*(.5+r()*.5),30+r()*50,w*.7)}};
+    for(let c=0;c<3;c++)hair(r()*N,r()*N,r()*6.28,90+r()*140,1);
+    // fresh patches (darker) and worn stretches (paler), with hard-ish edges like a repair
+    const patches=[];for(let p=0;p<3;p++)patches.push([r()*N,r()*N,50+r()*90,36+r()*60,(r()<.6?-1:1)*(.025+r()*.03)]);
+    // chippings: ~14% of the pixels are stones, a few of them quartz-bright, a few holes dark
     for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-      const u=x/N,v=y/N;const b=pfbm(big,2,u,v,4),m=pfbm(mid,16,u,v,3),f=pnoise(fine[0],128,u,v);
-      let g=.26+.06*(b-.5)+.035*(m-.5)+.03*(f-.5);
-      const sp=r();if(sp<.03)g+=.04;else if(sp<.05)g-=.03;
-      for(const [px,py,pw,ph,dv] of patches){if(Math.abs(((x-px+N*1.5)%N)-N/2)<pw/2&&Math.abs(((y-py+N*1.5)%N)-N/2)<ph/2)g+=dv}
-      const cr=crack[y*N+x];g*=1-.45*cr;
-      const i=(y*N+x)*4;const c=clamp255(g*255);d[i]=c;d[i+1]=c;d[i+2]=clamp255(c*1.02);d[i+3]=clamp255(255*(.55+.25*(f-.5)+.15*(m-.5)-cr*.45));
+      const u=x/N,v=y/N;const b=pfbm(big,2,u,v,4),m=pfbm(mid,16,u,v,3),f=pnoise(fine[0],128,u,v),gr=pfbm(grit,64,u,v,2);
+      let g=.235+.05*(b-.5)+.03*(m-.5)+.05*(gr-.5);
+      const sp=r();
+      if(sp<.1)g+=.035+.07*r();else if(sp<.13)g+=.13+.08*r();else if(sp>.94)g-=.05+.04*r();
+      for(const [px,py,pw,ph,dv] of patches){const ex=Math.abs(((x-px+N*1.5)%N)-N/2)-pw/2,ey=Math.abs(((y-py+N*1.5)%N)-N/2)-ph/2;if(ex<0&&ey<0)g+=dv*(ex<-3&&ey<-3?1:.5)}
+      const cr=crack[y*N+x];g*=1-.5*cr;
+      const i=(y*N+x)*4;const c=clamp255(g*255);d[i]=clamp255(c*.99);d[i+1]=c;d[i+2]=clamp255(c*1.03);
+      d[i+3]=clamp255(255*(.5+.2*(gr-.5)+.12*(m-.5)+(sp<.13?.18:sp>.94?-.2:0)-cr*.5));
     }
-  });
+  },{aniso:8});
   // ---------- sidewalk tiles 2m tile-set (4x4 tiles of 0.5m) ----------
   TX.tiles=dataTex(N,(d,N)=>{
     const n1=fbmSet(8,4,21),r=mkRand(9);const tcol=[];for(let i=0;i<16;i++)tcol.push([.56+r()*.08,r()<.15?.9:1,(r()-.5)*.06,r()<.08]);
@@ -732,6 +741,12 @@ const GROUND_SURF=`
    sAlb=mix(sAlb,vec3(.62,.62,.58),mk);sRough=mix(sRough,.6,mk);
    sAlb*=1.-.1*smoothstep(.75,1.,abs(vU));
    float tr=exp(-pow((abs(x)-hw*.5)*1.6,2.))*.08;sAlb*=1.-tr;          // tyre tracks
+   {float sf=fract(vR.x/11.);sf=min(sf,1.-sf)*11.;float seam=1.-smoothstep(.015,.05,sf);sAlb*=1.-.4*seam*(1.-mk);sH-=.3*seam;   // transverse tar seams every 11 m
+    float lane=abs(abs(x)-hw*.5);float oil=smoothstep(.58,.9,vn(vec2(vR.x*.8,x*2.3)+.7))*smoothstep(1.3,.2,lane)*.22;sAlb*=1.-oil*(1.-mk);sRough=mix(sRough,.3,oil*2.);   // oil drips down the lane centres
+    float gut=smoothstep(.935,.95,abs(vU));sAlb=mix(sAlb,toLin(vec3(.47,.46,.43))*(.85+.3*vn(p*2.)),gut*.7);sRough=mix(sRough,.9,gut);   // concrete gutter strip against the kerb
+    vec2 mc=floor(p/41.);float mhOn=step(.5,h12(mc+3.1));vec2 mo=mc*41.+vec2(h12(mc),h12(mc+7.3))*34.+3.;float md=length(p-mo);
+    float mh=(1.-smoothstep(.37,.39,md))*mhOn*step(.3,abs(vU))*step(abs(vU),.75);float mring=smoothstep(.36,.38,md)*(1.-smoothstep(.43,.46,md))*mhOn*step(.3,abs(vU))*step(abs(vU),.75);
+    sAlb=mix(sAlb,vec3(.045,.043,.04)*(.7+.5*step(.5,fract(md*28.))),mh);sAlb*=1.-.5*mring;sRough=mix(sRough,.35,mh);sH=mix(sH,.15,mh+mring);}   // cast-iron manhole covers
    float pud=smoothstep(.62,.72,fbm3(p*.06+3.))*max(uWet,.15+uWinter*.4);
    sAlb*=1.-.45*pud;sRough=mix(sRough,.05,pud);sH=mix(sH,.5,pud);
    snowAmt=uWinter*(.55+.4*smoothstep(.55,1.,abs(vU)))*(.7+.3*vn(p*.5));
@@ -4085,8 +4100,10 @@ function buildCarType(def){
   for(const s of [-1,1]){
     const lampW=boundedWidth(lampY,lampH,.56,.34);
     const lampX=frontHalfAt(lampY)*.58;
+    box(s*lampX,lampY,faceZ-.012,lampW+.05,lampH+.05,.06,5,[.5,.5,.5]);                         // chrome bezel
     box(s*lampX,lampY,faceZ,lampW,lampH,.09,2,[1,.95,.82]);
-    box(s*W*.36,def.tl,rz+.02,.3,.12,.05,3,[.75,.04,.03]);
+    const indX=Math.min(lampX+lampW/2+.1,frontHalfAt(lampY)-.06);box(s*indX,lampY-lampH*.12,faceZ,.11,lampH*.6,.08,2,[1,.58,.08]);   // amber indicator
+    box(s*W*.36,def.tl,rz+.02,.3,.12,.05,3,[.75,.04,.03]);box(s*W*.36,def.tl-.08,rz+.018,.3,.035,.04,2,[1,.58,.08]);
   }
   box(0,bumperY,faceZ,boundedWidth(bumperY,bumperH,1.8,W*.92),bumperH,.14,6,[0,0,0]);
   box(0,.42,rz-.02,W*.92,.18,.08,6,[0,0,0]);
@@ -4117,8 +4134,9 @@ function buildCarType(def){
   }
   for(const wz of def.wz)for(const s of [-1,1]){const cyl=new THREE.CylinderGeometry(def.wr*1.2,def.wr*1.2,.03,16);cyl.rotateZ(Math.PI/2);cyl.translate(s*(W/2+.002),def.wr,wz);
     const G2=cyl.toNonIndexed();const p=G2.attributes.position,n=G2.attributes.normal;for(let i=0;i<p.count;i+=3){const ids=[];for(let j=0;j<3;j++)ids.push(V([p.getX(i+j),p.getY(i+j),p.getZ(i+j)],[n.getX(i+j),n.getY(i+j),n.getZ(i+j)],[0,0,0],6));g.tri(...ids)}}
+  if(typeof cxDetails==='function'){cxDetails(g,def);return {geo:g.build(),wgeo:cxWheel(def),W,L:def.L,wz:def.wz,wx:W/2-.08,wr:def.wr}}
   const geo=g.build();
-  // wheel: tyre + rim
+  // wheel: tyre + rim (fallback when carx.js is missing)
   const wg=new GB({position:3,normal:3,aCol:3,aM:1});
   const tyre=new THREE.CylinderGeometry(def.wr,def.wr,.22,14);tyre.rotateZ(Math.PI/2);
   const rim=new THREE.CylinderGeometry(def.wr*.62,def.wr*.62,.232,10);rim.rotateZ(Math.PI/2);
@@ -4150,11 +4168,11 @@ const CAR_DEFS=[
    top:[[-2.12,.8],[-2.0,1.04],[-1.35,1.12],[-.5,1.38],[.32,1.4],[.98,1.0],[1.95,.8],[2.12,.58]],
    glass:[[-1.3,1.12],[-.48,1.34],[.3,1.36],[.92,1.02]]},
   // 5: Tavria (ZAZ-1102): short, tall-roofed hatch with a steep tail
-  {L:3.7,W:1.56,wr:.27,wz:[1.15,-1.12],front:1.85,rear:-1.85,hl:.62,tl:.78,mirror:.62,tum:.84,y0:.26,pillars:[-.32],doors:[.62,-.95],
+  {L:3.7,W:1.56,wr:.27,wz:[1.15,-1.12],front:1.85,rear:-1.85,hl:.62,tl:.78,mirror:.62,tum:.84,y0:.26,pillars:[-.32],doors:[.62,-.95],alloy:false,seat:[.36,.27,.17],
    top:[[-1.85,.84],[-1.7,.9],[-.85,1.38],[.35,1.37],[.95,.9],[1.65,.78],[1.85,.62]],
    glass:[[-1.7,.9],[-.85,1.34],[.35,1.33],[.92,.92]]},
   // 6: Lada "Zhiguli" sedan (VAZ-2107): boxy three-box
-  {L:4.15,W:1.62,wr:.3,wz:[1.3,-1.3],front:2.07,rear:-2.07,hl:.7,tl:.86,mirror:.7,tum:.82,pillars:[-.2],y0:.3,
+  {L:4.15,W:1.62,wr:.3,wz:[1.3,-1.3],front:2.07,rear:-2.07,hl:.7,tl:.86,mirror:.7,tum:.82,pillars:[-.2],y0:.3,alloy:false,seat:[.4,.3,.2],
    top:[[-2.07,.92],[-1.95,.98],[-1.2,.99],[-.7,1.36],[.3,1.37],[.78,.98],[1.9,.92],[2.07,.74]],
    glass:[[-1.2,.99],[-.7,1.33],[.3,1.34],[.78,.99]]},
   // 7: Daewoo-Lanos-style compact sedan
@@ -4166,11 +4184,11 @@ const CAR_DEFS=[
    top:[[-5.3,3.0],[-5.28,3.06],[4.9,3.06],[5.25,2.4],[5.3,.9]],
    glass:[[-5.0,1.35],[-5.0,2.78],[4.9,2.78],[5.2,1.5]]},
   // 9: Fiat 126p "Maluch" — tiny, round roof, rear engine lid
-  {L:3.05,W:1.38,wr:.27,wz:[.92,-.92],front:1.52,rear:-1.53,hl:.66,tl:.7,mirror:.72,tum:.8,round:.7,pillars:[-.25],
+  {L:3.05,W:1.38,wr:.27,wz:[.92,-.92],front:1.52,rear:-1.53,hl:.66,tl:.7,mirror:.72,tum:.8,round:.7,pillars:[-.25],alloy:false,seat:[.34,.3,.24],
    top:[[-1.53,.6],[-1.45,.8],[-1.0,.86],[-.76,1.3],[.3,1.33],[.78,.92],[1.4,.8],[1.52,.56]],
    glass:[[-.98,.88],[-.74,1.26],[.28,1.29],[.74,.94]]},
   // 10: FSO Polonez — long wedge hatchback
-  {L:4.32,W:1.65,wr:.3,wz:[1.27,-1.31],front:2.16,rear:-2.16,hl:.72,tl:.92,mirror:.95,tum:.82,round:.9,pillars:[-.6],
+  {L:4.32,W:1.65,wr:.3,wz:[1.27,-1.31],front:2.16,rear:-2.16,hl:.72,tl:.92,mirror:.95,tum:.82,round:.9,pillars:[-.6],alloy:false,seat:[.2,.22,.3],
    top:[[-2.16,.95],[-2.05,1.02],[-1.8,1.3],[-.2,1.4],[.5,1.38],[1.05,.98],[2.0,.86],[2.16,.66]],
    glass:[[-1.95,1.05],[-1.7,1.32],[.45,1.35],[1.0,1.0]]},
 ];
