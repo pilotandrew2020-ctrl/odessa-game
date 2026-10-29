@@ -1791,9 +1791,31 @@ function makeTreeSpecies(){
     for(let i=0;i<10;i++){const y=1+i*.62,rr=(1-i/10)*1.9+.25;for(let k=0;k<6;k++){const a=k/6*6.283+i*.5;const px=Math.cos(a)*rr*.5,pz=Math.sin(a)*rr*.5;
       const s=rr*1.25;const c=Math.cos(a),sn=Math.sin(a);const n=[c,.4,sn];const u0=(k&1)*.5,v0=0;
       const P=(x,y2)=>[px+c*x*.3-sn*x,y+y2,pz+sn*x*.3+c*x];const ids=[[-s/2,-.4,0,0],[s/2,-.4,1,0],[s/2,.9,1,1],[-s/2,.9,0,1]].map(([x,yy,a2,b])=>lg.v({position:P(x,yy),normal:n,uv:[u0+a2*.5,v0+b*.5]}));lg.quad(ids[0],ids[1],ids[2],ids[3])}}});
+  // 5 acacia (robinia) — Odesa's street tree: leaning forked trunk, a thin airy crown of small clumps, yellow-green
+  TREE_SP[5]=mk(61,(limb,lg,r)=>{limb(0,-.3,0,.45,3.4,.2,.23,.15);const crown=[.6,7,.2],ends=[];
+    for(let i=0;i<4;i++){const a=i/4*6.283+r()*.9,L=1.8+r()*1.7;const sx=.45,sy=3.2,sz=.2,ex=sx+Math.cos(a)*L,ez=sz+Math.sin(a)*L,ey=6+r()*3;limb(sx,sy,sz,(sx+ex)/2,(sy+ey)/2-.3,(sz+ez)/2,.14,.09);limb((sx+ex)/2,(sy+ey)/2-.3,(sz+ez)/2,ex,ey,ez,.09,.04);ends.push([ex,ey,ez])}
+    ends.push([.8,9.6,.3]);for(const [x,y,z] of ends)for(let k=0;k<3;k++)leafClump(lg,r,x+(r()-.5)*1.4,y+(r()-.3)*1.1,z+(r()-.5)*1.4,1.35,4,crown)});
+  // 6 horse chestnut — short trunk, wide dense dome, big dark clumps
+  TREE_SP[6]=mk(67,(limb,lg,r)=>{limb(0,-.3,0,0,2.5,0,.34,.26);const crown=[0,6,0],ends=[];
+    for(let i=0;i<6;i++){const a=i/6*6.283+r()*.5,L=2.6+r()*1.2,ex=Math.cos(a)*L,ez=Math.sin(a)*L,ey=5+r()*1.8;limb(0,2.3,0,ex*.5,ey-1.4,ez*.5,.2,.13);limb(ex*.5,ey-1.4,ez*.5,ex,ey,ez,.13,.06);ends.push([ex,ey,ez])}
+    for(const [x,y,z] of ends)leafClump(lg,r,x,y+.2,z,2.8,8,crown);for(let i=0;i<8;i++){const a=r()*6.283,d=r()*1.8;leafClump(lg,r,Math.cos(a)*d,6+r()*2.2,Math.sin(a)*d,2.6,6,crown)}});
+  // 7 maple — rounded, symmetrical, medium height
+  TREE_SP[7]=mk(71,(limb,lg,r)=>{limb(0,-.3,0,0,3,0,.26,.2);const crown=[0,6.2,0],ends=[];
+    for(let i=0;i<5;i++){const a=i/5*6.283+r()*.4,L=1.8+r()*.9,ex=Math.cos(a)*L,ez=Math.sin(a)*L,ey=5.2+r()*1.4;limb(0,2.8,0,ex,ey,ez,.14,.05);ends.push([ex,ey,ez])}
+    ends.push([0,7.2,0]);for(const [x,y,z] of ends)leafClump(lg,r,x,y,z,2.3,7,crown);for(let i=0;i<5;i++)leafClump(lg,r,(r()-.5)*2.4,5+r()*2.3,(r()-.5)*2.4,2,5,crown)});
+  // 8 linden — straight trunk, tall oval crown (avenue tree)
+  TREE_SP[8]=mk(73,(limb,lg,r)=>{limb(0,-.3,0,0,9,0,.26,.08);const crown=[0,7,0];
+    for(let i=0;i<14;i++){const t=i/13,y=3.6+t*6.4,rr=Math.sin(t*3.14159)*1.3+.55;const a=r()*6.283;leafClump(lg,r,Math.cos(a)*rr*.55,y,Math.sin(a)*rr*.55,1.5+rr*.55,5,crown)}});
+  // 9 walnut / mulberry — low trunk, a broad spreading umbrella
+  TREE_SP[9]=mk(79,(limb,lg,r)=>{limb(0,-.3,0,0,1.9,0,.38,.3);const crown=[0,4.6,0],ends=[];
+    for(let i=0;i<5;i++){const a=i/5*6.283+r()*.5,L=3+r()*1.2,ex=Math.cos(a)*L,ez=Math.sin(a)*L,ey=3.8+r()*1.3;limb(0,1.8,0,ex*.5,ey-.8,ez*.5,.22,.14);limb(ex*.5,ey-.8,ez*.5,ex,ey,ez,.14,.06);ends.push([ex,ey,ez])}
+    for(const [x,y,z] of ends)leafClump(lg,r,x,y+.1,z,2.7,7,crown);for(let i=0;i<5;i++){const a=r()*6.283,d=r()*2;leafClump(lg,r,Math.cos(a)*d,4.6+r()*1.2,Math.sin(a)*d,2.4,5,crown)}});
 }
-const TREE_COL=[[[.42,.58,.30],[.50,.64,.32],[.36,.52,.28]],[[.48,.62,.30],[.56,.68,.34],[.44,.58,.30]],[[.40,.56,.30],[.46,.60,.32]],[[.55,.70,.36],[.62,.74,.38]],[[.20,.34,.22],[.24,.38,.24],[.18,.30,.22]]];
+const TREE_COL=[[[.42,.58,.30],[.50,.64,.32],[.36,.52,.28]],[[.48,.62,.30],[.56,.68,.34],[.44,.58,.30]],[[.40,.56,.30],[.46,.60,.32]],[[.55,.70,.36],[.62,.74,.38]],[[.20,.34,.22],[.24,.38,.24],[.18,.30,.22]],
+  [[.52,.68,.30],[.58,.72,.32],[.46,.62,.28]],[[.28,.46,.22],[.32,.50,.24],[.24,.40,.20]],[[.46,.64,.27],[.52,.68,.29],[.58,.66,.26]],[[.34,.54,.28],[.38,.58,.30],[.30,.50,.26]],[[.40,.56,.28],[.46,.60,.30],[.36,.50,.26]]];
 const TREE_COL_W=[.55,.42,.36];
+// the same OSM / park species slots get variety: a hash of the position swaps the broad tree for chestnut / maple / walnut, the round one for linden / acacia
+function treeVar(t,x,z){if(t>4||t<0)return t;const h=((x*7.123+z*3.971)%1+1)%1;if(t===0)return h<.45?0:h<.7?6:h<.88?7:9;if(t===1)return h<.35?1:h<.65?8:h<.85?5:7;return t}
 function setTreeInstanceBounds(mesh,points){
   const bounds=new THREE.Box3().makeEmpty(),p=new THREE.Vector3();
   for(const t of points){const scale=t[3]||1,y=t[4]===undefined?0:t[4];
@@ -1802,16 +1824,16 @@ function setTreeInstanceBounds(mesh,points){
   if(points.length)bounds.getBoundingSphere(mesh.geometry.boundingSphere||(mesh.geometry.boundingSphere=new THREE.Sphere()));
 }
 // global instanced manager: all trees of loaded chunks in 2 draw calls per species
-const TREES={chunks:new Map(),meshes:[],dirty:false,cap:[0,0,0,0,0],
-  init(scene){for(let s=0;s<5;s++){const t=new THREE.InstancedMesh(TREE_SP[s].trunk,MATS.bark,1),l=new THREE.InstancedMesh(TREE_SP[s].leaf,MATS.leaves,1);
+const TREES={chunks:new Map(),meshes:[],dirty:false,cap:new Array(10).fill(0),
+  init(scene){for(let s=0;s<TREE_SP.length;s++){const t=new THREE.InstancedMesh(TREE_SP[s].trunk,MATS.bark,1),l=new THREE.InstancedMesh(TREE_SP[s].leaf,MATS.leaves,1);
     for(const m of [t,l]){m.frustumCulled=true;m.castShadow=true;m.receiveShadow=true;m.count=0;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m)}
     l.setColorAt(0,new THREE.Color(1,1,1));l.customDepthMaterial=LEAF_DEPTH;this.meshes[s]={t,l}}},
   add(id,pts){this.chunks.set(id,pts);this.dirty=true},
   remove(id){if(this.chunks.delete(id))this.dirty=true},
   update(px,pz,maxD){if(!this.dirty&&this.lastSeason===S.season&&(this.lastX!==undefined&&Math.hypot(px-this.lastX,pz-this.lastZ)<30))return;this.dirty=false;this.lastX=px;this.lastZ=pz;this.lastSeason=S.season;
-    const lists=[[],[],[],[],[]];const md2=maxD*maxD;for(const pts of this.chunks.values())for(const p of pts){const dx=p[0]-px,dz=p[1]-pz;if(dx*dx+dz*dz<md2)lists[p[2]].push(p)}
+    const lists=TREE_SP.map(()=>[]);const md2=maxD*maxD;for(const pts of this.chunks.values())for(const p of pts){const dx=p[0]-px,dz=p[1]-pz;if(dx*dx+dz*dz<md2)(lists[p[2]]||lists[3]).push(p)}
     const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),Sv=new THREE.Vector3(),T=new THREE.Vector3(),E=new THREE.Euler(),C=new THREE.Color();
-    for(let s=0;s<5;s++){const L=lists[s],ms=this.meshes[s];
+    for(let s=0;s<TREE_SP.length;s++){const L=lists[s],ms=this.meshes[s];
       if(L.length>this.cap[s]){const cap=Math.ceil(L.length*1.3)+16;for(const k of ['t','l']){const old=ms[k];const m=new THREE.InstancedMesh(old.geometry,old.material,cap);m.frustumCulled=true;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
           if(k==='l'){m.setColorAt(0,C.setRGB(1,1,1));m.customDepthMaterial=LEAF_DEPTH}scene.remove(old);old.dispose&&old.dispose();scene.add(m);ms[k]=m}this.cap[s]=cap}
       L.forEach((p,i)=>{const [x,z,sp,sc]=p;const h=((x*12.9898+z*78.233)%1+1)%1;E.set(0,h*6.28,0);Q.setFromEuler(E);Sv.set(sc*(.9+h*.2),sc,sc*(.9+h*.2));T.set(x,p[4]!==undefined?p[4]:groundH(x,z)-.05,z);if(p[4]===undefined)p[4]=T.y;M.compose(T,Q,Sv);
@@ -1834,7 +1856,7 @@ function treesForChunk(id,c,pts,solid){
   for(let s=D.segStart[id];s<D.segStart[id+1];s++){const i=D.seg[s],k=D.wOf[i],cl=D.wcls[k];if(cl>2||D.wfl[k]===2)continue;
     const a=wn[i]*2,b=wn[i+1]*2;const ax=P[a],az=P[a+1],bx=P[b],bz=P[b+1];const L=Math.hypot(bx-ax,bz-az);if(L<4)continue;if(EXCL_ROAD&&EXCL_ROAD(ax,az,bx,bz))continue;
     const tx=(bx-ax)/L,tz=(bz-az)/L,nx=-tz,nz=tx;const ped=D.wfl[k]===1;const off=ped?HW[cl]+SW[cl]+2.4:(cl<2?HW[cl]+.95:HW[cl]+1.6);
-    const spc=ped?9:(cl<2?9:12);const ca=D.cum[i];const sp0=hjs(k,3)<.6?0:(hjs(k,5)<.5?1:2);
+    const spc=ped?9:(cl<2?9:12);const ca=D.cum[i];const ROWS=[0,5,6,7,8,1,5,8,2,9],sp0=ROWS[Math.floor(hjs(k,3)*ROWS.length)%ROWS.length];   // each street keeps its own species: plane, acacia, chestnut, maple, linden…
     for(let u=Math.ceil(ca/spc)*spc+R()*2;u<D.cum[i+1];u+=spc){if(D.dPrev[i]+u-ca<10&&D.dPrev[i]<999||D.dNext[i+1]+(L-(u-ca))<10)continue;
       for(const sd of [-1,1]){if(R()<(cl===2?.45:.15))continue;const x=ax+tx*(u-ca)+nx*off*sd,z=az+tz*(u-ca)+nz*off*sd;if(solid(x,z,1.4)||blockedStatic(x,z,1.5)||treeClear(x,z))continue;
         pts.push([x,z,R()<.85?sp0:(R()<.5?1:3),.85+R()*.35])}}}
@@ -1843,7 +1865,7 @@ function treesForChunk(id,c,pts,solid){
   for(let j=0;j<CH/20;j++)for(let i=0;i<CH/20;i++){const gx=Math.floor((x0-BB[0])/20)+i,gz=Math.floor((z0-BB[2])/20)+j;if(gx<0||gz<0||gx>=tw||gz>=D.th)continue;
     let v=D.lu[(gz*tw+gx)*4+1]/255;if(window.PK_DENS){const q=PK_DENS(x0+(i+.5)*20,z0+(j+.5)*20);if(q>v)v=q}let n=v*2.6*Qp().tdens;n=Math.floor(n)+(R()<n%1?1:0);
     for(let q=0;q<n;q++){const x=x0+(i+R())*20,z=z0+(j+R())*20;if(groundH(x,z)<SL+1)continue;if(solid(x,z,2.4)||nearRoad(id,x,z,.8)||blockedStatic(x,z,2)||treeClear(x,z))continue;
-      let t=R();t=t<.34?0:t<.62?1:t<.74?2:t<.86?4:3;pts.push([x,z,t,.75+R()*.5])}
+      let t=R();t=t<.14?0:t<.26?1:t<.42?5:t<.50?6:t<.60?7:t<.67?8:t<.74?9:t<.80?2:t<.90?4:3;pts.push([x,z,t,.75+R()*.5])}
     // Grass patches in green areas
     if(v>.4&&R()<.6){
       const grassCount=Math.floor(v*50);
@@ -2097,7 +2119,7 @@ async function buildAllLandmarks(scene){
   const pg=P.build();if(pg){const m=new THREE.Mesh(pg,MATS.props);m.castShadow=m.receiveShadow=true;grp.add(m)}
   if(Sg.n)grp.add(new THREE.Mesh(Sg.build(),MATS.signs));
   if(GRX.n){const m=new THREE.Mesh(GRX.build(),MATS.ground);m.receiveShadow=true;grp.add(m)}
-  TREES.add('static',EXTRA_TREES.map(([x,z,t,sc])=>[x,z,t>=0&&t<=4?t:3,sc]));
+  TREES.add('static',EXTRA_TREES.map(([x,z,t,sc])=>[x,z,t>=0&&t<=4?treeVar(t,x,z):3,sc]));
   bakeStatic(grp,0);
   return grp;
 }
