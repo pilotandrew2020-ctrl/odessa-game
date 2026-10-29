@@ -217,6 +217,25 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   INTERACT.push({x:ox-3.9,z:oz+5.3,r:1.4,label:'Pet the cat',fn:()=>toast('Мурр','the cat purrs and does not blink')});
   INTERACT.push({x:ox-9.2,z:oz+8.2,r:1.9,label:'Look at Ded Moroz',fn:()=>toast('Дед Мороз и Снегурочка','cotton-wool figures from the 70s')})}
 
+// marker / chalk scrawl on a wall: a transparent canvas decal a hair off the surface (ry: 0 faces +z, PI/2 faces +x, -PI/2 faces -x, PI faces -z)
+function svScrawl(grp,x,y,z,ry,w,h,lines,o){o=o||{};const cv=document.createElement('canvas');cv.width=512;cv.height=Math.max(64,Math.round(512*h/w));const g=cv.getContext('2d');
+  g.translate(cv.width/2,cv.height/2);g.rotate(o.rot||0);g.textAlign='center';g.textBaseline='middle';
+  const fs=o.size||Math.floor(cv.height/(lines.length+.5));g.font='bold '+fs+'px "Segoe Print","Segoe Script","Comic Sans MS","Marker Felt",cursive';
+  g.fillStyle=o.color||'#1b1b1f';g.globalAlpha=o.alpha||.82;lines.forEach((t,i)=>g.fillText(t,0,(i-(lines.length-1)/2)*fs*1.08,cv.width*.94));
+  if(o.under){g.strokeStyle=g.fillStyle;g.lineWidth=fs*.07;g.beginPath();g.moveTo(-cv.width*.4,fs*(lines.length*.54+.1));g.quadraticCurveTo(0,fs*(lines.length*.54+.3),cv.width*.4,fs*(lines.length*.54));g.stroke()}
+  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  m.position.set(x,y,z);m.rotation.y=ry;grp.add(m);return m}
+// the stairwell notice board: green felt, a wooden frame, pinned paper notices
+function svBoard(grp,x,y,z,ry,w,h){const cv=document.createElement('canvas');cv.width=512;cv.height=Math.round(512*h/w);const g=cv.getContext('2d');
+  g.fillStyle='#3d5f48';g.fillRect(0,0,cv.width,cv.height);g.strokeStyle='#6b4a2d';g.lineWidth=18;g.strokeRect(0,0,cv.width,cv.height);
+  const sheets=[[30,34,210,150,'#f1efe4',-.03,['ОБЪЯВЛЕНИЕ','В субботу в 10:00','субботник во дворе','Жэк']],[262,30,214,120,'#efe6b8',.04,['Отключение','горячей воды','с 12 по 20']],[40,210,170,140,'#e6ecef',.03,['Продаётся','детская коляска','т. 34-17-52']],[250,190,226,150,'#f1efe4',-.02,['Соблюдайте','тишину','после 23:00']]];
+  for(const [sx,sy,sw,sh,col,rot,txt] of sheets){g.save();g.translate(sx+sw/2,sy+sh/2);g.rotate(rot);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(-sw/2+4,-sh/2+5,sw,sh);g.fillStyle=col;g.fillRect(-sw/2,-sh/2,sw,sh);
+    g.fillStyle='#b33';g.beginPath();g.arc(0,-sh/2+10,6,0,6.3);g.fill();g.fillStyle='#222';g.textAlign='center';g.textBaseline='middle';
+    txt.forEach((t,i)=>{g.font=(i===0?'bold 24px':'20px')+' Arial,sans-serif';g.fillText(t,0,-sh/2+38+i*28,sw-14)});g.restore()}
+  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,roughness:.9}));m.position.set(x,y,z);m.rotation.y=ry;grp.add(m);return m}
+
 // ===================== the stairwell: green-and-white walls, concrete flights, a green rail, three doors, an old lift =====================
 function svStair(opt){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+400,oz=INT_Z;
@@ -265,6 +284,20 @@ function svStair(opt){
   const ls=plateMesh(['ЛІФТ'],{w:128,h:64,size:36,color:'#fff',bg:'#2a4a6a'},.6,.3);ls.position.set(ox+2.75,INT_Y+3.55,oz+9.84);ls.rotation.y=Math.PI;grp.add(ls);
   const lift=$('liftUI');if(!lift.dataset.ok){lift.dataset.ok=1;const L=$('liftBtns');for(let f=1;f<=10;f++){const b=document.createElement('button');b.textContent=f;b.onclick=()=>{lift.hidden=true;if(window.AUD)AUD.beep();PORTAL.go('stair',{ent:PORTAL.opt.ent,floor:f,floors:PORTAL.opt.floors,style:PORTAL.opt.style,home:PORTAL.opt.home})};L.appendChild(b)}$('liftClose').onclick=()=>{lift.hidden=true}}
   INTERACT.push({x:ox+2.75,z:oz+8.9,r:1.6,label:'Call the old lift',fn:()=>{const mf=(PORTAL.opt&&PORTAL.opt.floors)||10;[...$('liftBtns').children].forEach((b,i)=>{b.style.display=i<mf?'':'none'});lift.hidden=false}});
+  // lived-in details: scuffed wall feet, cables along the ceiling, a fire extinguisher, a notice board and marker writing (each floor draws its own lines)
+  for(const [x,z,w,d] of [[-3.68,4.5,.03,10.8],[3.68,4.5,.03,10.8],[0,9.88,7.4,.03]])B(x,.17,z,w+(w>d?0:.004),.34,d+(w>d?.004:0),'#25563a',1);
+  B(3.2,H-.06,4.5,.03,.03,11,'#1a1a1a',1);B(3.3,H-.06,4.5,.03,.03,11,'#1a1a1a',1);B(3.25,H-.07,5.5,.14,.05,.18,'#e8e6dc',1);
+  Cy(3.52,1.0,9.35,.085,.085,.5,'#b8262a',1);B(3.52,1.3,9.35,.06,.07,.06,'#2a2a2a',1);B(3.62,1.0,9.35,.04,.5,.18,'#7a1a1c',1);
+  svBoard(grp,ox+3.66,INT_Y+1.7,oz+3.9,-Math.PI/2,.95,.7);
+  {const rg=rng(ent*131+fl*17+7),pk=a=>a[Math.floor(rg()*a.length)],W='#f1efe6',K='#1b1b1f',RD='#a82a2a',BL='#2a4a9a',Y='#e8dc9a';
+   const ink=a=>({color:pk(a),rot:(rg()-.5)*.14});
+   svScrawl(grp,ox-3.665,INT_Y+2.05+.45,oz+3.0,Math.PI/2,1.5,.6,[pk(['ЦОЙ ЖИВ!','КИНО ★','Nirvana','ДДТ','Metallica'])],Object.assign(ink([K,RD,W]),{under:true}));
+   svScrawl(grp,ox-3.665,INT_Y+2.75,oz+5.3,Math.PI/2,1.5,.45,[pk(['Саша + Лена = ♥','Маша + Паша ♥','Вася + Оля = ♥','Андрей + Наташа ♥'])],ink([RD,K,Y]));
+   svScrawl(grp,ox-3.665,INT_Y+LH+1.4,oz+7.7,Math.PI/2,1.5,.5,[pk(['Одесса — мама','Здесь был Вася','Привет из 90-х!','Серёга дурак'])],ink([W,K,BL]));
+   svScrawl(grp,ox-2.3,INT_Y+1.55,oz-.86,0,1.3,.5,[pk(['ДМБ-98','ДМБ-91','Здесь был Вася','1994'])],ink([K,W,RD]));
+   svScrawl(grp,ox+3.665,INT_Y+.95,oz+6.9,-Math.PI/2,1.2,.5,['Черноморец —','чемпион!'],ink([BL,K]));
+   svScrawl(grp,ox+.6,INT_Y+1.5,oz+9.86,Math.PI,1.3,.5,[pk(['тел. 34-17-52 Галя','звонить после 18:00','Не плюй!','кв. 5 — не звонить'])],ink([K,BL,RD]));
+   svScrawl(grp,ox+.6,INT_Y+2.35,oz+9.86,Math.PI,.5,.4,[pk(['☺','★','♥'])],{color:pk([RD,K]),size:90})}
   // ceiling lamps (old frosted globes) and the stairs / exit interactions
   for(const [x,z] of [[1.6,3.0],[1.6,8.0],[-1.7,8.2]])Cy(x,H-.2,z,.3,.3,.35,'#f4f0e0',3);
   if(fl===1)INTERACT.push({x:ox,z:oz+.5,r:1.5,label:'Go out to the yard',fn:()=>PORTAL.exit()});
