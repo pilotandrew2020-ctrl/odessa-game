@@ -6825,8 +6825,12 @@ function mapFit(){const w=$('bigmap').clientWidth,h=$('bigmap').clientHeight;con
 let mapSea=null;
 function seaImage(){if(mapSea)return mapSea;const tw=D.tw,th=D.th;const c=document.createElement('canvas');c.width=tw;c.height=th;const x=c.getContext('2d');const im=x.createImageData(tw,th);
   for(let i=0;i<tw*th;i++){const sea=D.ter[i]<0;im.data[i*4]=sea?18:30;im.data[i*4+1]=sea?72:44;im.data[i*4+2]=sea?92:46;im.data[i*4+3]=255}x.putImageData(im,0,0);mapSea=c;return c}
-function drawBigMap(){
-  const cv=$('bigmap');const dpr=Math.min(2,window.devicePixelRatio||1);const W=cv.clientWidth,H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;
+// every pointermove asks for a redraw: coalesce them to one per frame, and only reallocate the canvas when its size really changed
+// (resizing it on every drag event made iPad Safari run out of canvas memory and reload the page)
+let _mapRaf=0;
+function drawBigMap(){if(_mapRaf)return;_mapRaf=requestAnimationFrame(()=>{_mapRaf=0;if(!$('mapUI').hidden)drawBigMapNow()})}
+function drawBigMapNow(){
+  const cv=$('bigmap');const dpr=Math.min(MOBILE?1.5:2,window.devicePixelRatio||1);const W=cv.clientWidth,H=cv.clientHeight;const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph}
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
   const s=MAPV.s,ox=W/2-MAPV.cx*s,oz=H/2-MAPV.cz*s;
   x.fillStyle='#1e2c2e';x.fillRect(0,0,W,H);
@@ -6888,6 +6892,13 @@ function setupInput(){
   jz.addEventListener('pointermove',e=>{if(e.pointerId!==jid)return;let dx=e.clientX-jx0,dy=e.clientY-jy0;const l=Math.hypot(dx,dy),m=52;if(l>m){dx*=m/l;dy*=m/l}jk.style.transform=`translate(${dx}px,${dy}px)`;inp.jx=dx/m;inp.jy=-dy/m});
   const jend=e=>{if(e.pointerId!==jid)return;jid=null;inp.jx=inp.jy=0;jb.style.display='none';jk.style.transform=''};
   jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
+  // a lost touch-end (portal fade, system gesture, focus change) used to leave the stick latched forward: reset it whenever no finger is really down
+  jz.addEventListener('pointerdown',e=>{window.__stickTouch=e.pointerType==='touch'},true);
+  window.__touchN=0;window.__stickTouch=false;
+  window.resetStick=()=>{if(jid===null&&!inp.jx&&!inp.jy)return;jid=null;inp.jx=inp.jy=0;jb.style.display='none';jk.style.transform=''};
+  for(const ev of ['touchstart','touchend','touchcancel'])addEventListener(ev,e=>{__touchN=e.touches?e.touches.length:0;if(!__touchN)resetStick()},{capture:true,passive:true});
+  addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'&&e.pointerId===jid)jend(e)},true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});addEventListener('blur',resetStick);
   const cameraTouches=new Map();let pinchDistance=0;
   cv.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse')return;
@@ -7028,6 +7039,9 @@ function loop(t){
     if((typeof AUD!=='undefined')&&AUD)AUD.update(dt);
     adaptRes(dt);
   } else if(!started)cam.yaw+=dt*.06;});
+  // the full-screen map covers the scene: keep the network alive but stop drawing and streaming the 3D world behind it (GPU/memory relief on iPad)
+  if(started&&!$('mapUI').hidden){safe('net',syncMultiplayerState);return}
+  if(!window.__touchN&&window.__stickTouch&&(inp.jx||inp.jy)&&window.resetStick)resetStick();   // a joystick whose finger is gone must not keep walking
   safe('land',()=>{if(typeof LAND_UPDATE!=='undefined')LAND_UPDATE(dt)});
   safe('chunks',()=>updateChunks(started?7:4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
   safe('cam',()=>stepCamera(dt));
