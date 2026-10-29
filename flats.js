@@ -111,7 +111,7 @@ const FL_LAYOUT={
     K.hang(-4.0,1.49,PI,3);K.art(-1.2,1.49,PI,.7,1.5,1.75,'#cfd8dc');K.window(0,.12,0,.9,1.4,1.7);K.rug(0,.8,0,10,.9,'#7a3a3a');K.plant(5.4,.5,1.2);K.bx(-5.5,.35,0,0,.4,0,.5,.8,.4,'#4a3220',5);
     // salon: grand rug, chandelier, piano by the west wall, sofa and armchairs round a low table, bookcases, TV on the partition
     K.rug(-2.6,5.0,0,4.4,3.6,S.accent);K.rug(-2.6,5.0,0,5.0,4.2,'#8a6a3a');K.chandelier(-2.6,5.0,2.75,.85);
-    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);K.table(-2.6,6.3,0,1.2,.7,.42,'#4a3220');flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
+    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);flProp(E,'WoodenTable_01',-2.6,6.3,0,.64,.3,{s:.7});flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
     K.shelf(-5.2,D-.03,PI,1.5,2.7);K.shelf(-.2,D-.03,PI,1.5,2.7);K.tv(.69,3.2,-PI/2,1.1);K.plant(-5.4,2.3,1.5);
     K.window(-4.4,D-.12,PI,1.2,2.2,1.8);K.window(-1.0,D-.12,PI,1.2,2.2,1.8);K.window(-hw+.12,3.0,PI/2,1.3,2.2,1.8);K.window(-hw+.12,6.7,PI/2,1.3,2.2,1.8);
     K.light(-2.6,3.0,5.0,S.light,1.5,14);K.light(-4.8,3.0,3.0,S.light,.8,8);
