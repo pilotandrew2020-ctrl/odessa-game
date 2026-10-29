@@ -1,0 +1,13 @@
+# Asset imports log
+
+Rules: CC0 sources first (Poly Haven, Kenney, Quaternius, Poly Pizza), at most ~5k triangles per object, textures at most 1024 px,
+GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
+
+| File | Source | Licence | Used in |
+|---|---|---|---|
+| `models/props/ArmChair_01.glb` | Poly Haven | CC0 | `flats.js` `flArm()` (stalin salon, panel living room), `modern.js` living room |
+| `models/props/Television_01.glb` | Poly Haven | CC0 | `soviet.js` Soviet flat living room |
+| `models/props/russian_food_cans_01.glb` | Poly Haven | CC0 | `soviet.js` Soviet kitchen |
+| `models/apache.glb` | already in the project | unknown | helicopter in `index.html` |
+
+Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.

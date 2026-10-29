@@ -54,7 +54,28 @@ function bdShoe(chunky){const k=chunky?1.18:1,h=chunky?1.35:1,S=[[-.098,.033,.03
 function bdSole(chunky){const k=chunky?1.18:1,hh=chunky?.027:.014,S=[[-.104,.034],[-.07,.05],[-.01,.058],[.05,.063],[.115,.061],[.17,.05],[.205,.031],[.216,.014]];
   const g=bdLoft(S.map(s=>({y:s[0],rx:s[1]*k,rz:hh,cz:chunky?.0:-.0})),14);g.rotateX(Math.PI/2);g.translate(0,chunky?-.085:-.0685,0);return g}
 function bdBoot(){return bdLoft([{y:-.04,rx:.062,rz:.066},{y:.05,rx:.064,rz:.068},{y:.12,rx:.06,rz:.064},{y:.158,rx:.056,rz:.06},{y:.164,rx:.04,rz:.044}],14)}
-function bdHand(){return bdLoft([{y:.045,rx:.016,rz:.014},{y:.028,rx:.034,rz:.026},{y:-.005,rx:.044,rz:.03},{y:-.04,rx:.041,rz:.028},{y:-.07,rx:.03,rz:.022},{y:-.082,rx:.014,rz:.012}],10)}
+// glue indexed geometries (position + normal + uv) into one
+function bdMerge(list){const pos=[],nor=[],uv=[],idx=[];let o=0;
+  for(const g of list){const p=g.attributes.position,n=g.attributes.normal,u=g.attributes.uv,c=p.count;
+    for(let i=0;i<c;i++){pos.push(p.getX(i),p.getY(i),p.getZ(i));nor.push(n.getX(i),n.getY(i),n.getZ(i));uv.push(u?u.getX(i):0,u?u.getY(i):0)}
+    const ix=g.index.array;for(let i=0;i<ix.length;i++)idx.push(ix[i]+o);o+=c}
+  const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));m.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));m.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));m.setIndex(idx);return m}
+// a hand with a flat palm, four fingers that curl a little towards the palm and a thumb at the front (the arm hangs along -y, the palm faces the body).
+// s = +1 arm on the right (x>0), -1 on the left: the fingers curl towards the body; 0 = symmetric (the instanced pedestrians), fingers curl slightly forward
+function bdHand(s,lite){s=s||0;const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  // lite (instanced pedestrians, seen from a distance): palm, one slab for the four fingers and a thumb — about 170 triangles instead of 380
+  if(lite)return bdMerge([bdLoft([{y:.045,rx:.015,rz:.014},{y:.005,rx:.016,rz:.02},{y:-.025,rx:.019,rz:.036},{y:-.062,rx:.016,rz:.039},{y:-.072,rx:.009,rz:.033}],8),
+    bdLoft([{y:-.06,rx:.013,rz:.036},{y:-.085,rx:.012,rz:.036},{y:-.105,rx:.01,rz:.03},{y:-.123,rx:.006,rz:.02}],8),
+    bdTube([V(0,-.008,.03),V(0,-.03,.052),V(0,-.052,.063)],[.0125,.0105,.0075],4,1)]);
+  const parts=[bdLoft([{y:.045,rx:.015,rz:.014},{y:.005,rx:.016,rz:.02},{y:-.016,rx:.019,rz:.032},{y:-.04,rx:.02,rz:.04},{y:-.062,rx:.016,rz:.039},{y:-.072,rx:.009,rz:.033}],12)];
+  // [z of the knuckle, length, curl scale, radius scale]: index, middle, ring, little finger
+  for(const F of [[.03,.064,1,1],[.0105,.07,1.08,1.02],[-.0095,.064,1.15,.96],[-.0285,.05,1.25,.84]]){
+    const z=F[0],L=F[1],cs=F[2],rs=F[3],pts=[V(0,-.064,z)],ang=[.1,.42,.78,1.0],seg=[.45,.3,.25];let p=pts[0];
+    for(let k=0;k<3;k++){const a=ang[k+1]*cs*.9;p=p.clone().add(V(-s*Math.sin(a),-Math.cos(a),s?0:Math.sin(a)*.25).multiplyScalar(L*seg[k]));pts.push(p)}
+    parts.push(bdTube(pts,[.0098*rs,.0092*rs,.0083*rs,.0062*rs],6,1))}
+  // thumb: from the side of the palm forward and down
+  parts.push(bdTube([V(-s*.006,-.008,.03),V(-s*.011,-.027,.05),V(-s*.013,-.046,.06),V(-s*.011,-.063,.064)],[.0128,.0112,.0098,.0072],6,1));
+  return bdMerge(parts)}
 
 // ---------------------------------------------------------------- hair
 // the head profile: a rounded egg (narrow chin, full cheeks, domed crown) — headGeo() in index.html lathes it, the hair shell follows it
@@ -103,6 +124,54 @@ function bdHair(head,o,M,HR,HH){const st=o.hs||'swept';if(st==='bald')return;con
       sph(i%3?M.hair:M.hair2,x,y,z,.05,.05,.05)}}
 }
 
+// realistic face painted on the head's wrap-around texture (same 512x256 layout as the old cartoon one: u around the head with the face at u=.5, v up).
+// Proportions follow a real face scaled to this head: brows at v .565, eyes .5, nose tip .345, mouth .225, chin .05.
+function bdFaceTex(o){
+  const W=512,H=256,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  x.fillStyle=o.bg||'#ffffff';x.fillRect(0,0,W,H);
+  const R=(()=>{let s=1234567;return()=>(s=(s*1664525+1013904223)>>>0)/4294967296})(),cx=256,py=v=>(1-v)*H,ex=32,ey=py(.5);
+  // soft elliptical blob: centre, radii, colour in the middle fading to transparent
+  const blob=(X,Y,rx,ry,rgb,a)=>{const g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'rgba('+rgb+','+a+')');g.addColorStop(1,'rgba('+rgb+',0)');x.save();x.translate(X,Y);x.scale(rx,ry);x.fillStyle=g;x.beginPath();x.arc(0,0,1,0,7);x.fill();x.restore()};
+  // skin: pores / tiny freckles, cheek colour, shadow in the eye sockets, at the temples and under the lower lip, soft light on the forehead, nose bridge and chin
+  for(let i=0;i<900;i++){x.fillStyle=R()<.5?'rgba(150,95,70,.05)':'rgba(255,245,235,.05)';x.fillRect(cx-110+R()*220,H*.12+R()*H*.7,1+R()*1.6,1+R()*1.6)}
+  blob(cx,py(.7),70,34,'255,235,215',.14);blob(cx,py(.45),9,46,'255,238,222',.12);blob(cx,py(.1),20,12,'255,238,222',.12);
+  for(const s of [-1,1]){blob(cx+s*52,py(.34),30,22,'214,110,100',.2);blob(cx+s*ex,ey+2,30,22,'110,60,46',.2);blob(cx+s*88,py(.5),30,70,'80,40,30',.15);blob(cx+s*40,py(.14),30,20,'80,40,30',.1)}
+  blob(cx,py(.185),22,6,'90,45,35',.2);
+  for(const s of [-1,1]){const X=cx+s*ex;
+    const almond=()=>{x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-13,X+s*14.5,ey-2);x.quadraticCurveTo(X+s*2,ey+9,X-s*14.5,ey+1);x.closePath()};
+    // upper-lid crease and lid fold
+    x.strokeStyle='rgba(110,60,45,.4)';x.lineWidth=1.8;x.lineCap='round';x.beginPath();x.moveTo(X-s*12,ey-6);x.quadraticCurveTo(X-s*1,ey-17,X+s*15,ey-6);x.stroke();
+    x.fillStyle='#efe9e2';almond();x.fill();
+    x.save();almond();x.clip();
+    const ir=x.createRadialGradient(X-s*1,ey-.5,1,X-s*1,ey-.5,8.2);ir.addColorStop(0,o.iris||'#4a7cb8');ir.addColorStop(.62,o.iris||'#4a7cb8');ir.addColorStop(1,'#1a1612');
+    x.fillStyle=ir;x.beginPath();x.arc(X-s*1,ey-.5,8.2,0,7);x.fill();
+    x.fillStyle='#0c0a09';x.beginPath();x.arc(X-s*1,ey-.5,3.6,0,7);x.fill();
+    x.fillStyle='rgba(255,255,255,.9)';x.beginPath();x.arc(X-s*1+3,ey-4,1.9,0,7);x.fill();x.beginPath();x.arc(X-s*1-2.5,ey+2.5,1,0,7);x.fill();
+    const lg=x.createLinearGradient(0,ey-10,0,ey+2);lg.addColorStop(0,'rgba(20,10,8,.55)');lg.addColorStop(1,'rgba(20,10,8,0)');x.fillStyle=lg;x.fillRect(X-16,ey-10,32,13);
+    x.restore();
+    x.strokeStyle='#1d1310';x.lineWidth=3.2;x.beginPath();x.moveTo(X-s*14.5,ey+1);x.quadraticCurveTo(X-s*3,ey-13,X+s*14.5,ey-2);x.stroke();                       // upper lashes
+    x.lineWidth=1.8;x.beginPath();x.moveTo(X+s*14.5,ey-2);x.lineTo(X+s*18,ey-5);x.stroke();
+    x.strokeStyle='rgba(120,70,60,.55)';x.lineWidth=1.3;x.beginPath();x.moveTo(X-s*13,ey+1.5);x.quadraticCurveTo(X+s*2,ey+9.5,X+s*14,ey-1);x.stroke();               // lower lid
+    x.fillStyle='rgba(210,120,115,.7)';x.beginPath();x.arc(X-s*14,ey+1.5,2,0,7);x.fill();                                                                           // tear duct
+    // eyebrow: a soft base and ~60 hair strokes along an arch
+    const bc=o.brow||'#5a3e26',bx0=X-s*16,by0=py(.545),bx1=X+s*3,by1=py(.585),bx2=X+s*24,by2=py(.535);
+    x.strokeStyle=bc;x.globalAlpha=.3;x.lineWidth=8;x.beginPath();x.moveTo(bx0,by0);x.quadraticCurveTo(bx1,by1-5,bx2,by2);x.stroke();x.globalAlpha=1;
+    for(let i=0;i<60;i++){const t=i/59,tx=(1-t)*(1-t)*bx0+2*(1-t)*t*bx1+t*t*bx2,ty=(1-t)*(1-t)*by0+2*(1-t)*t*(by1-5)+t*t*by2,th=(.5-Math.abs(t-.35))*7+2.5,j=(R()-.5)*th;
+      x.globalAlpha=.55+R()*.4;x.lineWidth=1.1;x.beginPath();x.moveTo(tx-s*2,ty+j+th*.4);x.lineTo(tx+s*3,ty+j-th*.4-(t<.3?2:0));x.stroke()}x.globalAlpha=1}
+  // nose: shaded sides of the bridge, wings, nostrils, bright tip, shadow underneath
+  for(const s of [-1,1]){blob(cx+s*11,py(.42),6,24,'125,72,56',.2);blob(cx+s*17,py(.335),8,8,'160,88,72',.26);x.fillStyle='rgba(55,22,18,.72)';x.beginPath();x.ellipse(cx+s*8,py(.318),4.8,2.8,s*.4,0,7);x.fill()}
+  blob(cx,py(.355),8,7,'255,240,228',.34);blob(cx,py(.297),14,4,'90,45,35',.26);
+  // mouth: philtrum, lips with a cupid's bow, dark parting line, corner shadows, chin light
+  const my=py(.228),mc=py(.236);
+  blob(cx,py(.265),5,10,'125,72,56',.12);
+  x.fillStyle='rgba(172,88,82,.92)';x.beginPath();x.moveTo(cx-26,mc);x.bezierCurveTo(cx-18,my-4,cx-9,my-11,cx-4,my-10);x.quadraticCurveTo(cx,my-6,cx+4,my-10);x.bezierCurveTo(cx+9,my-11,cx+18,my-4,cx+26,mc);x.quadraticCurveTo(cx,my+2,cx-26,mc);x.fill();
+  x.fillStyle='rgba(190,104,98,.95)';x.beginPath();x.moveTo(cx-26,mc);x.quadraticCurveTo(cx,my+2,cx+26,mc);x.bezierCurveTo(cx+20,my+15,cx+8,my+20,cx,my+20);x.bezierCurveTo(cx-8,my+20,cx-20,my+15,cx-26,mc);x.fill();
+  blob(cx,my+10,10,3.4,'255,226,216',.4);
+  x.strokeStyle='rgba(70,26,24,.9)';x.lineWidth=2.1;x.lineCap='round';x.beginPath();x.moveTo(cx-27,mc-2);x.quadraticCurveTo(cx,my+2.5,cx+27,mc-2);x.stroke();
+  for(const s of [-1,1])blob(cx+s*28,mc-3,5,5,'90,40,34',.22);
+  blob(cx,py(.12),13,6,'255,238,224',.14);
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
+
 // ears and a nose so the head is not a smooth egg (called by makePlayer)
 function bdFace(head,M,HR,HH){for(const s of [-1,1]){const g=new THREE.SphereGeometry(1,10,8);g.scale(.011,.03,.022);const e=new THREE.Mesh(g,M.skin);e.position.set(s*HR*.985,HH*.47,-.006);e.rotation.z=-s*.12;head.add(e)}
-  const n=new THREE.SphereGeometry(1,10,8);n.scale(.017,.022,.022);const nm=new THREE.Mesh(n,M.skin);nm.position.set(0,HH*.405,HR*.985);nm.rotation.x=.25;head.add(nm)}
+  const n=new THREE.SphereGeometry(1,10,8);n.scale(.017,.022,.022);const nm=new THREE.Mesh(n,M.skin);nm.position.set(0,HH*.355,HR*.985);nm.rotation.x=.25;head.add(nm)}

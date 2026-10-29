@@ -3780,7 +3780,7 @@ function rbox(w,h,d,r,s){s=s||4;const g=new THREE.BoxGeometry(w,h,d,s*2,s*2,s*2)
 function headGeo(r,h,seg){let pts;if(typeof bdHeadPts==='function')pts=[[0,0]].concat(bdHeadPts(r,h));else{pts=[[0,0],[r*.62,0],[r*.88,h*.03],[r*.98,h*.09]];for(let i=1;i<=8;i++)pts.push([r,h*.09+(h*.82)*i/9]);pts.push([r*.98,h*.91],[r*.88,h*.97],[r*.62,h],[0,h])}
   const g=new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(Math.max(1e-4,p[0]),p[1])),seg||28,-Math.PI,Math.PI*2);const pos=g.attributes.position,uv=g.attributes.uv;for(let i=0;i<pos.count;i++)uv.setY(i,pos.getY(i)/h);g.computeVertexNormals();return g}
 // face painted on the head's wrap-around texture (u: around, v: up). bg = skin colour or null (white, tinted by instance colour)
-function faceTex(o){const W=512,H=256,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.fillStyle=o.bg||'#ffffff';x.fillRect(0,0,W,H);
+function faceTex(o){if(typeof bdFaceTex==='function')return bdFaceTex(o);const W=512,H=256,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.fillStyle=o.bg||'#ffffff';x.fillRect(0,0,W,H);
   const cx=256,py=v=>(1-v)*H;const ex=29,ey=py(.5);
   // cheeks
   x.fillStyle='rgba(235,120,110,.22)';for(const s of [-1,1]){x.beginPath();x.ellipse(cx+s*44,py(.36),15,15,0,0,7);x.fill()}
@@ -3846,7 +3846,7 @@ function makePlayer(o){o=o||{};
     const el=new THREE.Group();el.position.y=-.27;shg.add(el);
     const lo=new THREE.Mesh(bdLoft(BD_ARM_LO,12),LONG?M.shirt:M.skin);el.add(lo);
     if(LONG){const cu=new THREE.Mesh(bdLoft([{y:-.158,rx:.031,rz:.03},{y:-.166,rx:.036,rz:.035},{y:-.196,rx:.035,rz:.034},{y:-.2,rx:.03,rz:.029}],12),M.cuffS);el.add(cu)}
-    const hand=new THREE.Mesh(bdHand(),M.skin);hand.position.y=-.205;el.add(hand);
+    const hand=new THREE.Mesh(bdHand(s),M.skin);hand.position.y=-.205;el.add(hand);
     arms.push({sh:shg,el,s,hand});
     const hp=new THREE.Group();hp.position.set(s*.095,-.03,0);hips.add(hp);
     const th=new THREE.Mesh(bdLoft(BD_THIGH,14),BS==='skirt'?M.skin:M.jeans);hp.add(th);
@@ -3936,7 +3936,7 @@ function initPeopleMeshes(scene,N){
   const hips=bdLoft(BD_PELVIS,14);hips.translate(0,.02,0);
   const skirt=new THREE.CylinderGeometry(.21,.31,.56,14,1,true);skirt.translate(0,-.22,0);
   const scarf=new THREE.SphereGeometry(ND.HR*1.14,14,10,0,Math.PI*2,0,Math.PI*.62);scarf.scale(1.02,1.0,1.08);scarf.translate(0,ND.HH*.55,-.01);
-  const hand=bdHand();hand.translate(0,-ND.armL+.0,0);
+  const hand=bdHand(0,true);hand.translate(0,-ND.armL+.0,0);
   const mk=(g,n,side,map)=>{const m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8,side:side||THREE.FrontSide,map:map||null}),n);m.frustumCulled=false;m.castShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m);return m};
   NPC_P.torso=mk(torso,N);NPC_P.head=mk(head,N,null,faceTex({bg:null,iris:'#4a3a2a',brow:'#3a2a1e'}));NPC_P.hand=mk(hand,N*2);NPC_P.hair=mk(hairG,N);NPC_P.hairL=mk(longH,N);NPC_P.leg=mk(leg,N*2);NPC_P.arm=mk(arm,N*2);NPC_P.shoe=mk(shoe,N*2);NPC_P.hips=mk(hips,N);

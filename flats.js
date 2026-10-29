@@ -27,6 +27,13 @@ function installFlats(){
   const go=PORTAL.go;PORTAL.go=function(name,opt){opt=inherit(this,name,opt);return go.call(this,pick(name,opt),opt)};
   ANIM.push(flTick)}
 
+// the real upholstered armchair (Poly Haven ArmChair_01, CC0, models.js): back edge at (x,z) facing ry like K.sofa; you can sit in it
+function flArm(E,x,z,ry,h){
+  const fx=Math.sin(ry),fz=Math.cos(ry),cx=x+fx*.45,cz=z+fz*.45,ox=E.ox,oz=E.oz;
+  MDL.put(E.grp,'ArmChair_01',{x:ox+cx,y:INT_Y,z:oz+cz,ry:ry,h:h||1.0});
+  E.obb(cx,cz,.45,.45,ry);
+  E.act(cx,cz,1.7,'Sit in the armchair',()=>{if(player.sit)return;player.sit={x:ox+cx,z:oz+cz,y:INT_Y+.12,yaw:ry};cam.yaw=ry;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')})}
+
 function flToStair(k){if(FL.leaving)return;FL.leaving=1;const o=PORTAL.opt||{};PORTAL.go('stair',{ent:o.ent||1,floor:o.floor||1,style:k});setTimeout(()=>{FL.leaving=0},1800)}
 
 function flBuild(k){
@@ -73,7 +80,7 @@ const FL_LAYOUT={
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
     K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);
     K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.3,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
-    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');K.sofa(-3.3,2.52,0,.9,'#5a6b4a','#9aaa80');K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
+    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.3,2.52,0);K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
     K.light(-2.3,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
     K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);
@@ -88,7 +95,7 @@ const FL_LAYOUT={
     K.hang(-4.0,1.49,PI,3);K.art(-1.2,1.49,PI,.7,1.5,1.75,'#cfd8dc');K.window(0,.12,0,.9,1.4,1.7);K.rug(0,.8,0,10,.9,'#7a3a3a');K.plant(5.4,.5,1.2);K.bx(-5.5,.35,0,0,.4,0,.5,.8,.4,'#4a3220',5);
     // salon: grand rug, chandelier, piano by the west wall, sofa and armchairs round a low table, bookcases, TV on the partition
     K.rug(-2.6,5.0,0,4.4,3.6,S.accent);K.rug(-2.6,5.0,0,5.0,4.2,'#8a6a3a');K.chandelier(-2.6,5.0,2.75,.85);
-    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);K.table(-2.6,6.3,0,1.2,.7,.42,'#4a3220');K.sofa(-4.8,6.2,PI/2,.95,'#7a1f2b','#b9505a');K.sofa(-.4,6.2,-PI/2,.95,'#7a1f2b','#b9505a');
+    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);K.table(-2.6,6.3,0,1.2,.7,.42,'#4a3220');flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
     K.shelf(-5.2,D-.03,PI,1.5,2.7);K.shelf(-.2,D-.03,PI,1.5,2.7);K.tv(.69,3.2,-PI/2,1.1);K.plant(-5.4,2.3,1.5);
     K.window(-4.4,D-.12,PI,1.2,2.2,1.8);K.window(-1.0,D-.12,PI,1.2,2.2,1.8);K.window(-hw+.12,3.0,PI/2,1.3,2.2,1.8);K.window(-hw+.12,6.7,PI/2,1.3,2.2,1.8);
     K.light(-2.6,3.0,5.0,S.light,1.5,14);K.light(-4.8,3.0,3.0,S.light,.8,8);
