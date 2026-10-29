@@ -31,8 +31,9 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #actBtns{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,48px);gap:5px;justify-items:stretch;align-items:stretch;padding:7px;border:1px solid rgba(245,241,232,.2);border-radius:16px;background:rgba(9,26,33,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 #actBtns button{width:48px;height:42px;border-radius:12px;padding:0 2px;font-size:10px;line-height:1.1;white-space:nowrap;touch-action:manipulation}
 #bJump{grid-column:auto;grid-row:auto;width:48px!important;height:42px!important}
-#joy{position:absolute;left:0;bottom:0;width:48vw;height:58vh;pointer-events:auto}
+#joy{position:absolute;left:0;bottom:calc(8vh + env(safe-area-inset-bottom,0px));width:48vw;height:52vh;pointer-events:auto}
 #joyBase{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(245,241,232,.45);background:rgba(9,26,33,.25);display:none;pointer-events:none}
+#joyBase.rest{display:block;opacity:.38}
 #joyKnob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(245,241,232,.85);pointer-events:none}
 #joyHint{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:calc(22px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--chalk);opacity:.8;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 #toast{position:absolute;left:50%;top:22%;width:min(86vw,640px);transform:translateX(-50%);pointer-events:none;text-align:center;opacity:0;transition:opacity .6s}
@@ -48,6 +49,16 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 .place{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;width:100%}
 .place small{font-weight:400;color:var(--muted);font-size:12px}
 #mapTop{position:absolute;left:16px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;gap:8px;flex-wrap:wrap}
+#mapSearch{width:100%;box-sizing:border-box;background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--chalk);border-radius:12px;padding:11px 12px;font:600 15px var(--f-body);outline:none;-webkit-user-select:text;user-select:text;flex:none}
+#mapSearch:focus{border-color:var(--sun)}
+#mapChips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:none;padding:1px 0}#mapChips::-webkit-scrollbar{display:none}
+#mapChips button{padding:7px 12px;font-size:12px;border-radius:999px;white-space:nowrap;flex:none}
+#mapChips button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
+#mapZoom{position:absolute;right:calc(14px + env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+#mapZoom button{width:48px;height:48px;font-size:26px;line-height:1;padding:0;border-radius:14px}
+.place .pn{display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%}
+.place .pn em{font-style:normal;font-size:12px;color:var(--sun);font-weight:700;white-space:nowrap}
+.place.sel{border-color:var(--sun);background:rgba(242,193,78,.16)}
 #goHere{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--sun);color:var(--ink);border-color:var(--sun);font-size:15px;padding:12px 20px}
 @media (max-aspect-ratio:1/1){#toast{top:30%}}
 @media (max-width:640px){#mapUI{flex-direction:column}#mapSide{width:auto;max-height:34vh;border-left:0;border-top:1px solid var(--line);padding-top:12px}}
@@ -169,7 +180,7 @@ body #gunDet{right:max(108px,calc(env(safe-area-inset-right) + 108px));bottom:ca
 body #gunBar{left:max(100px,calc(env(safe-area-inset-left) + 100px));transform:none;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 480px);min-width:200px;overflow-x:auto;scrollbar-width:none}body #gunBar button{padding:6px 8px;font-size:11px;line-height:1.1;white-space:nowrap}
 body #gunBar::-webkit-scrollbar{display:none}
 body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
-#joy{width:44vw;height:56vh}
+#joy{width:44vw;height:52vh}
 @media (max-height:430px){#actBtns button{width:46px;height:46px}#actBtns{grid-template-columns:repeat(3,46px)!important;right:max(92px,calc(env(safe-area-inset-right) + 92px))}#actBtns #bJump{width:68px!important;height:68px!important}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(166px + env(safe-area-inset-bottom,0px))}}
 </style>
 <div id="app">
@@ -200,9 +211,12 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
   <div id="mapUI" hidden>
     <div id="mapWrap"><canvas id="bigmap"></canvas>
       <div id="mapTop"><button id="mapClose">Back</button><button id="mapMe">Where am I</button><button id="mapFit">Whole city</button></div>
+      <div id="mapZoom"><button id="mapZin" aria-label="Zoom in">+</button><button id="mapZout" aria-label="Zoom out">&minus;</button></div>
       <button id="goHere" hidden>Teleport here</button>
     </div>
-    <div id="mapSide"><h2>Places</h2><div id="placeList" style="display:flex;flex-direction:column;gap:8px"></div></div>
+    <div id="mapSide"><h2>Places</h2><input id="mapSearch" type="search" placeholder="Search a place…" autocomplete="off" spellcheck="false">
+      <div id="mapChips"><button data-c="all" class="on">All</button><button data-c="landmarks">Landmarks</button><button data-c="parks">Parks</button><button data-c="sea">Sea</button><button data-c="shops">Shops</button><button data-c="homes">Homes</button></div>
+      <div id="placeList" style="display:flex;flex-direction:column;gap:8px"></div></div>
   </div>
   <div id="menu">
     <div id="mLeft">
@@ -6917,7 +6931,7 @@ function drawMini(){
   x.beginPath();x.moveTo(0,-14);x.lineTo(10,10);x.lineTo(0,5);x.lineTo(-10,10);x.closePath();x.fill();x.stroke();x.restore();
 }
 // ---------- big map ----------
-const MAPV={cx:0,cz:0,s:.05,sel:null};
+const MAPV={cx:0,cz:0,s:.05,sel:null,selPlace:null};
 function mapFit(){const w=$('bigmap').clientWidth,h=$('bigmap').clientHeight;const xs=[-8000,6200],zs=[-24500,5000];MAPV.cx=(xs[0]+xs[1])/2;MAPV.cz=(zs[0]+zs[1])/2;MAPV.s=Math.min(w/(xs[1]-xs[0]),h/(zs[1]-zs[0]))*.95}
 let mapSea=null;
 function seaImage(){if(mapSea)return mapSea;const tw=D.tw,th=D.th;const c=document.createElement('canvas');c.width=tw;c.height=th;const x=c.getContext('2d');const im=x.createImageData(tw,th);
@@ -6926,44 +6940,125 @@ function seaImage(){if(mapSea)return mapSea;const tw=D.tw,th=D.th;const c=docume
 // (resizing it on every drag event made iPad Safari run out of canvas memory and reload the page)
 let _mapRaf=0;
 function drawBigMap(){if(_mapRaf)return;_mapRaf=requestAnimationFrame(()=>{_mapRaf=0;if(!$('mapUI').hidden)drawBigMapNow()})}
+// the road network is baked once per view into a second canvas (only ways that touch the screen, tiny ones skipped, points closer than 1.4 px dropped);
+// dragging and zooming just re-blit that bitmap, and the vector layer is re-baked 120 ms after the last gesture
+const MAPL={cv:null,ok:false,cx:0,cz:0,s:1,t:0};
+let MAPX=null,MAPP=null,MAPD=[];
+function mapIndex(){if(MAPX)return MAPX;const P=D.nodes,ws=D.wstart,wn=D.wn,n=HDR.nWays,bb=new Float32Array(n*4),cl=[[],[],[],[]];
+  for(let k=0;k<n;k++){let a=1e9,b=1e9,c=-1e9,d=-1e9;for(let i=ws[k];i<ws[k+1];i++){const x=P[wn[i]*2],z=P[wn[i]*2+1];if(x<a)a=x;if(x>c)c=x;if(z<b)b=z;if(z>d)d=z}
+    bb[k*4]=a;bb[k*4+1]=b;bb[k*4+2]=c;bb[k*4+3]=d;const w=D.wcls[k];if(w>=0&&w<4)cl[w].push(k)}
+  MAPX={bb,cl:cl.map(a=>Int32Array.from(a))};return MAPX}
+function mapBake(W,H,dpr){
+  const L=MAPL;if(!L.cv)L.cv=document.createElement('canvas');
+  const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(L.cv.width!==pw||L.cv.height!==ph){L.cv.width=pw;L.cv.height=ph}
+  const g=L.cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const s=MAPV.s,cx=MAPV.cx,cz=MAPV.cz,ox=W/2-cx*s,oz=H/2-cz*s,{bb,cl}=mapIndex(),P=D.nodes,ws=D.wstart,wn=D.wn;
+  const m=40/s,vx0=cx-W/2/s-m,vx1=cx+W/2/s+m,vz0=cz-H/2/s-m,vz1=cz+H/2/s+m;
+  g.lineCap='round';g.lineJoin='round';
+  for(const pass of [3,2,1,0]){
+    if(pass===3&&s<.12)continue;if(pass===2&&s<.045)continue;
+    g.strokeStyle=['#f2c14e','#efe9d6','#aab5b2','#5f6e6e'][pass];g.lineWidth=Math.max([1.7,1.2,.9,.7][pass],[3.4,2.2,1.4,1][pass]*Math.min(3,s*14));
+    g.beginPath();const minPx=pass>=2?3:0,list=cl[pass];
+    for(let q=0;q<list.length;q++){const k=list[q],b=k*4;
+      if(bb[b+2]<vx0||bb[b]>vx1||bb[b+3]<vz0||bb[b+1]>vz1)continue;
+      if(minPx&&Math.max(bb[b+2]-bb[b],bb[b+3]-bb[b+1])*s<minPx)continue;
+      const a=ws[k],e=ws[k+1];let lx=ox+P[wn[a]*2]*s,lz=oz+P[wn[a]*2+1]*s;g.moveTo(lx,lz);
+      for(let i=a+1;i<e;i++){const px=ox+P[wn[i]*2]*s,pz=oz+P[wn[i]*2+1]*s;if(i<e-1&&Math.abs(px-lx)+Math.abs(pz-lz)<1.4)continue;g.lineTo(px,pz);lx=px;lz=pz}}
+    g.stroke()}
+  L.ok=true;L.cx=cx;L.cz=cz;L.s=s}
+// categories, priorities and districts for the labels and the list
+const MAP_SEA=new Set(['lanzheron','arcadia','marina','sub1','sub2','sub3','island','cruise','lighthouse','morvokzal','stairs_b']);
+const MAP_PARK=new Set(['greek','istanbul','deriba','taras','shevfountain','greentheatre','sailor','watchtower','luna','shevpark2','gorky','gorkyfountain','gorkyclock','minigolf','thuja','balloons','gorkyrides','gorkylake','cinema','shevpark']);
+const MAP_SHOP=new Set(['mall','zabka','dealer','azs','privoz','lanz_shops']);
+const MAP_MAJOR=new Set(['stairs','station','opera','morvokzal','lighthouse','mall','privoz','gorky','shevpark','lanzheron','arcadia','luna','island','dealer','b411','deriba','cinema','funi','cruise','greek','istanbul','taras','marina']);
+const MAP_DIST=[['CITY CENTRE',46.4775,30.740],['MOLDAVANKA',46.468,30.709],['PERESYP',46.519,30.735],['LUZANIVKA',46.555,30.745],['KOTOVSKY',46.585,30.75],['CHERYOMUSHKY',46.446,30.725],['ARKADIA',46.428,30.766],['FRENCH BLVD',46.450,30.775],['TAIROVE',46.396,30.72],['VELYKYI FONTAN',46.378,30.775],['CHORNOMORKA',46.32,30.74],['SLOBIDKA',46.482,30.69],['MALYNOVSKYI',46.445,30.67]];
+function placeCat(p){const id=p.id;if(/^(khru|ks_)/.test(id))return 'homes';if(/^shop_/.test(id)||MAP_SHOP.has(id))return 'shops';if(MAP_SEA.has(id))return 'sea';if(MAP_PARK.has(id))return 'parks';return 'landmarks'}
+function placePri(p){const id=p.id;if(id==='home')return 0;if(MAP_MAJOR.has(id))return 1;if(/^(khru|ks_)/.test(id))return 3;return 2}
+function mapPlaces(){MAPP={n:PLACES.length,list:PLACES.map(p=>({p,cat:placeCat(p),pri:placePri(p)})).sort((a,b)=>a.pri-b.pri)};
+  MAPD=MAP_DIST.map(d=>[(d[2]-HDR.LON0)*HDR.KX,(HDR.LAT0-d[1])*HDR.KZ,d[0]])}
+const MAPT=new Map();
 function drawBigMapNow(){
-  const cv=$('bigmap');const dpr=Math.min(MOBILE?1.5:2,window.devicePixelRatio||1);const W=cv.clientWidth,H=cv.clientHeight;const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph}
+  const cv=$('bigmap'),W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;
+  let dpr=Math.min(MOBILE?1.75:2,window.devicePixelRatio||1);if(W*H*dpr*dpr>3.4e6)dpr=Math.sqrt(3.4e6/(W*H));      // crisp text, but never a canvas that costs the tab its memory
+  const pw=Math.round(W*dpr),ph=Math.round(H*dpr);if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;MAPL.ok=false}
   const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
-  const s=MAPV.s,ox=W/2-MAPV.cx*s,oz=H/2-MAPV.cz*s;
+  const s=MAPV.s,ox=W/2-MAPV.cx*s,oz=H/2-MAPV.cz*s,L=MAPL;
   x.fillStyle='#1e2c2e';x.fillRect(0,0,W,H);
   const im=seaImage(),ix=ox+BB[0]*s,iz=oz+BB[2]*s,iw=D.tw*20*s,ih=D.th*20*s;
   x.fillStyle='#12485c';x.fillRect(ix+iw-1,0,W,H);
   x.imageSmoothingEnabled=true;x.drawImage(im,ix,iz,iw,ih);
   if(iz>0)x.drawImage(im,0,0,D.tw,1,ix,0,iw,iz+1);
   if(iz+ih<H)x.drawImage(im,0,D.th-1,D.tw,1,ix,iz+ih-1,iw,H-(iz+ih)+1);
-  const P=D.nodes,ws=D.wstart,wn=D.wn;
-  for(const pass of [3,2,1,0]){
-    if(pass===3&&s<.12)continue;
-    x.strokeStyle=['#f2c14e','#e8e2d0','#a8b3b0','#5d6b6b'][pass];x.lineWidth=Math.max(.6,[2.6,1.6,1,.8][pass]*Math.min(3,s*14));x.beginPath();
-    for(let k=0;k<HDR.nWays;k++){if(D.wcls[k]!==pass)continue;const a=ws[k];x.moveTo(ox+P[wn[a]*2]*s,oz+P[wn[a]*2+1]*s);for(let i=a+1;i<ws[k+1];i++)x.lineTo(ox+P[wn[i]*2]*s,oz+P[wn[i]*2+1]*s)}
-    x.stroke();
-  }
-  x.font='600 12px "Golos Text",sans-serif';x.textBaseline='middle';
-  for(const p of PLACES){const px=ox+p.x*s,pz=oz+p.z*s;x.fillStyle=p.id==='home'?'#f2c14e':(p.pin||'#fff');x.strokeStyle='#0b1b22';x.lineWidth=3;x.beginPath();x.arc(px,pz,p.id==='home'?7:(p.pin?8:5),0,7);x.fill();x.stroke();if(p.pin){x.fillStyle='#fff';x.font='800 10px system-ui';x.textAlign='center';x.fillText(p.pinText||'M',px,pz+.5);x.textAlign='start';x.font='600 12px "Golos Text",sans-serif'}
-    if(!p.hide){x.lineWidth=4;x.strokeText(p.name,px+9,pz);x.fillText(p.name,px+9,pz)}}
+  if(!L.ok)mapBake(W,H,dpr);
+  const k=s/L.s;x.drawImage(L.cv,W/2+(L.cx-MAPV.cx)*s-W/2*k,H/2+(L.cz-MAPV.cz)*s-H/2*k,W*k,H*k);
+  if(L.cx!==MAPV.cx||L.cz!==MAPV.cz||L.s!==s){clearTimeout(L.t);L.t=setTimeout(()=>{if(!$('mapUI').hidden){L.ok=false;drawBigMapNow()}},120)}
+  mapLabels(x,W,H,ox,oz,s)}
+function mapLabels(x,W,H,ox,oz,s){
+  if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
+  const SANS='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',F='600 13px '+SANS,rects=[];
+  const meas=(t,f)=>{const key=f+t;let w=MAPT.get(key);if(w===undefined){x.font=f;w=x.measureText(t).width;MAPT.set(key,w)}return w};
+  const hit=(r,own)=>{for(const q of rects)if(q[4]!==own&&r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1])return true;return false};
+  x.lineJoin='round';x.textBaseline='middle';
+  // what is on screen at this zoom: majors always, small places once you are closer, home pins last (one per district until s>=.2)
+  const sel=MAPV.selPlace,vis=[];
+  for(const e of MAPP.list){const p=e.p;if(p!==sel){if(p.hide&&s<.2)continue;if(e.pri===3&&s<.035)continue;if(e.pri===2&&s<.04)continue}
+    const px=ox+p.x*s,pz=oz+p.z*s;if(px<-24||px>W+24||pz<-24||pz>H+24)continue;
+    const home=p.id==='home',r=home?9:(p.pin?(s>=.2?8:4.5):(e.pri<=1?6.5:4.5));
+    vis.push([e,px,pz,r]);rects.push([px-r,pz-r,px+r,pz+r,p.id])}
+  // labels are placed in priority order, to the right of the dot first, then left, above, below; a label that would overlap another is dropped
+  const labs=[],need=e=>e.pri===0?0:e.pri===1?.011:e.pri===2?.1:.3;
+  const place=(t,px,pz,r,own,col,font)=>{const f=font||F,w=meas(t,f);
+    for(const [lx,lz] of [[px+r+5,pz],[px-r-5-w,pz],[px-w/2,pz-r-10],[px-w/2,pz+r+11]]){const rc=[lx-3,lz-9,lx+w+3,lz+9,own];if(rc[0]<2||rc[2]>W-2||rc[1]<2||rc[3]>H-2||hit(rc,own))continue;rects.push(rc);labs.push([t,lx,lz,col||'#fff',f]);return true}return false};
+  if(sel)for(const v of vis)if(v[0].p===sel){place(sel.name,v[1],v[2],v[3],sel.id,'#f2c14e','700 14px '+SANS);break}
+  for(const [e,px,pz,r] of vis){const p=e.p;if(p.hide||p===sel||s<need(e))continue;place(p.name,px,pz,r,p.id)}
+  // district names: big and quiet, fading out as you zoom in; they give way to everything above
+  const dl=[];
+  if(s<.32){const al=Math.min(1,(.32-s)/.14),fs=Math.round(Math.max(11,Math.min(17,9+s*70))),f='700 '+fs+'px '+SANS;
+    for(const d of MAPD){const px=ox+d[0]*s,pz=oz+d[1]*s,w=meas(d[2],f),rc=[px-w/2-4,pz-fs/2-3,px+w/2+4,pz+fs/2+3,'d:'+d[2]];
+      if(px<-60||px>W+60||pz<-20||pz>H+20||rc[0]<2||rc[2]>W-2||hit(rc,rc[4]))continue;rects.push(rc);dl.push([d[2],px,pz,al,f])}}
+  // draw: districts underneath, then dots, then the labels
+  x.textAlign='center';for(const [t,px,pz,al,f] of dl){x.font=f;x.lineWidth=4;x.strokeStyle='rgba(8,20,24,'+(.7*al)+')';x.fillStyle='rgba(236,241,237,'+(.62*al)+')';x.strokeText(t,px,pz);x.fillText(t,px,pz)}
+  for(const [e,px,pz,r] of vis){const p=e.p,home=p.id==='home';x.fillStyle=home?'#f2c14e':(p.pin||(e.pri<=1?'#fff':'#cfd8dc'));x.strokeStyle='#0b1b22';x.lineWidth=3;x.beginPath();x.arc(px,pz,r,0,7);x.fill();x.stroke();
+    if(p.pin&&s>=.2){x.fillStyle='#fff';x.font='800 10px '+SANS;x.fillText(p.pinText||'M',px,pz+.5)}}
+  x.textAlign='left';for(const [t,lx,lz,col,f] of labs){x.font=f;x.lineWidth=4;x.strokeStyle='rgba(8,20,24,.92)';x.fillStyle=col;x.strokeText(t,lx,lz);x.fillText(t,lx,lz)}
+  // you
   const px=ox+player.x*s,pz=oz+player.z*s;x.save();x.translate(px,pz);x.rotate(-player.yaw+Math.PI);x.fillStyle='#4ad0e6';x.strokeStyle='#0b1b22';x.lineWidth=2.5;
-  x.beginPath();x.moveTo(0,-11);x.lineTo(8,8);x.lineTo(0,4);x.lineTo(-8,8);x.closePath();x.fill();x.stroke();x.restore();
-  if(MAPV.sel){const qx=ox+MAPV.sel[0]*s,qz=oz+MAPV.sel[1]*s;x.strokeStyle='#f2c14e';x.lineWidth=3;x.beginPath();x.arc(qx,qz,10,0,7);x.stroke();x.beginPath();x.moveTo(qx,qz-16);x.lineTo(qx,qz+16);x.moveTo(qx-16,qz);x.lineTo(qx+16,qz);x.stroke()}
-}
+  x.beginPath();x.moveTo(0,-12);x.lineTo(9,9);x.lineTo(0,4);x.lineTo(-9,9);x.closePath();x.fill();x.stroke();x.restore();
+  if(MAPV.sel){const qx=ox+MAPV.sel[0]*s,qz=oz+MAPV.sel[1]*s;x.strokeStyle='#f2c14e';x.lineWidth=3;x.beginPath();x.arc(qx,qz,13,0,7);x.stroke();x.beginPath();x.moveTo(qx,qz-19);x.lineTo(qx,qz+19);x.moveTo(qx-19,qz);x.lineTo(qx+19,qz);x.stroke()}
+  // scale bar
+  const nice=[10,20,50,100,200,500,1000,2000,5000,10000],tgt=110/s;let m=nice[0];for(const v of nice)if(v<=tgt)m=v;
+  const bw=m*s,bx=16,by=H-20;x.strokeStyle='rgba(8,20,24,.9)';x.lineWidth=6;x.lineCap='butt';x.beginPath();x.moveTo(bx,by);x.lineTo(bx+bw,by);x.stroke();x.strokeStyle='#fff';x.lineWidth=2.5;x.stroke();
+  x.font=F;x.textAlign='left';x.lineWidth=4;x.strokeStyle='rgba(8,20,24,.92)';x.fillStyle='#fff';const st=m>=1000?m/1000+' km':m+' m';x.strokeText(st,bx,by-12);x.fillText(st,bx,by-12)}
+function mapZoomAt(sx,sy,f){const r=$('bigmap').getBoundingClientRect(),px=sx-r.left-r.width/2,pz=sy-r.top-r.height/2,wx=px/MAPV.s+MAPV.cx,wz=pz/MAPV.s+MAPV.cz,ns=Math.max(.02,Math.min(3,MAPV.s*f));MAPV.cx=wx-px/ns;MAPV.cz=wz-pz/ns;MAPV.s=ns}
+let _mapFly=0;
+function mapFly(cx,cz,s,ms){cancelAnimationFrame(_mapFly);s=Math.max(.02,Math.min(3,s));const c0=MAPV.cx,z0=MAPV.cz,s0=MAPV.s,t0=performance.now();ms=ms||320;
+  const step=t=>{if($('mapUI').hidden)return;const u=Math.min(1,(t-t0)/ms),e=u*u*(3-2*u);MAPV.cx=c0+(cx-c0)*e;MAPV.cz=z0+(cz-z0)*e;MAPV.s=Math.exp(Math.log(s0)+(Math.log(s)-Math.log(s0))*e);drawBigMapNow();if(u<1)_mapFly=requestAnimationFrame(step)};
+  _mapFly=requestAnimationFrame(step)}
+function mapSelect(p,fly){MAPV.selPlace=p;MAPV.sel=[p.x,p.z];const g=$('goHere');g.textContent='Teleport to '+p.name;g.hidden=false;
+  for(const b of $('placeList').children)b.classList.toggle('sel',b.dataset.id===p.id);
+  if(fly)mapFly(p.x,p.z,Math.max(MAPV.s,p.id==='home'||/^(khru|ks_)/.test(p.id)?.5:.3));else drawBigMap()}
 function nearestRoadPoint(x,z){
   let best=null,bd=1e18;const P=D.nodes;const id0=chunkIdAt(x,z);if(id0<0)return null;const i0=id0%NCX,j0=Math.floor(id0/NCX);
   for(let r=0;r<4&&!best;r++)for(let j=j0-r;j<=j0+r;j++)for(let i=i0-r;i<=i0+r;i++){if(i<0||j<0||i>=NCX||j>=NCZ)continue;const id=j*NCX+i;
     for(let s=D.segStart[id];s<D.segStart[id+1];s++){const q=D.seg[s];const k=D.wOf[q];if(D.wcls[k]>2)continue;const n=D.wn[q];const d=(P[n*2]-x)**2+(P[n*2+1]-z)**2;if(d<bd){bd=d;best=[P[n*2],P[n*2+1]]}}}
   return best;
 }
-function openMap(){$('mapUI').hidden=false;MAPV.sel=null;$('goHere').hidden=true;if(!MAPV.inited){mapFit();MAPV.inited=true}drawBigMap()}
-function closeMap(){$('mapUI').hidden=true}
-function buildPlaceList(){const L=$('placeList');L.innerHTML='';
-  for(const p of PLACES){if(p.hide)continue;const b=document.createElement('button');b.className='place';const t=document.createElement('span');t.textContent=p.name;const s=document.createElement('small');s.textContent=p.sub||'';b.append(t,s);b.onclick=()=>{closeMap();teleport(p)};L.appendChild(b)}}
+function openMap(){$('mapUI').hidden=false;MAPV.sel=null;MAPV.selPlace=null;$('goHere').hidden=true;if(!MAPV.inited){mapFit();MAPV.inited=true}MAPL.ok=false;buildPlaceList();drawBigMap()}
+// closing the map hands its two canvases back (iPad Safari keeps them otherwise)
+function closeMap(){$('mapUI').hidden=true;clearTimeout(MAPL.t);cancelAnimationFrame(_mapFly);MAPL.ok=false;if(MAPL.cv)MAPL.cv.width=MAPL.cv.height=1;const c=$('bigmap');c.width=c.height=1}
+let mapCat='all',mapQ='';
+function buildPlaceList(){const L=$('placeList');L.innerHTML='';if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
+  const q=mapQ.trim().toLowerCase(),px=player.x,pz=player.z,dist=p=>Math.hypot(p.x-px,p.z-pz);
+  const rows=MAPP.list.filter(e=>!e.p.hide&&(mapCat==='all'||e.cat===mapCat)&&(!q||(e.p.name+' '+(e.p.sub||'')).toLowerCase().includes(q)));
+  rows.sort((a,b)=>a.p.id==='home'?-1:b.p.id==='home'?1:dist(a.p)-dist(b.p));
+  for(const e of rows){const p=e.p,d=dist(p),b=document.createElement('button');b.className='place'+(MAPV.selPlace===p?' sel':'');b.dataset.id=p.id;
+    const row=document.createElement('span');row.className='pn';const t=document.createElement('span');t.textContent=p.name;const dd=document.createElement('em');dd.textContent=d<950?Math.max(10,Math.round(d/10)*10)+' m':(d/1000).toFixed(1)+' km';row.append(t,dd);
+    const s=document.createElement('small');s.textContent=p.sub||'';b.append(row,s);b.onclick=()=>mapSelect(p,true);L.appendChild(b)}
+  if(!rows.length){const n=document.createElement('small');n.textContent='Nothing found';L.appendChild(n)}}
 // ---------- input ----------
 const TOUCH_LOOK={active:false,id:null,x:0,y:0};
 function setupInput(){
-  addEventListener('keydown',e=>{if(!started)return;inp.k[e.code]=true;
+  addEventListener('keydown',e=>{if(!started)return;{const tg=e.target&&e.target.tagName;if(tg==='INPUT'||tg==='TEXTAREA')return}inp.k[e.code]=true;
     if(e.code==='Space'){inp.jump=true;e.preventDefault()}
     if(e.code==='KeyE'&&!HELI.on)doAction();
     if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!PASS.keyF()&&!MARINE.keyF())toggleScoot();
@@ -6986,14 +7081,20 @@ function setupInput(){
   cv.addEventListener('pointerup',()=>{inp.dragging=false});
   cv.addEventListener('wheel',e=>{cam.dist=Math.max(.25,Math.min(14,cam.dist*Math.exp(e.deltaY*.001)));cam.init=false;e.preventDefault()},{passive:false});
   const jz=$('joy'),jb=$('joyBase'),jk=$('joyKnob');let jid=null,jx0=0,jy0=0;
-  jz.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;jid=e.pointerId;jx0=e.clientX;jy0=e.clientY;jb.style.display='block';jb.style.left=jx0+'px';jb.style.top=jy0+'px';jz.setPointerCapture(e.pointerId);$('joyHint').hidden=true;e.preventDefault()});
+  // the base is positioned inside the zone (the zone is raised off the bottom edge, its corner is not the screen corner), clamped so the whole ring stays on screen, and rests as a faint ring where the thumb lands
+  const jRest=()=>{const r=jz.getBoundingClientRect();if(!r.width)return;jx0=r.left+Math.max(76,r.width*.34);jy0=r.top+r.height*.58;jb.classList.add('rest');jb.style.left=(jx0-r.left)+'px';jb.style.top=(jy0-r.top)+'px';jk.style.transform=''};
+  window.joyRest=jRest;
+  jz.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;jid=e.pointerId;const r=jz.getBoundingClientRect();jx0=Math.max(r.left+68,Math.min(r.right-68,e.clientX));jy0=Math.max(r.top+68,Math.min(r.bottom-68,e.clientY));jb.classList.remove('rest');jb.style.display='block';jb.style.left=(jx0-r.left)+'px';jb.style.top=(jy0-r.top)+'px';jz.setPointerCapture(e.pointerId);$('joyHint').hidden=true;e.preventDefault()});
   jz.addEventListener('pointermove',e=>{if(e.pointerId!==jid)return;let dx=e.clientX-jx0,dy=e.clientY-jy0;const l=Math.hypot(dx,dy),m=52;if(l>m){dx*=m/l;dy*=m/l}jk.style.transform=`translate(${dx}px,${dy}px)`;inp.jx=dx/m;inp.jy=-dy/m});
-  const jend=e=>{if(e.pointerId!==jid)return;jid=null;inp.jx=inp.jy=0;jb.style.display='none';jk.style.transform=''};
+  const jend=e=>{if(e.pointerId!==jid)return;jid=null;inp.jx=inp.jy=0;jk.style.transform='';TOUCH_UI()?jRest():(jb.style.display='none')};
   jz.addEventListener('pointerup',jend);jz.addEventListener('pointercancel',jend);
   // a lost touch-end (portal fade, system gesture, focus change) used to leave the stick latched forward: reset it whenever no finger is really down
   jz.addEventListener('pointerdown',e=>{window.__stickTouch=e.pointerType==='touch'},true);
   window.__touchN=0;window.__stickTouch=false;
-  window.resetStick=()=>{if(jid===null&&!inp.jx&&!inp.jy)return;jid=null;inp.jx=inp.jy=0;jb.style.display='none';jk.style.transform=''};
+  window.resetStick=()=>{if(jid===null&&!inp.jx&&!inp.jy)return;jid=null;inp.jx=inp.jy=0;jk.style.transform='';TOUCH_UI()?jRest():(jb.style.display='none')};
+  // show the resting ring on touch devices (and once any touch has been seen); re-place it when the screen turns or resizes
+  const TOUCH_UI=()=>window.__stickTouch||matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>1;
+  const jShow=()=>{if(TOUCH_UI()&&jid===null)jRest()};addEventListener('resize',jShow);addEventListener('orientationchange',()=>setTimeout(jShow,300));setTimeout(jShow,600);setInterval(()=>{if(jid===null&&TOUCH_UI()&&!jb.classList.contains('rest'))jShow()},2000);
   for(const ev of ['touchstart','touchend','touchcancel'])addEventListener(ev,e=>{__touchN=e.touches?e.touches.length:0;if(!__touchN)resetStick()},{capture:true,passive:true});
   addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'&&e.pointerId===jid)jend(e)},true);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});addEventListener('blur',resetStick);
@@ -7040,18 +7141,29 @@ function setupInput(){
   $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
   $('bMenu').onclick=()=>{started=false;COOP.push(true);$('menu').hidden=false;$('hud').hidden=true;$('bStart').textContent='Continue'};
-  $('mapMe').onclick=()=>{MAPV.cx=player.x;MAPV.cz=player.z;MAPV.s=.6;drawBigMap()};
-  $('mapFit').onclick=()=>{mapFit();drawBigMap()};
-  const bm=$('bigmap');const pts=new Map();let moved=0,pinch0=null;
-  bm.addEventListener('pointerdown',e=>{pts.set(e.pointerId,[e.clientX,e.clientY]);moved=0;bm.setPointerCapture(e.pointerId);if(pts.size===2){const [a,b]=[...pts.values()];pinch0={d:Math.hypot(a[0]-b[0],a[1]-b[1]),s:MAPV.s}}});
+  $('mapMe').onclick=()=>mapFly(player.x,player.z,.35);
+  $('mapFit').onclick=()=>{cancelAnimationFrame(_mapFly);mapFit();drawBigMap()};
+  $('mapZin').onclick=()=>mapFly(MAPV.cx,MAPV.cz,MAPV.s*1.8,200);$('mapZout').onclick=()=>mapFly(MAPV.cx,MAPV.cz,MAPV.s/1.8,200);
+  $('mapSearch').addEventListener('input',e=>{mapQ=e.target.value;buildPlaceList()});
+  $('mapChips').addEventListener('click',e=>{const b=e.target.closest('button[data-c]');if(!b)return;mapCat=b.dataset.c;for(const c of $('mapChips').children)c.classList.toggle('on',c===b);buildPlaceList()});
+  const bm=$('bigmap');const pts=new Map();let moved=0,pinch0=null,lastTap=0,lastTapX=0,lastTapY=0;
+  bm.addEventListener('pointerdown',e=>{cancelAnimationFrame(_mapFly);pts.set(e.pointerId,[e.clientX,e.clientY]);moved=0;bm.setPointerCapture(e.pointerId);if(pts.size===2){const [a,b]=[...pts.values()];pinch0={d:Math.hypot(a[0]-b[0],a[1]-b[1])||1}}});
   bm.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const p=pts.get(e.pointerId);const dx=e.clientX-p[0],dy=e.clientY-p[1];
     if(pts.size===1){MAPV.cx-=dx/MAPV.s;MAPV.cz-=dy/MAPV.s;moved+=Math.abs(dx)+Math.abs(dy)}pts.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pts.size===2&&pinch0){const [a,b]=[...pts.values()];MAPV.s=Math.max(.02,Math.min(3,pinch0.s*Math.hypot(a[0]-b[0],a[1]-b[1])/pinch0.d));moved=99}drawBigMap()});
+    if(pts.size===2&&pinch0){const [a,b]=[...pts.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1])||1;mapZoomAt((a[0]+b[0])/2,(a[1]+b[1])/2,d/pinch0.d);pinch0.d=d;moved=99}drawBigMap()});
   const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);if(pts.size<2)pinch0=null;
-    if(moved<6&&pts.size===0){const r=bm.getBoundingClientRect();const wx=(e.clientX-r.left-r.width/2)/MAPV.s+MAPV.cx,wz=(e.clientY-r.top-r.height/2)/MAPV.s+MAPV.cz;const np=nearestRoadPoint(wx,wz);if(np){MAPV.sel=np;$('goHere').hidden=false;drawBigMap()}}};
+    if(moved<6&&pts.size===0&&e.type==='pointerup'){const now=performance.now();
+      if(now-lastTap<340&&Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<28){lastTap=0;mapZoomAt(e.clientX,e.clientY,2.2);drawBigMap();return}   // double tap: zoom in on that spot
+      lastTap=now;lastTapX=e.clientX;lastTapY=e.clientY;
+      if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
+      const r=bm.getBoundingClientRect(),s=MAPV.s,sx=e.clientX-r.left,sy=e.clientY-r.top;
+      // a tap on a place picks that place; anywhere else it picks the nearest road point
+      let best=null,bd=26*26;for(const en of MAPP.list){const p=en.p;if(p.hide&&s<.2)continue;const px=r.width/2+(p.x-MAPV.cx)*s,pz=r.height/2+(p.z-MAPV.cz)*s,d=(px-sx)**2+(pz-sy)**2;if(d<bd){bd=d;best=p}}
+      if(best)mapSelect(best,false);
+      else{const wx=(sx-r.width/2)/s+MAPV.cx,wz=(sy-r.height/2)/s+MAPV.cz,np=nearestRoadPoint(wx,wz);if(np){MAPV.sel=np;MAPV.selPlace=null;$('goHere').textContent='Teleport here';$('goHere').hidden=false;for(const b of $('placeList').children)b.classList.remove('sel');drawBigMap()}}}};
   bm.addEventListener('pointerup',up);bm.addEventListener('pointercancel',up);
-  bm.addEventListener('wheel',e=>{MAPV.s=Math.max(.02,Math.min(3,MAPV.s*(e.deltaY<0?1.15:1/1.15)));drawBigMap();e.preventDefault()},{passive:false});
-  $('goHere').onclick=()=>{if(!MAPV.sel)return;const [x,z]=MAPV.sel;closeMap();teleport({x,z,yaw:cam.yaw,name:districtOf(x,z)[0],sub:'from the map'})};
+  bm.addEventListener('wheel',e=>{cancelAnimationFrame(_mapFly);mapZoomAt(e.clientX,e.clientY,e.deltaY<0?1.2:1/1.2);drawBigMap();e.preventDefault()},{passive:false});
+  $('goHere').onclick=()=>{const p=MAPV.selPlace;if(p){closeMap();teleport(p);return}if(!MAPV.sel)return;const [x,z]=MAPV.sel;closeMap();teleport({x,z,yaw:cam.yaw,name:districtOf(x,z)[0],sub:'from the map'})};
 }
 function toggleScoot(){if(EXT.cur){EXT.exit();return}if(player.sit||DRIVE.on||PORTAL.cur||RIDE.on)return;player.scoot=!player.scoot;$('bScoot').classList.toggle('on',player.scoot);if((typeof AUD!=='undefined')&&AUD)AUD.scoot(player.scoot)}
 function cycleTime(){const o=['day','dusk','night'];S.time=o[(o.indexOf(S.time)+1)%3];saveS();applyTime()}
