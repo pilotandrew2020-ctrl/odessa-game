@@ -9,7 +9,7 @@
    =================================================================================================== */
 
 const ACT={cur:null,hooked:false,props:{},em:null,pts:null,pp:[],snd:0};
-const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4};
+const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4,door:2.5,key:5.2};
 const actEase=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
 const actWin=(t,a,b)=>actEase((t-a)/(b-a));
 
@@ -23,6 +23,11 @@ function actProp(kind){
   else if(kind==='cup'){cyl(.04,.033,.085,M(0xf4f1e8,.3));cyl(.036,.036,.004,M(0x7a3b12,.4),.036);const h=new THREE.Mesh(new THREE.TorusGeometry(.027,.008,6,12,Math.PI),M(0xf4f1e8,.3));h.position.set(.04,0,0);h.rotation.z=-Math.PI/2;G.add(h)}
   else if(kind==='milk'||kind==='juice'){const c=kind==='milk'?0xf4f6fa:0xf08a1c;box(.07,.15,.07,M(c,.5));box(.07,.04,.07,M(kind==='milk'?0x2f6db0:0xd9631a,.5),0,.095,0);box(.035,.02,.07,M(0xe8e8e8,.5),0,.12,0);box(.071,.06,.071,M(kind==='milk'?0x2f6db0:0xffd24a,.5),0,-.02,0)}
   else if(kind==='kefir'){cyl(.032,.034,.14,M(0xf4f6fa,.35));cyl(.033,.033,.04,M(0x2f6db0,.4),.0);cyl(.016,.02,.04,M(0x2f6db0,.4),.09)}
+  else if(kind==='none'){}
+  else if(kind==='key'){   // a flat-door key: ring bow at the back, a shaft pointing forward (+z), two teeth; the bunch hangs off the ring
+    const st=M(0xb8bcc2,.28,{metalness:.85}),bow=new THREE.Mesh(new THREE.TorusGeometry(.011,.0034,6,14),st);bow.position.z=-.034;G.add(bow);
+    box(.0045,.011,.056,st,0,0,.002);box(.0045,.007,.006,st,0,-.0085,.022);box(.0045,.006,.005,st,0,-.0075,.012);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.016,.0016,5,14),st);ring.position.set(0,-.012,-.05);ring.rotation.y=Math.PI/2;G.add(ring);box(.012,.02,.004,M(0xc8372d,.5),0,-.032,-.05)}
   else{cyl(.03,.03,.15,M(0x5a1a14,.25,{metalness:.1}));cyl(.0315,.0315,.05,M(0xc8102e,.4),0);cyl(.014,.017,.03,M(0x222222,.4),.09)}   // cola
   G.position.set(0,-.245,.045);G.visible=false;ACT.props[kind]=G;return G}
 
@@ -45,7 +50,12 @@ function actSfx(k){if(!window.AUD||!AUD.ok)return;
   else if(k==='thunk')AUD.tone(130,70,.14,.22,'sine');
   else if(k==='gulp')AUD.tone(210,110,.1,.09,'sine');
   else if(k==='boil')AUD.burst(500,1500,.3,.035,'lowpass',.7);
-  else if(k==='ding'){AUD.tone(1568,1568,.35,.12,'sine');AUD.tone(2093,2093,.4,.08,'sine',null,.1)}}
+  else if(k==='ding'){AUD.tone(1568,1568,.35,.12,'sine');AUD.tone(2093,2093,.4,.08,'sine',null,.1)}
+  else if(k==='latch'){AUD.tone(620,300,.05,.16,'square');AUD.burst(2600,1200,.06,.06,'bandpass',.8)}                       // handle pressed down, the latch lets go
+  else if(k==='creak'){AUD.tone(150,300,.42,.05,'sawtooth');AUD.tone(310,200,.3,.025,'sawtooth',null,.12)}                   // old hinges
+  else if(k==='keyin'){AUD.burst(5200,3000,.08,.05,'highpass',.7);AUD.tone(1700,1300,.04,.05,'square')}                       // the key slides in, jingling
+  else if(k==='bolt'){AUD.tone(260,90,.07,.22,'square');AUD.burst(1800,600,.05,.1,'bandpass',.9)}                             // the lock's tongue throws back: a dry clack
+  else if(k==='slam'){AUD.burst(500,90,.28,.3,'lowpass',.9);AUD.tone(95,45,.3,.22,'sine')}}
 // running water: ONE looping noise (high-passed, soft top, a slow wobble) faded in and out — repeating bursts sounded like gunfire
 function actWaterStream(on){const A=window.AUD;if(!A||!A.ok)return;const c=A.ctx;
   if(!ACT.wtr){const s=c.createBufferSource();s.buffer=A.noise;s.loop=true;
@@ -60,7 +70,7 @@ function actInstall(){if(ACT.hooked)return;ACT.hooked=true;
   ANIM.push(actTick)}
 ACT.start=function(kind,o){
   if(ACT.cur||player.sit||(typeof DRIVE!=='undefined'&&DRIVE.on)||(typeof RIDE!=='undefined'&&RIDE.on)||!PLR)return false;
-  actInstall();o=o||{};const a={kind,o,t:0,dur:ACT_DUR[kind]||5,item:o.item||(kind==='kettle'?'cup':kind==='pour'?'glass':'milk'),portal:PORTAL.cur,yaw:player.yaw,sip:0,jet:0,flag:{}};
+  actInstall();o=o||{};const a={kind,o,t:0,dur:ACT_DUR[kind]||5,item:o.item||(kind==='kettle'?'cup':kind==='pour'?'glass':kind==='door'?'none':kind==='key'?'key':'milk'),portal:PORTAL.cur,yaw:player.yaw,sip:0,jet:0,flag:{}};
   if(o.tx!==undefined){const dx=o.tx-player.x,dz=o.tz-player.z,d=Math.hypot(dx,dz)||1;a.yaw=Math.atan2(dx,dz);const want=o.reach||.8;a.gx=d>want?o.tx-dx/d*want:player.x;a.gz=d>want?o.tz-dz/d*want:player.z;
     // a fixture with a stand point (the fridge): go there and face the fixture from it
     if(o.stand&&!insideAny(o.stand[0],o.stand[1],.3,player.y+.5)){a.gx=o.stand[0];a.gz=o.stand[1];a.yaw=Math.atan2(o.tx-a.gx,o.tz-a.gz)}}
@@ -75,6 +85,7 @@ ACT.start=function(kind,o){
   ACT.cur=a;return true};
 function actEnd(cancel){const a=ACT.cur;if(!a)return;ACT.cur=null;
   if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false);PLR.hdHold=null;for(const A of PLR.arms){A.ikp=null;A.hand.rotation.set(0,0,0)}}
+  if(a.o.leaf)setTimeout(()=>a.o.leaf(0),cancel?0:900);   // a door that opened closes again once you are through (or at once if you walked away)
   if(a.wOn)actWaterStream(false);if(a.o.F)a.o.F.set(0);if(a.o.lamp)a.o.lamp.material.color.setHex(0x223344);if(a.o.jetMesh)a.o.jetMesh.visible=false;
   if(a.cam0<=.75&&cam.dist>.75){cam.dist=a.cam0;cam.init=false}
   if(a.o.onEnd)a.o.onEnd(!!cancel)}
@@ -84,7 +95,8 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
   if((a.t>.5&&Math.hypot(player.vx||0,player.vz||0)>.7)||PORTAL.cur!==a.portal||player.sit||DRIVE.on){actEnd(true);return}
   // step up to the fixture and turn towards it, camera a little off to the side so the hands show
   let dy=a.yaw-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*7);
-  if(a.gx!==undefined&&a.t<.6){const k=Math.min(1,dt*5),nx=player.x+(a.gx-player.x)*k,nz=player.z+(a.gz-player.z)*k;if(!insideAny(nx,nz,.3,player.y+.5)){player.x=nx;player.z=nz}}
+  if(a.gx!==undefined&&a.t<.6){const k=Math.min(1,dt*5),nx=player.x+(a.gx-player.x)*k,nz=player.z+(a.gz-player.z)*k;if(!insideAny(nx,nz,.3,player.y+.5)){a.spd=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-3);player.x=nx;player.z=nz}}   // the feet shuffle while you step up to it
+  else if(!a.sp0){a.sp0=1;a.spd=0}
   if(cam.dist>.75){let cy=player.yaw+a.side*.85-cam.yaw;while(cy>Math.PI)cy-=6.283;while(cy<-Math.PI)cy+=6.283;cam.yaw+=cy*Math.min(1,dt*3)}
   const t=a.t,o=a.o,at=(x,y)=>t>=x&&t-dt<x;
   if(a.kind==='wash'){const on=t>.5&&t<a.dur-.7;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on!==a.wOn){a.wOn=on;actWaterStream(on)}if(at(.5))actSfx('click')}
@@ -100,6 +112,13 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
     if(t>1&&t<5.0){if(o.steam)actSteam(o.steam[0],o.steam[1],o.steam[2],.2,16+10*actWin(t,1,4.5));if((t*3|0)!==((t-dt)*3|0))actSfx('boil')}
     if(at(5.0)){actSfx('click');actSfx('ding');if(o.lamp)o.lamp.material.color.setHex(0x223344);if(o.whistle)AUD.tone(2300,2100,.7,.07,'sine')}
     a.prop.visible=t>5.6&&t<9.6;for(const s of [7.3,8.3,9.1])if(at(s))actSfx('gulp')}
+  else if(a.kind==='door'){if(at(.5))actSfx('latch');if(at(.9))actSfx('creak');if(o.leaf)o.leaf(actWin(t,.9,2.0))}
+  else if(a.kind==='key'){
+    a.prop.visible=t>.25&&t<3.0;if(at(.3))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
+    if(o.leaf)o.leaf(actWin(t,3.6,4.7));
+    // the leaf swings out over where you stand, so step back as you pull it open
+    if(o.back&&a.gx!==undefined){const adv=actWin(t,3.4,4.2),nx=a.gx+(o.back[0]-a.gx)*adv,nz=a.gz+(o.back[1]-a.gz)*adv;
+      a.spd=(adv-a.adv)/Math.max(dt,1e-3)*Math.hypot(o.back[0]-a.gx,o.back[1]-a.gz);a.adv=adv;if(!insideAny(nx,nz,.25,player.y+.5)){player.x=nx;player.z=nz}}}
   if(t>=a.dur)actEnd(false)}
 
 // ---------- the pose ----------
@@ -181,6 +200,25 @@ function actApply(P,dt){
     actHand(P,Wd,actMean([[Tb,press],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-press-up)+.0001]]),actMean([[V(0,-1,0),press],[V(-Wd.s,0,0),Math.max(0,1-press)]]).normalize(),w,dt);
     grip(Wd,[['point',press],['cup',Math.max(0,1-press-hold)],[itemPose,hold]]);
     actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
+  // ---------------- door: reach for the handle, press it down (the latch lets go), push / pull ----------------
+  else if(kind==='door'){const rc=actWin(t,.05,.5)*(1-actWin(t,1.95,2.4)),ps=actWin(t,.65,1.6);body(.08+.1*ps,.04);
+    const dh=Math.max(.3,Math.min(.6,D-.12)),T=actSp(P,fr(Wd.s*.1,1.0-.05*actWin(t,.45,.7)*(1-actWin(t,.8,1.1)),dh+.12*ps));
+    actHand(P,Wd,actMean([[T,rc],[ACT_CARRY(Wd),Math.max(0,1-rc)+.0001]]),V(-Wd.s,0,0),w,dt);grip(Wd,[['relax',Math.max(0,1-rc)],['bar',rc]]);
+    actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]])}
+  // ---------------- key: out of the pocket, into the lock, two turns (clack, clack), out again, then the handle and the door swings ----------------
+  else if(kind==='key'&&o.lock){
+    const reach=actWin(t,.2,.95),hd=actWin(t,2.85,3.35),hOff=actWin(t,4.1,4.6),wL=reach*(1-hd),wH=hd*(1-hOff),wR=Math.max(0,1-wL-wH)+.0001;
+    const ins=actWin(t,1.0,1.4)*(1-actWin(t,2.5,2.8)),turn=actWin(t,1.6,2.35)*(1-actWin(t,2.45,2.75)),al=turn*1.45;
+    body(.16*wL+.1*wH,.18*wL);
+    const Lw=new THREE.Vector3(o.lock[0],o.lock[1],o.lock[2]),fx=Math.sin(a.yaw),fz=Math.cos(a.yaw);Lw.x-=fx*(.14-.05*ins);Lw.z-=fz*(.14-.05*ins);
+    const TL=actSp(P,Lw);let TH=TL;if(o.handlePos){TH=actSp(P,o.handlePos());TH.x+=Wd.s*.03}
+    const n=actMean([[V(-Wd.s*Math.cos(al),-Math.sin(al),0),wL],[V(-Wd.s,0,0),wH+wR]]).normalize();
+    actHand(P,Wd,actMean([[TL,wL],[TH,wH],[ACT_REST(Wd),wR]]),n,w,dt);
+    grip(Wd,[['pinch',wL],['bar',wH],['relax',wR]]);
+    actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);
+    // the key sits in the pinch with its shaft pointing at the lock, and rolls with the wrist
+    {const pr=a.prop;if(pr.parent!==Wd.hand)Wd.hand.add(pr);pr.position.set(-Wd.s*.03,-.05,.0);Wd.hand.updateWorldMatrix(true,false);const q=new THREE.Quaternion();Wd.hand.getWorldQuaternion(q);
+      pr.quaternion.copy(q.invert().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a.yaw,-Wd.s*al,'YXZ'))))}}
 }
 
 // ---------- an openable fridge for the interior kit: shell, shelves with food, one swinging door ----------

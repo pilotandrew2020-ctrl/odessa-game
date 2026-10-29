@@ -2426,7 +2426,7 @@ function buildHome(grp,G,P,Sg,GR){
     p=W2(.95,.05);P.box(p[0],y0+1.65,p[1],.18,.28,.06,ry2,sRGB('#2b2d30'),1);
     {const pl=W2(1.0,.04);const m=plateMesh([String(idx+1)],{w:128,h:128,sizes:[80],color:'#fff',bg:'#1b4f8c',weight:'700'},.32,.32);m.position.set(pl[0],y0+2.25,pl[1]);m.rotation.y=ry2;grp.add(m)}
     // the porch is walkable (SPECIAL below): no solid block on it, you climb the steps and walk into the door, like a shop
-    {const d=W2(0,.9);const rp=W2(0,3.2);const go=()=>PORTAL.enter('stair',{x:rp[0],z:rp[1],yaw:ry2},{ent:idx+1,home:1});INTERACT.push({x:d[0],z:d[1],y:y0+.5,r:1.7,label:'Enter entrance '+(idx+1),cond:()=>!PORTAL.cur,fn:go});
+    {const d=W2(0,.9);const rp=W2(0,3.2);const go=()=>PORTAL.enter('stair',{x:rp[0],z:rp[1],yaw:ry2},{ent:idx+1,home:1});INTERACT.push({x:d[0],z:d[1],y:y0+.5,r:1.7,label:'Enter entrance '+(idx+1),cond:()=>!PORTAL.cur,act:'door',fn:go});
       DOORS.push({x:e.x,z:e.z,nx:e.nx,nz:e.nz,tx:e.tx,tz:e.tz,w:1.5,y:y0+.52,name:'stair',opt:{ent:idx+1,home:1},go})}
     SPECIAL.push((x,z)=>{const dx=x-e.x,dz=z-e.z;const tt=dx*e.tx+dz*e.tz,nn=dx*e.nx+dz*e.nz;if(nn<0||nn>(idx===1?6.4:2.45)||Math.abs(tt)>6.6)return null;
       if(Math.abs(tt)<1.4&&nn<1.8)return {h:y0+.52,pri:2,surf:'stone'};if(idx!==1&&Math.abs(tt)<.9&&nn<2.4)return {h:y0+(nn<2.1?.35:.2),pri:2,surf:'stone'};
@@ -6885,7 +6885,10 @@ function updateHUD(dt){
   if(miniT<=0){miniT=.1;drawMini()}
 }
 let curAct=null;
-function doAction(){if(curAct)curAct.fn()}
+// an entry with act:'door' / act:'key' plays that hand animation first (acts.js) and only then runs fn; walking away cancels it
+function doAction(){const c=curAct;if(!c)return;
+  if(c.act&&typeof ACT!=='undefined'){if(ACT.cur)return;if(ACT.start(c.act,Object.assign({},c.actO?c.actO():null,{onEnd:cn=>{if(!cn)c.fn()}})))return}
+  c.fn()}
 function drawMini(){
   const cv=$('mini'),x=cv.getContext('2d'),W=cv.width,R=W/2,scale=R/170;
   x.save();x.clearRect(0,0,W,W);x.beginPath();x.arc(R,R,R,0,7);x.clip();

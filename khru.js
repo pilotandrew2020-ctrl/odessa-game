@@ -82,7 +82,7 @@ function khBuild(grp,P,GR,at,W,n,tag){
     const pm=plateMesh(['ПІД\'ЇЗД '+(s+1)],{w:512,h:96,size:60,color:'#3a2a10',bg:'#e0b030',weight:'800'},1.9,.34,.2),pp2=q(0,1.82);pm.position.set(pp2[0]+F.n[0]*.0,y0+2.74,pp2[1]);pm.rotation.y=ry;grp.add(pm);
     const nb=q(-3.4,.08);P.box(nb[0],y0+1.75,nb[1],1.0,.72,.05,ry,sRGB('#6a4a2a'),5);                                                                  // notice board with a few papers
     for(let k=0;k<4;k++){const pq=q(-3.4+(k-1.5)*.22,.12);P.box(pq[0],y0+1.75+(k%2?.1:-.1),pq[1],.18,.26,.02,ry,sRGB(['#f4f1e6','#f2e3a0','#f4f1e6','#cfe0f0'][k]),9)}
-    INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,
+    INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,act:'door',actO:()=>({tx:dr.x+dr.nx*.2,tz:dr.z+dr.nz*.2,stand:[dr.x+dr.nx*.82,dr.z+dr.nz*.82]}),
       fn:()=>PORTAL.enter('stair',{x:dr.x+dr.nx*2.9,z:dr.z+dr.nz*2.9,yaw:Math.atan2(dr.nx,dr.nz)},{ent:s+1,floors:5})});
     if(s<n-1){const t=q(KH_SEC/2,2.8);                                                                                                                  // a young tree between the entrances
       P.cyl(t[0],y0,t[1],.17,.13,2.8,6,sRGB('#5b4028'),5);P.cyl(t[0],y0+1.9,t[1],1.5,.5,2.4,8,sRGB('#4a8a3c'),9);P.cyl(t[0],y0+3.7,t[1],1.05,.1,1.9,8,sRGB('#3f7a35'),9);STATIC_CIR.push(t[0],t[1],.5)}}

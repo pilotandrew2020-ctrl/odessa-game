@@ -65,6 +65,6 @@ function installBldg(){
   const ent={x:0,z:0,y:0,r:3.2,label:'Enter',cond(){
       if(PORTAL.cur||RIDE.on||DRIVE.on||PASS.host||player.sit)return false;
       const t=performance.now();if(Math.hypot(player.x-BG.lx,player.z-BG.lz)>.6||t-BG.lt>400){BG.lx=player.x;BG.lz=player.z;BG.lt=t;BG.cur=bgFind(player.x,player.z)}
-      const b=BG.cur;if(!b)return false;ent.x=b.qx;ent.z=b.qz;ent.y=player.y;ent.label=bgType(b).label;return true},
+      const b=BG.cur;if(!b)return false;ent.x=b.qx;ent.z=b.qz;ent.y=player.y;ent.label=bgType(b).label;ent.act=bgType(b).id==='stair'?'door':null;return true},
     fn(){bgEnter(BG.cur)}};
   INTERACT.push(ent)}

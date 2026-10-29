@@ -88,7 +88,7 @@ function ksBuild(grp,P,GR,at,st,tag){
     bx(0,.62,.17,2.6,.34,.5,'#a6a39b');bx(0,1.12,.085,2.6,.17,.5,'#a6a39b');
     const pm=plateMesh([(st.key==='new'?'ПАРАДНА ':'ПІД\'ЇЗД ')+(s+1)],{w:512,h:96,size:58,color:st.key==='new'?'#e8f0f4':'#3a2a10',bg:st.key==='new'?'#2f3a40':(st.key==='panel'?'#9aa4ad':'#e0b030'),weight:'800'},1.9,.34,.2),pp2=q(0,st.plate[0]);
     pm.position.set(pp2[0],y0+st.plate[1],pp2[1]);pm.rotation.y=ry;grp.add(pm);
-    INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,
+    INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,act:'door',actO:()=>({tx:dr.x+dr.nx*.16,tz:dr.z+dr.nz*.16,stand:[dr.x+dr.nx*.8,dr.z+dr.nz*.8]}),   // the leaf sits right in the facade; you step up to the door and take the handle
       fn:()=>PORTAL.enter('stair',{x:dr.x+dr.nx*2.9,z:dr.z+dr.nz*2.9,yaw:Math.atan2(dr.nx,dr.nz)},{ent:s+1,floors:st.floors,style:st.key})})}
   // a few benches and low trees along the pavement, green fence only for the stalin house
   if(st.key!=='stalin')for(let s=0;s<n;s++){const t=F.P((s-(n-1)/2)*st.sec+st.sec*.5-.3,fv+6.4);P.cyl(t[0],y0,t[1],.15,.12,2.4,6,sRGB('#5b4028'),5);P.cyl(t[0],y0+1.7,t[1],1.4,.4,2.2,8,sRGB('#4a8a3c'),9);STATIC_CIR.push(t[0],t[1],.5)}

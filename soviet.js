@@ -273,10 +273,19 @@ function svStair(opt){
   const sign=plateMesh(['ПІД\'ЇЗД '+ent+' · ПОВЕРХ '+fl],{w:512,h:96,size:44,color:'#fff',bg:'#2a4a6a'},1.6,.3);sign.position.set(ox+3.62,INT_Y+2.7,oz+.65);sign.rotation.y=-Math.PI/2;grp.add(sign);
   B(2.75,.015,8.5,2.1,.03,3.0,'#7c7266');B(2.75,.03,7.0,2.1,.03,.06,'#c9c2b0');                                      // small landing: darker tile and a threshold line
   const doors=[[2.4,1],[5.4,2],[8.4,3]];
-  for(const [z,n] of doors){B(3.64,1.45,z,.14,2.9,1.7,'#2e2420',5);B(3.58,1.4,z,.1,2.8,1.5,'#4b2f22',5);B(3.52,1.4,z-.35,.03,2.2,.5,'#5a3a2a',5);B(3.52,1.4,z+.35,.03,2.2,.5,'#5a3a2a',5);
-    B(3.5,1.4,z+.55,.04,.5,.14,'#c9ccd0',6);B(3.48,1.3,z+.58,.05,.4,.05,'#c9ccd0',6);Cy(3.5,1.9,z,.03,.03,.04,'#b0b4b8',6,0,Math.PI/2);B(2.9,.015,z,1.0,.02,1.2,'#5a4a3a');
+  for(const [z,n] of doors){B(3.64,1.45,z,.14,2.9,1.7,'#2e2420',5);B(2.9,.015,z,1.0,.02,1.2,'#5a4a3a');
+    // the leaf is a real hinged mesh (hinge on the stair side, handle on the other) so it can swing open when you turn the key
+    const pv=new THREE.Group();pv.position.set(ox+3.56,INT_Y,oz+z-.75);grp.add(pv);
+    const part=(w,h,d,x,y,zz,hex,rx)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),svMat(hex));m.position.set(x,y,zz);if(rx)m.rotation.x=rx;m.receiveShadow=true;pv.add(m);return m};
+    part(.1,2.8,1.5,0,1.4,.75,'#4b2f22');part(.03,2.2,.5,-.06,1.4,.4,'#5a3a2a');part(.03,2.2,.5,-.06,1.4,1.1,'#5a3a2a');
+    part(.04,.5,.14,-.08,1.4,1.3,'#c9ccd0');part(.05,.4,.05,-.1,1.3,1.33,'#c9ccd0');part(.04,.06,.06,-.07,1.9,.75,'#b0b4b8');
+    part(.02,.16,.08,-.065,1.08,1.25,'#8d9296');part(.022,.032,.012,-.075,1.08,1.25,'#101214');   // lock plate and the keyhole
+    const setLeaf=k=>{pv.rotation.y=-1.22*k},hv=new THREE.Vector3();
     const pl=plateMesh(['КВ. '+n],{w:128,h:64,size:34,color:'#fff',bg:'#2a4a6a'},.5,.25);pl.position.set(ox+3.6,INT_Y+3.25,oz+z);pl.rotation.y=-Math.PI/2;grp.add(pl);
-    INTERACT.push({x:ox+2.9,z:oz+z,r:1.7,label:'Open Flat '+n,cond:()=>grp.visible,fn:()=>PORTAL.enter('flat',null,{ent:PORTAL.opt.ent,floor:fl,unit:n})})}
+    const kz=oz+z+.5;
+    INTERACT.push({x:ox+2.9,z:oz+z,r:1.7,label:'Open Flat '+n,cond:()=>grp.visible,act:'key',
+      actO:()=>({tx:ox+3.47,tz:kz,stand:[ox+2.95,kz],lock:[ox+3.49,floorY+1.08,kz],back:[ox+1.75,kz],leaf:setLeaf,handlePos:()=>{pv.updateWorldMatrix(true,false);return pv.localToWorld(hv.set(-.1,1.3,1.33))}}),
+      fn:()=>PORTAL.enter('flat',null,{ent:PORTAL.opt.ent,floor:fl,unit:n})})}
   B(3.62,2.0,7.0,.12,1.0,.7,'#9aa0a2',1);B(3.55,2.0,7.0,.03,.9,.6,'#868c8e',1);B(3.55,2.35,6.8,.03,.05,.05,'#e8c040',3);
   // the old lift on the back wall: dark green-grey sliding doors with little windows, a call button and a floor indicator
   B(2.75,1.5,9.9,2.0,3.0,.12,'#3b3f3c',5);B(2.35,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(3.15,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(2.35,1.9,9.78,.26,.6,.02,'#202a2e',2);B(3.15,1.9,9.78,.26,.6,.02,'#202a2e',2);
@@ -319,7 +328,7 @@ function svStair(opt){
   const staticWalls=[];for(let i=staticWallStart;i<STATIC_WALLS.length;i++){const w=STATIC_WALLS[i];w.y0+=floorY;w.y1+=floorY;staticWalls.push([w,w.hw,w.hd])}
   for(let i=interactStart;i<INTERACT.length;i++){const it=INTERACT[i],prior=it.cond;it.y=it.y===undefined?floorY:it.y;it.cond=()=>grp.visible&&(!prior||prior())}
   grp.userData.interiorCollision={lowObbs:[],staticWalls};setInteriorGroupVisible(grp,false);
-  INDOORS.push({name:'stair',title:'Stairwell',sub:'',floor:'stone',exp:.7,lights:[l1,l2],test:(x,z)=>x>ox-HW&&x<ox+HW&&z>oz+Z0&&z<oz+Z1+1,ceil:()=>floorY+H-.3});
+  INDOORS.push({name:'stair',title:'Stairwell',sub:'',floor:'stone',exp:.7,lights:[l1,l2],test:(x,z)=>grp.visible&&x>ox-HW&&x<ox+HW&&z>oz+Z0&&z<oz+Z1+1,ceil:()=>floorY+H-.3});   // grp.visible: every floor shares this footprint, and the first one built used to win (wrong ceiling for the camera, wrong lamps)
   grp.visible=false;return {grp,spawn:[ox+1.8,oz+2.0],spawnY:floorY,spawnYaw:0,title:'Stairwell',sub:'old lift · floor '+fl,peds:[],
     onEnter(opt){PORTAL.peds=[];const a=opt&&opt.arrive;    // arriving by the stairs: up = beside the foot of the flights, down = on the top step of the lower floor's flight 2
       if(a==='up'){this.spawn=[ox-.4,oz+1.1];this.spawnY=floorY;this.spawnYaw=-Math.PI/2}else if(a==='down'){this.spawn=[ox-.4,oz+2.9];this.spawnY=floorY+ramp(-.4,2.9)+.02;this.spawnYaw=0}else{this.spawn=[ox+1.8,oz+2.0];this.spawnY=floorY;this.spawnYaw=0}}}}
