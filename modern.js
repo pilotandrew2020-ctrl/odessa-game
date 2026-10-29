@@ -43,7 +43,7 @@ function mdBuild(){
   K.kitchen(hw-.05,2.55,-PI/2,[['fridge',.8],['cab',.9],['sink',1.2],['cab',.5],['stove',.6],['cab',.6]],'#f4f2ee');
   K.table(2.3,2.4,0,1.6,.9,.76,'#d8c9ad');for(const x of [1.7,2.9]){K.chair(x,1.5,0,'#3e434a');K.chair(x,3.3,PI,'#3e434a')}
   // ----- living room: sofa facing the TV on the partition, armchair, coffee table -----
-  K.rug(1.2,5.8,0,3.6,2.8,'#c9ccd1');K.sofa(3.6,5.65,-PI/2,2.5);K.table(2.15,5.65,PI/2,1.1,.6,.4,'#d8cdb8');flArm(E,1.9,8.05,PI);
+  K.rug(1.2,5.8,0,3.6,2.8,'#c9ccd1');K.sofa(3.6,5.65,-PI/2,2.5);flProp(E,'coffee_table_round_01',2.15,5.65,0,.46,.46,{s:.7});flArm(E,1.9,8.05,PI);
   flProp(E,'wooden_display_shelves_01',-1.3,3.4,0,.19,.54);          // a real light-wood cube shelf on the partition (Poly Haven, CC0)
   K.tv(-1.71,5.65,PI/2,1.5);K.shelf(hw-.03,7.45,-PI/2,1.8,2.1);K.plant(-1.15,8.0,1.2);K.lamp(2.95,8.05,1.55);
   K.window(1.4,D-.12,PI,2.2,1.5,1.55);K.window(3.8,D-.12,PI,1.2,1.5,1.55);K.art(-.5,D-.07,PI,.9,.6,1.9);
