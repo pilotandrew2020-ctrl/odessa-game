@@ -83,7 +83,7 @@ function khBuild(grp,P,GR,at,W,n,tag){
     const nb=q(-3.4,.08);P.box(nb[0],y0+1.75,nb[1],1.0,.72,.05,ry,sRGB('#6a4a2a'),5);                                                                  // notice board with a few papers
     for(let k=0;k<4;k++){const pq=q(-3.4+(k-1.5)*.22,.12);P.box(pq[0],y0+1.75+(k%2?.1:-.1),pq[1],.18,.26,.02,ry,sRGB(['#f4f1e6','#f2e3a0','#f4f1e6','#cfe0f0'][k]),9)}
     INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,
-      fn:()=>PORTAL.enter('stair',{x:dr.x+dr.nx*2.9,z:dr.z+dr.nz*2.9,yaw:Math.atan2(dr.nx,dr.nz)},{ent:s+1})});
+      fn:()=>PORTAL.enter('stair',{x:dr.x+dr.nx*2.9,z:dr.z+dr.nz*2.9,yaw:Math.atan2(dr.nx,dr.nz)},{ent:s+1,floors:5})});
     if(s<n-1){const t=q(KH_SEC/2,2.8);                                                                                                                  // a young tree between the entrances
       P.cyl(t[0],y0,t[1],.17,.13,2.8,6,sRGB('#5b4028'),5);P.cyl(t[0],y0+1.9,t[1],1.5,.5,2.4,8,sRGB('#4a8a3c'),9);P.cyl(t[0],y0+3.7,t[1],1.05,.1,1.9,8,sRGB('#3f7a35'),9);STATIC_CIR.push(t[0],t[1],.5)}}
   // green picket fence along the pavement with a gap at every entrance, and short returns at both ends
@@ -106,5 +106,5 @@ function installKhru(grp,G,P,Sg,GR){
       const sp=khBuild(grp,P,GR,lot,W,n,dist);placed.push({x:lot.x,z:lot.z});
       const first=!seen[dist];seen[dist]=1;
       PLACES.push({id:'khru'+placed.length,name:'Khrushchyovka · '+dist,sub:'5 floors · '+n+' entrances · go inside',x:sp.x,z:sp.z,yaw:sp.yaw,pin:KH_COL,pinText:'5',poi:['5',KH_COL],r:40,hide:!first})}}
-  PARKED_DIRTY=true;window.KHRU_PLACED=placed.length;
+  PARKED_DIRTY=true;window.KHRU_PLACED=placed.length;window.KHRU_XZ=placed;
   if(window.console)console.log('khru: '+placed.length+' blocks, '+tries+' searches, '+Math.round(performance.now()-t0)+' ms')}
