@@ -174,4 +174,13 @@ function bdFaceTex(o){
 
 // ears and a nose so the head is not a smooth egg (called by makePlayer)
 function bdFace(head,M,HR,HH){for(const s of [-1,1]){const g=new THREE.SphereGeometry(1,10,8);g.scale(.011,.03,.022);const e=new THREE.Mesh(g,M.skin);e.position.set(s*HR*.985,HH*.47,-.006);e.rotation.z=-s*.12;head.add(e)}
-  const n=new THREE.SphereGeometry(1,10,8);n.scale(.017,.022,.022);const nm=new THREE.Mesh(n,M.skin);nm.position.set(0,HH*.355,HR*.985);nm.rotation.x=.25;head.add(nm)}
+  const n=new THREE.SphereGeometry(1,10,8);n.scale(.0125,.017,.019);const nm=new THREE.Mesh(n,M.skin);nm.position.set(0,HH*.35,HR*.985);nm.rotation.x=.25;head.add(nm)}
+
+// wet eyes: a flattened glossy cap over each painted eye that only adds the sun's / lamps' specular highlight (black diffuse + additive blending), so the eyes catch the light and move with the head
+let BD_CORNEA=null;
+function bdEyes(head,HR,HH){if(!BD_CORNEA)BD_CORNEA=new THREE.MeshPhongMaterial({color:0x000000,specular:0xffffff,shininess:260,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+  const y=HH*.5,R=bdHeadR(y,HR,HH),g=new THREE.SphereGeometry(1,10,8);g.scale(.0112,.0092,.0045);
+  for(const s of [-1,1]){const a=s*.393,m=new THREE.Mesh(g,BD_CORNEA);m.position.set(Math.sin(a)*(R+.0004),y,Math.cos(a)*(R+.0004));m.rotation.y=a;m.castShadow=false;head.add(m)}}
+// warm blood-red rim on skin where the surface turns away from the eye — a cheap stand-in for subsurface scattering on ears, nose, cheeks and fingers
+function bdSkinRim(m){m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float rim=pow(1.0-clamp(abs(dot(normalize(vNormal),normalize(vViewPosition))),0.0,1.0),2.6);totalEmissiveRadiance+=vec3(.42,.14,.08)*rim*.3;}')};
+  m.customProgramCacheKey=()=>'skinrim';m.needsUpdate=true}

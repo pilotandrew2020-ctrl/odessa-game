@@ -135,7 +135,7 @@ function actApply(P,dt){
   const itemPose=a.item==='cola'||a.item==='glass'||a.item==='cup'?'glass':'carton';
   // ---------------- wash: both palms meet under the tap and rub, fingers lace, then a rinse with cupped hands ----------------
   if(kind==='wash'){body(.5,.3);
-    const dh=Math.max(.3,Math.min(.6,D-.08)),C=actSp(P,fr(0,.97,dh));
+    const dh=Math.max(.3,Math.min(.6,D-.08)),C=actSp(P,fr(0,o.ty||.97,dh));
     const wet=actWin(t,.4,.8)*(1-actWin(t,1.0,1.3)),rub=actWin(t,1.0,1.4)*(1-actWin(t,2.8,3.1)),lace=actWin(t,2.8,3.2)*(1-actWin(t,3.8,4.1)),rinse=actWin(t,3.9,4.3)*(1-actWin(t,4.7,5.0));
     const ph=t*9.4,pl=t*5.2;
     P.arms.forEach((A,i)=>{const s=A.s,T=C.clone();
@@ -147,7 +147,7 @@ function actApply(P,dt){
     const f=actFoam(P),fv=t>1.5&&t<3.7,osc=Math.sin(ph)*rub;f.forEach(m=>{m.visible=fv;m.scale.set(1+.15*osc,.7,1)})}
   // ---------------- pour: a glass under the tap, then up to the lips ----------------
   else if(kind==='pour'){const under=actWin(t,.15,.6)*(1-actWin(t,2.4,2.9));body(.3*under,.14*under-.3*up);
-    const dh=Math.max(.3,Math.min(.6,D-.08)),Tu=actSp(P,fr(0,.95,dh));Tu.x+=Wd.s*.034;
+    const dh=Math.max(.3,Math.min(.6,D-.08)),Tu=actSp(P,fr(0,(o.ty||.97)-.02,dh));Tu.x+=Wd.s*.034;
     actHand(P,Wd,actMean([[Tu,under],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-under-up)+.0001]]),V(-Wd.s,0,0),w,dt);grip(Wd,[[itemPose,1]]);
     actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
   // ---------------- fridge: take hold of the handle, pull, reach in, take something out, push the door shut with the other hand, drink ----------------
@@ -157,7 +157,7 @@ function actApply(P,dt){
     let Th,Ti,Tp=null,np=V(0,0,1);
     if(o.F){o.F.door.updateWorldMatrix(true,true);const hw=new THREE.Vector3();o.F.door.children[0].getWorldPosition(hw);Th=actSp(P,hw);
       const dx=player.x-o.tx,dz=player.z-o.tz,l=Math.hypot(dx,dz)||1;Ti=actSp(P,[o.tx+dx/l*.12,player.y+1.0,o.tz+dz/l*.12]);
-      const dw=o.F.door.geometry.parameters.width,pw=new THREE.Vector3(dw*.7,.0,.06);o.F.door.localToWorld(pw);Tp=actSp(P,pw);
+      const dw=o.F.dw||o.F.door.geometry.parameters.width,pw=new THREE.Vector3(dw*.7,.0,.06);o.F.door.localToWorld(pw);Tp=actSp(P,pw);
       np=actDirSp(P,new THREE.Vector3(0,0,-1).transformDirection(o.F.door.matrixWorld))}
     else{const k=Math.max(.3,Math.min(.56,D-.35));Th=actSp(P,fr(Wd.s*.12,1.02,k));Ti=actSp(P,fr(0,1.0,Math.max(.3,Math.min(.6,D-.1))))}
     Th.x+=Wd.s*.03;Ti.x+=Wd.s*.034;

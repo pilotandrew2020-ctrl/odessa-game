@@ -3811,6 +3811,7 @@ function makePlayer(o){o=o||{};
   const M={shirt:std(shirtH,.85),tee:(TS==='over'||TS==='sailor')?new THREE.MeshStandardMaterial({map:stripeTex(o.tee1||'#f4f4f0',o.tee2||'#1d2f6a',TS==='sailor'?15:22),roughness:.8}):null,jeans:std(o.jeans||0x7ea3cc,.9),cuff:std(o.cuff||0xb9d0e8,.9),
     shoe:std(o.shoe||0xf6f6f2,.55),sole:std(o.sole||0xf08a24,.7),skin:std(parseInt(SK.slice(1),16),.65),hair:std(o.hair||0xe6c477,.75),hair2:std(o.hair2||0xf3dc9c,.7),glass:std(0x101418,.15,.4),bag:std(0x1c1d20,.6),strap:std(0x2a2b2e,.7),
     head:new THREE.MeshStandardMaterial({map:faceTex({bg:SK,iris:o.iris||'#3b7fd4',brow:o.brow||'#b88a3e',grin:true}),roughness:.6})};
+  if(typeof bdSkinRim==='function'){bdSkinRim(M.skin);bdSkinRim(M.head)}
   const hipY=.70;
   const root=new THREE.Group();
   const hips=new THREE.Group();hips.position.y=hipY;root.add(hips);
@@ -3832,10 +3833,10 @@ function makePlayer(o){o=o||{};
     spine.add(new THREE.Mesh(bdBand(0,.02,0,.46,.016,1,.005),std(0xcfd2d6,.35,.8)));
     const hm=new THREE.Mesh(bdLoft([{y:.0,rx:.18,rz:.108},{y:.03,rx:.188,rz:.114},{y:.066,rx:.192,rz:.116},{y:.072,rx:.17,rz:.1}],20),dk);spine.add(hm);
   }
-  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.07,10),M.skin);neck.position.y=.495;spine.add(neck);
-  const head=new THREE.Group();head.position.y=.52;spine.add(head);
-  const HR=.152,HH=.29;
-  const hm=new THREE.Mesh(headGeo(HR,HH),M.head);head.add(hm);bdFace(head,M,HR,HH);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.048,.056,.1,12),M.skin);neck.position.y=.49;spine.add(neck);
+  const head=new THREE.Group();head.position.y=.535;spine.add(head);
+  const HR=.104,HH=.245;   // a real head is ~0.16 m wide and ~0.23 m tall (the old 0.30 m wide one made everyone look like a toy)
+  const hm=new THREE.Mesh(headGeo(HR,HH),M.head);head.add(hm);bdFace(head,M,HR,HH);bdEyes(head,HR,HH);
   CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);CHP.glasses(head,o,M,HR,HH);CHP.hat(head,o,HR,HH);
   CHP.neck(spine,o);CHP.back(spine,o,M);
   const arms=[],legs=[];
@@ -3929,7 +3930,7 @@ function sipAnim(P,dt){const t=P.idle%7;if(t<4.6)return;const k=Math.sin(Math.mi
 // ===================== NPC people (instanced, same blocky style) =====================
 const NPC_P={};
 const _m=new THREE.Matrix4(),_m2=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_v=new THREE.Vector3(),_s=new THREE.Vector3(1,1,1),_c=new THREE.Color();
-const ND={hy:.84,legL:.80,torH:.54,shY:.48,armL:.6,headY:.58,HR:.158,HH:.3};
+const ND={hy:.84,legL:.80,torH:.54,shY:.48,armL:.6,headY:.58,HR:.11,HH:.255};
 function initPeopleMeshes(scene,N){
   // body.js shapes: lofted torso, limbs and shoes, an egg-shaped head and a hair cap with a hairline (the same look as the player, cheaper than the old rounded boxes)
   const torso=bdLoft(BD_TORSO,16);torso.scale(1.02,ND.torH/.5,1.04);
@@ -8464,13 +8465,55 @@ function buildSovietDecor(grp,ox,oz,Y,oldFridge){
    for(let i=0;i<256;i+=8){c.fillStyle='#e6c477';c.fillRect(i,376,4,8)}
    const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;const m=new THREE.Mesh(new THREE.PlaneGeometry(1.5,2.25),new THREE.MeshStandardMaterial({map:t,roughness:1}));
    m.position.set(ox-1.3,Y+1.45,oz+2.9);m.rotation.y=-Math.PI/2;grp.add(m)}
-  // fridge: lofted rounded body (slightly larger than the old box so it replaces it), two doors, chrome handles, badge
-  {const fr=new THREE.Group();fr.position.set(ox+10.2,Y,oz+21.1);fr.rotation.y=Math.PI;grp.add(fr);const cream=M(0xf1ead6,.18,.25),chrome=M(0xe3e6ea,.12,1);
-   xloft(fr,[[.64,.58,0,2.76,.14],[.5,.63,0,2.8,.2],[-.5,.63,0,2.8,.2],[-.64,.58,0,2.76,.14]],cream);
-   xb(fr,1.1,.03,.03,0,1.9,.68,M(0x3a3a3a,.8));
-   for(const [y,h] of [[2.3,.5],[1.25,.9]]){const hd=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,h,10),chrome);hd.position.set(-.45,y,.74);fr.add(hd);for(const dy of [-h/2+.05,h/2-.05])xb(fr,.03,.03,.1,-.45,y+dy,.69,chrome)}
-   xb(fr,.3,.08,.02,.2,2.55,.69,chrome);fr.children.slice(-1)[0].castShadow=false;
-   LOW_OBB.push(ox+10.2,oz+21.1,.66,.72,1,0)}
+  // fridge «Днепр» at human size (1.58 m): a rounded enamel cabinet with a real hinged door — ACT 'fridge' (acts.js) grips the chrome handle, pulls it open, reaches in and pushes it shut — and glass shelves of food
+  {const W=.64,D=.66,H=1.58,T=.03,cx=ox+10.34,cz=oz+21.5;
+   const fr=new THREE.Group();fr.position.set(cx,Y,cz);fr.rotation.y=Math.PI;grp.add(fr);
+   const cream=M(0xf1ead6,.2,.25),chrome=M(0xe3e6ea,.12,1),liner=M(0xf6f6f0,.5,.05),glass=M(0xcfe3ea,.12,.2,{transparent:true,opacity:.5}),dark=M(0x34363a,.85),
+     lampM=new THREE.MeshStandardMaterial({color:0xfff6d6,emissive:new THREE.Color(0xffefc0),emissiveIntensity:.9,roughness:.5});
+   // cabinet: back, sides, top, plinth, floor, the shelf under the freezer, white liners and a lamp strip
+   xb(fr,W,H-.08,T,0,.08+(H-.08)/2,-D/2+T/2,cream);
+   for(const s of [-1,1])xb(fr,T,H-.08,D,s*(W/2-T/2),.08+(H-.08)/2,0,cream);
+   xb(fr,W,T,D,0,H-T/2,0,cream);xb(fr,W-.04,.08,D-.04,0,.04,0,dark);
+   xb(fr,W-2*T,.02,D-T-.01,0,.1,T/2,liner);xb(fr,W-2*T,.025,D-T-.01,0,1.2,T/2,liner);
+   xb(fr,W-2*T,1.1,.012,0,.65,-D/2+T+.006,liner);for(const s of [-1,1])xb(fr,.012,1.1,D-T-.01,s*(W/2-T-.006),.65,T/2,liner);
+   xb(fr,W-.2,.012,.06,0,1.17,.12,lampM);
+   // glass shelves and what is on them
+   const SH=[.40,.64,.88];for(const y of SH)xb(fr,W-2*T-.012,.012,D-T-.06,0,y,T/2-.02,glass);
+   const gcache={},cyl=(r,h,x,y,z,mat,rz)=>{const k=r+'/'+h,g=gcache[k]||(gcache[k]=new THREE.CylinderGeometry(r,r,h,10)),m=new THREE.Mesh(g,mat);m.position.set(x,y+h/2,z);if(rz)m.rotation.z=rz;fr.add(m);return m};
+   const white=M(0xf4f6fa,.3),foil=M(0xc9ced4,.2,.9),gold=M(0xc9a54a,.3,.8),red=M(0xc43a2a,.35),green=M(0x4a8a3a,.35),blue=M(0x2f6db0,.4,.1),butter=M(0xf2e6a8,.6),cheese=M(0xe8b84a,.6),pink=M(0xc7766d,.7);
+   // on the cabinet floor: an enamel saucepan and a bowl of Olivier under a plate
+   cyl(.1,.17,-.13,.11,-.05,blue);cyl(.105,.02,-.13,.28,-.05,blue);cyl(.02,.025,-.13,.3,-.05,dark);
+   cyl(.09,.07,.12,.11,0,white);cyl(.085,.012,.12,.18,0,M(0xe8d9a8,.9));cyl(.1,.012,.12,.192,0,M(0xf4f1e8,.3));
+   // first shelf: kefir, milk, sour cream
+   for(const [x,z] of [[-.16,-.12],[-.07,-.12]]){cyl(.032,.22,x,SH[0]+.006,z,white);cyl(.033,.025,x,SH[0]+.226,z,foil)}
+   cyl(.032,.22,.05,SH[0]+.006,-.1,M(0xe9f1f8,.25));cyl(.033,.025,.05,SH[0]+.226,-.1,M(0x7ab0e0,.3,.5));cyl(.045,.09,.17,SH[0]+.006,-.05,white);cyl(.047,.012,.17,SH[0]+.096,-.05,M(0x3a7ac0,.4));
+   // second shelf: preserves, butter, cheese, eggs
+   for(const [x,c] of [[-.17,red],[-.06,green],[.05,red]]){cyl(.045,.13,x,SH[1]+.006,-.1,c);cyl(.047,.015,x,SH[1]+.136,-.1,gold)}
+   xb(fr,.12,.05,.08,.17,SH[1]+.031,-.1,butter);xb(fr,.11,.07,.1,-.1,SH[1]+.04,.05,cheese);
+   for(let i=0;i<6;i++)xb(fr,.04,.055,.04,-.02+(i%3)*.045,SH[1]+.034,.04+(i>2?.045:0),M(0xe9dcc6,.7));
+   // third shelf: the New Year champagne, tangerines, a sausage
+   cyl(.04,.28,-.13,SH[2]+.006,-.12,M(0x1f4a2a,.25,.2));cyl(.018,.05,-.13,SH[2]+.286,-.12,gold);cyl(.042,.01,-.13,SH[2]+.2,-.12,M(0xe9e2cf,.5));
+   for(const [x,z] of [[.0,-.08],[.07,-.1],[.035,.0],[.1,.0]]){const s=new THREE.Mesh(new THREE.SphereGeometry(.04,8,6),M(0xf08a1c,.7));s.position.set(x,SH[2]+.046,z);fr.add(s)}
+   cyl(.028,.26,-.02,SH[2]+.034,.1,pink,Math.PI/2);
+   // on top: a doily and a 3-litre jar of pickled tomatoes
+   cyl(.16,.01,-.1,H,0,M(0xf2efe6,.9));cyl(.09,.26,-.1,H+.01,0,M(0xcfe8d8,.2,.1,{transparent:true,opacity:.7}));cyl(.1,.014,-.1,H+.27,0,gold);
+   // doors: a rounded slab, hinged on the left edge, geometry spans x 0..W; the big one opens, the small freezer door is shut for good
+   const rr=(w,h,r)=>{const s=new THREE.Shape();s.moveTo(r,0);s.lineTo(w-r,0);s.quadraticCurveTo(w,0,w,r);s.lineTo(w,h-r);s.quadraticCurveTo(w,h,w-r,h);s.lineTo(r,h);s.quadraticCurveTo(0,h,0,h-r);s.lineTo(0,r);s.quadraticCurveTo(0,0,r,0);return s};
+   const slab=(w,h,th)=>{const g=new THREE.ExtrudeGeometry(rr(w-.02,h-.02,.04),{depth:th-.02,bevelEnabled:true,bevelThickness:.01,bevelSize:.01,bevelSegments:2,curveSegments:5});g.computeBoundingBox();const b=g.boundingBox;g.translate(-b.min.x,-(b.min.y+b.max.y)/2,-(b.min.z+b.max.z)/2);return g};
+   const door=new THREE.Mesh(slab(W,1.09,.05),cream);door.castShadow=true;door.position.set(-W/2,.645,D/2+.03);fr.add(door);
+   const hd=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.4,10),chrome);hd.position.set(W-.08,.27,.06);door.add(hd);     // children[0] = the handle the hand grips
+   for(const dy of [-.14,.14])xb(door,.03,.03,.04,W-.08,.27+dy,.045,chrome);
+   xb(door,.5,.02,.07,.3,-.2,-.06,glass);for(const x of [.14,.3,.46]){const b=new THREE.Mesh(new THREE.CylinderGeometry(.028,.028,.2,10),white);b.position.set(x,-.09,-.06);door.add(b);const c=new THREE.Mesh(new THREE.CylinderGeometry(.029,.029,.025,10),foil);c.position.set(x,.02,-.06);door.add(c)}
+   const fz=new THREE.Mesh(slab(W,.34,.05),cream);fz.castShadow=true;fz.position.set(-W/2,1.385,D/2+.03);fr.add(fz);
+   xb(fz,.02,.12,.03,W-.08,-.03,.04,chrome);
+   const fp=plateMesh(['ДНЕПР'],{w:256,h:64,size:44,color:'#cfd2d6',bg:'#3b3f44',weight:'800'},.26,.065);fp.position.set(.26,.08,.029);fz.add(fp);
+   const F={door,dw:W,set(k){door.rotation.y=-1.75*k;lampM.emissiveIntensity=.25+.65*Math.min(1,k*4)}};F.set(0);
+   LOW_OBB.push(cx,cz,W/2+.01,D/2+.01,1,0);
+   // the stand point is beside the handle edge, out of the door's sweep; the player steps in to the shelf later (like the modern fridge)
+   const fpos=(u,v)=>{fr.updateWorldMatrix(true,false);return fr.localToWorld(new THREE.Vector3(u,0,v))};let nf=0;
+   INTERACT.push({x:cx-(W/2+.02),z:cz-(D/2+.6),r:1.5,label:'Open the Dnepr fridge',fn:()=>{
+     const it=['kefir','milk'][nf++%2],c0=fpos(0,0),sa=fpos(W/2+.02,D/2+.6),sb=fpos(.16,D/2+.26);
+     if(ACT.start('fridge',{F,item:it,tx:c0.x,tz:c0.z,reach:1.05,stand:[sa.x,sa.z],step:[sb.x,sb.z],onEnd:ce=>{if(!ce)toast('ДНЕПР',it==='kefir'?'kefir, and the Olivier salad is saved for midnight':'cold milk — the champagne waits for the chimes')}}))toast('ДНЕПР','the old fridge hums and rattles')}})}
   // kitchen table with samovar, teapot, cups, sugar bowl
   {const t=new THREE.Group();t.position.set(ox+5.3,Y,oz+15);grp.add(t);const wood=M(0x6b4423,.55,.05),brass=M(0xc9a54a,.22,1),china=M(0xf4f1e8,.3),blue=M(0x2c4f9a,.4);
    xb(t,1.4,.06,.9,0,.76,0,wood);for(const sx of [-1,1])for(const sz of [-1,1])xb(t,.07,.76,.07,sx*.62,.38,sz*.38,wood);

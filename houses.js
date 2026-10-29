@@ -87,8 +87,8 @@ function hsKit(E,S,L){
     if(label==='Run the bath'){E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast('You run the bath','');if(window.AUD)AUD.beep()});return t}
     // basins: really wash your hands (and at the kitchen sink pour a glass of water) — see acts.js
     const wx=ox+p[0],wz=oz+p[1],jet=()=>{t.until=HSTATE.t+.4},L=loc(x,z,ry),a=L(drink?-.32:0,.75),b=L(.32,.75);
-    E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.85,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
-    if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.85,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
+    E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.5,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
+    if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.5,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
     return t};
   K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
