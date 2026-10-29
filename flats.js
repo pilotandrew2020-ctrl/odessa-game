@@ -34,6 +34,9 @@ function flArm(E,x,z,ry,h){
   E.obb(cx,cz,.45,.45,ry);
   E.act(cx,cz,1.7,'Sit in the armchair',()=>{if(player.sit)return;player.sit={x:ox+cx,z:oz+cz,y:INT_Y+.12,yaw:ry};cam.yaw=ry;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')})}
 
+// a real standing prop (Poly Haven, CC0) on the floor at flat coordinates (x,z) with an oriented collision box (half sizes hw across, hd deep)
+function flProp(E,name,x,z,ry,hw,hd,o){MDL.put(E.grp,name,Object.assign({x:E.ox+x,y:INT_Y,z:E.oz+z,ry:ry},o||{}));E.obb(x,z,hw,hd,ry)}
+
 function flToStair(k){if(FL.leaving)return;FL.leaving=1;const o=PORTAL.opt||{};PORTAL.go('stair',{ent:o.ent||1,floor:o.floor||1,style:k});setTimeout(()=>{FL.leaving=0},1800)}
 
 function flBuild(k){
