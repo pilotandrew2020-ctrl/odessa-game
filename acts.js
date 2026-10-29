@@ -54,15 +54,20 @@ function actInstall(){if(ACT.hooked)return;ACT.hooked=true;
 ACT.start=function(kind,o){
   if(ACT.cur||player.sit||(typeof DRIVE!=='undefined'&&DRIVE.on)||(typeof RIDE!=='undefined'&&RIDE.on)||!PLR)return false;
   actInstall();o=o||{};const a={kind,o,t:0,dur:ACT_DUR[kind]||5,item:o.item||(kind==='kettle'?'cup':kind==='pour'?'glass':'milk'),portal:PORTAL.cur,yaw:player.yaw,sip:0,jet:0,flag:{}};
-  if(o.tx!==undefined){const dx=o.tx-player.x,dz=o.tz-player.z,d=Math.hypot(dx,dz)||1;a.yaw=Math.atan2(dx,dz);const want=o.reach||.8;a.gx=d>want?o.tx-dx/d*want:player.x;a.gz=d>want?o.tz-dz/d*want:player.z}
+  if(o.tx!==undefined){const dx=o.tx-player.x,dz=o.tz-player.z,d=Math.hypot(dx,dz)||1;a.yaw=Math.atan2(dx,dz);const want=o.reach||.8;a.gx=d>want?o.tx-dx/d*want:player.x;a.gz=d>want?o.tz-dz/d*want:player.z;
+    // a fixture with a stand point (the fridge): go there and face the fixture from it
+    if(o.stand&&!insideAny(o.stand[0],o.stand[1],.3,player.y+.5)){a.gx=o.stand[0];a.gz=o.stand[1];a.yaw=Math.atan2(o.tx-a.gx,o.tz-a.gz)}}
   a.cam0=cam.dist;if(cam.dist<=.75){cam.dist=2.3;cam.init=false}
   // camera to whichever side has room (kitchens are tight); the working hand is the one on the camera's side so it is always in view
   {const px=a.gx!==undefined?a.gx:player.x,pz=a.gz!==undefined?a.gz:player.z,free=sg=>{const yw=a.yaw+sg*.85;for(let s=.6;s<=2.3;s+=.2){const x=px-Math.sin(yw)*s,z=pz-Math.cos(yw)*s;if(insideAny(x,z,.25,player.y+1.35))return s}return 2.4};
    const fm=free(-1),fp=free(1);a.side=(fm>=1.7||fm>=fp-.3)?-1:1;a.hand=a.side<0?1:0}
-  const W=PLR.arms[a.hand].el;const pr=actProp(a.item);if(pr.parent!==W)W.add(pr);a.prop=pr;a.canWas=PLR.can.visible;PLR.can.visible=false;
+  // the arm on the fridge's side opens it (the door swings that way, so the hand follows the handle without crossing the body)
+  if(kind==='fridge'&&o.F){const gx=a.gx!==undefined?a.gx:player.x,gz=a.gz!==undefined?a.gz:player.z;
+    a.hand=((o.tx-gx)*Math.cos(a.yaw)-(o.tz-gz)*Math.sin(a.yaw))>0?1:0}
+  const pr=actProp(a.item),HH=PLR.arms[a.hand].hand;if(pr.parent!==HH)HH.add(pr);a.prop=pr;a.canWas=PLR.can.visible;PLR.can.visible=false;a.bx=player.x;a.bz=player.z;a.adv=0;a.lp=0;
   ACT.cur=a;return true};
 function actEnd(cancel){const a=ACT.cur;if(!a)return;ACT.cur=null;
-  if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false)}
+  if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false);PLR.hdHold=null;for(const A of PLR.arms){A.ikp=null;A.hand.rotation.set(0,0,0)}}
   if(a.o.F)a.o.F.set(0);if(a.o.lamp)a.o.lamp.material.color.setHex(0x223344);if(a.o.jetMesh)a.o.jetMesh.visible=false;
   if(a.cam0<=.75&&cam.dist>.75){cam.dist=a.cam0;cam.init=false}
   if(a.o.onEnd)a.o.onEnd(!!cancel)}
@@ -79,7 +84,10 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
   else if(a.kind==='pour'){const on=t>.5&&t<2.4;if(o.jet&&on)o.jet();if(o.jetMesh)o.jetMesh.visible=on;if(on&&((t*8|0)!==((t-dt)*8|0)))actSfx('water');
     if(a.prop.userData.water)a.prop.userData.water.scale.y=.15+.85*actWin(t,.7,2.2);a.prop.visible=t>.2;
     for(const s of [3.5,4.5,5.5])if(at(s))actSfx('gulp')}
-  else if(a.kind==='fridge'){if(o.F)o.F.set(actWin(t,.3,1.1)*(1-actWin(t,2.4,3.2)));if(at(.35))actSfx('thunk');if(at(3.0))actSfx('thunk');
+  else if(a.kind==='fridge'){if(o.F)o.F.set(actWin(t,.5,1.45)*(1-actWin(t,2.55,3.35)));if(at(.5))actSfx('thunk');if(at(3.3))actSfx('thunk');
+    // step in to reach the shelf, step back after the door is shut
+    if(o.step&&a.gx!==undefined&&t>.6){const adv=actWin(t,.95,1.75)*(1-actWin(t,3.45,4.25)),nx=a.gx+(o.step[0]-a.gx)*adv,nz=a.gz+(o.step[1]-a.gz)*adv;
+      a.spd=(adv-a.adv)/Math.max(dt,1e-3)*Math.hypot(o.step[0]-a.gx,o.step[1]-a.gz);a.adv=adv;if(!insideAny(nx,nz,.25,player.y+.5)){player.x=nx;player.z=nz}}
     a.prop.visible=t>1.9&&t<7.6;for(const s of [4.6,5.6,6.6])if(at(s))actSfx('gulp')}
   else if(a.kind==='kettle'){if(at(.7)){actSfx('click');if(o.lamp)o.lamp.material.color.setHex(0x4aa8ff)}
     if(t>1&&t<5.0){if(o.steam)actSteam(o.steam[0],o.steam[1],o.steam[2],.2,16+10*actWin(t,1,4.5));if((t*3|0)!==((t-dt)*3|0))actSfx('boil')}
@@ -87,41 +95,85 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
     a.prop.visible=t>5.6&&t<9.6;for(const s of [7.3,8.3,9.1])if(at(s))actSfx('gulp')}
   if(t>=a.dur)actEnd(false)}
 
-// ---------- the pose, blended over whatever the base animation did ----------
-function actFoam(P){if(P.foam)return P.foam;P.foam=P.arms.map(A=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9}));m.position.set(0,-.23,.03);m.scale.set(1,.7,1);m.visible=false;A.el.add(m);return m});return P.foam}
+// ---------- the pose ----------
+// soap suds: a few small blobs on the back of each hand and between the fingers (not a ball that hides the hands)
+function actFoam(P){if(P.foam)return P.foam;const mat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9});
+  P.foam=P.arms.map(A=>{const g=new THREE.Group();g.visible=false;
+    [[.024,-.034,.004,.022],[.022,-.062,.02,.017],[.021,-.058,-.016,.016],[.017,-.083,.008,.012],[.005,-.1,.012,.011],[.026,-.012,-.008,.016]].forEach(b=>{const m=new THREE.Mesh(new THREE.SphereGeometry(b[3],8,6),mat);m.position.set(A.s*b[0],b[1],b[2]);g.add(m)});
+    A.hand.add(g);return g});return P.foam}
+// ---------- the pose: arms reach with the two-bone solver (hands.js), fingers take grips, whatever you hold sits in the palm ----------
+// player-relative point -> world: (sideways, height above the floor, forward)
+function actFrame(){const s=Math.sin(player.yaw),c=Math.cos(player.yaw);return (l,h,f)=>[player.x+c*l+s*f,player.y+h,player.z-s*l+c*f]}
+function actSp(P,p){P.spine.updateWorldMatrix(true,false);return P.spine.worldToLocal(Array.isArray(p)?new THREE.Vector3(p[0],p[1],p[2]):p.clone())}
+function actDirSp(P,v){P.spine.updateWorldMatrix(true,false);const q=new THREE.Quaternion();P.spine.getWorldQuaternion(q);return v.clone().applyQuaternion(q.invert())}
+// weighted mean of [vector, weight] pairs (weights need not add up to 1)
+function actMean(list){const r=new THREE.Vector3();let s=0;for(const l of list){if(l[1]>0){r.addScaledVector(l[0],l[1]);s+=l[1]}}return s>0?r.multiplyScalar(1/s):r}
+function actCurl(list){const r=[0,0,0,0,0];let s=0;for(const l of list){if(l[1]>0){for(let i=0;i<5;i++)r[i]+=HD.pose[l[0]][i]*l[1];s+=l[1]}}return s>0?r.map(v=>v/s):HD.pose.relax.slice()}
+// one hand: T = where the PALM CENTRE goes (spine space), n = where the palm looks, f = how much of the base animation it replaces (0..1)
+function actHand(P,A,T,n,f,dt,o){o=o||{};const b=[A.sh.rotation.x,A.sh.rotation.z,A.el.rotation.x];
+  if(!A.ikp){const q=new THREE.Vector3();hdForearm(A,q);A.ikp=hdHandPos(A,new THREE.Vector3()).addScaledVector(q,.036)}
+  A.ikp.lerp(T,1-Math.exp(-dt*(o.k||16)));hdReachPalm(A,A.ikp);
+  A.sh.rotation.x=b[0]+(A.sh.rotation.x-b[0])*f;A.sh.rotation.z=b[1]+(A.sh.rotation.z-b[1])*f;A.el.rotation.x=b[2]+(A.el.rotation.x-b[2])*f;
+  hdPalm(A,n,o.flex||0,o.dev||0);const H=A.hand.rotation;H.x*=f;H.y*=f;H.z*=f}
+// the thing in the hand sits against the palm and stays upright in the world; tilt = how far it is tipped towards the face
+function actHold(a,A,tilt){const pr=a.prop;if(pr.parent!==A.hand)A.hand.add(pr);pr.position.set(-A.s*.034,-.05,0);
+  A.hand.updateWorldMatrix(true,false);const q=new THREE.Quaternion();A.hand.getWorldQuaternion(q);
+  pr.quaternion.copy(q.invert().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(-tilt,player.yaw,0,'YXZ'))))}
+// the mouth in spine space, nudged so a glass or carton held in the palm touches the lips
+function actMouth(P,A){const m=new THREE.Vector3(0,.075,.14);P.head.updateWorldMatrix(true,false);P.head.localToWorld(m);const v=actSp(P,m);v.x+=A.s*.034;v.y-=.05;v.z+=.05;return v}
+const ACT_REST=A=>new THREE.Vector3(A.s*.285,-.1,.05),ACT_CARRY=A=>new THREE.Vector3(A.s*.13,.27,.27);
+
 function actApply(P,dt){
-  const a=ACT.cur,t=a.t,W=P.arms[a.hand],O=P.arms[1-a.hand],w=actWin(t,0,.35)*(1-actWin(t,a.dur-.45,a.dur));
-  // zin = how far the arm swings in towards the body (the arms are mirror images, so the sign depends on the side)
-  const mix=(A,sx,zin,ex)=>{A.sh.rotation.x+=(sx-A.sh.rotation.x)*w;const z=-A.s*zin;A.sh.rotation.z+=(z-A.sh.rotation.z)*w;A.el.rotation.x+=(ex-A.el.rotation.x)*w};
+  const a=ACT.cur,t=a.t,o=a.o,kind=a.kind,Wd=P.arms[a.hand],Od=P.arms[1-a.hand],w=actWin(t,0,.35)*(1-actWin(t,a.dur-.45,a.dur));
+  P.hdHold=[1,1];
+  // feet shuffle while the body steps in / back (a.spd = metres per second along the way)
+  {const sp=a.spd||0,mv=Math.min(1,Math.abs(sp)/.4);if(mv>.03){a.lp+=dt*sp*4.2;for(const g of P.legs){const q=a.lp+(g.s>0?0:Math.PI);g.hp.rotation.x=-Math.sin(q)*.45*mv;g.kn.rotation.x=Math.max(0,Math.sin(q+1.3))*.7*mv+.04}}}
   const body=(lean,head)=>{P.spine.rotation.x+=(lean-P.spine.rotation.x)*w;P.head.rotation.x+=(head-P.head.rotation.x)*w};
-  // raising a glass or carton to the mouth: k = how far up it is
-  const sip=k=>{mix(W,-.15-1.5*k,.06+.3*k,-.75-1.2*k);body(0,-.3*k)};
-  const reach=(k,low)=>mix(W,-.35-(low?.65:1.1)*k,.12*k,-.4-.5*k);
-  const kind=a.kind,tilt=u=>{a.prop.rotation.x=-(W.sh.rotation.x+W.el.rotation.x)-u};
-  if(kind==='wash'){const rub=actWin(t,.8,1.2)*(1-actWin(t,4.5,5.0)),osc=Math.sin(t*15)*rub;body(.3,.22);const f=actFoam(P);
-    for(const A of P.arms)mix(A,-.82+Math.cos(t*15+A.s)*.05*rub,.5-.04*osc,-1.3+osc*.12);
-    const fv=t>1.5&&t<3.7;f.forEach(m=>{m.visible=fv;m.scale.set(1+.15*osc,.7,1)})}
-  else if(kind==='pour'){
-    // glass under the tap, then up to the mouth
-    const under=actWin(t,.15,.6)*(1-actWin(t,2.4,2.9)),up=actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0));
-    mix(O,-.2,.08,-.55);
-    if(under>.01){mix(W,-.55-.35*under,.12*under,-.8-.2*under);body(.18*under,.12*under)}
-    if(up>.01)sip(up);
-    tilt(.75*up)}
+  const fr=actFrame(),V=(x,y,z)=>new THREE.Vector3(x,y,z),D=o.tx===undefined?.8:Math.hypot(o.tx-player.x,o.tz-player.z);
+  const grip=(A,list)=>{A.hand.userData.rig.tgt=actCurl(list)};
+  const up=kind==='pour'?actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0)):kind==='fridge'?actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9)):kind==='kettle'?actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9)):0;
+  const itemPose=a.item==='cola'||a.item==='glass'||a.item==='cup'?'glass':'carton';
+  // ---------------- wash: both palms meet under the tap and rub, fingers lace, then a rinse with cupped hands ----------------
+  if(kind==='wash'){body(.5,.3);
+    const dh=Math.max(.3,Math.min(.6,D-.08)),C=actSp(P,fr(0,.97,dh));
+    const wet=actWin(t,.4,.8)*(1-actWin(t,1.0,1.3)),rub=actWin(t,1.0,1.4)*(1-actWin(t,2.8,3.1)),lace=actWin(t,2.8,3.2)*(1-actWin(t,3.8,4.1)),rinse=actWin(t,3.9,4.3)*(1-actWin(t,4.7,5.0));
+    const ph=t*9.4,pl=t*5.2;
+    P.arms.forEach((A,i)=>{const s=A.s,T=C.clone();
+      T.x+=s*(.022+.02*wet+.045*rinse+.004*lace);
+      T.z+=(s>0?.05:-.022)*Math.sin(ph)*rub+(s>0?.034:-.034)*Math.sin(pl)*lace+.012*Math.sin(t*3.3+s)*wet;
+      T.y+=(s>0?.014:-.007)*Math.sin(ph+.6)*rub+.02*Math.cos(pl)*s*lace-.035*rinse;
+      const al=.45*lace+.95*rinse;actHand(P,A,T,V(-s*Math.cos(al),Math.sin(al),0),w,dt);
+      grip(A,[['flat',Math.max(.0001,1-lace-rinse)],['lace',lace],['cup',rinse]])});
+    const f=actFoam(P),fv=t>1.5&&t<3.7,osc=Math.sin(ph)*rub;f.forEach(m=>{m.visible=fv;m.scale.set(1+.15*osc,.7,1)})}
+  // ---------------- pour: a glass under the tap, then up to the lips ----------------
+  else if(kind==='pour'){const under=actWin(t,.15,.6)*(1-actWin(t,2.4,2.9));body(.3*under,.14*under-.3*up);
+    const dh=Math.max(.3,Math.min(.6,D-.08)),Tu=actSp(P,fr(0,.95,dh));Tu.x+=Wd.s*.034;
+    actHand(P,Wd,actMean([[Tu,under],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-under-up)+.0001]]),V(-Wd.s,0,0),w,dt);grip(Wd,[[itemPose,1]]);
+    actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
+  // ---------------- fridge: take hold of the handle, pull, reach in, take something out, push the door shut with the other hand, drink ----------------
   else if(kind==='fridge'){
-    const rc=actWin(t,0,.5)*(1-actWin(t,3.2,3.7)),get=actWin(t,1.0,1.8)*(1-actWin(t,2.1,2.5)),carry=actWin(t,2.0,2.7)*(1-actWin(t,3.0,3.5)),up=actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9));
-    mix(O,-.45*rc,-.05,-.4);
-    if(rc>.01)reach(rc,false);if(get>.01){mix(W,-1.0,.18,-.25);body(.22*get,.15*get)}
-    if(carry>.01)mix(W,-.55,.1,-1.1);
-    if(up>.01)sip(up);
-    tilt(.8*up)}
-  else if(kind==='kettle'){
-    const press=actWin(t,0,.6)*(1-actWin(t,1.0,1.6)),look=actWin(t,1.4,2.0)*(1-actWin(t,5.0,5.6)),up=actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9));
-    mix(O,-.15,.08,-.6);
-    if(press>.01){reach(press,true);body(.12*press,.1*press)}
-    if(look>.01){mix(W,-.3,.05,-.7);body(.05,.18*look)}
-    if(up>.01)sip(up);
-    tilt(.75*up)}
+    const H=actWin(t,0,.45)*(1-actWin(t,.95,1.3)),I=actWin(t,1.15,1.8)*(1-actWin(t,2.0,2.7)),Pu=actWin(t,2.4,2.8)*(1-actWin(t,3.5,3.9));
+    body(.12+.2*I,.08+.1*I-.3*up);
+    let Th,Ti,Tp=null,np=V(0,0,1);
+    if(o.F){o.F.door.updateWorldMatrix(true,true);const hw=new THREE.Vector3();o.F.door.children[0].getWorldPosition(hw);Th=actSp(P,hw);
+      const dx=player.x-o.tx,dz=player.z-o.tz,l=Math.hypot(dx,dz)||1;Ti=actSp(P,[o.tx+dx/l*.12,player.y+1.0,o.tz+dz/l*.12]);
+      const dw=o.F.door.geometry.parameters.width,pw=new THREE.Vector3(dw*.7,.0,.06);o.F.door.localToWorld(pw);Tp=actSp(P,pw);
+      np=actDirSp(P,new THREE.Vector3(0,0,-1).transformDirection(o.F.door.matrixWorld))}
+    else{const k=Math.max(.3,Math.min(.56,D-.35));Th=actSp(P,fr(Wd.s*.12,1.02,k));Ti=actSp(P,fr(0,1.0,Math.max(.3,Math.min(.6,D-.1))))}
+    Th.x+=Wd.s*.03;Ti.x+=Wd.s*.034;
+    const T=actMean([[Th,H],[Ti,I],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-H-I-up)+.0001]]);
+    actHand(P,Wd,T,V(-Wd.s,0,0),w,dt);
+    const gh=actWin(t,.3,.5)*(1-actWin(t,.9,1.1)),gc=actWin(t,1.75,2.0);grip(Wd,[['cup',Math.max(0,1-gh-gc)],['bar',gh],[itemPose,gc]]);
+    if(Tp&&Pu>0){actHand(P,Od,actMean([[Tp,Pu],[ACT_REST(Od),Math.max(0,1-Pu)]]),actMean([[np,Pu],[V(-Od.s,0,0),Math.max(0,1-Pu)]]).normalize(),w,dt);grip(Od,[['flat',Pu],['relax',Math.max(0,1-Pu)]])}
+    else{actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]])}
+    actHold(a,Wd,.8*up)}
+  // ---------------- kettle: one finger presses the button, wait, take the cup, drink ----------------
+  else if(kind==='kettle'){const press=actWin(t,0,.6)*(1-actWin(t,1.0,1.6));body(.12*press+.05,.1*press+.18*actWin(t,1.4,2.0)*(1-actWin(t,5.0,5.6))-.3*up);
+    let Tb;if(o.lamp){const lw=new THREE.Vector3();o.lamp.getWorldPosition(lw);lw.y+=.045;Tb=actSp(P,lw)}else Tb=actSp(P,fr(Wd.s*.08,.98,Math.max(.3,Math.min(.55,D-.1))));
+    const hold=actWin(t,5.4,6.0);
+    actHand(P,Wd,actMean([[Tb,press],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-press-up)+.0001]]),actMean([[V(0,-1,0),press],[V(-Wd.s,0,0),Math.max(0,1-press)]]).normalize(),w,dt);
+    grip(Wd,[['point',press],['cup',Math.max(0,1-press-hold)],[itemPose,hold]]);
+    actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
 }
 
 // ---------- an openable fridge for the interior kit: shell, shelves with food, one swinging door ----------
@@ -144,7 +196,8 @@ function actFridge(E,x,z,ry,w,o){o=o||{};const H=o.h||1.9,Dp=.7,T=.03,c=Math.cos
   const F={door,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62)};F.set(0);
   const label=o.label||'Open the fridge',items=['milk','juice','kefir','cola'];let n=0;
   E.act(F.stand[0],F.stand[1],1.5,label,()=>{const it=items[n++%items.length];const p=loc(0,Dp/2);
-    if(ACT.start('fridge',{F,item:it,tx:E.ox+p[0],tz:E.oz+p[1],reach:1.05,onEnd:cx=>{if(!cx)toast('Cheers','you had some '+(it==='cola'?'cola':it))}}))toast('Fridge',it==='milk'?'a carton of cold milk':it==='juice'?'orange juice':it==='kefir'?'kefir':'a cold bottle of cola')});
+    const sa=loc(.42,1.4),sb=loc(.2,1.04);   // stand to the handle's side, out of the door's sweep; step in to the shelf later
+    if(ACT.start('fridge',{F,item:it,tx:E.ox+p[0],tz:E.oz+p[1],reach:1.05,stand:[E.ox+sa[0],E.oz+sa[1]],step:[E.ox+sb[0],E.oz+sb[1]],onEnd:cx=>{if(!cx)toast('Cheers','you had some '+(it==='cola'?'cola':it))}}))toast('Fridge',it==='milk'?'a carton of cold milk':it==='juice'?'orange juice':it==='kefir'?'kefir':'a cold bottle of cola')});
   return F}
 
 // ---------- an electric kettle on a counter (x,z in E-local metres, y = counter top) ----------
