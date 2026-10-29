@@ -72,17 +72,24 @@ function hsKit(E,S,L){
   K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
-  K.kitchen=(x,z,ry,items,wall)=>{let u=0;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';
+  K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';
     for(const [kind,w] of items){const c=u+w/2;u+=w;
-      if(kind==='fridge'){bx(x,z,ry,c,.95,.38,w-.04,1.9,.7,'#d6dade',6);bx(x,z,ry,c,1.35,.75,.02,.04,.03,'#7a7f86',6);bx(x,z,ry,c-w*.38,1.25,.74,.03,.5,.04,'#7a7f86',6);bx(x,z,ry,c-w*.38,.6,.74,.03,.5,.04,'#7a7f86',6);ob(x,z,ry,c,.38,w/2,.36)}
+      if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
-        if(kind==='cab'){for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
+        if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
         if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
-        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.58,.02,.02,.3,'#c8ccd0',6);const t=loc(x,z,ry)(c,.5);K.tap(t[0],t[1],ry,'Run the tap',1.12);for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}};
+        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.58,.02,.02,.3,'#c8ccd0',6);const t=loc(x,z,ry)(c,.5);K.tap(t[0],t[1],ry,'Run the tap',1.12,true);for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
+    // an electric kettle on the first free worktop
+    if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
   // a tap with a thin jet of water that runs for a few seconds when used
-  K.tap=(x,z,ry,label,y)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.26,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));const p=loc(x,z,ry)(0,.08);
+  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.26,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));const p=loc(x,z,ry)(0,.08);
     m.position.set(ox+p[0],INT_Y+(y||.95)-.15,oz+p[1]);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
-    E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast(label==='Wash your hands'?'You wash your hands':'You run the tap',label==='Wash your hands'?'clean hands!':'');if(window.AUD)AUD.beep()});return t};
+    if(label==='Run the bath'){E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast('You run the bath','');if(window.AUD)AUD.beep()});return t}
+    // basins: really wash your hands (and at the kitchen sink pour a glass of water) — see acts.js
+    const wx=ox+p[0],wz=oz+p[1],jet=()=>{t.until=HSTATE.t+.4},L=loc(x,z,ry),a=L(drink?-.32:0,.75),b=L(.32,.75);
+    E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.5,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
+    if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.5,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
+    return t};
   K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
   K.toilet=(x,z,ry)=>{bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};

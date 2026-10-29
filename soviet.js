@@ -144,17 +144,19 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
     for(const [dx,dz] of [[-.18,-.18],[.18,-.18],[-.18,.18],[.18,.18]])B(x+dx,.3,z+dz,.05,.6,.05,'#c4622d',6);solid(x,z,.3,.3)}
   // pendant lamp over the table
   C(5.3,2.5,15,.01,.01,.6,'#222',1);C(5.3,2.16,15,.5,.1,.3,'#f0b050',3);
-  // fridge name plate, curtains on the balcony door, bin, bottles, jars on the fridge
-  const fp=plateMesh(['ДНЕПР'],{w:256,h:64,size:44,color:'#cfd2d6',bg:'#3b3f44',weight:'800'},.5,.12);fp.position.set(ox+10.2,Y+2.3,oz+20.33);fp.rotation.y=Math.PI;grp.add(fp);   // the fridge now stands in the corner, door facing the room
+  // curtains on the balcony door, bin, bottles (the «Днепр» fridge with its opening door is built in buildSovietDecor, index.html)
   svPanel(grp,'curtain',ox+10.82,Y+1.4,oz+14.5,.9,2.6,-Math.PI/2,.9,1.2);svPanel(grp,'curtain',ox+10.82,Y+1.4,oz+17.5,.9,2.6,-Math.PI/2,.9,1.2);
-  C(10.5,.3,19.6,.28,.3,.6,'#cfd3d6',1);C(10.5,.62,19.6,.3,.3,.06,'#1a1a1a',1);
+  C(10.45,.3,18.0,.28,.3,.6,'#cfd3d6',1);C(10.45,.62,18.0,.3,.3,.06,'#1a1a1a',1);
   for(const [x,z] of [[10.6,18.75],[10.35,18.6]]){C(x,.3,z,.1,.1,.55,'#2a6fb5',1);C(x,.6,z,.05,.05,.06,'#eee',1)}
   svGarland(grp,ox+1.6,Y+2.7,oz+21.15,ox+10.6,Y+2.7,oz+21.15,36,.28,[0xff2a1f,0x1fa8ff,0xffc61a,0x2dff6a]);
   K.done();
-  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>toast('Kitchen','the gas ring clicks, the kettle starts to whistle')});
-  INTERACT.push({x:ox+7.1,z:oz+20.2,r:1.5,label:'Wash your hands',fn:()=>toast('Kitchen','cold water, as always')});
+  // the flat is moved into the real building after it is built, so act targets are converted to world coordinates when used
+  const wp=(x,z,y)=>grp.localToWorld(new THREE.Vector3(x,y==null?Y:y,z));
+  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),tg=wp(ox+3.9,oz+21.25);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:tg.x,tz:tg.z,reach:.95,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
+  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
+  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
+  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
   INTERACT.push({x:ox+2.9,z:oz+20.4,r:1.5,label:'Look at the preserves',fn:()=>toast('Pickles, tomatoes, beans','grandma\'s jars for the whole winter')});
-  INTERACT.push({x:ox+10.2,z:oz+19.2,r:1.4,label:'Open the Dnepr fridge',fn:()=>toast('ДНЕПР','sausage, kefir and the Olivier salad for tonight')});
   INTERACT.push({x:ox+2.6,z:oz+19.4,r:1.5,label:'Look at the wall carpet',fn:()=>toast('Ковёр на стене','red, with a diamond pattern — warm against the draught and a tradition')});
   INTERACT.push({x:ox+2.6,z:oz+13.1,r:1.5,label:'Check the clock',fn:()=>toast('23:58','two minutes to the New Year')});
   INTERACT.push({x:ox+8.8,z:oz+20.3,r:1.4,label:'Take a tangerine',fn:()=>toast('Tangerine','smells like New Year')})}
@@ -179,15 +181,21 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   B(-3.4,.42,2.95,.9,.05,1.0,wood,5);for(const [dx,dz] of [[-.38,-.43],[.38,-.43],[-.38,.43],[.38,.43]])B(-3.4+dx,.2,2.95+dz,.06,.4,.06,wood,5);B(-3.4,.14,2.95,.8,.04,.9,wood,5);solid(-3.4,2.95,.5,.55);
   for(const z of [2.7,2.95]){C(-3.55,.68,z,.08,.08,.5,'#1b3a22',1);C(-3.55,.97,z,.04,.04,.14,'#d4af37',6)}
   C(-3.2,.5,3.25,.3,.2,.1,'#d8dde0',1);for(const [x,z] of [[-3.28,3.2],[-3.1,3.3],[-3.2,3.2],[-3.14,3.14],[-3.26,3.32]])S(x,.62,z,.1,'#f08a1c');
+  MDL.put(grp,'side_table_01',{x:ox-2.0,y:Y,z:oz+2.8,ry:-Math.PI/2});solid(-2.0,2.8,.25,.25);          // a real side table between the armchairs (Poly Haven, CC0)
+  MDL.put(grp,'vintage_wooden_drawer_01',{x:ox-9.0,y:Y,z:oz+.62,ry:0});solid(-9.0,.62,.86,.45);          // a real vintage chest of drawers against the south wall (Poly Haven, CC0)
+  MDL.put(grp,'ClassicNightstand_01',{x:ox-6.0,y:Y,z:oz+2.75,ry:Math.PI});solid(-6.0,2.75,.3,.24);          // a real classic bedside table at the end of the sofa-bed (Poly Haven, CC0)
   // floor lamp with a glowing shade
   C(-2.1,.03,6.3,.3,.3,.06,'#3a2a1a',6);C(-2.1,.95,6.3,.035,.035,1.8,'#3a2a1a',6);C(-2.1,1.95,6.3,.42,.28,.46,'#f6f0dc',3);
   // old TV on a wooden cabinet with a cat figurine, bentwood chair
   place(-3.4,10.45,Math.PI,[[0,.55,0,2.2,1.1,.8,wood,5],[0,.55,.41,2.0,.9,.02,'#5e3a1a',5],[-.9,.1,.3,.1,.2,.1,'#3a2410',5],[.9,.1,.3,.1,.2,.1,'#3a2410',5]]);solid(-3.4,10.45,1.1,.45);
+  MDL.put(grp,'cassette_player',{x:ox-2.62,y:Y+1.1,z:oz+10.45,ry:Math.PI,s:1.15});                       // a cassette recorder (≈16×27 cm) beside the set (Poly Haven, CC0)
   MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
   // framed pictures: roses and an old family photo
-  for(const [x,col] of [[-10.0,'#b8564a'],[-8.8,'#8a8a8a'],[-2.0,'#c98f5a']]){B(x,1.9,10.84,.7,.55,.04,'#3a2a1a',5);B(x,1.9,10.82,.6,.45,.03,col,9)}
+  for(const [x,col] of [[-8.8,'#8a8a8a'],[-2.0,'#c98f5a']]){B(x,1.9,10.84,.7,.55,.04,'#3a2a1a',5);B(x,1.9,10.82,.6,.45,.03,col,9)}
+  MDL.put(grp,'hanging_picture_frame_02',{x:ox-10.0,y:Y+1.65,z:oz+10.84,ry:Math.PI,w:.75});                  // a real framed painting with glass (Poly Haven, CC0)
   // the dining table: champagne, Olivier salad, tangerines, crystal bowls
   for(const x of [-5.1,-4.75]){C(x,1.1,7.7,.09,.09,.5,'#1b3a22',1);C(x,1.38,7.7,.04,.04,.14,'#d4af37',6)}
+  MDL.put(grp,'brass_vase_03',{x:ox-4.0,y:Y+.85,z:oz+7.75,ry:0});                                  // a real brass vase on the dinner table (Poly Haven, CC0)
   C(-4.2,.91,8.3,.35,.25,.12,'#d8dde0',1);for(const [x,z] of [[-4.28,8.25],[-4.1,8.35],[-4.2,8.22],[-4.12,8.2],[-4.3,8.38]])S(x,1.03,z,.1,'#f08a1c');
   for(const [x,z] of [[-3.4,8.6],[-3.0,7.6],[-5.2,8.7]]){C(x,.91,z,.3,.2,.12,'#cfe6f0',1);C(x,.97,z,.24,.24,.04,'#f0e3b0',1)}
   // under the tree: wrapped gifts, a Ded Moroz and a Snegurochka (clear of the sofa and the north doorway)
@@ -252,13 +260,13 @@ function svStair(opt){
   B(2.75,1.5,9.9,2.0,3.0,.12,'#3b3f3c',5);B(2.35,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(3.15,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(2.35,1.9,9.78,.26,.6,.02,'#202a2e',2);B(3.15,1.9,9.78,.26,.6,.02,'#202a2e',2);
   B(3.85-.2,1.3,9.8,.08,.14,.05,'#f0a030',3);B(2.75,3.15,9.8,.5,.2,.04,'#1a1a1a',1);B(2.75,3.15,9.77,.3,.08,.02,'#ff4a2a',3);
   const ls=plateMesh(['ЛІФТ'],{w:128,h:64,size:36,color:'#fff',bg:'#2a4a6a'},.6,.3);ls.position.set(ox+2.75,INT_Y+3.55,oz+9.84);ls.rotation.y=Math.PI;grp.add(ls);
-  const lift=$('liftUI');if(!lift.dataset.ok){lift.dataset.ok=1;const L=$('liftBtns');for(let f=1;f<=10;f++){const b=document.createElement('button');b.textContent=f;b.onclick=()=>{lift.hidden=true;if(window.AUD)AUD.beep();PORTAL.go('stair',{ent:PORTAL.opt.ent,floor:f})};L.appendChild(b)}$('liftClose').onclick=()=>{lift.hidden=true}}
-  INTERACT.push({x:ox+2.75,z:oz+8.9,r:1.6,label:'Call the old lift',fn:()=>{lift.hidden=false}});
+  const lift=$('liftUI');if(!lift.dataset.ok){lift.dataset.ok=1;const L=$('liftBtns');for(let f=1;f<=10;f++){const b=document.createElement('button');b.textContent=f;b.onclick=()=>{lift.hidden=true;if(window.AUD)AUD.beep();PORTAL.go('stair',{ent:PORTAL.opt.ent,floor:f,floors:PORTAL.opt.floors,style:PORTAL.opt.style,home:PORTAL.opt.home})};L.appendChild(b)}$('liftClose').onclick=()=>{lift.hidden=true}}
+  INTERACT.push({x:ox+2.75,z:oz+8.9,r:1.6,label:'Call the old lift',fn:()=>{const mf=(PORTAL.opt&&PORTAL.opt.floors)||10;[...$('liftBtns').children].forEach((b,i)=>{b.style.display=i<mf?'':'none'});lift.hidden=false}});
   // ceiling lamps (old frosted globes) and the stairs / exit interactions
   for(const [x,z] of [[1.6,3.0],[1.6,8.0],[-1.7,8.2]])Cy(x,H-.2,z,.3,.3,.35,'#f4f0e0',3);
   if(fl===1)INTERACT.push({x:ox,z:oz+.5,r:1.5,label:'Go out to the yard',fn:()=>PORTAL.exit()});
   if(fl===1){let leaving=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||leaving)return;if(player.z<oz+.1&&Math.abs(player.x-ox)<3.6&&!RIDE.on){leaving=1;PORTAL.exit();setTimeout(()=>{leaving=0},1800)}})}   // walk out through the entrance door
-  if(fl<10)INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Climb the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl+1})});
+  INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Climb the stairs',cond:()=>fl<((PORTAL.opt&&PORTAL.opt.floors)||10),fn:()=>PORTAL.go('stair',{ent,floor:fl+1})});   // a five-storey block stops at five (opt.floors)
   if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl-1})});
   addWall(ox-2.5,oz+5.8,2.6,8.4,0,INT_Y-1,INT_Y+5.5);addWall(ox-.4,oz+6.5,1.6,7.0,0,INT_Y-1,INT_Y+5.5);
   const pg=P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));

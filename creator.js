@@ -25,7 +25,10 @@ const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble
 // code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
 const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2],cur:null,
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
-  load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}this.cur=this.clean(a);return this.cur},
+  load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
+    const SHARP=[3,3,1,1,3,4,2,0,1,0,1,1,0,2,2,0,0];     // the short-lived "sharp guy" default: anyone who saved it goes back to the blond with blue eyes
+    if(Array.isArray(a)&&SHARP.every((v,i)=>a[i]===v))a=null;
+    this.cur=this.clean(a);return this.cur},
   save(){try{localStorage.setItem('od_char',JSON.stringify(this.cur))}catch(e){}},
   // the code → makePlayer() options
   opts(a){a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
@@ -43,7 +46,8 @@ const CHP={
   mat(h,r,m,x){const M=new THREE.MeshStandardMaterial(Object.assign({color:h,roughness:r===undefined?.8:r,metalness:m||0},x||{}));M.color.convertSRGBToLinear();return M},
   shade(h,k){return (Math.round(Math.min(255,((h>>16)&255)*k))<<16)|(Math.round(Math.min(255,((h>>8)&255)*k))<<8)|Math.round(Math.min(255,(h&255)*k))},
   add(par,geo,mat,x,y,z,rx,ry,rz){const m=new THREE.Mesh(geo,mat);m.position.set(x||0,y||0,z||0);m.rotation.set(rx||0,ry||0,rz||0);par.add(m);return m},
-  hair(head,o,M,HR,HH){const st=o.hs||'swept';if(st==='bald')return;const hatOn=o.ht==='cap'||o.ht==='beanie'||o.ht==='bucket';   // under a hat only the hair that hangs out of it is drawn
+  hair(head,o,M,HR,HH){if(typeof bdHair==='function')return bdHair(head,o,M,HR,HH);     // body.js: skull-fitting hair with a hairline; the blocky version below is the fallback
+    const st=o.hs||'swept';if(st==='bald')return;const hatOn=o.ht==='cap'||o.ht==='beanie'||o.ht==='bucket';   // under a hat only the hair that hangs out of it is drawn
     const cap=(rad,sy,dy)=>{if(hatOn)return;const g=new THREE.SphereGeometry(HR*rad,24,12,0,Math.PI*2,0,Math.PI*.5);g.scale(1,sy,1.02);g.translate(0,HH*dy,-.006);head.add(new THREE.Mesh(g,M.hair))};
     const back=(h,yc,rad)=>{rad=rad||1.07;const g=new THREE.CylinderGeometry(HR*rad,HR*(rad-.03),HH*h,22,1,true,Math.PI*.62,Math.PI*.76);g.translate(0,HH*yc,0);head.add(new THREE.Mesh(g,M.hair))};
     const sides=()=>{if(hatOn)return;for(const s of [-1,1]){const sb=new THREE.Mesh(rbox(.03,.09,.06,.012,2),M.hair);sb.position.set(s*HR*1.0,HH*.62,-.01);head.add(sb)}};
@@ -99,8 +103,9 @@ const CHP={
     else if(n==='chain'){const gold=CHP.mat(0xd8b24a,.25,.9);CHP.add(spine,new THREE.TorusGeometry(.092,.0075,6,22,Math.PI),gold,0,.462,.13,0,0,Math.PI);CHP.add(spine,new THREE.SphereGeometry(.018,10,8),gold,0,.368,.134)}
     else if(n==='bow'){const m=CHP.mat(C,.7);for(const s of [-1,1])CHP.add(spine,new THREE.ConeGeometry(.04,.06,8),m,s*.037,.455,.128,0,0,-s*Math.PI/2);CHP.add(spine,new THREE.SphereGeometry(.014,8,6),m,0,.455,.13)}},
   back(spine,o,M){const b=o.bk===undefined?'bag':o.bk;if(b==='none')return;
-    if(b==='bag'){const strap=new THREE.Mesh(new THREE.BoxGeometry(.04,.62,.012),M.strap);strap.position.set(0,.24,.128);strap.rotation.z=.72;spine.add(strap);
-      const strapB=strap.clone();strapB.position.z=-.128;spine.add(strapB);
+    if(b==='bag'){if(typeof bdBand==='function'){spine.add(new THREE.Mesh(bdBand(-.2,.47,.2,.01,.04,1,.004),M.strap));spine.add(new THREE.Mesh(bdBand(-.2,.47,.2,.01,.04,-1,.004),M.strap))}
+      else{const strap=new THREE.Mesh(new THREE.BoxGeometry(.04,.62,.012),M.strap);strap.position.set(0,.24,.128);strap.rotation.z=.72;spine.add(strap);
+      const strapB=strap.clone();strapB.position.z=-.128;spine.add(strapB)}
       const bag=new THREE.Mesh(rbox(.2,.13,.07,.025),M.bag);bag.position.set(-.2,.04,.06);bag.rotation.y=-.5;spine.add(bag)}
     else{const C=o.ac===undefined?0x23386b:o.ac,m=CHP.mat(C,.8),m2=CHP.mat(CHP.shade(C,.62),.85);
       CHP.add(spine,rbox(.3,.36,.13,.05),m,0,.22,-.19);CHP.add(spine,rbox(.2,.15,.04,.02),m2,0,.14,-.272);CHP.add(spine,rbox(.2,.04,.1,.02),m2,0,.405,-.19);

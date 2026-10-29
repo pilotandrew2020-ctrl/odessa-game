@@ -194,6 +194,10 @@ function shHeldModel(name){const n=String(name||'').toLowerCase(),G=new THREE.Gr
   else if(n.includes('headphone')){const t=new THREE.Mesh(new THREE.TorusGeometry(.07,.008,8,24,Math.PI),M(0x1b1b1f));t.position.y=.0;G.add(t);for(const x of [-.07,.07])C(.032,.032,.03,0x1b1b1f,x,-.01,0,0,Math.PI/2)}
   else if(n.includes('power')){B(.07,.13,.02,0x2a2d32,0,0,0);B(.012,.04,.004,0x3fe06a,0,.03,.011,0,0,0,.4,0x25a04a)}
   else if(n.includes('souvenir')){C(.04,.05,.09,0x4aa3df,0,0,0);S(.04,0xf2c14e,0,.075,0)}
+  else if(n.includes('popcorn')){const T=0.075,Bm=0.05,h=.17;const cup=new THREE.Mesh(new THREE.CylinderGeometry(T,Bm,h,16,1,true),M(0xffffff,.6));cup.material.side=THREE.DoubleSide;G.add(cup);
+    for(let i=0;i<8;i++){const a=i/8*6.283,w=new THREE.Mesh(new THREE.CylinderGeometry(T+.001,Bm+.001,h,2,1,true,a,.39),M(0xd6262d,.6));w.material.side=THREE.DoubleSide;G.add(w)}
+    C(Bm,Bm,.004,0xd6262d,0,-h/2,0);for(let i=0;i<24;i++){const a=i*2.4,r=Math.sqrt(i/24)*.065,y=h/2-.005+Math.sin(i*1.7)*.012+(1-r/.065)*.03;S(.016+((i*7)%5)*.002,i%3?0xfff1c4:0xf6dc8a,Math.cos(a)*r,y,Math.sin(a)*r,1,.85,1)}}
+  else if(n==='cola'||n.includes('cola')){C(.03,.027,.15,0xc8102e,0,0,0);C(.0305,.0305,.05,0xf4f4f4,0,0,0);C(.012,.012,.02,0x222,0,.085,0)}
   else if(n==='shopping bag'||true){B(.17,.22,.09,0xc8a06a,0,0,0);B(.17,.03,.09,0xb08955,0,.115,0);for(const x of [-.04,.04])C(.004,.004,.1,0x6a5430,x,.17,0,0,0)}
   G.traverse(o=>{if(o.isMesh)o.castShadow=false});return G}
 function shHold(name){if(HELD.g&&HELD.g.parent)HELD.g.parent.remove(HELD.g);HELD.name=name||null;HELD.g=name?shHeldModel(name):null}
