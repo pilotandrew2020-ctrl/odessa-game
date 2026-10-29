@@ -11,7 +11,8 @@
 const FL={built:{},leaving:0,ready:false};
 const FL_DEF={
   panel:{idx:58,W:9.6,D:6.8,H:2.5,door:0,title:'Your flat',sub:'panel block · carpet on the wall, wall unit, folding sofa',
-    S:{exp:.56,wood:'#6b4a2c',wall:'#dcc799',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#f1ede2',cm:0,beams:false,sofa:['#8a3a2e','#c9a86a'],accent:'#8a2f2a',light:0xffe2b0}},
+    // a quiet winter night: the lamps are dim and a little cold, the windows show blue snow-light (no New Year, no samovar)
+    S:{exp:.46,wood:'#6b4a2c',wall:'#d3c3a0',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#ece8de',cm:0,beams:false,sofa:['#b3561f','#d6893c'],accent:'#7a3a2a',light:0xe6e3d6,win:'#46598a'}},
   stalin:{idx:59,W:12,D:8.2,H:3.5,door:-5,title:'Your flat',sub:'Stalin-era house · tall windows, piano, long corridor',
     S:{exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
   new:{idx:60,W:11,D:7.2,H:2.9,door:-4.4,title:'Your flat',sub:'new build · open plan, kitchen island, glass wall',
@@ -36,6 +37,17 @@ function flArm(E,x,z,ry,h){
 
 // a real standing prop (Poly Haven, CC0) on the floor at flat coordinates (x,z) with an oriented collision box (half sizes hw across, hd deep)
 function flProp(E,name,x,z,ry,hw,hd,o){MDL.put(E.grp,name,Object.assign({x:E.ox+x,y:INT_Y,z:E.oz+z,ry:ry},o||{}));E.obb(x,z,hw,hd,ry)}
+
+// floral curtains on both sides of a window (same arguments as K.window): a printed canvas texture, cached per colour theme
+const FL_CURT={};
+function flCurtains(E,K,x,z,ry,w,h,y,theme){theme=theme||['#c98f9b','#f3e3d3','#7a8f58'];const key=theme.join();
+  if(!FL_CURT[key]){const cv=document.createElement('canvas');cv.width=128;cv.height=256;const g=cv.getContext('2d');g.fillStyle=theme[1];g.fillRect(0,0,128,256);let s=7;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+    for(let i=0;i<46;i++){const px=rnd()*128,py=rnd()*256,r=5+rnd()*7;g.fillStyle=theme[2];g.globalAlpha=.8;g.beginPath();g.ellipse(px+r,py+r*.6,r*.8,r*.35,.6,0,6.3);g.fill();g.globalAlpha=.92;g.fillStyle=theme[0];for(let k=0;k<5;k++){const a=k/5*6.283;g.beginPath();g.arc(px+Math.cos(a)*r*.6,py+Math.sin(a)*r*.6,r*.5,0,6.3);g.fill()}g.fillStyle='#f0d27a';g.beginPath();g.arc(px,py,r*.35,0,6.3);g.fill()}
+    g.globalAlpha=1;for(let x2=0;x2<128;x2+=8){g.fillStyle='rgba(0,0,0,.06)';g.fillRect(x2,0,3,256)}
+    const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;FL_CURT[key]=new THREE.MeshStandardMaterial({map:tex,roughness:.95,side:THREE.DoubleSide})}
+  const ch=h+.5,cw=Math.max(.3,w*.34);
+  for(const s of [-1,1]){const p=K.loc(x,z,ry)(s*(w/2+cw/2-.02),.14);const m=new THREE.Mesh(new THREE.PlaneGeometry(cw,ch),FL_CURT[key]);m.position.set(E.ox+p[0],INT_Y+y+h/2-ch/2+.2,E.oz+p[1]);m.rotation.y=ry;E.grp.add(m)}
+  const p=K.loc(x,z,ry)(0,.1),rg=new THREE.Group(),rod=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,w+cw*2+.1,6),new THREE.MeshStandardMaterial({color:0x5a4a3a,roughness:.6}));rod.rotation.z=Math.PI/2;rg.add(rod);rg.rotation.y=ry;rg.position.set(E.ox+p[0],INT_Y+y+h/2+.22,E.oz+p[1]);E.grp.add(rg)}
 
 function flToStair(k){if(FL.leaving)return;FL.leaving=1;const o=PORTAL.opt||{};PORTAL.go('stair',{ent:o.ent||1,floor:o.floor||1,style:k});setTimeout(()=>{FL.leaving=0},1800)}
 
@@ -75,18 +87,18 @@ const FL_LAYOUT={
     K.hang(-1.07,1.6,PI/2,2);K.art(1.09,1.0,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.05,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.0,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
     // kitchen (west): worktop run on the partition, small table, window
     K.kitchen(-3.0,2.28,PI,[['fridge',.6],['cab',.6],['sink',1.0],['cab',.5],['stove',.6]],'#ebe4d2');
-    K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);
+    K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);flCurtains(E,K,-3.2,.12,0,1.3,1.2,1.25,['#d9a86a','#f3ecd8','#8a9a58']);
     E.box(-3.0,1.2,2.28,3.3,.6,.02,'#eef2f2',5);                                          // tiles behind the worktop
     // bathroom (east): tub, toilet, basin, washing machine
     K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(1.34,1.78,PI/2,.8);K.bx(2.2,.55,0,0,.45,0,.6,.9,.6,'#f2f2f2',1);K.rug(2.4,1.5,0,1.0,.7,'#9fc3d6');
     K.light(-3.0,2.3,1.2,S.light,.8,6);K.light(0,2.3,1.2,S.light,.8,6);K.light(3.0,2.3,1.2,0xffffff,.9,6);
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
-    K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);
+    K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
     K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.3,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
-    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.3,2.52,0);K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
+    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.75,2.52,0);flProp(E,'vintage_wooden_drawer_01',-1.95,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
     K.light(-2.3,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
-    K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);
+    K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);flCurtains(E,K,hw-.12,5.2,-PI/2,1.2,1.3,1.2,['#9aa8c8','#efe9dc','#6f8a64']);flCurtains(E,K,2.8,D-.12,PI,1.2,1.1,1.75,['#9aa8c8','#efe9dc','#6f8a64']);
     K.light(2.6,2.2,4.6,S.light,1.1,9)},
   // ===== Stalin-era flat: corridor along the front, salon with a piano, bedroom, bath and kitchen =====
   stalin(E,K,S,L,hw,D,H){const PI=Math.PI;

@@ -305,6 +305,8 @@ function update(dt){
   const tm=S.time==='night'?.28:S.time==='dusk'?.7:1;
   _c.copy(G.fogCol);_c2.setRGB(.34,.37,.42).multiplyScalar(tm);scene.fog.color.copy(_c).lerp(_c2,Rp*.75);
   _c2.setRGB(.80,.82,.86).multiplyScalar(tm);scene.fog.color.lerp(_c2,Sn*.7);_c2.setRGB(.74,.76,.78).multiplyScalar(tm);scene.fog.color.lerp(_c2,Fg*.85);
+  const pmT=(typeof ksMood==='function'&&!inP)?ksMood(camera.position.x,camera.position.z):0;G.pm=(G.pm||0)+(pmT-(G.pm||0))*Math.min(1,dt*.6);const Pm=G.pm;   // panel-block districts: extra haze, cooler grey
+  if(Pm>.003){scene.fog.density*=1+Pm*.8;_c2.setRGB(.70,.72,.75).multiplyScalar(tm);scene.fog.color.lerp(_c2,Pm*.45)}
   UNI.uWinter.value=Math.max(W?1:0,.48*Sn);                 // snowfall in summer: a partial white cover on ground and roofs
   if(typeof snowPts!=='undefined'&&snowPts){const on=(W||G.snow>.02)&&!inP;if(on!==snowPts.visible)snowPts.visible=on;if(on){const m=snowPts.material;m.size=.12*(1+.45*Sn);m.opacity=W?.78:.78*Math.min(1,Sn*2.2)}}
   const su=seaMesh.material.uniforms;su.uFogC.value.copy(scene.fog.color);su.uFogD.value=scene.fog.density;
@@ -339,7 +341,7 @@ function update(dt){
     _v.copy(sunDir).multiplyScalar(1000).add(camera.position).project(camera);u.uSun.value.set(_v.x*.5+.5,_v.y*.5+.5);
     camera.getWorldDirection(_d);const front=smooth(clamp(_d.dot(sunDir)*3.2,0,1))*smooth(clamp((sunDir.y+.04)*14,0,1));
     u.uRays.value=(G.rays?L.ray:0)*front*(1-indoor)*(1-Ov*.92)*(W?.7:1);
-    u.uFlash.value=fl*.16;u.uSat.value=lerp(L.sat*(W?.86:1),Fg>Rp&&Fg>Sn?.7:.78,Ov);u.uVig.value=L.vig+Ov*.08}
+    u.uFlash.value=fl*.16;u.uSat.value=lerp(L.sat*(W?.86:1),Fg>Rp&&Fg>Sn?.7:.78,Ov)*(1-.16*(G.pm||0));u.uVig.value=L.vig+Ov*.08}
 }
 const smooth=x=>x*x*(3-2*x);
 

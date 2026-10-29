@@ -53,7 +53,7 @@ function hsKit(E,S,L){
   K.shelf=(x,z,ry,w,h)=>{h=h||2;bx(x,z,ry,0,h/2,.16,w,h,.32,wood,5);for(let l=0;l<4;l++)bx(x,z,ry,0,.35+l*(h-.5)/3,.3,w-.08,.03,.3,'#d8c9a8',5);
     const cols=['#c8372d','#2f6db0','#e8b53a','#3f9a46','#8a4ab0','#e8e4da'];for(let l=0;l<3;l++)for(let i=0;i<Math.floor(w/.09);i++)bx(x,z,ry,-w/2+.07+i*.09,.35+l*(h-.5)/3+.14,.31,.06,.22+(i%3)*.03,.22,cols[(i*5+l*3)%6],0);ob(x,z,ry,0,.18,w/2,.18)};
   K.art=(x,z,ry,w,h,y,c)=>{bx(x,z,ry,0,y,.04,w+.1,h+.1,.04,wood,5);bx(x,z,ry,0,y,.065,w,h,.02,c||'#e8c8a0',0);bx(x,z,ry,w*.18,y-h*.12,.08,w*.4,h*.5,.01,'#3d6a8a',0);bx(x,z,ry,-w*.2,y+h*.15,.08,w*.25,h*.3,.01,'#f2c14e',0)};
-  K.window=(x,z,ry,w,h,y)=>{bx(x,z,ry,0,y,.03,w+.16,h+.16,.05,S.trim,5);bx(x,z,ry,0,y,.06,w,h,.02,'#bfe3ff',8);bx(x,z,ry,0,y,.075,.05,h,.02,S.trim,5);bx(x,z,ry,0,y,.075,w,.05,.02,S.trim,5)};
+  K.window=(x,z,ry,w,h,y)=>{bx(x,z,ry,0,y,.03,w+.16,h+.16,.05,S.trim,5);bx(x,z,ry,0,y,.06,w,h,.02,S.win||'#bfe3ff',8);bx(x,z,ry,0,y,.075,.05,h,.02,S.trim,5);bx(x,z,ry,0,y,.075,w,.05,.02,S.trim,5)};
   // fireplace: stone surround and chimney, logs, animated flames and a flickering light; "Light / put out the fire"
   K.fire=(x,z,ry,w)=>{w=w||2.2;const f={flames:[],on:true,light:null};
     bx(x,z,ry,0,1.15,.33,w,2.3,.66,'#8c8176',7);bx(x,z,ry,0,.48,.67,1.0,.86,.04,'#0d0b0a',0);bx(x,z,ry,0,.05,.8,w+.5,.1,.9,'#6b645c',7);bx(x,z,ry,0,1.34,.55,w+.3,.1,.5,wood,5);

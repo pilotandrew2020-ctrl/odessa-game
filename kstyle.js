@@ -95,6 +95,8 @@ function ksBuild(grp,P,GR,at,st,tag){
   const mid=Math.floor(n/2),um=(mid-(n-1)/2)*st.sec,pp=F.P(um,fv+3);return {x:pp[0],z:pp[1],yaw:ry+Math.PI}}
 
 const KS_PLACED=[];
+// how deep into a panel-block district (0 outside … 1 among the blocks): gfx.js thickens the haze and mutes the colours there — grey, a little foggy, Soviet-cosy
+function ksMood(x,z){let best=1e9;for(const b of KS_PLACED){if(b.key!=='panel')continue;const d=Math.hypot(b.x-x,b.z-z);if(d<best)best=d}return best>260?0:Math.min(1,(260-best)/140)}
 function installKstyle(grp,G,P,Sg,GR){
   const placed=(window.KHRU_XZ||[]).slice(),t0=performance.now();let tries=0;const clear=(x,z)=>placed.every(q=>Math.hypot(q.x-x,q.z-z)>80);
   for(const key of ['panel','stalin','new']){const st=KS_ST[key],seen={},W=st.n*st.sec;let made=0;
