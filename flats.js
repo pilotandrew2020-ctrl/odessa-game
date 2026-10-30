@@ -82,15 +82,15 @@ function flTick(dt){
 const FL_LAYOUT={
   // ===== nine-storey panel block: hall in the middle, kitchen west, bath east, living room + bedroom behind =====
   panel(E,K,S,L,hw,D,H){const PI=Math.PI;
-    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.2,0,2.4,[[.7,.8]]);K.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
+    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.5,0,2.4,[[.7,.8]]);   // the east partition was at x 1.2, right in the bedroom doorway (x .4–1.3): only a 20 cm channel was leftK.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
     // hall: coats, a shoe bench, mirror and the telephone table
-    K.hang(-1.07,1.6,PI/2,2);K.art(1.09,1.0,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.05,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.0,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
+    K.hang(-1.07,1.6,PI/2,2);K.art(1.39,1.0,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.35,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.3,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
     // kitchen (west): worktop run on the partition, small table, window
     K.kitchen(-3.0,2.28,PI,[['fridge',.6],['cab',.6],['sink',1.0],['cab',.5],['stove',.6]],'#ebe4d2');
     K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);flCurtains(E,K,-3.2,.12,0,1.3,1.2,1.25,['#d9a86a','#f3ecd8','#8a9a58']);
     E.box(-3.0,1.2,2.28,3.3,.6,.02,'#eef2f2',5);                                          // tiles behind the worktop
     // bathroom (east): tub, toilet, basin, washing machine
-    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(1.34,1.78,PI/2,.8);K.bx(2.2,.55,0,0,.45,0,.6,.9,.6,'#f2f2f2',1);K.rug(2.4,1.5,0,1.0,.7,'#9fc3d6');
+    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(1.64,1.78,PI/2,.8);K.bx(2.2,.55,0,0,.45,0,.6,.9,.6,'#f2f2f2',1);K.rug(2.4,1.5,0,1.0,.7,'#9fc3d6');
     K.light(-3.0,2.3,1.2,S.light,.8,6);K.light(0,2.3,1.2,S.light,.8,6);K.light(3.0,2.3,1.2,0xffffff,.9,6);
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
     K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
