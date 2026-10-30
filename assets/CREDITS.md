@@ -14,3 +14,5 @@
 - `sfx.js` — three interface sounds (a whoosh, a "tching" ping, a tick) cut from a recording supplied by the project owner (`videoplayback.m4b`), re-encoded to 22 kHz mono WAV and embedded as base64; no separate audio files.
 
 Everything else in the game (buildings, cars, characters, interiors) is procedural geometry generated in code, with no model files.
+
+- `textures/bark_platanus.jpg` — "Bark Platanus", Poly Haven (polyhaven.com/a/bark_platanus), CC0 public domain; tree bark.

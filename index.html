@@ -682,7 +682,11 @@ function genTextures(){
       x.strokeStyle='rgba(70,52,34,.9)';x.lineWidth=2;for(let k=0;k<7;k++){x.beginPath();x.moveTo(ox+H2/2,oy+H2*.95);const a=-Math.PI/2+(r()-.5)*1.8;x.lineTo(ox+H2/2+Math.cos(a)*H2*.42,oy+H2*.95+Math.sin(a)*H2*.75);x.stroke()}
       for(let i=0;i<420;i++){const a=r()*6.283,rad=Math.pow(r(),.7)*H2*.44;const px=ox+H2/2+Math.cos(a)*rad,py=oy+H2*.5+Math.sin(a)*rad*.85;
         const sh=r()*.7+(py-oy<H2*.45?.3:0);x.fillStyle=`hsl(${84+r()*26},${42+r()*20}%,${(18+sh*30)|0}%)`;
-        x.save();x.translate(px,py);x.rotate(r()*6.283);const L=7+r()*6,W2=3.4+r()*2.4;x.beginPath();x.moveTo(-L,0);x.quadraticCurveTo(0,-W2*1.4,L,0);x.quadraticCurveTo(0,W2*1.4,-L,0);x.fill();x.restore()}
+        x.save();x.translate(px,py);x.rotate(r()*6.283);const L=7+r()*6,W2=3.4+r()*2.4;x.beginPath();x.moveTo(-L,0);x.quadraticCurveTo(0,-W2*1.4,L,0);x.quadraticCurveTo(0,W2*1.4,-L,0);x.fill();
+        // v2: lighter upper half, dark edge and a midrib, so a leaf reads as a leaf up close (the leaf is ~15–25 px long in the 256 px cell)
+        x.beginPath();x.moveTo(-L*.9,0);x.quadraticCurveTo(0,-W2*1.3,L*.9,0);x.closePath();x.fillStyle='rgba(255,250,170,.16)';x.fill();
+        x.strokeStyle='rgba(18,34,10,.4)';x.lineWidth=.8;x.beginPath();x.moveTo(-L,0);x.quadraticCurveTo(0,-W2*1.4,L,0);x.quadraticCurveTo(0,W2*1.4,-L,0);x.stroke();
+        x.strokeStyle='rgba(205,225,150,.45)';x.lineWidth=.7;x.beginPath();x.moveTo(-L*.85,0);x.lineTo(L*.85,0);x.stroke();x.restore()}
       x.restore()}
     for(let t=0;t<2;t++){const ox=t*H2,oy=H2;x.save();x.beginPath();x.rect(ox,oy,H2,H2);x.clip();
       for(let b=0;b<9;b++){const bx=ox+H2*(.1+.8*r()),by=oy+H2*(.15+.7*r()),a=(r()-.5)*.8,len=H2*(.25+.25*r());
@@ -1179,6 +1183,9 @@ function initMats(){
   MATS.leaves.vertexColors=false;
   MATS.bark=patchMat(new THREE.MeshStandardMaterial({map:TX.bark,roughness:.95,metalness:0}),{key:'bark',fSurf:'if(uWinter>.5&&vNw.y>.35)sAlb=mix(sAlb,vec3(.85,.87,.9),.7);'});
   TX.bark.encoding=THREE.sRGBEncoding;
+  // real plane-tree bark photo (Poly Haven "Bark Platanus", CC0) replaces the procedural tile as soon as it has loaded; lightened a little towards Odesa's grey-beige plane trunks
+  {const im=new Image();im.onload=()=>{try{const cv=document.createElement('canvas');cv.width=cv.height=512;const g=cv.getContext('2d');g.filter='brightness(1.35) saturate(.8)';g.drawImage(im,0,0,512,512);
+    const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=8;MATS.bark.map=t;MATS.bark.needsUpdate=true}catch(e){console.warn('bark photo',e)}};im.src='assets/textures/bark_platanus.jpg'}
 }
 
 // ===================== chunk geometry v2 =====================
