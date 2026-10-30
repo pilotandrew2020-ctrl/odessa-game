@@ -203,7 +203,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
   sparkle(){FX.init();for(let i=0;i<14;i++){const a=i/14*6.283;FX.puff({x:player.x+Math.cos(a)*.5,y:player.y+.2,z:player.z+Math.sin(a)*.5,vx:Math.cos(a)*.3,vy:1.6,vz:Math.sin(a)*.3,s0:.12,s1:.02,life:.8,c0:[.35,.7,1],c1:[.6,.9,1],op:.9,add:true,drag:1})}},
   zoomOff(){if(!this.zoomOn)return;this.zoomOn=false;this.fov()},
   zoom(on){const W=this.w();if(!W||!W.zoom||this.phase!=='play'){this.zoomOn=false;this.fov();return}this.zoomOn=on===undefined?!this.zoomOn:on;this.fov()},
-  fov(){if(!this.fov0)this.fov0=camera.fov;const f=this.zoomOn?20:this.fov0;if(Math.abs(camera.fov-f)>.01){camera.fov=f;camera.updateProjectionMatrix()}if(this.ui)this.ui.scope.style.opacity=this.zoomOn?1:0;PLR.root.visible=!this.zoomOn||!this.on;
+  fov(){if(!this.fov0)this.fov0=camera.fov;const f=this.zoomOn?20:this.fov0+(this.on&&this.phase==='sky'&&!this.gl?10:0);if(Math.abs(camera.fov-f)>.01){camera.fov=this.zoomOn||Math.abs(camera.fov-f)<.3?f:camera.fov+(f-camera.fov)*.1;camera.updateProjectionMatrix()}      // free fall widens the view a little, smoothlyif(this.ui)this.ui.scope.style.opacity=this.zoomOn?1:0;PLR.root.visible=!this.zoomOn||!this.on;
     // looking through the scope = first person (stepCamera hides the avatar and uses the eye when cam.dist <= .75), then the old distance comes back
     if(this.on&&this.zoomOn){if(this.zd===undefined){this.zd=cam.dist;cam.dist=.6}}else if(this.zd!==undefined){cam.dist=this.zd;this.zd=undefined}},
   // ---------- damage ----------
@@ -246,7 +246,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
     if(this.zn){this.nextW.visible=true;this.nextW.position.set(this.zn.x,player.y+60,this.zn.z);this.nextW.scale.set(this.zn.r,1,this.zn.r)}else this.nextW.visible=false},
   // ---------- bus + skydive ----------
   startBus(){const ang=this.rnd()*6.283,dx=Math.sin(ang),dz=Math.cos(ang),L=this.R0*1.15;
-    this.bus={x0:this.C.x-dx*L,z0:this.C.z-dz*L,dx,dz,L:L*2,sp:34,t:0,yaw:Math.atan2(dx,dz),y:groundH(this.C.x,this.C.z)+250,m:BRM.bus()};scene.add(this.bus.m);
+    this.bus={x0:this.C.x-dx*L,z0:this.C.z-dz*L,dx,dz,L:L*2,sp:34,t:0,yaw:Math.atan2(dx,dz),y:groundH(this.C.x,this.C.z)+460,m:BRM.bus()};scene.add(this.bus.m);
     this.ctl=true;this.phase='bus';this.busDur=this.bus.L/this.bus.sp;this.gl=0;this.glider=BRM.glider();PLR.root.add(this.glider);
     teleportRaw(this.bus.x0,this.bus.z0,this.bus.yaw);player.y=this.bus.y+2.9;player.air=false;player.vy=0;cam.dist=24;cam.pitch=.22;cam.yaw=this.bus.yaw;
     this.banner('BATTLE BUS','Press JUMP to leave the bus',4);if(this.ui)this.ui.jump.hidden=false},
@@ -263,7 +263,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
     const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw),hs=this.gl?21:32,tx=(fx*iz+rx*ix)*hs+fx*(im<.1?4:0),tz=(fz*iz+rz*ix)*hs+fz*(im<.1?4:0);
     player.vx+=(tx-player.vx)*Math.min(1,dt*1.6);player.vz+=(tz-player.vz)*Math.min(1,dt*1.6);player.x+=player.vx*dt;player.z+=player.vz*dt;
     const g=groundAt(player.x,player.z,player.y+3),ag=player.y-g;
-    if(!this.gl&&(inp.jump||ag<95)){inp.jump=false;this.gl=1;PLR.sky=2;this.glider.visible=true;this.snd('glide');this.banner('GLIDER OUT','',1.5)}
+    if(!this.gl&&(inp.jump||ag<85)){inp.jump=false;this.gl=1;PLR.sky=2;this.glider.visible=true;this.snd('glide');this.banner('GLIDER OUT','',1.5)}
     const vt=this.gl?-8.5:(iz>.3?-62:iz<-.3?-44:-52);player.vy+=(vt-player.vy)*Math.min(1,dt*(this.gl?2.4:1.2));player.y+=player.vy*dt;
     if(Math.hypot(player.vx,player.vz)>2){let dy=Math.atan2(player.vx,player.vz)-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*4)}
     if(player.y<=g+.15){this.land(g);return}
@@ -415,7 +415,7 @@ body.br-on #bAct{bottom:calc(214px + env(safe-area-inset-bottom,0px))!important;
     if(this.ui.inv)this.ui.inv.hidden=true;this.on=true;this.dead=false;this.kills=0;this.sh=0;this.out=false;this.fov0=camera.fov;this.items.length=0;this.sT0=0;
     this.inv=[{k:'w',id:'pick',rar:0,mag:0},null,null,null,null];this.sel=0;this.ammo={light:0,medium:0,shells:0,heavy:0,rocket:0};this.rl=0;this.drk=null;this.place=0;this.winT=0;this.prev=undefined;
     document.body.classList.add('br-on');this.ui.root.hidden=false;this.ui.res.hidden=true;this.btn.classList.add('on');
-    GUN.setArmed(true);GUN.hp=100;GUN.down=0;GUN.noHold=true;GUN.w=BRW.pick.gi;if(typeof BRFX!=='undefined')BRFX.clear();if(typeof BLD!=='undefined')BLD.start();
+    GUN.setArmed(true);GUN.hp=100;GUN.down=0;GUN.noHold=true;GUN.w=BRW.pick.gi;if(typeof BRFX!=='undefined')BRFX.clear();if(typeof BLD!=='undefined')BLD.start();if(typeof BRH!=='undefined')BRH.start();if(typeof BRDROP!=='undefined')BRDROP.start();
     const C=this.C;
     // chests + floor loot over the whole disc (positions are checked against buildings when you get near)
     const spots=[],min=16;let tries=0;const want=this.CH+this.FL;
@@ -426,7 +426,7 @@ body.br-on #bAct{bottom:calc(214px + env(safe-area-inset-bottom,0px))!important;
     this.banner('BATTLE ROYALE',Date.now()<this.t0?'Waiting for friends · '+Math.ceil((this.t0-Date.now())/1000)+' s · or tap START NOW':this.total+' players · last one standing wins',4)},
   CH:26,FL:80,BOTS:11,
   fade(){const f=document.getElementById('fade');if(f){f.style.opacity=1;setTimeout(()=>f.style.opacity=0,500)}},
-  end(again){if(!this.on)return;this.on=false;this.phase='';this.ctl=false;this.cancelDrink();this.zoomOn=false;this.fov();BOTS.clear();if(typeof BLD!=='undefined')BLD.end();
+  end(again){if(!this.on)return;this.on=false;this.phase='';this.ctl=false;this.cancelDrink();this.zoomOn=false;this.fov();BOTS.clear();if(typeof BLD!=='undefined')BLD.end();if(typeof BRH!=='undefined')BRH.end();if(typeof BRDROP!=='undefined')BRDROP.end();if(this.fov0){camera.fov=this.fov0;camera.updateProjectionMatrix()}
     for(const it of this.items)if(it.m){scene.remove(it.m);it.m=null}this.items.length=0;for(const e of this.ints){const i=INTERACT.indexOf(e);if(i>=0)INTERACT.splice(i,1)}this.ints.length=0;
     for(const k of ['wall','nextW']){if(this[k]){scene.remove(this[k]);this[k]=null}}if(this.bus){scene.remove(this.bus.m);this.bus=null}
     if(this.glider){PLR.root.remove(this.glider);this.glider=null}PLR.sky=0;POSE.stop(PLR);PLR.rch=null;PLR.root.rotation.set(0,player.yaw,0,'XYZ');PLR.root.visible=true;
@@ -434,7 +434,7 @@ body.br-on #bAct{bottom:calc(214px + env(safe-area-inset-bottom,0px))!important;
     if(typeof CAMV!=='undefined'&&CAMV.go)CAMV.go(0);GUN.hp=100;GUN.down=0;if(this.ret){cam.dist=this.ret.cam.d;cam.pitch=this.ret.cam.p;if(!again)teleportRaw(this.ret.x,this.ret.z,this.ret.yaw)}this.fade();
     const rd=this.rd;try{COOP.push(true)}catch(e){}setTimeout(()=>{if(!this.on&&this.rd===rd){this.rd=0;try{COOP.push(true)}catch(e){}}},5000)},
   tick(dt){if(!this.on){this.invWatch(dt);if(typeof BRFX!=='undefined')BRFX.tick(dt);return}
-    this.syncMates(dt);if(typeof BRFX!=='undefined')BRFX.tick(dt);if(typeof BLD!=='undefined')BLD.tick(dt);
+    this.syncMates(dt);if(typeof BRFX!=='undefined')BRFX.tick(dt);if(typeof BLD!=='undefined')BLD.tick(dt);if(typeof BRH!=='undefined')BRH.tick(dt);if(typeof BRDROP!=='undefined')BRDROP.tick(dt);
     if(this.dirty||(this.hT=(this.hT||0)-dt)<=0){this.dirty=false;this.hT=.12;this.hud()}
     this.stream(dt);this.animItems(dt);this.fov();
     if(this.phase==='bus'||this.phase==='sky'){BOTS.tick(dt);this.updStorm(dt);return}

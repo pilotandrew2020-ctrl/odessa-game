@@ -27,7 +27,7 @@ const BOTS={list:[],NAMES:['Andrii','Maks','Dasha','Oleh','Kolya','Sasha','Vlad'
     if(b.hp<=0)this.kill(b,by);else if(by&&(by.me||by.bot)&&b.st!=='bus'){b.alert=2;if(by.me&&!b.tgt)b.tgt='me'}},
   kill(b,by){b.alive=false;b.st='dead';b.die=0;b.hp=0;const killer=by&&by.me?'You':by&&by.bot?by.bot.name:'Storm';
     BR.feed(killer,b.name,by&&by.w||(by&&by.zone?'Storm':''),by&&by.me);
-    if(by&&by.me){BR.kills++;BR.msg('Eliminated '+b.name);BR.snd('hit')}if(by&&by.bot)by.bot.kills++;
+    if(by&&by.me){BR.kills++;if(typeof BRH!=='undefined')BRH.elim(b.name);else BR.msg('Eliminated '+b.name);BR.snd('hit')}if(by&&by.bot)by.bot.kills++;
     const g=groundAt(b.x,b.z,b.y+2);
     if(b.w){const it=BR.addItem({k:'w',id:b.w.id,rar:b.w.rar,mag:b.w.mag},b.x+.5,b.z+.4,{y:g,ok:true})}
     for(const c of b.cons){BR.addItem({k:'c',id:c,n:1},b.x-.5+Math.random(),b.z-.4+Math.random(),{y:g,ok:true})}

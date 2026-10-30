@@ -223,6 +223,7 @@ function setMode(on){if(on===st.mode)return;if(on&&!canBuild())return;st.mode=on
   else{st.ghost.visible=false;const s=BR.inv[BR.sel];BR.select(s&&s.k==='w'?BR.sel:0)}
   st.dirty=true;BR.ui_()}
 function toggle(){setMode(!st.mode)}
+function give(n){for(let i=0;i<3;i++)st.mats[i]=Math.min(CAP,st.mats[i]+n);st.dirty=true;sfx('mat')}
 function pick(i){if(i<0||i>=KN.length)return;st.kind=KN[i].id;st.dirty=true;sfx('mat')}
 function cycleMat(m){st.mat=m===undefined?(st.mat+1)%3:m;st.dirty=true;sfx('mat')}
 function renderHud(){const u=st.ui;if(!u)return;const play=BR.on&&BR.phase==='play'&&!BR.dead;u.mats.hidden=!play;u.btn.hidden=!play;
@@ -284,5 +285,5 @@ function start(){init();clear();st.mats=[50,0,0];st.mat=0;st.kind='w';st.mode=fa
 function clear(){for(const p of P.slice())kill(p,false);P.length=0;keyOf.clear();cells.clear();regrow();hits.clear();for(const f of falls){scene.remove(f.m)}falls.length=0;if(st.ghost)st.ghost.visible=false}
 function end(){if(!st.inited)return;st.mode=false;document.body.classList.remove('bld-on');clear();if(st.ui){st.ui.mats.hidden=true;st.ui.btn.hidden=true}}
 
-return {tick,start,end,init,place,harvest,hit,ray,boom,toggle,pick,cycleMat,pub,sync,aim,build,kill,surf,
+return {tick,start,end,init,place,harvest,hit,ray,boom,toggle,pick,cycleMat,pub,sync,aim,build,kill,surf,give,
   get mode(){return st.mode},get n(){return P.length},get P(){return P},get st(){return st},MT,KN,COST}})();
