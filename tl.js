@@ -148,4 +148,15 @@ function frame(dt){
       const C=LIT[ped&&lit===1?2:lit];gpos[gn*3]=x+fx*.1;gpos[gn*3+1]=y0-lit*sp;gpos[gn*3+2]=z+fz*.1;gcol[gn*3]=C[0]*k;gcol[gn*3+1]=C[1]*k;gcol[gn*3+2]=C[2]*k;gn++}}
   inst.count=ii;inst.instanceMatrix.needsUpdate=true;inst.instanceColor.needsUpdate=true;
   glow.geometry.setDrawRange(0,gn);glow.geometry.attributes.position.needsUpdate=true;glow.geometry.attributes.color.needsUpdate=true;stat.shown=n}
-return {is,has,stop,hold,scatter,frame,stat,info,segSig,qOf,stOf,CY,GR,YE,SLU}})();
+// trams run on their own track in the street: how many metres the tram CENTRE may still travel before the stop line of the arm it is heading into
+// (red, or yellow when it can still stop); 99 = nothing in the way. The nose is 8 m ahead of the centre and stops 1.6 m before the line.
+function tram(x,z,tx,tz,v){
+  if(!built)return 99;const gx=Math.floor(x/48),gz=Math.floor(z/48);let best=99,T=0;
+  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const l=zb.get(zkey(gx+i,gz+j));if(!l)continue;
+    for(const a of l){const dx=a.zx-x,dz=a.zz-z,al=dx*tx+dz*tz;if(al<-2||al>90)continue;
+      if(tx*a.ox+tz*a.oz>-.8)continue;if(Math.abs(dx*tz-dz*tx)>a.hw+4)continue;
+      if(!T)T=Date.now()/1000;const st=stOf(qOf(a.I,tx,tz,T));if(st===0)continue;
+      const d=al-9.6;if(d<-3)continue;if(st===1&&d<v*v/7+1)continue;
+      if(d<best)best=Math.max(0,d)}}
+  return best}
+return {is,has,stop,hold,tram,scatter,frame,stat,info,segSig,qOf,stOf,CY,GR,YE,SLU,zb}})();

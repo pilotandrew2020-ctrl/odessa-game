@@ -4300,8 +4300,9 @@ const CAR_VS_DECL='attribute vec3 aCol;attribute float aM;varying vec3 vCol;vary
 const CAR_VS_MAIN='vCol=aCol;vM=aM;\n#ifdef USE_INSTANCING_COLOR\nvIC=instanceColor;\n#else\nvIC=vec3(1.);\n#endif';
 const CAR_SURF=`
  diffuseColor.a=1.;
- if(vM<.5){sAlb=vIC;sRough=.18;sMetal=.88;sEnv=1.25;}
- else if(vM<1.5){sAlb=vec3(.24,.3,.34);sRough=.1;sMetal=.85;sEnv=1.4;diffuseColor.a=.6;}
+ if(vM>8.5){sAlb=vIC;sRough=.4;sMetal=.1;sEnv=.55;}                                    // solid enamel on the Soviet-era cars (no metallic flake)
+ else if(vM<.5){sAlb=vIC;sRough=.18;sMetal=.88;sEnv=1.25;}
+ else if(vM<1.5){sAlb=vec3(.018,.026,.032);sRough=.07;sMetal=.3;sEnv=.9;diffuseColor.a=.8;}   // tinted glass: dark, with the sky only as a reflection
  else if(vM<2.5){sAlb=vCol;sEmis=vCol*(.3+uNight*5.);sRough=.2;}
  else if(vM<3.5){sAlb=vCol;sEmis=vCol*(.2+uNight*2.5);sRough=.3;}
  else if(vM<4.5){sAlb=vec3(.012);sRough=.9;}
@@ -4309,7 +4310,7 @@ const CAR_SURF=`
  else if(vM<6.5){sAlb=vec3(.02);sRough=.6;}
  else if(vM<7.5){sAlb=vCol;sRough=.5;}
  else {sAlb=vCol;sEmis=vCol*.6;sRough=.4;}
- if(uWinter>.5&&vM<.5&&vNw.y>.7)sAlb=mix(sAlb,vec3(.9,.92,.95),.85);
+ if(uWinter>.5&&(vM<.5||vM>8.5)&&vNw.y>.7)sAlb=mix(sAlb,vec3(.9,.92,.95),.85);
 `;
 let CAR_MAT=null;
 function carShape(pts){const s=new THREE.Shape();s.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)s.lineTo(pts[i][0],pts[i][1]);s.closePath();return s}
@@ -4341,7 +4342,7 @@ function buildCarType(def){
   // slice list
   const zs=[def.rear];for(const t of def.top){if(t[0]>def.rear+.05&&t[0]<def.front-.05)zs.push(t[0])}zs.push(def.front);
   const zz=[];for(let i=0;i<zs.length-1;i++){const n=Math.max(1,Math.round((zs[i+1]-zs[i])/.4));for(let k=0;k<n;k++)zz.push(zs[i]+(zs[i+1]-zs[i])*k/n)}zz.push(def.front);
-  const S=zz.map(z=>carSection(def,z));const NR=15,NS=S.length;
+  const S=zz.map(z=>carSection(def,z));const NR=15,NS=S.length;const BM=def.alloy===false?9:0;
   const gl=def.glass,zA=gl[0][0]+.1,zB=gl[gl.length-1][0]-.1;
   const pil=(def.pillars||[(zA+zB)/2]).slice().sort((a,b)=>a-b);
   const segs=[];{let a=zA;for(const p of pil){segs.push([a,p-.05]);a=p+.05}segs.push([a,zB])}
@@ -4353,7 +4354,7 @@ function buildCarType(def){
     const t1=[pk1[0]-pk0[0],pk1[1]-pk0[1],pk1[2]-pk0[2]],t2=[pn[0]-pp[0],pn[1]-pp[1],pn[2]-pp[2]];
     let n=[t1[1]*t2[2]-t1[2]*t2[1],t1[2]*t2[0]-t1[0]*t2[2],t1[0]*t2[1]-t1[1]*t2[0]];const l=Math.hypot(...n)||1;n=n.map(v=>v/l);
     const cy=(def.y0+S[i].yt)/2;if(n[0]*p[0]+n[1]*(p[1]-cy)<0)n=n.map(v=>-v);
-    V(p,n,[1,1,1],0)}
+    V(p,n,[1,1,1],BM)}
   for(let i=0;i<NS-1;i++)for(let k=0;k<NR-1;k++){
     const zMid=(S[i].ring[0][2]+S[i+1].ring[0][2])*.5;
     const windowBand=(k>=3&&k<=5)||(k>=8&&k<=10);
@@ -4365,7 +4366,7 @@ function buildCarType(def){
   // Triangulate the end profiles so the front and rear remain closed over tapered noses.
   for(const [i,sg] of [[0,-1],[NS-1,1]]){
     const contour=S[i].ring.map(p=>new THREE.Vector2(p[0],p[1])),tris=THREE.ShapeUtils.triangulateShape(contour,[]),c0=g.n;
-    for(const p of S[i].ring)V(p,[0,0,sg],[1,1,1],0);
+    for(const p of S[i].ring)V(p,[0,0,sg],[1,1,1],BM);
     for(const tri of tris)triFacing(c0+tri[0],c0+tri[1],c0+tri[2]);
   }
   // glass: side windows (split by pillars), windshield, rear window
@@ -4968,6 +4969,7 @@ function updateTrams(dt){
     const dist=(t.nextStop-t.s)*t.dir;
     // keep distance to the player standing on the track and to other trams
     let block=99;const fx=Math.sin(t.yaw),fz=Math.cos(t.yaw);
+    if(typeof TL!=='undefined'){const b=TL.tram(t.x,t.z,fx,fz,t.v);if(b<block)block=b}      // red light: the tram stops at the line like the cars
     if(!RIDE.on||RIDE.tram!==t){const dx=player.x-t.x,dz=player.z-t.z;const a=dx*fx+dz*fz,b=Math.abs(dx*fz-dz*fx);if(a>0&&b<1.8)block=Math.min(block,a-8.5)}
     for(const o of TRAMS){if(o===t||o.line!==L)continue;const ahead=(o.s-t.s)*t.dir;if(ahead>0&&o.dir===t.dir)block=Math.min(block,ahead-20)}
     const target=Math.min(15,Math.sqrt(Math.max(0,2*1.6*Math.max(0,Math.min(dist,block)-.5))));
@@ -6300,9 +6302,11 @@ const AUD={
     // cars: three nearest
     const near=CARS.map(k=>[Math.hypot(k.x-camera.position.x,k.z-camera.position.z),k]).sort((a,b)=>a[0]-b[0]).slice(0,3);
     const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw);
-    this.carV.forEach((v,i)=>{const e=near[i];if(!e||ind){v.g.gain.setTargetAtTime(0,T,.2);return}const [d,k]=e;
+    this.carV.forEach((v,i)=>{const e=near[i];if(!e||ind){v.g.gain.setTargetAtTime(0,T,.2);if(v.sg)v.sg.gain.setTargetAtTime(0,T,.2);return}const [d,k]=e;
       const prox=Math.max(0,1-d/34);   // traffic is only audible once it is really close — far streets do not drone
-      v.o.frequency.setTargetAtTime(38+k.v*4.2+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(260+k.v*25,T,.2);v.g.gain.setTargetAtTime(.06*prox*prox*(.3+k.v/14),T,.2);
+      const real=typeof ENG!=='undefined'&&ENG.traffic(v,k,d,prox,T,dt);   // the owner's engine recordings once decoded, the synthesised hum before that
+      if(real)v.g.gain.setTargetAtTime(0,T,.1);else if(v.sg)v.sg.gain.setTargetAtTime(0,T,.1);
+      v.o.frequency.setTargetAtTime(38+k.v*4.2+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(260+k.v*25,T,.2);if(!real)v.g.gain.setTargetAtTime(.06*prox*prox*(.3+k.v/14),T,.2);
       if(v.p){const rx=k.x-camera.position.x,rz=k.z-camera.position.z;const side=(rx*fz-rz*fx)/(d+1);v.p.pan.setTargetAtTime(Math.max(-1,Math.min(1,-side)),T,.1)}});
     const sps=Math.min(28,player.spd||0);this.sc.o.frequency.setTargetAtTime(58+sps*2.2,T,.25);this.sc.g.gain.setTargetAtTime(this.scootOn&&sps>.3?.022:0,T,.25);
     this.scw.gn.gain.setTargetAtTime(this.scootOn?Math.min(.03,sps*.0025):0,T,.2);this.scw.fl.frequency.setTargetAtTime(320+sps*28,T,.2);
