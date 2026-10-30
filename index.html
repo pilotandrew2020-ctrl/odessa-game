@@ -291,6 +291,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="flats.js"></script>
 <script src="body.js"></script>
 <script src="hands.js"></script>
+<script src="real.js"></script>
 <script src="sfx.js"></script>
 <script src="camv.js"></script>
 <script src="garage.js"></script>
@@ -3907,8 +3908,8 @@ function makePlayer(o){o=o||{};
   const head=new THREE.Group();head.position.y=.535;spine.add(head);
   const HR=.104,HH=.245;   // a real head is ~0.16 m wide and ~0.23 m tall (the old 0.30 m wide one made everyone look like a toy)
   const hm=new THREE.Mesh(headGeo(HR,HH),M.head);head.add(hm);bdFace(head,M,HR,HH);bdEyes(head,HR,HH);
-  CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);CHP.glasses(head,o,M,HR,HH);CHP.hat(head,o,HR,HH);
-  CHP.neck(spine,o);CHP.back(spine,o,M);
+  CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);const nH=head.children.length;CHP.glasses(head,o,M,HR,HH);CHP.hat(head,o,HR,HH);const accH=head.children.slice(nH);
+  const nS=spine.children.length;CHP.neck(spine,o);CHP.back(spine,o,M);const accS=spine.children.slice(nS);
   const arms=[],legs=[];
   if(LONG)M.cuffS=std(CHP.shade(shirtH,.78),.9);
   for(const s of [-1,1]){
@@ -3948,9 +3949,11 @@ function makePlayer(o){o=o||{};
   const grill=new THREE.Mesh(new THREE.CylinderGeometry(.077,.077,.18,16,1,true),std(0x2a7fbf,.5,.3));grill.rotation.z=Math.PI/2;spk.add(grill);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.006,6,16),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.5}));ring.rotation.y=Math.PI/2;ring.position.x=.121;spk.add(ring);
   spk.position.set(0,-.3,.02);arms[1].el.add(spk);spk.visible=false;
-  return {root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0};
+  const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,accH,accS};
+  if(o.real&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
+  return P;
 }
-function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt)}
+function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
 function animPlayerBase(P,st,dt){
   if(st.mode==='drive'||st.mode==='suv'||st.mode==='bike'){seatPose(P,st,dt);return}
   const sp=st.spd;const walkF=sp<.05?0:Math.min(1,sp/1.2);const HY=P.hipY;
@@ -7370,7 +7373,7 @@ const OUTFITS=[
 let AV_MAT=null;
 function mergeAvatar(root){AV_MAT=AV_MAT||new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});
   const nodes=[];root.traverse(o=>{if(!o.isMesh)nodes.push(o)});
-  for(const nd of nodes){const ms=nd.children.filter(c=>c.isMesh&&c.visible&&!Array.isArray(c.material)&&c.material.isMeshStandardMaterial&&!c.material.map&&!c.material.transparent&&c.children.length===0);if(ms.length<2)continue;
+  for(const nd of nodes){const ms=nd.children.filter(c=>c.isMesh&&!c.isSkinnedMesh&&c.visible&&!Array.isArray(c.material)&&c.material.isMeshStandardMaterial&&!c.material.map&&!c.material.transparent&&c.children.length===0);if(ms.length<2)continue;
     let n=0;const parts=[];for(const m of ms){m.updateMatrix();const g=(m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone());g.applyMatrix4(m.matrix);parts.push([g,m.material.color]);n+=g.attributes.position.count}
     const pos=new Float32Array(n*3),nor=new Float32Array(n*3),col=new Float32Array(n*3);let k=0;
     for(const [g,c] of parts){pos.set(g.attributes.position.array,k*3);if(g.attributes.normal)nor.set(g.attributes.normal.array,k*3);for(let i=0;i<g.attributes.position.count;i++){col[(k+i)*3]=c.r;col[(k+i)*3+1]=c.g;col[(k+i)*3+2]=c.b}k+=g.attributes.position.count;g.dispose()}

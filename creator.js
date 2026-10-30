@@ -23,7 +23,7 @@ const CH_NECK=['None','Scarf','Chain','Bow tie'],CH_NK_ID=['none','scarf','chain
 const CH_BACK=['None','Crossbody bag','Backpack'],CH_BK_ID=['none','bag','pack'];
 const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble','mous','beard'];
 // code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
-const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2],cur:null,
+const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2, 2],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
   load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
     const SHARP=[3,3,1,1,3,4,2,0,1,0,1,1,0,2,2,0,0];     // the short-lived "sharp guy" default: anyone who saved it goes back to the blond with blue eyes
@@ -31,9 +31,9 @@ const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1],max:[10,6,4,9,12,6,16
     this.cur=this.clean(a);return this.cur},
   save(){try{localStorage.setItem('od_char',JSON.stringify(this.cur))}catch(e){}},
   // the code → makePlayer() options
-  opts(a){a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
+  opts(a){const own=!a||a===this.cur;a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
     const o={skin:CH_SKIN[a[0]],iris:CH_EYE[a[1]][1],bd:CH_BD_ID[a[2]],hs:CH_HS_ID[a[3]],hair:H[1],hair2:H[2],brow:H[3],ts,bs:CH_BS_ID[a[7]],jeans:J[1],cuff:J[2],
-      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16]};
+      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:own&&a[17]===0};
     if(ts==='sailor'){o.shirt=0xf3f1ec;o.tee1='#f4f4f0';o.tee2='#'+C[1].toString(16).padStart(6,'0')}
     else{o.shirt=C[1];if(ts==='over'){o.tee1='#f4f4f0';o.tee2='#1d2f6a'}}
     return o},
@@ -115,7 +115,7 @@ const CHP={
 // ---------------------------------------------------------------- the 3D window
 const CHT=[ // tabs → rows: k = index in the code, sw = colour swatches [name,hex], ch = text chips
   {n:'Looks',f:'full',rows:[{pre:1}]},
-  {n:'Body',f:'full',rows:[{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
+  {n:'Body',f:'full',rows:[{l:'Body type',k:17,ch:['Realistic','Classic']},{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
   {n:'Hair',f:'head',slot:'hair',rows:[{l:'Style',k:3,ch:CH_HAIRS},{l:'Colour',k:4,sw:CH_HAIR.map(h=>[h[0],'#'+h[1].toString(16).padStart(6,'0')])}]},
   {n:'Top',f:'torso',slot:'top',rows:[{l:'Style',k:5,ch:CH_TOPS},{l:'Colour',k:6,sw:CH_CLOTH.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Bottom',f:'legs',slot:'bottom',rows:[{l:'Style',k:7,ch:CH_BOTS},{l:'Colour',k:8,sw:CH_JEANS.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
