@@ -300,6 +300,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="carx.js"></script>
 <script src="buses.js"></script>
 <script src="houses.js"></script>
+<script src="fdet.js"></script>
 <script src="pkdata.js"></script>
 <script src="parks.js"></script>
 <script src="rides.js"></script>
@@ -5442,6 +5443,7 @@ const INTERIORS={
     try{sovKitchen(grp,ox,oz,INT_Y)}catch(e){console.error('[soviet] kitchen',e)}
     buildSovietDecor(grp,ox,oz,INT_Y);
     try{sovLounge(grp,ox,oz,INT_Y)}catch(e){console.error('[soviet] lounge',e)}
+    try{if(window.FD&&FD.soviet)FD.soviet(grp,ox,oz,P,h)}catch(e){console.error('[fdet] soviet',e)}   // fdet.js: bathroom at the end of the hall, radiators, hall clock
 
     // Long side balcony attached directly to the kitchen; multi-color light chain.
     const wireMat=mat('#171a1c',.8);const bulbs=[];

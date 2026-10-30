@@ -12,11 +12,11 @@ const FL={built:{},leaving:0,ready:false};
 const FL_DEF={
   panel:{idx:58,W:9.6,D:6.8,H:2.5,door:0,title:'Your flat',sub:'panel block · carpet on the wall, wall unit, folding sofa',
     // a quiet winter night: the lamps are dim and a little cold, the windows show blue snow-light (no New Year, no samovar)
-    S:{exp:.46,wood:'#6b4a2c',wall:'#d3c3a0',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#ece8de',cm:0,beams:false,sofa:['#b3561f','#d6893c'],accent:'#7a3a2a',light:0xe6e3d6,win:'#46598a'}},
+    S:{door:'#efe9d9',hw:'#a8905a',rad:'cast',standGlb:true,standTint:'#d8b080',tileA:'#efe9da',tileB:'#c8c0ae',tileC:'#e6e0d0',exp:.46,wood:'#6b4a2c',wall:'#d3c3a0',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#ece8de',cm:0,beams:false,sofa:['#b3561f','#d6893c'],accent:'#7a3a2a',light:0xe6e3d6,win:'#46598a'}},
   stalin:{idx:59,W:12,D:8.2,H:3.5,door:-5,title:'Your flat',sub:'Stalin-era house · tall windows, piano, long corridor',
-    S:{exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
+    S:{door:'#f2ede0',hw:'#b99a4a',rad:'cast',curt:['#a85a4a','#f1e6cf','#6f8a58'],standGlb:true,standTint:'#8a6240',tileA:'#f3f1ea',tileB:'#cfc8b8',tileC:'#e8e4d8',exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
   new:{idx:60,W:11,D:7.2,H:2.9,door:-4.4,title:'Your flat',sub:'new build · open plan, kitchen island, glass wall',
-    S:{exp:.5,wood:'#b99a6c',wall:'#e4e5e6',wm:0,floor:'#8c8e92',fm:7,trim:'#ffffff',ceil:'#f3f3f3',cm:0,beams:false,sofa:['#7d838b','#d6d9dd'],accent:'#1d6a8a',light:0xfff3df}}};
+    S:{door:'#e9e5dd',hw:'#9aa0a6',curt:'#e3e6e8',tileA:'#e6e8ea',tileB:'#aeb4b8',tileC:'#d6dadd',exp:.5,wood:'#b99a6c',wall:'#e4e5e6',wm:0,floor:'#8c8e92',fm:7,trim:'#ffffff',ceil:'#f3f3f3',cm:0,beams:false,sofa:['#7d838b','#d6d9dd'],accent:'#1d6a8a',light:0xfff3df}}};
 
 function installFlats(){
   if(FL.ready)return;FL.ready=true;
@@ -82,15 +82,16 @@ function flTick(dt){
 const FL_LAYOUT={
   // ===== nine-storey panel block: hall in the middle, kitchen west, bath east, living room + bedroom behind =====
   panel(E,K,S,L,hw,D,H){const PI=Math.PI;
-    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.5,0,2.4,[[.7,.8]]);   // the east partition was at x 1.2, right in the bedroom doorway (x .4–1.3): only a 20 cm channel was leftK.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
+    // the east partition used to sit at x 1.2, right in the bedroom doorway (x .4–1.3): only a 20 cm channel was left, so it is at 1.5 now
+    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.5,0,2.4,[[.7,.8]]);K.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
+    FD.floor(E,-hw,-1.2,0,2.4,'chess','#d9ceb4','#9c8460');FD.floor(E,-1.2,1.5,0,2.4,'lino','#8a5a3a','#6a4028','#a07a50');FD.bath(E,1.5,hw,0,2.4,[['W',.7,.8]],S);     // kitchen chequer, hall lino, tiled bathroom
     // hall: coats, a shoe bench, mirror and the telephone table
-    K.hang(-1.07,1.6,PI/2,2);K.art(1.39,1.0,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.35,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.3,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
+    K.hang(-1.07,1.6,PI/2,2);K.art(1.39,1.78,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.35,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.3,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
     // kitchen (west): worktop run on the partition, small table, window
     K.kitchen(-3.0,2.28,PI,[['fridge',.6],['cab',.6],['sink',1.0],['cab',.5],['stove',.6]],'#ebe4d2');
     K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);flCurtains(E,K,-3.2,.12,0,1.3,1.2,1.25,['#d9a86a','#f3ecd8','#8a9a58']);
-    E.box(-3.0,1.2,2.28,3.3,.6,.02,'#eef2f2',5);                                          // tiles behind the worktop
     // bathroom (east): tub, toilet, basin, washing machine
-    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(1.64,1.78,PI/2,.8);K.bx(2.2,.55,0,0,.45,0,.6,.9,.6,'#f2f2f2',1);K.rug(2.4,1.5,0,1.0,.7,'#9fc3d6');
+    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(4.25,2.33,PI,.8);K.washer(1.62,1.6,PI/2);K.towelRail(4.7,1.6,-PI/2,.5);K.rug(2.7,1.5,0,1.0,.7,'#9fc3d6');
     K.light(-3.0,2.3,1.2,S.light,.8,6);K.light(0,2.3,1.2,S.light,.8,6);K.light(3.0,2.3,1.2,0xffffff,.9,6);
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
     K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
@@ -101,6 +102,7 @@ const FL_LAYOUT={
     K.light(-2.6,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
     K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);flCurtains(E,K,hw-.12,5.2,-PI/2,1.2,1.3,1.2,['#9aa8c8','#efe9dc','#6f8a64']);flCurtains(E,K,2.8,D-.12,PI,1.2,1.1,1.75,['#9aa8c8','#efe9dc','#6f8a64']);
+    K.dresser(4.68,3.7,-PI/2,1.0);K.clock(.09,3.0,-PI/2,1.95);
     K.light(2.6,2.2,4.6,S.light,1.1,9)},
   // ===== Stalin-era flat: corridor along the front, salon with a piano, bedroom, bath and kitchen =====
   stalin(E,K,S,L,hw,D,H){const PI=Math.PI;
@@ -115,11 +117,13 @@ const FL_LAYOUT={
     K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);flProp(E,'WoodenTable_01',-2.6,6.3,0,.64,.3,{s:.7});flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
     K.shelf(-5.2,D-.03,PI,1.5,2.7);K.shelf(-.2,D-.03,PI,1.5,2.7);K.tv(.69,3.2,-PI/2,1.1);K.plant(-5.4,2.3,1.5);
     K.window(-4.4,D-.12,PI,1.2,2.2,1.8);K.window(-1.0,D-.12,PI,1.2,2.2,1.8);K.window(-hw+.12,3.0,PI/2,1.3,2.2,1.8);K.window(-hw+.12,6.7,PI/2,1.3,2.2,1.8);
+    K.clock(-2.6,D-.11,PI,2.75);
     K.light(-2.6,3.0,5.0,S.light,1.5,14);K.light(-4.8,3.0,3.0,S.light,.8,8);
     // bedroom (north-east): bed under the north windows, wardrobe, stands
     K.bed(3.4,D-.05,PI,1.8,S.accent);K.stand(2.2,D-.05,PI);K.stand(4.6,D-.05,PI);K.wardrobe(5.0,4.52,0,1.8);K.rug(3.4,6.0,0,2.8,2.2,'#b0a080');
     K.window(1.8,D-.12,PI,1.2,2.0,1.7);K.window(hw-.12,6.3,-PI/2,1.4,2.0,1.7);K.light(3.4,3.0,6.0,S.light,1.2,10);
-    // bathroom (centre): tub on the west wall, toilet, basin
+    // bathroom (centre): tub on the west wall, toilet, basin — tiled walls and floor
+    FD.bath(E,.8,3.4,1.6,4.4,[['S',2.3,.8]],S,1.8);FD.floor(E,3.4,hw,1.6,4.4,'chess','#e6dcc2','#a48a5e');K.shoes(2.4,.12,0,.9);K.dresser(.92,5.0,PI/2,1.0);K.mirror(.95,2.55,PI/2,.7,.8,1.55);
     K.tub(.95,2.55,PI/2,1.5);K.toilet(2.6,4.29,PI);K.vanity(3.3,2.0,-PI/2,.7);K.rug(2.4,3.0,0,1.0,.8,'#9fc3d6');K.light(2.1,3.0,3.0,0xffffff,.9,6);
     // kitchen (east, with the window): run on the south... along the divider, table by the window
     K.kitchen(4.7,4.29,PI,[['fridge',.55],['sink',.8],['cab',.4],['stove',.55]],'#efe8d6');K.table(4.9,2.8,0,1.0,.8,.75,'#d8c9ad');K.chair(4.3,2.8,PI/2,'#7a5a3a');K.chair(5.5,2.8,-PI/2,'#7a5a3a');K.window(hw-.12,2.9,-PI/2,1.1,1.5,1.55);K.light(4.7,3.0,3.0,S.light,1.0,8)},
@@ -129,7 +133,8 @@ const FL_LAYOUT={
     E.box(1.1,.005,D/2,8.4,.01,D-.1,'#b99a6c',5);                                       // oak floor in the open-plan part, polished concrete in the hall and bath
     E.box(hw-.125,H/2,5.7,.03,H,3.6,'#3d4650',5);                                        // slate accent wall behind the TV
     for(const x of [-.2,1.0,2.2]){E.box(x,2.3,2.2,.02,1.0,.02,'#222428',6);E.box(x,1.75,2.2,.34,.2,.34,'#fff3d6',3)}   // pendant lamps over the island
-    // hall: a mirror, shoe cabinet and coat hooks; the bathroom behind it
+    // hall: a mirror, shoe cabinet and coat hooks; the bathroom behind it (tiled)
+    FD.bath(E,-hw,-3.3,1.8,4.4,[['S',-4.4,.9]],S,1.9);E.lampSkip=[[-.2,2.2],[1,2.2],[2.2,2.2]];K.washer(-3.42,2.8,-PI/2);
     K.wardrobe(-hw+.03,.95,PI/2,1.4);
     K.shower(-4.85,4.29,PI,1.0);K.toilet(-3.8,4.29,PI);K.vanity(-hw+.05,2.9,PI/2,.9);K.rug(-4.3,3.0,0,1.2,.8,'#cdd9e0');K.light(-4.4,2.4,1.0,S.light,.9,7);K.light(-4.4,2.4,3.1,0xffffff,1.0,6);
     // sleeping alcove behind a glass partition

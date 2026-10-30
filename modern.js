@@ -8,7 +8,7 @@
    =================================================================================================== */
 
 const MD={built:null,leaving:0,ready:false};
-const MD_STYLE={exp:.58,wood:'#b8976b',wall:'#efeeea',wm:0,floor:'#b79d7c',fm:5,trim:'#ffffff',ceil:'#f7f6f2',cm:0,beams:false,sofa:['#5b6672','#c9ced3'],sofaGlb:'Sofa_01',accent:'#2f4858',light:0xfff0d8};
+const MD_STYLE={door:'#f4f1ea',hw:'#a9afb4',rad:'panel',curt:'#dcd6ca',standGlb:true,standTint:'#e0d0b4',tileA:'#f1f2f2',tileB:'#c8ced1',tileC:'#e4e8ea',exp:.58,wood:'#b8976b',wall:'#efeeea',wm:0,floor:'#b79d7c',fm:5,trim:'#ffffff',ceil:'#f7f6f2',cm:0,beams:false,sofa:['#5b6672','#c9ced3'],sofaGlb:'Sofa_01',accent:'#2f4858',light:0xfff0d8};
 
 function installModern(){
   if(MD.ready)return;MD.ready=true;
@@ -33,12 +33,13 @@ function mdBuild(){
   E.act(-3.2,.8,1.7,'Go to the stairwell',mdToStair);
   // ----- partitions: x=-1.6 splits hall / bathroom / bedroom from the living room (doors at z=1.3 and z=7.35); z=2.4 hall|bath, z=5.2 bath|bedroom -----
   K.wallZ(-1.6,0,D,[[1.3,1.4],[7.35,.9]]);K.wallX(2.4,-hw,-1.6,[[-2.5,.9]]);K.wallX(5.2,-hw,-1.6,[]);
+  FD.floor(E,-hw,-1.6,0,2.4,'slab','#b9bcbf','#7a7e82');FD.bath(E,-hw,-1.6,2.4,5.2,[['S',-2.5,.9]],S);E.lampSkip=[[1.4,6.0],[-3.2,3.8]];     // grey slabs in the hall, a tiled bathroom
   // ----- hall -----
-  K.wardrobe(-hw+.03,1.3,PI/2,1.4);K.hang(-4.25,.13,0,2);K.art(-4.1,2.28,PI,.7,.5,1.6,'#d9c8a8');K.plant(-1.95,.32,.9);
+  K.wardrobe(-hw+.03,1.3,PI/2,1.4);K.hang(-4.25,.13,0,2);K.shoes(-4.2,.12,0,.7);K.art(-4.1,2.28,PI,.7,.5,1.6,'#d9c8a8');K.plant(-1.95,.32,.9);
   // ----- bathroom -----
-  K.rug(-3.3,3.8,0,1.6,1.1,'#cdd9e0');K.vanity(-hw+.05,3.2,PI/2,.9);K.toilet(-2.3,5.07,PI);K.shower(-4.15,5.08,PI,1.0);K.hang(-1.71,3.9,-PI/2,2);
+  K.rug(-3.3,3.8,0,1.6,1.1,'#cdd9e0');K.vanity(-hw+.05,3.2,PI/2,.9);K.toilet(-2.3,5.07,PI);K.shower(-4.15,5.08,PI,1.0);K.towelRail(-1.71,3.9,-PI/2,.5);
   // ----- bedroom -----
-  K.bed(-3.7,D-.05,PI,1.6,S.accent);K.stand(-2.5,D-.05,PI);K.wardrobe(-1.71,6.0,-PI/2,1.3);K.rug(-3.5,7.0,0,2.6,2.2,'#d8dfe6');K.window(-hw+.12,6.9,PI/2,1.0,1.2,1.6);K.lamp(-4.5,5.5,1.4);K.art(-3.5,5.33,0,.9,.6,1.7);
+  K.bed(-3.7,D-.05,PI,1.6,S.accent);K.stand(-2.5,D-.05,PI);K.wardrobe(-1.71,6.0,-PI/2,1.3);K.rug(-3.5,7.0,0,2.6,2.2,'#d8dfe6');K.window(-hw+.12,6.9,PI/2,1.0,1.2,1.6);K.lamp(-4.5,5.5,1.4);K.art(-3.5,5.33,0,.9,.6,1.7);K.dresser(-3.5,5.31,0,1.0);
   // ----- kitchen along the east wall: fridge (the door opens), worktop, sink with tap, stove, electric kettle -----
   K.kitchen(hw-.05,2.55,-PI/2,[['fridge',.8],['cab',.9],['sink',1.2],['cab',.5],['stove',.6],['cab',.6]],'#f4f2ee');
   K.table(2.3,2.4,0,1.6,.9,.76,'#d8c9ad');for(const x of [1.7,2.9]){K.chair(x,1.5,0,'#3e434a');K.chair(x,3.3,PI,'#3e434a')}
@@ -46,7 +47,7 @@ function mdBuild(){
   K.rug(1.2,5.8,0,3.6,2.8,'#c9ccd1');K.sofa(3.6,5.65,-PI/2,2.5);flProp(E,'coffee_table_round_01',2.15,5.65,0,.46,.46,{s:.7});flArm(E,1.9,8.05,PI);
   flProp(E,'wooden_display_shelves_01',-1.3,3.4,0,.19,.54);          // a real light-wood cube shelf on the partition (Poly Haven, CC0)
   K.tv(-1.71,5.65,PI/2,1.5);K.shelf(hw-.03,7.45,-PI/2,1.8,2.1);K.plant(-1.15,8.0,1.2);K.lamp(2.95,8.05,1.55);
-  K.window(1.4,D-.12,PI,2.2,1.5,1.55);K.window(3.8,D-.12,PI,1.2,1.5,1.55);K.art(-.5,D-.07,PI,.9,.6,1.9);
+  K.clock(2.85,D-.11,PI,1.9);K.window(1.4,D-.12,PI,2.2,1.5,1.55);K.window(3.8,D-.12,PI,1.2,1.5,1.55);K.art(-.5,D-.07,PI,.9,.6,1.9);
   MDL.put(grp,'modern_ceiling_lamp_01',{x:ox+1.4,y:INT_Y+H-.95,z:oz+6.0});MDL.put(grp,'modern_ceiling_lamp_01',{x:ox-3.2,y:INT_Y+H-.95,z:oz+3.8,s:.8});   // real pendant lamps (Poly Haven, CC0) over the living room and the hall
   // ----- light: five soft points -----
   K.light(-3.2,2.5,1.2,S.light,1.1,9);K.light(-3.2,2.5,3.8,0xffffff,1.0,8);K.light(-3.2,2.5,6.9,S.light,1.1,9);K.light(1.4,2.5,6.0,S.light,1.3,13);K.light(2.4,2.5,2.4,0xffffff,1.3,12);
