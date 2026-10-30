@@ -16,3 +16,8 @@
 Everything else in the game (buildings, cars, characters, interiors) is procedural geometry generated in code, with no model files.
 
 - `textures/bark_platanus.jpg` — "Bark Platanus", Poly Haven (polyhaven.com/a/bark_platanus), CC0 public domain; tree bark.
+
+- `assets/models/props/backpack.glb` — "Backpack" by **Quaternius** (Poly Pizza, https://poly.pizza/m/vF7TuXCPDH), **CC0**; adapted in Blender (straps removed, smoothed, rescaled).
+- `assets/audio/engine_sport.mp3`, `engine_muffler.mp3` — engine recordings supplied by the project owner.
+- `assets/music/snow/*.mp3` — "Jingle Bells", "Joy to the World", "We Wish You a Merry Christmas" (2020), arranged and performed by **Starlifter and Roots in Blue, US Air Force Band of Mid-America**; public domain (work of the US government), via Wikimedia Commons.
+- `assets/music/fog/gymnopedie-no-3.mp3` — "Gymnopedie No. 3" by Erik Satie, performed by **Kevin MacLeod** (incompetech.com), licensed under **Creative Commons Attribution 3.0** (https://creativecommons.org/licenses/by/3.0/), via Wikimedia Commons.

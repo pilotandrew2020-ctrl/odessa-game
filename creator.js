@@ -102,18 +102,36 @@ const CHP={
     if(n==='scarf'){const m=CHP.mat(C,.9);CHP.add(spine,new THREE.TorusGeometry(.085,.034,8,18),m,0,.462,0,Math.PI/2);CHP.add(spine,rbox(.075,.22,.03,.012),CHP.mat(CHP.shade(C,.82),.9),.055,.35,.134,0,0,.12)}
     else if(n==='chain'){const gold=CHP.mat(0xd8b24a,.25,.9);CHP.add(spine,new THREE.TorusGeometry(.092,.0075,6,22,Math.PI),gold,0,.462,.13,0,0,Math.PI);CHP.add(spine,new THREE.SphereGeometry(.018,10,8),gold,0,.368,.134)}
     else if(n==='bow'){const m=CHP.mat(C,.7);for(const s of [-1,1])CHP.add(spine,new THREE.ConeGeometry(.04,.06,8),m,s*.037,.455,.128,0,0,-s*Math.PI/2);CHP.add(spine,new THREE.SphereGeometry(.014,8,6),m,0,.455,.13)}},
+  // shoulder strap: a flat webbing ribbon through points measured on the avatar (spine space, x>0 side, mirrored for s=-1): bag top -> over the shoulder -> down the chest -> under the arm -> bag bottom
+  strapGeo(real,s){
+    const P=[[.085,.405,-.152,0,0,-1],[.088,.46,-.144,0,.2,-1],[.092,.50,-.121,0,.55,-.8],[.096,.545,-.078,0,.85,-.5],[.102,.575,-.028,0,1,-.05],[.102,.552,.03,0,.9,.4],
+      [.102,.527,.06,0,.75,.65],[.102,.487,.093,0,.5,.85],[.102,.447,.115,0,.35,.94],[.102,.402,.136,0,.25,.97],[.102,.352,.15,0,.15,1],[.107,.302,.16,0,.08,1],
+      [.123,.262,.152,.3,0,.95],[.152,.232,.115,.8,0,.6],[.167,.207,.05,1,0,.1],[.162,.187,-.03,1,0,-.2],[.142,.167,-.088,.7,0,-.7],[.107,.147,-.135,.2,0,-1],[.088,.142,-.152,0,0,-1]];
+    const kx=real?1:.95,ky=real?1:.8,kz=real?1:.8,dz=real?0:.02;
+    const V=P.map(p=>new THREE.Vector3(p[0]*kx*s,p[1]*ky,p[2]*kz+(p[2]<-.1?dz:0)));
+    const Nn=P.map(p=>new THREE.Vector3(p[3]*s,p[4],p[5]).normalize());
+    const cv=new THREE.CatmullRomCurve3(V,false,'centripetal'),n=70,hw=.021,th=.009,pos=[],idx=[];
+    for(let i=0;i<=n;i++){const t=i/n,c=cv.getPoint(t),T=cv.getTangent(t);const f=t*(P.length-1),a=Math.min(P.length-2,Math.floor(f)),b=f-a;
+      const N=Nn[a].clone().lerp(Nn[a+1],b).normalize();const W=new THREE.Vector3().crossVectors(T,N).normalize();const N2=new THREE.Vector3().crossVectors(W,T).normalize();
+      const off=N2.clone().multiplyScalar(.004);   // rests 4 mm above the skin / shirt
+      for(const [u,v] of [[-1,0],[-1,1],[1,1],[1,0]])pos.push(c.x+off.x+W.x*hw*u+N2.x*th*v,c.y+off.y+W.y*hw*u+N2.y*th*v,c.z+off.z+W.z*hw*u+N2.z*th*v)}
+    for(let i=0;i<n;i++){const q=i*4;for(const [a,b] of [[0,1],[1,2],[2,3],[3,0]]){idx.push(q+a,q+b,q+4+a,q+b,q+4+b,q+4+a)}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g},
   back(spine,o,M){const b=o.bk===undefined?'bag':o.bk;if(b==='none')return;
     if(b==='bag'){if(typeof bdBand==='function'){spine.add(new THREE.Mesh(bdBand(-.2,.47,.2,.01,.04,1,.004),M.strap));spine.add(new THREE.Mesh(bdBand(-.2,.47,.2,.01,.04,-1,.004),M.strap))}
       else{const strap=new THREE.Mesh(new THREE.BoxGeometry(.04,.62,.012),M.strap);strap.position.set(0,.24,.128);strap.rotation.z=.72;spine.add(strap);
       const strapB=strap.clone();strapB.position.z=-.128;spine.add(strapB)}
       const bag=new THREE.Mesh(rbox(.2,.13,.07,.025),M.bag);bag.position.set(-.2,.04,.06);bag.rotation.y=-.5;spine.add(bag)}
     else{const C=o.ac===undefined?0x23386b:o.ac;
-      // the real backpack model (assets/models/props/backpack.glb, own work): pk_main takes the accessory colour, pk_trim a darker shade; the straps and zips keep their own colours
+      // the bag is a downloaded CC0 model (Poly Pizza "Backpack", see assets/IMPORTS.md) re-oriented, smoothed and scaled in Blender; its own back pads are removed.
+      // pk_main takes the accessory colour, pk_trim a darker shade; the shoulder straps are built here from points measured on the avatar's body so they lie ON the shoulders and chest
       const old=()=>{const m=CHP.mat(C,.8),m2=CHP.mat(CHP.shade(C,.62),.85);
         CHP.add(spine,rbox(.3,.36,.13,.05),m,0,.22,-.19);CHP.add(spine,rbox(.2,.15,.04,.02),m2,0,.14,-.272);CHP.add(spine,rbox(.2,.04,.1,.02),m2,0,.405,-.19);
         for(const s of [-1,1])CHP.add(spine,new THREE.BoxGeometry(.036,.34,.012),m2,s*.1,.28,.127,0,0,s*.04)};
       if(typeof MDL==='undefined'){old();return}
-      const h=new THREE.Group();h.position.set(0,.27,-.178);spine.add(h);
+      const R=!!o.real,h=new THREE.Group();h.position.set(0,R?.27:.235,R?-.158:-.132);spine.add(h);
+      const web=CHP.mat(CHP.shade(C,.55),.9,0,{side:THREE.DoubleSide});
+      for(const s of [-1,1])spine.add(new THREE.Mesh(CHP.strapGeo(R,s),web));
       MDL.make('backpack').then(g=>{const cols={pk_main:C,pk_trim:CHP.shade(C,.62)},done={};
         g.scene.traverse(x=>{if(!x.isMesh)return;x.castShadow=true;const k=x.material.name;
           if(!done[k]){const m=x.material.clone();if(cols[k]!==undefined){m.color.set(cols[k]).convertSRGBToLinear()}m.roughness=Math.max(m.roughness,k==='pk_metal'?.3:.85);done[k]=m}x.material=done[k]});

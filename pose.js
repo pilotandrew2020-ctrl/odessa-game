@@ -193,7 +193,7 @@ function layer(P,st,dt){
     else{const fi=ease(E.t/.2),fo=def.loop?1:ease((def.dur+.25-E.t)/.25);W=Math.min(fi,fo);
       P.can.visible=false;if(P._gw)P._gw.visible=false;def.f(P,E.t*2*PI*1.0667,E.t);W=1;return}}
   if(P.drk){W=1;if(P.drk.t>=P.drk.dur){POSE.endDrink(P)}else{drink(P,st,dt);return}}
-  if(P.rch){W=1;if(P.rch.t>=P.rch.dur){P.rch=null}else{reach(P,st,dt);return}}
+  if(P.rch){W=1;if(P.rch.t>=P.rch.dur||(st.spd||0)>1.1){P.rch=null}else{reach(P,st,dt);return}}   // no bowing while running over loot
   if(P._gp){W=1;weapon(P,st,dt)}
 }
 
