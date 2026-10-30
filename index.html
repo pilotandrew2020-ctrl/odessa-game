@@ -7513,6 +7513,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     {const lk=WARDROBE.ids();if(lk.length)st.lk=lk}
     if(this.say){st.say=this.say.m;st.sayT=this.say.t}
     if(typeof GUN!=='undefined'){const g=GUN.pub();if(g)st.g=g}
+    if(typeof POSE!=='undefined'&&POSE.cur)st.em=POSE.cur;
+    if(typeof BR!=='undefined'){const b=BR.pub();if(b)st.br=b}
     if(typeof HS!=='undefined'){const h=HS.pub();if(h)st.hs=h;if(HS.on&&HS.role==='H'&&HS.camo&&!HS.myFound)st.cc=parseInt(HS.camo.slice(1),16)}
     const key=JSON.stringify(st);const now=performance.now();
     if(NET.active&&(force||key!==this.lastN||now-(this.lastNT||0)>1000)){if(NET.send(st,force)){this.lastN=key;this.lastNT=now}}
@@ -7587,8 +7589,10 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
       const P=R.P;const near=far<22,m0=s.m||'walk';P.root.visible=near||m0==='car'||m0==='tram'||m0==='sit'||m0==='scoot';R.lo.visible=!P.root.visible&&far<350;R.lo.position.set(R.x,R.y,R.z);R.lo.rotation.y=R.yaw;R.lo.castShadow=false;const sh=far<35;if(R.sh!==sh){R.sh=sh;P.root.traverse(o=>{if(o.isMesh)o.castShadow=sh})}P.root.position.set(R.x,R.y,R.z);P.root.rotation.y=R.yaw;
+      if(typeof POSE!=='undefined'&&s.em!==R.emCur){R.emCur=s.em;if(s.em)POSE.emote(P,s.em,false);else POSE.stop(P)}
       const m=s.m||'walk';
       if(P.root.visible){if(m==='car'||m==='tram'||m==='sit')animPlayer(P,{spd:0,mode:'sit'},dt);else animPlayer(P,{spd:s.s||0,mode:m==='air'?'air':(m==='scoot'?'scoot':'walk')},dt)}else{R.lo.position.y+=Math.abs(Math.sin(performance.now()*.008))*.04*Math.min(1,(s.s||0))}
+      if(s.br&&typeof BR!=='undefined'&&P.root.visible)BR.peerPose(R,P,s);
       if(m==='car'||m==='tram')P.root.position.y+=.35;
       if(m==='car'){ // one global matrix for the drawn car; a passenger copies it (no raw stream offsets -> no jitter)
         const D=R.drw||R,M=R.mat||(R.mat=new THREE.Matrix4());M.compose(CP_V.set(D.x,D.y,D.z),CP_Q.setFromAxisAngle(CP_Y,D.yaw),CP_ONE);
@@ -8140,7 +8144,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
       // explosions: every client draws it; I take my own damage
       for(const e of g.ex||[])if(e[0]>L.seq){this.boom(e[1],e[2],e[3],e[4]);this.applyBoom(e[1],e[2],e[3],e[4],e[5],R,false)}
       // kill feed
-      if(g.kb&&g.kb[0]!==L.kb){L.kb=g.kb[0];const killer=g.kb[1];if(killer===me){this.kills++;toast('You tagged '+(s.n||'a friend'),'K '+this.kills);this.push(true)}else if(this.armed)toast((g.kb[2]||'someone')+' tagged '+(s.n||'someone'),'')}
+      if(g.kb&&g.kb[0]!==L.kb){L.kb=g.kb[0];const killer=g.kb[1];if(killer===me){if(typeof BR!=='undefined'&&BR.on){BR.kills++;BR.feed('You',s.n||'Friend','',true);BR.snd('hit');BR.ui_()}else{this.kills++;toast('You tagged '+(s.n||'a friend'),'K '+this.kills);this.push(true)}}else if(typeof BR!=='undefined'&&BR.on)BR.feed(g.kb[2]||'Storm',s.n||'Friend','');else if(this.armed)toast((g.kb[2]||'someone')+' tagged '+(s.n||'someone'),'')}
       let mx=L.seq;for(const h of g.hit||[])mx=Math.max(mx,h[0]);for(const e of g.ex||[])mx=Math.max(mx,e[0]);L.seq=mx;
       this.drawC4(R.peer,g.c4)}
   },

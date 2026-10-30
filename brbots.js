@@ -93,7 +93,7 @@ const BOTS={list:[],NAMES:['Andrii','Maks','Dasha','Oleh','Kolya','Sasha','Vlad'
     const bus=BR.bus,bp=bus?BR.busPos():null;
     for(const b of this.list){
       if(b.st==='bus'){b.t+=dt;if(bus){b.x=bp.x;b.z=bp.z;b.y=bus.y+2}
-        if(b.t>=b.jumpAt||BR.phase==='play'){b.st='sky';b.vy=-5;b.gl=BRM.glider(['#e8453c','#3a8bff','#3ad07a','#f2c14e','#b45cff'][b.id%5]);b.P.root.add(b.gl);b.P.sky=1;
+        if((bus?bus.t:b.t)>=b.jumpAt||BR.phase==='play'){b.st='sky';b.vy=-5;b.gl=BRM.glider(['#e8453c','#3a8bff','#3ad07a','#f2c14e','#b45cff'][b.id%5]);b.P.root.add(b.gl);b.P.sky=1;
           const ch=BR.items.filter(q=>q.k==='x'&&!q.taken);const q=ch.length?ch[Math.floor(Math.random()*ch.length)]:null;b.land=q?{x:q.x+(Math.random()-.5)*10,z:q.z+(Math.random()-.5)*10}:{x:BR.C.x+(Math.random()-.5)*600,z:BR.C.z+(Math.random()-.5)*600}}
         else{b.P.root.visible=false;b.lo.visible=false;b.tag.visible=false;continue}}
       if(b.st==='sky'){const g=groundH(b.x,b.z),ag=b.y-g,dd=Math.hypot(b.land.x-b.x,b.land.z-b.z);
