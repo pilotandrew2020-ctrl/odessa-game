@@ -166,7 +166,8 @@ Object.assign(BR,{
   swingHit(W,s){const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);let n=0;
     for(const R of GUN.peersAlive()){const dx=R.x-player.x,dz=R.z-player.z,d=Math.hypot(dx,dz);if(d<2.6&&Math.abs(R.y-player.y)<1.8&&(d<.6||(dx*fx+dz*fz)/d>.25)){GUN.addHit(R.peer,W.dmg);GUN.shock(R.x,R.y+1,R.z);if(typeof BRFX!=='undefined')BRFX.friendHit(R,W.dmg);n++}}
     n+=BOTS.melee(player.x,player.z,fx,fz,W.dmg,{me:true,w:W.n});n+=this.hitChests(fx,fz,W.dmg);
-    if(n){this.hitmark(false);FX.shakeT=Math.max(FX.shakeT||0,.1);FX.shakeA=Math.max(FX.shakeA||0,.03)}else{this.snd('swing');GUN.shock(player.x+fx*1.3,player.y+1,player.z+fz*1.3,true)}}
+    const hv=!n&&s&&s.id==='pick'&&typeof BLD!=='undefined'&&BLD.harvest(W);       // nothing alive in reach: the pickaxe gathers wood / brick / metal (brbuild.js)
+    if(n){this.hitmark(false);FX.shakeT=Math.max(FX.shakeT||0,.1);FX.shakeA=Math.max(FX.shakeA||0,.03)}else if(!hv){this.snd('swing');GUN.shock(player.x+fx*1.3,player.y+1,player.z+fz*1.3,true)}}
 });
 
 return {ARMS,mats,CH_HP,setup}})();

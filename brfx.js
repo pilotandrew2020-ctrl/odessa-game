@@ -51,8 +51,9 @@ function num(txt,col,x,y,z,big){const N=nums.find(n=>n.t>=n.life)||(nums.length<
 
 // ---------------------------------------------------------------- debris
 const WOOD=new THREE.MeshStandardMaterial({color:0x7a4a22,roughness:.8}),GOLD=new THREE.MeshStandardMaterial({color:0xf2b830,emissive:0x5a3a00,emissiveIntensity:.5,roughness:.3,metalness:.8});
-function debris(x,y,z,n,small){for(let i=0;i<n;i++){let D=deb.find(d=>d.t>=d.life);if(!D){if(deb.length>=44)return;const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),WOOD);m.castShadow=true;scene.add(m);D={m,t:9,life:1,v:new THREE.Vector3(),w:new THREE.Vector3()};deb.push(D)}
-    const gold=Math.random()<.3,s=(small?.05:.09)*(.6+Math.random()*.8);D.m.material=gold?GOLD:WOOD;D.m.scale.set(s*(gold?1:2.4),s*.6,s);D.m.position.set(x+(Math.random()-.5)*.5,y,z+(Math.random()-.5)*.5);D.m.visible=true;
+const CMAT=new Map();function cmat(c){let m=CMAT.get(c);if(!m){m=new THREE.MeshStandardMaterial({color:c,roughness:.85});CMAT.set(c,m)}return m}
+function debris(x,y,z,n,small,col){for(let i=0;i<n;i++){let D=deb.find(d=>d.t>=d.life);if(!D){if(deb.length>=44)return;const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),WOOD);m.castShadow=true;scene.add(m);D={m,t:9,life:1,v:new THREE.Vector3(),w:new THREE.Vector3()};deb.push(D)}
+    const gold=!col&&Math.random()<.3,s=(small?.05:.09)*(.6+Math.random()*.8);D.m.material=col?cmat(col):gold?GOLD:WOOD;D.m.scale.set(s*(gold?1:2.4),s*.6,s);D.m.position.set(x+(Math.random()-.5)*.5,y,z+(Math.random()-.5)*.5);D.m.visible=true;
     const a=Math.random()*6.283,sp=(small?1.8:3.4)*(.4+Math.random());D.v.set(Math.cos(a)*sp,(small?1.8:3.4)*(.6+Math.random()*.8),Math.sin(a)*sp);D.w.set(Math.random()*12-6,Math.random()*12-6,Math.random()*12-6);D.t=0;D.life=1.1+Math.random()*.7}}
 
 // ---------------------------------------------------------------- item names above the loot that pops out of a chest
@@ -87,7 +88,7 @@ function clear(){for(const B of bars.values()){scene.remove(B.sp);B.tex.dispose(
   for(const L of labs){scene.remove(L.s);L.s.material.map.dispose();L.s.material.dispose()}labs.length=0}
 
 return {
-  tick,clear,debris,label,
+  tick,clear,debris,label,num,
   // a bot was damaged: hp / sh = what was taken, head = a headshot, mine = I did it (only my hits float a number)
   hit(b,hp,sh,head,mine){let B=bars.get(b);if(!B)B=mkBar(b);poke(B);
     if(mine){const y=b.y+(head?1.85:1.4);if(sh>0)num('-'+Math.round(sh),'#5ac8ff',b.x,y,b.z,false);if(hp>0)num('-'+Math.round(hp),head?'#ffd23a':'#ffffff',b.x,y+(sh>0?.25:0),b.z,head)}},
