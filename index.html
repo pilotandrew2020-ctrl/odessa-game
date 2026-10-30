@@ -321,7 +321,7 @@ body.heliOn #actBtns>#bHeli{--col:0;--row:0}
       <button id="goHere" hidden>Teleport here</button>
     </div>
     <div id="mapSide"><h2>Places</h2><input id="mapSearch" type="search" placeholder="Search a place…" autocomplete="off" spellcheck="false">
-      <div id="mapChips"><button data-c="all" class="on">All</button><button data-c="landmarks">Landmarks</button><button data-c="parks">Parks</button><button data-c="sea">Sea</button><button data-c="shops">Shops</button><button data-c="homes">Homes</button></div>
+      <div id="mapChips"><button data-c="all" class="on">All</button><button data-c="landmarks">Landmarks</button><button data-c="parks">Parks</button><button data-c="sea">Sea</button><button data-c="shops">Shops</button><button data-c="venues">Nearby</button><button data-c="homes">Homes</button></div>
       <div id="placeList" style="display:flex;flex-direction:column;gap:8px"></div></div>
   </div>
   <div id="menu">
@@ -396,6 +396,7 @@ const MODES={list:[],want:null,en:false,
 <script src="clinic.js"></script>
 <script src="khru.js"></script>
 <script src="kstyle.js"></script>
+<script src="ven.js"></script>
 <script src="bldg.js"></script>
 <script src="facade.js"></script>
 <script src="street.js"></script>
@@ -7275,7 +7276,7 @@ const MAP_MAJOR=new Set(['stairs','station','opera','morvokzal','lighthouse','ma
 const MAP_DIST=[['CITY CENTRE',46.4775,30.740],['MOLDAVANKA',46.468,30.709],['PERESYP',46.519,30.735],['LUZANIVKA',46.555,30.745],['KOTOVSKY',46.585,30.75],['CHERYOMUSHKY',46.446,30.725],['ARKADIA',46.428,30.766],['FRENCH BLVD',46.450,30.775],['TAIROVE',46.396,30.72],['VELYKYI FONTAN',46.378,30.775],['CHORNOMORKA',46.32,30.74],['SLOBIDKA',46.482,30.69],['MALYNOVSKYI',46.445,30.67]];
 function placeCat(p){const id=p.id;if(/^(khru|ks_)/.test(id))return 'homes';if(/^shop_/.test(id)||MAP_SHOP.has(id))return 'shops';if(MAP_SEA.has(id))return 'sea';if(MAP_PARK.has(id))return 'parks';return 'landmarks'}
 function placePri(p){const id=p.id;if(id==='home')return 0;if(MAP_MAJOR.has(id))return 1;if(/^(khru|ks_)/.test(id))return 3;return 2}
-function mapPlaces(){MAPP={n:PLACES.length,list:PLACES.map(p=>({p,cat:placeCat(p),pri:placePri(p)})).sort((a,b)=>a.pri-b.pri)};
+function mapPlaces(){MAPP={n:PLACES.length,list:PLACES.map(p=>({p,cat:placeCat(p),pri:placePri(p)})).sort((a,b)=>a.pri-b.pri).concat(typeof VEN!=='undefined'&&VEN.ready?VEN.mapEntries():[])};
   MAPD=MAP_DIST.map(d=>[(d[2]-HDR.LON0)*HDR.KX,(HDR.LAT0-d[1])*HDR.KZ,d[0]])}
 const MAPT=new Map();
 function drawBigMapNow(){
@@ -7301,10 +7302,11 @@ function mapLabels(x,W,H,ox,oz,s){
   const hit=(r,own)=>{for(const q of rects)if(q[4]!==own&&r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1])return true;return false};
   x.lineJoin='round';x.textBaseline='middle';
   // what is on screen at this zoom: majors always, small places once you are closer, home pins last (one per district until s>=.2)
-  const sel=MAPV.selPlace,vis=[];
+  const sel=MAPV.selPlace,vis=[];let nv=0;      // nv: real venues (ven.js) drawn so far; the nearest ~240 in view are enough
   for(const e of MAPP.list){const p=e.p;if(p!==sel){if(p.hide&&s<.2)continue;if(e.pri===3&&s<.035)continue;if(e.pri===2&&s<.04)continue}
     const px=ox+p.x*s,pz=oz+p.z*s;if(px<-24||px>W+24||pz<-24||pz>H+24)continue;
-    const home=p.id==='home',r=home?9:(p.pin?(s>=.2?8:4.5):(e.pri<=1?6.5:4.5));
+    if(p.v&&p!==sel){if(s<VEN.zoom(p)||nv>=240)continue;nv++}
+    const home=p.id==='home',r=home?9:(p.v?(s>=.5?7.5:4.5):p.pin?(s>=.2?8:4.5):(e.pri<=1?6.5:4.5));
     vis.push([e,px,pz,r]);rects.push([px-r,pz-r,px+r,pz+r,p.id])}
   // labels are placed in priority order, to the right of the dot first, then left, above, below; a label that would overlap another is dropped
   const labs=[],need=e=>e.pri===0?0:e.pri===1?.011:e.pri===2?.1:.3;
@@ -7320,7 +7322,7 @@ function mapLabels(x,W,H,ox,oz,s){
   // draw: districts underneath, then dots, then the labels
   x.textAlign='center';for(const [t,px,pz,al,f] of dl){x.font=f;x.lineWidth=4;x.strokeStyle='rgba(8,20,24,'+(.7*al)+')';x.fillStyle='rgba(236,241,237,'+(.62*al)+')';x.strokeText(t,px,pz);x.fillText(t,px,pz)}
   for(const [e,px,pz,r] of vis){const p=e.p,home=p.id==='home';x.fillStyle=home?'#f2c14e':(p.pin||(e.pri<=1?'#fff':'#cfd8dc'));x.strokeStyle='#0b1b22';x.lineWidth=3;x.beginPath();x.arc(px,pz,r,0,7);x.fill();x.stroke();
-    if(p.pin&&s>=.2){x.fillStyle='#fff';x.font='800 10px '+SANS;x.fillText(p.pinText||'M',px,pz+.5)}}
+    if(p.pin&&s>=(p.v?.5:.2)){x.fillStyle='#fff';x.font='800 10px '+SANS;x.fillText(p.pinText||'M',px,pz+.5)}}
   x.textAlign='left';for(const [t,lx,lz,col,f] of labs){x.font=f;x.lineWidth=4;x.strokeStyle='rgba(8,20,24,.92)';x.fillStyle=col;x.strokeText(t,lx,lz);x.fillText(t,lx,lz)}
   // you
   const px=ox+player.x*s,pz=oz+player.z*s;x.save();x.translate(px,pz);x.rotate(-player.yaw+Math.PI);x.fillStyle='#4ad0e6';x.strokeStyle='#0b1b22';x.lineWidth=2.5;
@@ -7335,7 +7337,7 @@ let _mapFly=0;
 function mapFly(cx,cz,s,ms){cancelAnimationFrame(_mapFly);s=Math.max(.02,Math.min(3,s));const c0=MAPV.cx,z0=MAPV.cz,s0=MAPV.s,t0=performance.now();ms=ms||320;
   const step=t=>{if($('mapUI').hidden)return;const u=Math.min(1,(t-t0)/ms),e=u*u*(3-2*u);MAPV.cx=c0+(cx-c0)*e;MAPV.cz=z0+(cz-z0)*e;MAPV.s=Math.exp(Math.log(s0)+(Math.log(s)-Math.log(s0))*e);drawBigMapNow();if(u<1)_mapFly=requestAnimationFrame(step)};
   _mapFly=requestAnimationFrame(step)}
-function mapSelect(p,fly){MAPV.selPlace=p;MAPV.sel=[p.x,p.z];const g=$('goHere');g.textContent='Teleport to '+p.name;g.hidden=false;
+function mapSelect(p,fly){if(p.v&&typeof VEN!=='undefined')VEN.stand(p);MAPV.selPlace=p;MAPV.sel=[p.x,p.z];const g=$('goHere');g.textContent='Teleport to '+p.name;g.hidden=false;
   for(const b of $('placeList').children)b.classList.toggle('sel',b.dataset.id===p.id);
   if(fly)mapFly(p.x,p.z,Math.max(MAPV.s,p.id==='home'||/^(khru|ks_)/.test(p.id)?.5:.3));else drawBigMap()}
 function nearestRoadPoint(x,z){
@@ -7350,8 +7352,8 @@ function closeMap(){$('mapUI').hidden=true;clearTimeout(MAPL.t);cancelAnimationF
 let mapCat='all',mapQ='';
 function buildPlaceList(){const L=$('placeList');L.innerHTML='';if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
   const q=mapQ.trim().toLowerCase(),px=player.x,pz=player.z,dist=p=>Math.hypot(p.x-px,p.z-pz);
-  const rows=MAPP.list.filter(e=>!e.p.hide&&(mapCat==='all'||e.cat===mapCat)&&(!q||(e.p.name+' '+(e.p.sub||'')).toLowerCase().includes(q)));
-  rows.sort((a,b)=>a.p.id==='home'?-1:b.p.id==='home'?1:dist(a.p)-dist(b.p));
+  const rows=MAPP.list.filter(e=>!e.p.hide&&(mapCat==='all'||e.cat===mapCat)&&(!e.p.v||q.length>1||mapCat==='venues')&&(!q||(e.p.name+' '+(e.p.sub||'')).toLowerCase().includes(q)));
+  rows.sort((a,b)=>a.p.id==='home'?-1:b.p.id==='home'?1:dist(a.p)-dist(b.p));if(rows.length>90)rows.length=90;
   for(const e of rows){const p=e.p,d=dist(p),b=document.createElement('button');b.className='place'+(MAPV.selPlace===p?' sel':'');b.dataset.id=p.id;
     const row=document.createElement('span');row.className='pn';const t=document.createElement('span');t.textContent=p.name;const dd=document.createElement('em');dd.textContent=d<950?Math.max(10,Math.round(d/10)*10)+' m':(d/1000).toFixed(1)+' km';row.append(t,dd);
     const s=document.createElement('small');s.textContent=p.sub||'';b.append(row,s);b.onclick=()=>mapSelect(p,true);L.appendChild(b)}
@@ -7461,7 +7463,7 @@ function setupInput(){
       if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
       const r=bm.getBoundingClientRect(),s=MAPV.s,sx=e.clientX-r.left,sy=e.clientY-r.top;
       // a tap on a place picks that place; anywhere else it picks the nearest road point
-      let best=null,bd=26*26;for(const en of MAPP.list){const p=en.p;if(p.hide&&s<.2)continue;const px=r.width/2+(p.x-MAPV.cx)*s,pz=r.height/2+(p.z-MAPV.cz)*s,d=(px-sx)**2+(pz-sy)**2;if(d<bd){bd=d;best=p}}
+      let best=null,bd=26*26;for(const en of MAPP.list){const p=en.p;if(p.hide&&s<.2)continue;if(p.v&&s<VEN.zoom(p))continue;const px=r.width/2+(p.x-MAPV.cx)*s,pz=r.height/2+(p.z-MAPV.cz)*s,d=(px-sx)**2+(pz-sy)**2;if(d<bd){bd=d;best=p}}
       if(best)mapSelect(best,false);
       else{const wx=(sx-r.width/2)/s+MAPV.cx,wz=(sy-r.height/2)/s+MAPV.cz,np=nearestRoadPoint(wx,wz);if(np){MAPV.sel=np;MAPV.selPlace=null;$('goHere').textContent='Teleport here';$('goHere').hidden=false;for(const b of $('placeList').children)b.classList.remove('sel');drawBigMap()}}}};
   bm.addEventListener('pointerup',up);bm.addEventListener('pointercancel',up);

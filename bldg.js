@@ -17,8 +17,10 @@ function bgFind(x,z){const id=chunkIdAt2(x,z);if(id<0)return null;const i0=id%NC
   for(let j=j0-1;j<=j0+1;j++)for(let i=i0-1;i<=i0+1;i++){if(i<0||j<0||i>=NCX||j>=NCZ)continue;
     for(const b of bgChunk(j*NCX+i)){if(x<b.mnx-bd||x>b.mxx+bd||z<b.mnz-bd||z>b.mxz+bd)continue;if((D.bfl[b.k]&1)||b.area<25)continue;
       if(polyInside(b.rings,x,z))continue;const q=polyNearest(b.rings,x,z);if(q[0]<bd){bd=q[0];best={k:b.k,qx:q[1],qz:q[2],area:b.area}}}}
+  if(best&&typeof VEN!=='undefined')best.v=VEN.forEntry(best.k,best.qx,best.qz);      // a real venue (ven.js) on this stretch of wall decides what the door opens
   return best}
 function bgType(b){const st=D.bst[b.k],h=(Math.imul(b.k+1,2654435761)>>>0)>>>4;
+  if(b.v&&typeof VEN!=='undefined'&&VEN.INT[b.v.c])return {id:VEN.INT[b.v.c],label:'Enter '+b.v.name,ven:b.v};
   if(st===KHRU||st===PANEL||st===BRICK||st===TOWER)return {id:'stair',label:'Enter the stairwell'};
   if(st===SHOP){if(b.area>=170)return {id:'bg_market',label:'Enter the supermarket'};const v=BG_SHOPS[h%BG_SHOPS.length];return {id:'bg_'+v[0],label:'Enter '+v[1].toLowerCase()}}
   if(st===HOUSE)return {id:'bg_house',label:'Enter the house'};
@@ -28,11 +30,15 @@ function bgType(b){const st=D.bst[b.k],h=(Math.imul(b.k+1,2654435761)>>>0)>>>4;
 // walking straight into a shop, cafe or supermarket wall opens it (no need to find the button); BGW is the queue of shop interiors built in idle moments (see tickDoors)
 const BGW=[];let bgBumpT=0;
 function bgBump(dt,sp,fx,fz){const b=BG.cur;if(!b||sp<.5){bgBumpT=0;return false}
-  if(!/^bg_(market|cafe|phones|pharmacy|sweets|coffee|books|gifts|flowers|eva|optics|jewel|toys)$/.test(bgType(b).id)){bgBumpT=0;return false}
+  if(!/^bg_(market|cafe|phones|pharmacy|sweets|coffee|books|gifts|flowers|eva|optics|jewel|toys|rest|bar|game|gym|cloth)$/.test(bgType(b).id)){bgBumpT=0;return false}
   const dx=b.qx-player.x,dz=b.qz-player.z,d=Math.hypot(dx,dz);if(d>.8||(dx*fx+dz*fz)/Math.max(d,.01)<.75){bgBumpT=0;return false}
   bgBumpT+=dt;if(bgBumpT<.35)return false;bgBumpT=0;bgEnter(b);return true}
 function bgEnter(b){if(!b)return;const t=bgType(b),ret={x:player.x,z:player.z,yaw:Math.atan2(player.x-b.qx,player.z-b.qz)};
-  if(t.id==='stair')PORTAL.enter('stair',ret,{ent:1+b.k%4});else PORTAL.enter(t.id,ret)}
+  if(t.id==='stair')PORTAL.enter('stair',ret,{ent:1+b.k%4});
+  else{const v=t.ven,nm=v?v.name:'',sb=v?(VEN.LABEL[v.c]||''):'';      // the shared interior wears the real venue's name
+    if(v&&PORTAL.built[t.id]){PORTAL.built[t.id].title=nm;PORTAL.built[t.id].sub=sb}
+    PORTAL.enter(t.id,ret);
+    if(v)setTimeout(()=>{const B=PORTAL.active;if(B&&PORTAL.cur===t.id){B.title=nm;B.sub=sb;toast(nm,sb)}},560)}}
 
 // ---------- interiors ----------
 function bgHouse(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y;
@@ -67,4 +73,5 @@ function installBldg(){
       const t=performance.now();if(Math.hypot(player.x-BG.lx,player.z-BG.lz)>.6||t-BG.lt>400){BG.lx=player.x;BG.lz=player.z;BG.lt=t;BG.cur=bgFind(player.x,player.z)}
       const b=BG.cur;if(!b)return false;ent.x=b.qx;ent.z=b.qz;ent.y=player.y;ent.label=bgType(b).label;ent.act=bgType(b).id==='stair'?'door':null;return true},
     fn(){bgEnter(BG.cur)}};
-  INTERACT.push(ent)}
+  INTERACT.push(ent);
+  if(typeof VEN!=='undefined')VEN.install()}
