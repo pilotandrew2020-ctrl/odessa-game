@@ -27,10 +27,6 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #dSub{font-size:12px;color:var(--chalk);opacity:.85;letter-spacing:.06em;text-transform:uppercase}
 #mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:132px;height:132px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
 #homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(152px + env(safe-area-inset-top,0px));width:132px;text-align:center;font-size:12px;font-weight:700;background:var(--glass);border-radius:999px;padding:5px 0;pointer-events:none;font-variant-numeric:tabular-nums}
-#topBtns{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(64px + env(safe-area-inset-top,0px));display:flex;gap:8px;flex-wrap:wrap;max-width:60vw}
-#actBtns{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(3,48px);gap:5px;justify-items:stretch;align-items:stretch;padding:7px;border:1px solid rgba(245,241,232,.2);border-radius:16px;background:rgba(9,26,33,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-#actBtns button{width:48px;height:42px;border-radius:12px;padding:0 2px;font-size:10px;line-height:1.1;white-space:nowrap;touch-action:manipulation}
-#bJump{grid-column:auto;grid-row:auto;width:48px!important;height:42px!important}
 #joy{position:absolute;left:0;bottom:calc(8vh + env(safe-area-inset-bottom,0px));width:48vw;height:52vh;pointer-events:auto}
 #joyBase{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(245,241,232,.45);background:rgba(9,26,33,.25);display:none;pointer-events:none}
 #joyBase.rest{display:block;opacity:.38}
@@ -127,18 +123,12 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 @media (max-height:480px) and (min-aspect-ratio:1/1) and (min-width:761px){#creator{grid-template-columns:minmax(120px,160px) minmax(0,1fr) minmax(240px,330px)}.crTab{padding:7px 11px;font-size:11.5px}#crPanel{padding:10px 12px 8px;gap:10px}#crBar button{padding:9px 16px;font-size:12px}#crTitle small{display:none}#crHead{padding-bottom:4px}}
 .keys{font-size:12.5px;color:var(--muted);line-height:1.5}
 .keys b{color:var(--chalk);font-weight:600}
-#bAct{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom,0px));background:var(--sun);color:var(--ink);border-color:var(--sun);font-size:15px;padding:12px 18px;border-radius:999px}
-#heliControls{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:calc(220px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
-#heliControls button{width:78px;min-height:50px;padding:6px;background:rgba(45,58,45,.9);border-color:rgba(220,230,205,.55);font-weight:800;touch-action:none}
 #heliAim{position:absolute;left:50%;top:50%;width:28px;height:28px;transform:translate(-50%,-50%);pointer-events:none}
 #heliAim:before,#heliAim:after{content:"";position:absolute;background:#f4e8a8;box-shadow:0 0 4px #111}
 #heliAim:before{left:13px;top:1px;width:2px;height:26px}
 #heliAim:after{left:1px;top:13px;width:26px;height:2px}
-#actBtns{grid-template-columns:repeat(3,48px)!important}
-#bJump{grid-column:auto!important;grid-row:auto!important}
 #spd{position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:baseline;gap:6px;background:var(--glass);border-radius:16px;padding:6px 16px;pointer-events:none;font-variant-numeric:tabular-nums}#spd b{font-family:var(--f-disp);font-size:34px;font-weight:800;line-height:1}#spd span{font-size:12px;opacity:.8}
 @media (max-width:640px){#spd{left:max(16px,env(safe-area-inset-left));transform:none;bottom:calc(150px + env(safe-area-inset-bottom,0px))}#spd b{font-size:28px}}
-@media (max-width:640px){#bAct{right:max(14px,env(safe-area-inset-right));bottom:calc(145px + env(safe-area-inset-bottom,0px));padding:10px 14px;font-size:13px}}
 #spk{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(360px,calc(100vw - 32px));background:var(--glass2);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .spkTop{display:flex;justify-content:space-between;align-items:center;gap:8px}.spkTop b{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #spkClose{padding:4px 10px}
@@ -153,7 +143,7 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #liftUI,#mallLiftUI{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(320px,calc(100vw - 32px));background:var(--glass2);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 #liftBtns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}#liftBtns button{padding:12px 0;font-size:17px;font-weight:700}
 @media (prefers-reduced-motion:reduce){#toast,#fade{transition:none}}
-#coHud{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(112px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:min(320px,70vw)}
+#coHud{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(126px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-start;max-width:min(320px,70vw)}
 #coHud .coRow{display:flex;gap:8px}
 #coList{display:flex;flex-direction:column;gap:6px;background:var(--glass2);border:1px solid var(--line);border-radius:16px;padding:8px;width:min(300px,70vw)}
 #coList button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;width:100%}
@@ -166,22 +156,51 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #netCode{width:84px;flex:none;font:inherit;font-size:16px;letter-spacing:.2em;text-align:center;color:var(--chalk);background:rgba(245,241,232,.08);border:1px solid var(--line);border-radius:12px;padding:9px 8px;-webkit-user-select:text;user-select:text}
 #netStatus{font-size:12.5px;color:var(--muted);line-height:1.4}#netStatus.ok{color:var(--sun);font-weight:700;font-size:14px}
 /* ===== touch controls v2: round, readable, thumb-sized and kept out of the middle of the view ===== */
-#actBtns{right:max(106px,calc(env(safe-area-inset-right) + 106px));bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:0;border:0;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;grid-template-columns:repeat(3,54px)!important;gap:8px}
-#actBtns button{width:54px;height:54px;border-radius:50%;padding:0;border:1.5px solid rgba(255,255,255,.55);background:rgba(14,30,38,.5);backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 3px 10px rgba(0,0,0,.35);touch-action:none;transition:transform .08s,background .12s}
-#actBtns button i{font-style:normal;font-size:21px;line-height:1}
-#actBtns button b{font:700 8.5px/1 var(--f-body);letter-spacing:.07em;text-transform:uppercase;opacity:.92}
-#actBtns button:active{transform:scale(.93);background:rgba(242,193,78,.88);color:var(--ink)}
-#actBtns button.on{background:var(--sun);color:var(--ink);border-color:#fff}
-#actBtns #bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:80px!important;height:80px!important;background:rgba(242,193,78,.9);color:var(--ink);border-color:#fff}
-#actBtns #bJump i{font-size:30px}
-#bAct{right:max(16px,env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom,0px));max-width:min(70vw,360px);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+/* ===== in-game HUD, same language as the main menu: dark slanted bars, yellow on the active one ===== */
+#topBtns{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top,0px));display:flex;gap:3px;flex-wrap:wrap;align-items:center;max-width:min(66vw,620px)}
+#topBtns button,#coHud .coRow button{position:relative;border:0;border-left:3px solid transparent;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;padding:7px 13px 7px 8px;font:700 9.5px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:background .12s,color .12s,transform .12s;touch-action:manipulation}
+#topBtns button.on,#coHud .coRow button.on{background:var(--sun);color:#111;border-left-color:#fff}
+#topBtns button:active,#coHud .coRow button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
+@media (hover:hover){#topBtns button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}}
+#topBtns button:focus-visible{outline:0;background:#fff;color:#0a0a0a;border-left-color:var(--sun)}
+/* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
+#actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:5px;align-items:flex-end}
+#actBtns>button{position:relative;width:48px;height:48px;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:inset 3px 0 0 transparent;transition:background .12s,color .12s,transform .08s}
+#actBtns>button i,#qMenu button i{font-style:normal;display:flex;line-height:0}
+#actBtns>button svg,#qMenu button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#actBtns>button b{font:700 7px/1 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
+#actBtns>button:active{background:#fff;color:#0a0a0a;transform:scale(.94)}
+#actBtns>button.on{background:var(--sun);color:#111;box-shadow:inset 3px 0 0 #fff}
+#actBtns>button.has::after{content:"";position:absolute;right:11px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
+#actBtns>button.has.open,#actBtns.open>#bQuick{background:var(--sun);color:#111}
+#bView b::before{content:"Camera · "}
+#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
+#actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
+#actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
+#actBtns>#bJump:active{background:#fff}
+#qMenu{position:absolute;left:48px;bottom:calc(100% + 8px);transform:translateX(-100%);display:flex;flex-direction:column-reverse;align-items:flex-end;gap:3px;visibility:hidden;pointer-events:none}
+#actBtns.open #qMenu{visibility:visible;pointer-events:auto}
+#qMenu button{display:flex;align-items:center;gap:10px;min-width:176px;padding:10px 24px 10px 12px;border:0;border-left:4px solid transparent;border-radius:0;background:rgba(0,0,0,.62);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);text-align:left;touch-action:none;opacity:0;transform:translateX(26px);transition:opacity .14s,transform .16s cubic-bezier(.2,.9,.3,1.1),background .12s,color .12s}
+#qMenu button b{font:700 10.5px/1 var(--f-disp);letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+#actBtns.open #qMenu button{opacity:1;transform:none}
+#actBtns.open #qMenu button:nth-child(2){transition-delay:.02s}#actBtns.open #qMenu button:nth-child(3){transition-delay:.04s}#actBtns.open #qMenu button:nth-child(4){transition-delay:.06s}#actBtns.open #qMenu button:nth-child(5){transition-delay:.08s}#actBtns.open #qMenu button:nth-child(6){transition-delay:.1s}
+#qMenu button.on{background:var(--sun);color:#111;border-left-color:#fff}
+#qMenu button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun)}
+@media (hover:hover){#qMenu button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun)}#actBtns>button:hover:not(.on):not(#bJump){background:rgba(255,255,255,.9);color:#0a0a0a}}
+#heliControls{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(100px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,86px);gap:3px}
+#heliControls button{min-height:44px;padding:0 12px;border:0;border-left:4px solid var(--sun);border-radius:0;background:rgba(0,0,0,.62);color:#e9e6dc;font:700 10.5px/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);touch-action:none}
+#heliControls button:active{background:#fff;color:#0a0a0a}
+/* the "do it" prompt: yellow slanted bar */
+#bAct{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom,0px));max-width:min(70vw,360px);border:0;border-left:5px solid #fff;border-radius:0;background:var(--sun);color:#111;padding:13px 26px 13px 14px;font:800 12.5px/1.15 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;text-align:left;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);touch-action:manipulation}
+#bAct:active{background:#fff}
+@media (max-width:640px){#bAct{bottom:calc(145px + env(safe-area-inset-bottom,0px));padding:11px 24px 11px 12px;font-size:11.5px}}
 body #gunFire{right:max(24px,calc(env(safe-area-inset-right) + 24px));bottom:calc(106px + env(safe-area-inset-bottom,0px));width:74px;height:74px;touch-action:none;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 body #gunDet{right:max(108px,calc(env(safe-area-inset-right) + 108px));bottom:calc(122px + env(safe-area-inset-bottom,0px));touch-action:none}
 body #gunBar{left:max(100px,calc(env(safe-area-inset-left) + 100px));transform:none;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 480px);min-width:200px;overflow-x:auto;scrollbar-width:none}body #gunBar button{padding:6px 8px;font-size:11px;line-height:1.1;white-space:nowrap}
 body #gunBar::-webkit-scrollbar{display:none}
 body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
 #joy{width:44vw;height:52vh}
-@media (max-height:430px){#actBtns button{width:46px;height:46px}#actBtns{grid-template-columns:repeat(3,46px)!important;right:max(92px,calc(env(safe-area-inset-right) + 92px))}#actBtns #bJump{width:68px!important;height:68px!important}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(166px + env(safe-area-inset-bottom,0px))}}
+@media (max-height:430px){#actBtns>button{width:44px;height:44px}#qMenu{left:44px}#qMenu button{padding:8px 22px 8px 11px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#topBtns button{padding:6px 14px 6px 9px}#heliControls{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
 </style>
 <div id="app">
   <canvas id="c"></canvas>
@@ -191,11 +210,11 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="homeDir">Home · 0 m</div>
     <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
-    <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">☔ Rain</button><button id="bSnow" title="Snowfall on/off">❄ Snow</button><button id="bFog" title="Fog on/off">🌫 Fog</button><button id="bMenu">Menu</button></div>
+    <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bRun"><i>🏃</i><b>Run</b></button><button id="bScoot"><i>🛴</i><b>Scooter</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M8 20v-5h8v5M8 17h8"/></svg></i><b>Garage</b></button><button id="bView"><i>🎥</i><b>3rd</b></button><button id="bHeli"><i>🚁</i><b>Heli</b></button><button id="bSpk"><i>🔊</i><b>Music</b></button><button id="bJump"><i>⤒</i><b>Jump</b></button></div>
-    <div id="heliControls" hidden><button id="bFlyUp">UP</button><button id="bFlyDown">DOWN</button><button id="bFlyLeft">◀ LEFT</button><button id="bFlyRight">RIGHT ▶</button></div>
+    <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button></div></div>
+    <div id="heliControls" hidden><button id="bFlyUp">Up</button><button id="bFlyDown">Down</button><button id="bFlyLeft">&#9664; Left</button><button id="bFlyRight">Right &#9654;</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
     <div id="spk" hidden>
@@ -7208,6 +7227,14 @@ function setupInput(){
   $('bHeli').onclick=()=>HELI.toggle();$('bView').onclick=()=>CAMV.next();
   $('bScoot').onclick=toggleScoot;$('bAct').onclick=doAction;
   $('bSpk').onclick=()=>{if((typeof SPK!=='undefined')&&SPK)SPK.panel()};
+  {const ab=$('actBtns'),qb=$('bQuick'),qm=$('qMenu');       // "More" opens the vehicle/camera/music list; closes on a pick, a tap elsewhere or Esc
+    const setQ=v=>{ab.classList.toggle('open',v);qb.setAttribute('aria-expanded',v?'true':'false')};
+    qb.onclick=()=>setQ(!ab.classList.contains('open'));
+    qm.addEventListener('click',()=>setQ(false));
+    document.addEventListener('pointerdown',e=>{if(ab.classList.contains('open')&&!e.target.closest('#actBtns'))setQ(false)},true);
+    addEventListener('keydown',e=>{if(e.code==='Escape'&&ab.classList.contains('open')){setQ(false);e.stopImmediatePropagation()}},true);
+    const dot=()=>qb.classList.toggle('has',!!qm.querySelector('button.on,#bBoat:not([hidden]),#bJet:not([hidden])'));
+    new MutationObserver(dot).observe(qm,{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden']});dot()}
   $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
   $('bMenu').onclick=()=>{started=false;COOP.push(true);$('menu').hidden=false;$('hud').hidden=true;$('bStart').textContent='Continue'};
@@ -8147,7 +8174,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     this.armed=!!on;this.used=true;if(on){this.spawn={x:player.x,z:player.z,yaw:player.yaw};this.hp=100;this.down=0;this.kills=0;this.deaths=0;toast('Armed','1–9 pick a weapon (8: neon katana · 9: tactical nuke) · F or the Fire button shoots or strikes')}
     else{this.c4=[];this.hits=[];this.exs=[];this.kb=null}
     this.sync();this.push()},
-  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent=this.armed?'Armed ✓':'Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;u.hudw.hidden=!this.armed;
+  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent='Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;u.hudw.hidden=!this.armed;
     [...u.bar.children].forEach((b,i)=>b.classList.toggle('on',i===this.w));u.wn.textContent=WEAPONS[this.w].n;if(!this.armed)u.vig.style.opacity=0},
   pick(i){if(i<0||i>=WEAPONS.length)return;this.w=i;this.sync();this.push()},
   build(){
@@ -8860,7 +8887,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   addVehicle(kind,x,z,yaw){const v=new LiteVehicle(kind,x,z,yaw);v.home=[x,z,yaw];scene.add(v.root);this.veh.push(v);
     INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot,fn:()=>EXT.enter(v)});return v},
   init(world){
-    const ab=$('actBtns');for(const [id,txt,type] of [['bBoat','🚤|Boat','boat'],['bJet','🌊|Jet ski','jetski']]){const b=document.createElement('button');b.id=id;{const [ic,tx]=txt.split('|');b.innerHTML='<i>'+ic+'</i><b>'+tx+'</b>'}b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
+    const ab=$('qMenu')||$('actBtns'),HI=p=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
+    for(const [id,ic,tx,type] of [['bBoat',HI('<path d="M3 15h18l-2.6 4H5.6zM12 4v10M12 5l6 8h-6"/>'),'Boat','boat'],['bJet',HI('<path d="M3 18c3 2 6 2 9 0s6-2 9 0M5 14h9l2.5-3.5H20M16.5 10.5 15.5 7h2.4"/>'),'Jet ski','jetski']]){const b=document.createElement('button');b.id=id;b.innerHTML='<i>'+ic+'</i><b>'+tx+'</b>';b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
     this.boatBtn=$('bBoat');this.jetBtn=$('bJet');
     // the vehicle garage (Garage button / U): a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — see garage.js
     addEventListener('keydown',e=>{if(!started||e.repeat||GAR.on)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyU')GAR.open()});
