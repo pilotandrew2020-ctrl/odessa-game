@@ -347,6 +347,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="pkdata.js"></script>
 <script src="parks.js"></script>
 <script src="rides.js"></script>
+<script src="lunapark.js"></script>
 <script src="shev.js"></script>
 <script src="gorky.js"></script>
 <script src="cinema.js"></script>
@@ -2280,7 +2281,7 @@ async function buildAllLandmarks(scene){
   const G=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2});GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});
   const steps=[['home',()=>buildHome(grp,G,P,Sg,GRX)],['stairs',()=>buildStairs(grp,P,GRX)],['station',()=>buildStation(grp,G,P,Sg,GRX)],['lighthouse',()=>buildLighthouse(grp,P)],
     ['opera',()=>buildOpera(grp,G,P,Sg,GRX)],['port',()=>buildPort(grp,G,P,Sg,GRX)],['parks',()=>buildParks(grp,G,P,Sg,GRX)],['b411',()=>build411(grp,G,P,Sg,GRX)],['lanz',()=>buildLanzheron(grp,G,P,Sg,GRX)],['azs',()=>buildNeighbourhood(grp,G,P,Sg,GRX)],
-    ['shops',()=>installShops(grp,G,P,Sg,GRX)],['clinic',()=>installClinics(grp,G,P,Sg,GRX)],['khru',()=>installKhru(grp,G,P,Sg,GRX)],['kstyle',()=>installKstyle(grp,G,P,Sg,GRX)],['bldg',()=>installBldg()],['soviet',()=>installSoviet(grp,G,P,Sg,GRX)],['shev',()=>installShevchenko(grp,G,P,Sg,GRX)],['gorky',()=>installGorky(grp,G,P,Sg,GRX)],['cinema',()=>installCinema(grp,G,P,Sg,GRX)],['modern',()=>installModern()],['flats',()=>installFlats()]];
+    ['shops',()=>installShops(grp,G,P,Sg,GRX)],['clinic',()=>installClinics(grp,G,P,Sg,GRX)],['lunapark',()=>installLunapark(grp,G,P,Sg,GRX)],['khru',()=>installKhru(grp,G,P,Sg,GRX)],['kstyle',()=>installKstyle(grp,G,P,Sg,GRX)],['bldg',()=>installBldg()],['soviet',()=>installSoviet(grp,G,P,Sg,GRX)],['shev',()=>installShevchenko(grp,G,P,Sg,GRX)],['gorky',()=>installGorky(grp,G,P,Sg,GRX)],['cinema',()=>installCinema(grp,G,P,Sg,GRX)],['modern',()=>installModern()],['flats',()=>installFlats()]];
   for(const [nm,f] of steps){
     try{f()}catch(e){console.error('landmark '+nm+' failed',e)}
     await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
@@ -6935,8 +6936,8 @@ function stepPlayer(dt){
   const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
   let mx=fx*iz+rx*ix,mz=fz*iz+rz*ix;
   const running=player.run||inp.k.ShiftLeft||inp.k.ShiftRight;
-  const vmax=(player.scoot?28:(running?5.4*1.25:1.8*1.25))*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
-  const acc=player.scoot?(im>0?3.4:2.2):(player.air?2:10);
+  const vmax=(player.scoot?28:(player.skate?(running?7.5:4.4):(running?5.4*1.25:1.8*1.25)))*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
+  const acc=player.scoot?(im>0?3.4:2.2):(player.skate?(im>0?1.5:.3):(player.air?2:10));      // skates: slow to build speed, long glide
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
   let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
   [nx,nz]=collide(nx,nz,PR,player.y);
@@ -6967,7 +6968,7 @@ function stepPlayer(dt){
   if(window.safetyNetCheck)window.safetyNetCheck(player);
   PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   const ph0=PLR.phase;
-  animPlayer(PLR,{spd:player.spd,mode:player.air?'air':(player.scoot?'scoot':'walk')},dt);
+  animPlayer(PLR,{spd:player.skate?player.spd*.4:player.spd,mode:player.air?'air':(player.scoot?'scoot':'walk')},dt);
   if(!player.air&&!player.scoot&&player.spd>.4){const a=Math.floor(ph0/Math.PI),b=Math.floor(PLR.phase/Math.PI);if(a!==b&&(typeof AUD!=='undefined')&&AUD)AUD.step(surfaceAt(player.x,player.z,player.y),player.spd)}
 }
 function surfaceAt(x,z,y){
