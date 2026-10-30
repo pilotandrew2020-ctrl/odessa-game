@@ -107,9 +107,17 @@ const CHP={
       else{const strap=new THREE.Mesh(new THREE.BoxGeometry(.04,.62,.012),M.strap);strap.position.set(0,.24,.128);strap.rotation.z=.72;spine.add(strap);
       const strapB=strap.clone();strapB.position.z=-.128;spine.add(strapB)}
       const bag=new THREE.Mesh(rbox(.2,.13,.07,.025),M.bag);bag.position.set(-.2,.04,.06);bag.rotation.y=-.5;spine.add(bag)}
-    else{const C=o.ac===undefined?0x23386b:o.ac,m=CHP.mat(C,.8),m2=CHP.mat(CHP.shade(C,.62),.85);
-      CHP.add(spine,rbox(.3,.36,.13,.05),m,0,.22,-.19);CHP.add(spine,rbox(.2,.15,.04,.02),m2,0,.14,-.272);CHP.add(spine,rbox(.2,.04,.1,.02),m2,0,.405,-.19);
-      for(const s of [-1,1])CHP.add(spine,new THREE.BoxGeometry(.036,.34,.012),m2,s*.1,.28,.127,0,0,s*.04)}}
+    else{const C=o.ac===undefined?0x23386b:o.ac;
+      // the real backpack model (assets/models/props/backpack.glb, own work): pk_main takes the accessory colour, pk_trim a darker shade; the straps and zips keep their own colours
+      const old=()=>{const m=CHP.mat(C,.8),m2=CHP.mat(CHP.shade(C,.62),.85);
+        CHP.add(spine,rbox(.3,.36,.13,.05),m,0,.22,-.19);CHP.add(spine,rbox(.2,.15,.04,.02),m2,0,.14,-.272);CHP.add(spine,rbox(.2,.04,.1,.02),m2,0,.405,-.19);
+        for(const s of [-1,1])CHP.add(spine,new THREE.BoxGeometry(.036,.34,.012),m2,s*.1,.28,.127,0,0,s*.04)};
+      if(typeof MDL==='undefined'){old();return}
+      const h=new THREE.Group();h.position.set(0,.27,-.178);spine.add(h);
+      MDL.make('backpack').then(g=>{const cols={pk_main:C,pk_trim:CHP.shade(C,.62)},done={};
+        g.scene.traverse(x=>{if(!x.isMesh)return;x.castShadow=true;const k=x.material.name;
+          if(!done[k]){const m=x.material.clone();if(cols[k]!==undefined){m.color.set(cols[k]).convertSRGBToLinear()}m.roughness=Math.max(m.roughness,k==='pk_metal'?.3:.85);done[k]=m}x.material=done[k]});
+        h.add(g.scene)}).catch(()=>{h.visible=false;old()})}}
 };
 
 // ---------------------------------------------------------------- the 3D window
