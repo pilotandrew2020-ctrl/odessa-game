@@ -297,7 +297,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
     u.rel.textContent=this.rl>0?'…':'Reload';u.cross.style.opacity=(W&&!W.melee&&this.phase==='play')?1:0;
     u.vig.style.opacity=this.out?(.35+.15*Math.sin(performance.now()*.006)):0},
   buildUI(){const css=document.createElement('style');css.textContent=`
-body.br-on #gunBar,body.br-on #gunBoard,body.br-on #gunHud,body.br-on #bGun,body.br-on #bHS,body.br-on #bCar,body.br-on #qMenu #bScoot,body.br-on #qMenu #bHeli{display:none!important}
+body.br-on #gunBar,body.br-on #gunBoard,body.br-on #gunHud,body.br-on #bGun,body.br-on #bHS,body.br-on #bCar,body.br-on #bScoot,body.br-on #bHeli{display:none!important}
 body.br-on #bAct{bottom:calc(214px + env(safe-area-inset-bottom,0px))!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;max-width:74vw;z-index:9}
 #brHud{position:fixed;inset:0;pointer-events:none;z-index:7;font-family:var(--f-disp,system-ui)}#brHud[hidden]{display:none}
 #brHud button{pointer-events:auto}

@@ -27,27 +27,56 @@ function clBench(P,x,y,z,ry){propBench2(P,x,y,z,ry,CL_BENCHES);LOW_OBB.push(x,z,
   INTERACT.push({x,z,r:1.7,label:'Sit on the bench',cond:()=>!player.sit&&!player.scoot&&!(typeof DRIVE!=='undefined'&&DRIVE.on),fn:()=>{player.sit={x:x+Math.sin(ry)*.04,z:z+Math.cos(ry)*.04,y:y+.03,yaw:ry};player.vx=player.vz=0;cam.yaw=ry;cam.pitch=Math.max(cam.pitch,.25)}})}
 function clLamp(P,x,y,z,ry){propGlobeLamp(P,x,y,z,ry);EXTRA_LAMPS.push([x,y+3.7,z,2.4])}
 
-// ---------- the pond with plastic fish ----------
+// ---------- the fishing pool: a small round above-ground pool (3 m x 1.15 m) with a steel-arch dome against leaves, plastic fish drifting round,
+// and a man by the bucket who tosses the fish in (the ones you catch go back in the bucket and he throws them in again) ----------
 const CL_FISHGEO={};
 function clFishMesh(col){const k=col;let g=CL_FISHGEO[k];if(!g){const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r==null?.35:r});const m=M(col,.28),e=M(0xffffff,.4),b=M(0x111111,.5),metal=new THREE.MeshStandardMaterial({color:0xb8bcc2,roughness:.3,metalness:.9});
     g=CL_FISHGEO[k]={body:new THREE.SphereGeometry(.2,12,9).scale(1.7,.95,.62),tail:new THREE.ConeGeometry(.12,.26,8).rotateZ(Math.PI/2).scale(1,1,.35),fin:new THREE.ConeGeometry(.09,.16,6).scale(1,1,.25),eye:new THREE.SphereGeometry(.035,6,5),ring:new THREE.TorusGeometry(.045,.011,6,12),m,e,b,metal}}
   const f=new THREE.Group();const body=new THREE.Mesh(g.body,g.m);f.add(body);const t=new THREE.Mesh(g.tail,g.m);t.position.set(-.38,0,0);f.add(t);
   const fin=new THREE.Mesh(g.fin,g.m);fin.position.set(-.02,.19,0);f.add(fin);
   for(const s of [-1,1]){const e=new THREE.Mesh(g.eye,g.e);e.position.set(.26,.06,s*.1);f.add(e);const p=new THREE.Mesh(g.eye,g.b);p.position.set(.285,.06,s*.115);p.scale.setScalar(.55);f.add(p)}
-  const ring=new THREE.Mesh(g.ring,g.metal);ring.position.set(.2,.19,0);ring.rotation.y=Math.PI/2;f.add(ring);return f}
-function clPond(grp,P,F,y0,u,v,pw,pd){
-  const ry=F.yaw,c=F.P(u,v),wat=new THREE.Mesh(new THREE.BoxGeometry(pw-.5,.1,pd-.5),new THREE.MeshStandardMaterial({color:0x1d6a94,roughness:.55,metalness:0,envMapIntensity:.25,transparent:true,opacity:.92}));
-  wat.position.set(c[0],y0+.12,c[1]);wat.rotation.y=ry;grp.add(wat);
-  const rim=sRGB('#d8d4ca');for(const [a,b,w,d] of [[0,-pd/2,pw+.8,.6],[0,pd/2,pw+.8,.6],[-pw/2,0,.6,pd],[pw/2,0,.6,pd]]){const q=F.P(u+a,v+b);P.box(q[0],y0+.22,q[1],w,.44,d,ry,rim,1)}
-  addOBB(c[0],c[1],pw+.8,pd+.8,F.a);
-  const fish=[];const pad=1.2;
-  for(let i=0;i<13;i++){const gold=i===12,ci=gold?6:i%6,[col,val]=CL_FISH[ci],m=clFishMesh(col);if(gold)m.scale.setScalar(1.25);grp.add(m);
-    const o={m,val,col,cu:(Math.random()-.5)*(pw-pad*3),cv:(Math.random()-.5)*(pd-pad*3),rx:3+Math.random()*(pw/2-5),rz:2+Math.random()*(pd/2-3.5),w:(.18+Math.random()*.22)*(Math.random()<.5?-1:1),ph:Math.random()*6.28,hid:0,lift:0};fish.push(o)}
-  const pond={u,v,pw,pd,F,c,y:y0,fish,ry};CL_PONDS.push(pond);for(const f of fish)clFishPlace(pond,f,0,y0+.2);return pond}
-function clFishPos(p,f,t){const a=t*f.w+f.ph,u=f.cu*.35+Math.cos(a)*Math.min(f.rx,p.pw/2-1.6),v=f.cv*.35+Math.sin(a*1.3)*Math.min(f.rz,p.pd/2-1.6);
-  const du=-Math.sin(a)*f.w*Math.min(f.rx,p.pw/2-1.6),dv=Math.cos(a*1.3)*1.3*f.w*Math.min(f.rz,p.pd/2-1.6);return [u,v,Math.atan2(dv,du)]}
-function clFishPlace(p,f,t,y){const F=p.F,q=clFishPos(p,f,t),w=F.P(p.u+q[0],p.v+q[1]),c=Math.cos(q[2]),s=Math.sin(q[2]),wx=F.t[0]*c+F.n[0]*s,wz=F.t[1]*c+F.n[1]*s;
-  f.m.position.set(w[0],y+Math.sin(t*2+f.ph)*.012,w[1]);f.m.rotation.y=Math.atan2(-wz,wx);f.m.rotation.z=Math.sin(t*3+f.ph)*.05;f._x=w[0];f._z=w[1]}
+  const ring=new THREE.Mesh(g.ring,g.metal);ring.position.set(.2,.19,0);ring.rotation.y=Math.PI/2;f.add(ring);f.scale.setScalar(.34);return f}   // a toy fish is ~23 cm
+let CL_POOLTEX=null;
+function clPoolTex(){if(CL_POOLTEX)return CL_POOLTEX;const cv=document.createElement('canvas');cv.width=512;cv.height=64;const x=cv.getContext('2d');const r=mkRand(5);
+  x.fillStyle='#2f86bd';x.fillRect(0,0,512,64);for(let i=0;i<64;i++)for(let j=0;j<8;j++){const k=r();x.fillStyle=k<.3?'#4aa3d6':k<.6?'#2a78ab':k<.85?'#3b93c9':'#8fcbe8';x.fillRect(i*8+1,j*8+1,6,6)}
+  CL_POOLTEX=new THREE.CanvasTexture(cv);CL_POOLTEX.wrapS=THREE.RepeatWrapping;CL_POOLTEX.repeat.set(2,1);CL_POOLTEX.encoding=THREE.sRGBEncoding;return CL_POOLTEX}
+function clMan(grp,x,z,yaw,seed){
+  const R=mkRand(seed||7),pick=a=>a[Math.floor(R()*a.length)],H=pick(CH_HAIR);
+  const o={skin:pick(CH_SKIN.slice(0,6)),iris:pick(CH_EYE)[1],hs:'short',hair:H[1],hair2:H[2],brow:H[3],ts:'tee',shirt:0x5d7a58,bs:'jeans',jeans:0x2a3350,cuff:0x2e3550,ss:'sneaker',shoe:0x2a2a2e,sole:0xeeeeee,gl:'none',ht:'cap',ac:0x2f6fb0,bk:'none',nk:'none',cn:false,bd:'stubble'};
+  const P=makePlayer(o);animPlayer(P,{spd:0,mode:'walk'},0);P.can.visible=false;P.scooter.visible=false;P.speaker.visible=false;
+  const gy=groundH(x,z);P.root.position.set(x,gy,z);P.root.rotation.y=yaw;P.root.traverse(m=>{if(m.isMesh)m.castShadow=false});mergeAvatar(P.root);P.root.userData.dyn=true;grp.add(P.root);
+  return {P,x,z,gy,yaw,ph:0,t:0,cd:2,f:null,look:0,age:R()*9,hx:0,hy:1,hz:0}}
+function clPond(grp,P,F,y0,u,v,R,manAt){
+  R=R||1.55;const c=F.P(u,v),H=1.15,wy=y0+H-.16,g=new THREE.Group();g.position.set(c[0],y0,c[1]);g.userData.dyn=true;grp.add(g);
+  const M=(col,r,m,extra)=>{const q=new THREE.MeshStandardMaterial(Object.assign({color:col,roughness:r,metalness:m||0},extra||{}));q.color.convertSRGBToLinear();return q};
+  const wall=new THREE.Mesh(new THREE.CylinderGeometry(R,R,H,48,1,true),M('#2b2f34',.5,.4));wall.position.y=H/2;g.add(wall);
+  const liner=new THREE.Mesh(new THREE.CylinderGeometry(R-.03,R-.03,H-.05,48,1,true),new THREE.MeshStandardMaterial({map:clPoolTex(),roughness:.5,side:THREE.BackSide}));liner.position.y=H/2+.02;g.add(liner);
+  const fl=new THREE.Mesh(new THREE.CircleGeometry(R-.03,40),M('#2a7fb0',.6));fl.rotation.x=-Math.PI/2;fl.position.y=.06;g.add(fl);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(R,.04,6,48),M('#cfd2d6',.3,.8));rim.rotation.x=Math.PI/2;rim.position.y=H;g.add(rim);
+  const water=new THREE.Mesh(new THREE.CircleGeometry(R-.05,40),M('#3a96c8',.18,0,{transparent:true,opacity:.78,envMapIntensity:.5}));water.rotation.x=-Math.PI/2;water.position.y=wy-y0;g.add(water);
+  // dome: four steel arches, two hoops, a cap ring and a translucent cover that lifts away while you fish
+  const Rd=R+.05,Hd=1.1,steel=M('#c9ccd1',.3,.85);
+  for(let k=0;k<4;k++){const phi=k/4*Math.PI,pts=[];for(let i=0;i<=20;i++){const b=i/20*Math.PI;pts.push(new THREE.Vector3(Math.cos(b)*Rd*Math.cos(phi),H+Math.sin(b)*Hd,Math.cos(b)*Rd*Math.sin(phi)))}
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.02,6),steel))}
+  for(const b of [.55,1.05]){const h=new THREE.Mesh(new THREE.TorusGeometry(Rd*Math.cos(b),.013,5,40),steel);h.rotation.x=Math.PI/2;h.position.y=H+Math.sin(b)*Hd;g.add(h)}
+  const cap=new THREE.Mesh(new THREE.TorusGeometry(.09,.025,6,12),steel);cap.rotation.x=Math.PI/2;cap.position.y=H+Hd;g.add(cap);
+  for(let k=0;k<8;k++){const cl=new THREE.Mesh(new THREE.BoxGeometry(.1,.1,.1),steel);cl.position.set(Math.cos(k/8*Math.PI*2)*Rd,H+.02,Math.sin(k/8*Math.PI*2)*Rd);g.add(cl)}
+  const domeMat=new THREE.MeshStandardMaterial({color:0xcfe9f6,roughness:.15,transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false});
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(Rd,32,12,0,Math.PI*2,0,Math.PI/2),domeMat);dome.scale.y=Hd/Rd;dome.position.y=H;g.add(dome);
+  STATIC_CIR.push(c[0],c[1],R+.15);
+  // splash rings
+  const rings=[];for(let i=0;i<4;i++){const r=new THREE.Mesh(new THREE.RingGeometry(.06,.1,24),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.6,depthWrite:false,side:THREE.DoubleSide}));r.rotation.x=-Math.PI/2;r.position.y=wy-y0+.01;r.visible=false;g.add(r);rings.push({m:r,t:0})}
+  // fish: 7 swimming, 3 still in the bucket for the man to toss in
+  const fish=[],NF=10;
+  for(let i=0;i<NF;i++){const gold=i===NF-1,ci=gold?6:i%6,[col,val]=CL_FISH[ci],m=clFishMesh(col);if(gold)m.scale.multiplyScalar(1.2);g.add(m);
+    const f={m,val,col,st:i<7?'swim':'bucket',th:Math.random()*6.28,r0:.35+Math.random()*(R-.6),w:(.35+Math.random()*.45)*(Math.random()<.78?1:-1),ph:Math.random()*6.28,rr:0,bt:1+i*.4,_x:c[0],_z:c[1],t:0};fish.push(f);if(f.st==='bucket')m.visible=false}
+  // the man and his bucket
+  const mp=manAt||F.P(u+R+1.7,v+R*.4),yaw=Math.atan2(c[0]-mp[0],c[1]-mp[1]),man=clMan(grp,mp[0],mp[1],yaw,Math.round(u*3+v+11));
+  const rx=Math.cos(yaw),rz=-Math.sin(yaw),bk=[mp[0]-rx*.75,mp[1]-rz*.75];P.cyl(bk[0],groundH(bk[0],bk[1]),bk[1],.22,.17,.36,14,sRGB('#2f6fb0'),1);
+  for(let i=0;i<4;i++)P.box(bk[0]+(i-1.5)*.07,groundH(bk[0],bk[1])+.4,bk[1]+(i%2)*.05,.16,.06,.07,yaw+i,sRGB(CL_FISH[i][0]),1);
+  const pond={u,v,pw:R*2,pd:R*2,R,H,F,c,y:y0,wy,fy:wy-y0+.02,fish,ry:F.yaw,rings,domeMat,man,g};CL_PONDS.push(pond);
+  for(const f of fish)if(f.st==='swim'){f.rr=f.r0;f.m.position.set(Math.cos(f.th)*f.rr,pond.fy,Math.sin(f.th)*f.rr);f._x=c[0]+Math.cos(f.th)*f.rr;f._z=c[1]+Math.sin(f.th)*f.rr}
+  return pond}
 function clLine(mesh,a,b){const d=new THREE.Vector3().subVectors(b,a),L=d.length();mesh.position.copy(a).addScaledVector(d,.5);mesh.scale.set(1,L,1);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize())}
 function clFishStart(pond){if(CLF.on)return;if(!WALLET.pay(30,'magnet fishing'))return;
   CLF.on=true;CLF.t=30;CLF.got=0;CLF.sum=0;CLF.pond=pond;CLF.hint=0;
@@ -55,25 +84,48 @@ function clFishStart(pond){if(CLF.on)return;if(!WALLET.pay(30,'magnet fishing'))
     const line=new THREE.Mesh(new THREE.CylinderGeometry(.0025,.0025,1,3),new THREE.MeshBasicMaterial({color:0xe8e8e8}));
     const mag=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.04,12),new THREE.MeshStandardMaterial({color:0xc21f1f,roughness:.4,metalness:.5}));const cap=new THREE.Mesh(new THREE.CylinderGeometry(.052,.052,.012,12),new THREE.MeshStandardMaterial({color:0xcfd3d8,roughness:.25,metalness:.9}));cap.position.y=-.026;mag.add(body,cap);
     g.add(rod,line,mag);CLF.rod=g;CLF.rodM=rod;CLF.line=line;CLF.lure=mag;scene.add(g)}
-  CLF.rod.visible=true;toast('Magnet fishing','look at the pond: the magnet hangs 2.5 m in front of you · 30 s · gold fish ₴400')}
-function clFishEnd(){CLF.on=false;if(CLF.rod)CLF.rod.visible=false;const p=CLF.pond;if(p)for(const f of p.fish){f.lift=0;f.m.rotation.z=0;f.m.rotation.x=0}
+  CLF.rod.visible=true;toast('Magnet fishing','the cover is lifted · the magnet hangs in front of you — aim it at a fish · 30 s · gold fish ₴400')}
+function clFishEnd(){CLF.on=false;if(CLF.rod)CLF.rod.visible=false;const p=CLF.pond;if(p)for(const f of p.fish)if(f.st==='hook'){f.st='bucket';f.bt=1;f.m.visible=false}
   toast(CLF.got?'Caught '+CLF.got+' fish':'Nothing this time',CLF.got?'₴'+CLF.sum+' earned · wallet '+WALLET.fmt():'the plastic fish are quick — try again')}
 let clT=0;
-function clTick(dt){if(!CL_PONDS.length)return;clT+=dt;
-  for(const p of CL_PONDS){const dx=player.x-p.c[0],dz=player.z-p.c[1];if(dx*dx+dz*dz>180*180&&!(CLF.on&&CLF.pond===p))continue;
-    const F=p.F,y=p.y+.2;
-    for(const f of p.fish){if(f.hid>0){f.hid-=dt;f.m.visible=f.hid<=0;if(f.hid>0)continue;f.lift=0}
-      if(f.lift>0){f.lift+=dt;continue}
-      clFishPlace(p,f,clT,y)}}
+function clTick(dt){if(!CL_PONDS.length)return;clT+=dt;dt=Math.min(dt,.1);
+  for(const p of CL_PONDS){const dx=player.x-p.c[0],dz=player.z-p.c[1],d2=dx*dx+dz*dz,fishing=CLF.on&&CLF.pond===p;if(d2>160*160&&!fishing)continue;
+    p.domeMat.opacity+=((fishing?.025:.2)-p.domeMat.opacity)*Math.min(1,dt*3);
+    for(const r of p.rings){if(r.t<=0)continue;r.t-=dt;const k=Math.min(1,1-r.t/.7);r.m.visible=r.t>0;r.m.scale.setScalar(.5+k*4);r.m.material.opacity=.6*(1-k)}
+    const man=p.man,m=man&&man.P;
+    // the man: waits, picks a fish from the bucket, swings and tosses it into the pool
+    if(man&&d2<70*70){man.age+=dt;const R=m.arms[1],L=m.arms[0],gy=man.gy,fx=Math.sin(man.yaw),fz=Math.cos(man.yaw),rx=Math.cos(man.yaw),rz=-Math.sin(man.yaw);
+      let sh=-.45+Math.sin(man.age*1.8)*.04,el=-.8,hold=false;
+      if(man.ph===0){man.cd-=dt;if(man.cd<=0){const f=p.fish.find(f=>f.st==='bucket'&&f.bt<=0);if(f){man.ph=1;man.t=0;man.f=f;f.st='held';f.m.visible=true}else man.cd=.6}}
+      if(man.ph===1){man.t+=dt;const t=man.t;hold=t<.6;
+        if(t<.35){const u=t/.35;sh=-.45+1.15*u*u*(3-2*u);el=-.8+.6*u}
+        else if(t<.6){const u=(t-.35)/.25;sh=.7-2.2*u*u*(3-2*u);el=-.2+.1*u}
+        else{const u=Math.min(1,(t-.6)/.5);sh=-1.5+1.05*u;el=-.1-.7*u}
+        if(t>=.6&&man.f&&man.f.st==='held'){const f=man.f,a=Math.random()*6.28,rr=.3+Math.random()*(p.R-.7);
+          f.st='fly';f.ft=0;f.dur=.8+Math.random()*.2;f.hx=man.hx;f.hy=man.hy;f.hz=man.hz;f.lx=Math.cos(a)*rr;f.lz=Math.sin(a)*rr;f.hh=1.1+Math.random()*.5;man.f=null}
+        if(t>=1.15){man.ph=0;man.cd=1.6+Math.random()*2.6}}
+      R.sh.rotation.x=sh;R.sh.rotation.z=-.08;R.el.rotation.x=el;L.sh.rotation.x=-.4;L.sh.rotation.z=.06;L.el.rotation.x=-.8;
+      const hl=.62,hyw=gy+1.38-Math.cos(sh)*hl,fw=-Math.sin(sh)*hl+.1;man.hx=man.x+fx*fw+rx*.22-p.c[0];man.hy=hyw-p.y;man.hz=man.z+fz*fw+rz*.22-p.c[1];
+      let ry=0;if(d2<12*12){ry=Math.atan2(dx,dz)-man.yaw;while(ry>Math.PI)ry-=6.283;while(ry<-Math.PI)ry+=6.283;ry=Math.max(-.9,Math.min(.9,ry))}
+      man.look+=(ry-man.look)*Math.min(1,dt*4);m.head.rotation.y=man.look;m.head.rotation.x=.05;m.spine.rotation.x=.05+Math.sin(man.age*1.3)*.012;
+      if(hold&&man.f){man.f.m.position.set(man.hx,man.hy,man.hz);man.f.m.rotation.set(0,man.yaw+1.57,0)}}
+    for(const f of p.fish){
+      if(f.st==='swim'){f.th+=f.w*dt;f.rr+=(f.r0+Math.sin(clT*.6+f.ph)*.1-f.rr)*Math.min(1,dt*2);const lx=Math.cos(f.th)*f.rr,lz=Math.sin(f.th)*f.rr,sg=f.w>0?1:-1;
+        f.m.position.set(lx,p.fy+Math.sin(clT*2.1+f.ph)*.012,lz);f.m.rotation.y=Math.atan2(-Math.cos(f.th)*sg,-Math.sin(f.th)*sg)+Math.sin(clT*3.2+f.ph)*.25;f.m.rotation.z=Math.sin(clT*2.7+f.ph)*.08;f.m.rotation.x=0;f._x=p.c[0]+lx;f._z=p.c[1]+lz}
+      else if(f.st==='fly'){f.ft+=dt/f.dur;const k=Math.min(1,f.ft);f.m.position.set(f.hx+(f.lx-f.hx)*k,f.hy+(p.fy-f.hy)*k+4*f.hh*k*(1-k),f.hz+(f.lz-f.hz)*k);f.m.rotation.z+=dt*10;f.m.rotation.y+=dt*3;
+        if(k>=1){const r=p.rings.find(r=>r.t<=0)||p.rings[0];r.t=.7;r.m.position.set(f.lx,p.fy-.02,f.lz);r.m.visible=true;f.st='swim';f.th=Math.atan2(f.lz,f.lx);f.r0=Math.max(.3,Math.min(p.R-.35,Math.hypot(f.lx,f.lz)));f.rr=f.r0;f.w=(.35+Math.random()*.45)*(Math.random()<.78?1:-1);f.m.rotation.z=0}}
+      else if(f.st==='hook'){f.t-=dt;f.m.position.set(CLF.lure.position.x-p.c[0],CLF.lure.position.y-p.y-.2,CLF.lure.position.z-p.c[1]);f.m.rotation.set(0,clT*2,Math.PI/2+Math.sin(clT*7)*.15);
+        if(f.t<=0){f.st='bucket';f.bt=2+Math.random()*3;f.m.visible=false;f.m.rotation.set(0,0,0)}}
+      else if(f.st==='bucket'){f.bt-=dt}}}
   if(CLF.on){const p=CLF.pond,t0=CLF.t;CLF.t-=dt;if(Math.floor(CLF.t/10)!==Math.floor(t0/10)&&CLF.t>0)toast('Magnet fishing',Math.ceil(CLF.t)+' s left · ₴'+CLF.sum+' so far');
     const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=-Math.sin(player.yaw),gy=groundH(player.x,player.z);
     const hand=new THREE.Vector3(player.x+fx*.35+rx*.22,gy+1.2,player.z+fz*.35+rz*.22),tip=new THREE.Vector3(player.x+fx*1.25+rx*.22,gy+1.9,player.z+fz*1.25+rz*.22);
-    const lx=player.x+fx*2.5,lz=player.z+fz*2.5,inP=(()=>{const du=(lx-p.c[0])*p.F.t[0]+(lz-p.c[1])*p.F.t[1],dv=(lx-p.c[0])*p.F.n[0]+(lz-p.c[1])*p.F.n[1];return Math.abs(du)<p.pw/2-.3&&Math.abs(dv)<p.pd/2-.3})();
-    const ly=inP?p.y+.17:Math.max(p.y+.2,gy+.6);CLF.lure.position.set(lx,ly,lz);
+    const lx=player.x+fx*2.5,lz=player.z+fz*2.5,dC=Math.hypot(lx-p.c[0],lz-p.c[1]),inP=dC<p.R-.12;
+    const ly=inP?p.wy+.07:(dC<p.R+.5?p.y+p.H+.22:Math.max(gy+.6,p.y+.3));CLF.lure.position.set(lx,ly,lz);
     clLine(CLF.rodM,hand,tip);clLine(CLF.line,tip,new THREE.Vector3(lx,ly+.05,lz));
-    if(inP)for(const f of p.fish){if(f.hid>0||f.lift>0)continue;const d=Math.hypot(f._x-lx,f._z-lz);
-      if(d<.6){f.lift=.001;f.hid=7;f.m.visible=false;CLF.got++;CLF.sum+=f.val;S.cash=WALLET.get()+f.val;saveS();if(window.AUD)AUD.beep();toast(f.val>=400?'GOLD FISH! +₴'+f.val:'+₴'+f.val,'plastic fish on the magnet · wallet '+WALLET.fmt());break}}
-    if(CLF.t<=0||Math.hypot(player.x-p.c[0],player.z-p.c[1])>p.pw/2+30)clFishEnd()}}
+    if(inP)for(const f of p.fish){if(f.st!=='swim')continue;const d=Math.hypot(f._x-lx,f._z-lz);
+      if(d<.32){f.st='hook';f.t=.9;CLF.got++;CLF.sum+=f.val;S.cash=WALLET.get()+f.val;saveS();if(window.AUD)AUD.beep();toast(f.val>=400?'GOLD FISH! +₴'+f.val:'+₴'+f.val,'plastic fish on the magnet · wallet '+WALLET.fmt());break}}
+    if(CLF.t<=0||Math.hypot(player.x-p.c[0],player.z-p.c[1])>p.R+30)clFishEnd()}}
 
 // ---------- the boom barrier into the residential complex ----------
 const CL_BARRIERS=[];
@@ -130,16 +182,15 @@ function clBuildSite(grp,P,GR,spec,at){
   for(const u of [-Lw/2+6,Lw/2-6,-14,14])clLamp(P,F.P(u,front-5)[0],y0,F.P(u,front-5)[1],ry);
   for(const u of [-26,26]){const q=F.P(u,front-2);clBench(P,q[0],y0,q[1],ry+Math.PI)}
   {const q=F.P(Lw/2-9,fv+8);clAmbulance(P,q[0],y0+.05,q[1],ry+Math.PI/2)}
-  if(spec.pond){const pw=spec.pond.w,pd=spec.pond.d,pv=front+pd/2+2;pond=clPond(grp,P,F,y0,0,pv,pw,pd);
-    // benches and lamps on the three free sides, the kiosk on the clinic side
-    for(let u=-pw/2+4;u<=pw/2-3;u+=Math.max(8,(pw-8)/4)){const q=F.P(u,pv+pd/2+2.2);clBench(P,q[0],y0,q[1],ry)}
-    for(const s of [-1,1]){const q=F.P(s*(pw/2+3),pv);clBench(P,q[0],y0,q[1],ry+s*Math.PI/2*-1)}
-    for(const u of [-pw/2-1,pw/2+1])for(const dv of [-pd/2-1.5,pd/2+1.5]){const q=F.P(u,pv+dv);clLamp(P,q[0],y0,q[1],ry)}
-    const k=F.P(-pw/2+5,pv-pd/2-2.6);P.box(k[0],y0+1.2,k[1],2.6,2.4,1.8,ry,sRGB('#f2c418'),1);P.box(k[0],y0+2.55,k[1],3.1,.2,2.3,ry,sRGB('#2f6fb0'),1);addOBB(k[0],k[1],2.6,1.8,F.a);
-    const ks=F.P(-pw/2+5,pv-pd/2-1.65);lotSign(grp,F,['MAGNET','FISHING ₴30'],{w:512,h:256,size:88,color:'#111',bg:'#f2c418',weight:'900'},-pw/2+5,y0+2.2,pv-pd/2-1.65,2.3,1.15,.6);
-    INTERACT.push({x:ks[0]+F.n[0]*1.2,z:ks[1]+F.n[1]*1.2,r:2.8,label:'Magnet fishing · ₴30 · 30 s',cond:()=>!CLF.on,fn:()=>clFishStart(pond)});
-    INTERACT.push({x:pond.c[0],z:pond.c[1],r:pw/2+6,label:'Stop fishing',cond:()=>CLF.on&&CLF.pond===pond&&CLF.t<28,fn:clFishEnd});
-    for(const u of [-pw/2-6,pw/2+6]){const q=F.P(u,pv),f=F.P(u,pv);P.box(f[0],y0+.2,f[1],3,.4,pd-2,ry,sRGB('#4a8a3a'),1)}   // flower beds
+  if(spec.pond){const R=1.55,pv=front+8;pond=clPond(grp,P,F,y0,0,pv,R);
+    // two benches, lamps, flower beds; the kiosk on the clinic side sells the fishing
+    for(const s of [-1,1]){const q=F.P(s*(R+3.4),pv-2.6);clBench(P,q[0],y0,q[1],ry+s*Math.PI/2*-1)}
+    for(const u of [-7.5,7.5])for(const dv of [-4.5,4.5]){const q=F.P(u,pv+dv);clLamp(P,q[0],y0,q[1],ry)}
+    const ku=-5.4,kv=pv-3.8,k=F.P(ku,kv);P.box(k[0],y0+1.2,k[1],2.6,2.4,1.8,ry,sRGB('#f2c418'),1);P.box(k[0],y0+2.55,k[1],3.1,.2,2.3,ry,sRGB('#2f6fb0'),1);addOBB(k[0],k[1],2.6,1.8,F.a);
+    const ks=F.P(ku,kv+.95);lotSign(grp,F,['MAGNET','FISHING ₴30'],{w:512,h:256,size:88,color:'#111',bg:'#f2c418',weight:'900'},ku,y0+2.2,kv+.95,2.3,1.15,.6);
+    INTERACT.push({x:ks[0]+F.n[0]*1.4,z:ks[1]+F.n[1]*1.4,r:2.8,label:'Magnet fishing · ₴30 · 30 s',cond:()=>!CLF.on,fn:()=>clFishStart(pond)});
+    INTERACT.push({x:pond.c[0],z:pond.c[1],r:R+6,label:'Stop fishing',cond:()=>CLF.on&&CLF.pond===pond&&CLF.t<28,fn:clFishEnd});
+    for(const u of [-10,10]){const f=F.P(u,pv);P.box(f[0],y0+.2,f[1],2.4,.4,7,ry,sRGB('#4a8a3a'),1)}   // flower beds
   }
   // side driveway with a boom barrier into the residential complex on the right of the clinic
   if(spec.complex){const du=W/2+8,bt=windowRowsTex({bg:'#d9c9a8',rows:8,cols:6,win:'#2b3a46',lit:.32,mx:.18,my:.2,band:'#b49a74'});
