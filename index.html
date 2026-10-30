@@ -396,6 +396,8 @@ const MODES={list:[],want:null,en:false,
 <script src="clinic.js"></script>
 <script src="khru.js"></script>
 <script src="kstyle.js"></script>
+<script src="fill_data.js"></script>
+<script src="fill.js"></script>
 <script src="ven.js"></script>
 <script src="bldg.js"></script>
 <script src="facade.js"></script>
@@ -6751,6 +6753,7 @@ function* buildChunkGen(id){
   yield;
   const solid=(x,z,m)=>{for(const c of cols)if(colPolyHit(c,x,z,m))return true;return insideOBB(obb,x,z,m)};
   if(typeof STREET!=='undefined')try{STREET.scatter(id,P,gr.lampPts,{solid,nearRoad,blockedStatic,cirs,lobb,cols})}catch(e){if(!STREET.err){STREET.err=e;console.warn('STREET.scatter',e)}}
+  if(typeof FILL!=='undefined')try{yield* FILL.scatterGen(id,P,{solid,nearRoad,blockedStatic,cirs,lobb,cols,benches})}catch(e){if(!FILL.err){FILL.err=e;console.warn('FILL.scatter',e)}}      // cemeteries and parks (fill.js), sliced
   // parked cars along yard sides
   const r=rng(id*31+5);const parked=[];
   for(const L of lots){for(let q=-2;q<=2;q++){if(r()<.45)continue;const x=L.x+L.tx*q*2.8,z=L.z+L.tz*q*2.8;
