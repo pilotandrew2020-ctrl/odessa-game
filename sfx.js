@@ -25,7 +25,7 @@ const UIS={t:0,hov:null,
       if(b.closest('#creator')){const i=b.id;if(i==='crGo')this.go();else if(i==='crBack')this.back();else if(i==='crRand'||i==='crReset')this.swap();else this.pick()}
       else if(b.closest('#menu'))this.chime();
       else if(b.closest('#bagPanel')||b.id==='bagX')this.bag();
-      else if(b.closest('#actBtns,#topBtns,#gunBar,#coTools')&&b.id!=='bJump'&&b.id!=='bCar'&&b.id!=='bView')this.pick()},true);
+      else if(b.closest('#actBtns,#topBtns,#gunBar,#toolTiles,#coHud')&&b.id!=='bJump'&&b.id!=='bCar'&&b.id!=='bView')this.pick()},true);
     document.addEventListener('mouseover',e=>{const b=e.target&&e.target.closest?e.target.closest('#menu button,#creator button,#garage button'):null;if(b!==this.hov){this.hov=b;if(b&&!b.disabled)this.tick()}});
     document.addEventListener('mouseout',e=>{if(!e.relatedTarget)this.hov=null})}};
 UIS.init();

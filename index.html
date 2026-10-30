@@ -173,8 +173,7 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #actBtns>button.on{background:var(--sun);color:#111;box-shadow:inset 3px 0 0 #fff}
 #actBtns>button.has::after{content:"";position:absolute;right:11px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
 #actBtns>button.has.open,#actBtns.open>#bQuick{background:var(--sun);color:#111}
-#bView b::before{content:"Camera · "}
-#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:10px}
+#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
 #actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
 #actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
 #actBtns>#bJump:active{background:#fff}
@@ -208,7 +207,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #topBtns button,#coHud .coRow button,#actBtns>button,#qMenu button,#heliControls button{clip-path:none;border:1.5px solid var(--hud-rim);border-radius:11px;background:var(--hud-bg);color:#f3f1ea;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.26);transform:none;text-shadow:0 1px 0 rgba(0,0,0,.55)}
 #topBtns button,#coHud .coRow button{display:inline-flex;align-items:center;padding:8px 12px 8px 10px;font:800 10px/1 var(--f-disp);letter-spacing:.07em}
-:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag,#bSpk,#bCar)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
+:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag,#bChat)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
 #topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:8px 9px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:15px;height:15px}   /* weather = icon-only tiles (the buttons keep their title text) */
 #coHud{top:calc(190px + env(safe-area-inset-top,0px))}
@@ -239,40 +238,69 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bAct{clip-path:none;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:var(--hud-on);color:#1b1204;padding:12px 20px 12px 14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
 #bAct:active{background:#fff;transform:translateY(2px)}
 @media (max-height:430px){#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
-/* ===== thumb ring: Jump sits in the corner and the other action tiles fan out around it on two staggered arcs;
-   Music + Garage live in a row above Chat (top left). Every id/handler is unchanged ===== */
-#bSpk{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5v5h3.5l4.5 4v-13l-4.5 4z'/%3E%3Cpath d='M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11'/%3E%3C/svg%3E")}
-#bCar{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2'/%3E%3Ccircle cx='7' cy='16.8' r='2.2'/%3E%3Ccircle cx='17' cy='16.8' r='2.2'/%3E%3C/svg%3E")}
-#actBtns{--bs:52px;--js:80px;--r1:92px;--r2:146px;--jr:max(16px,env(safe-area-inset-right,0px));--jb:calc(16px + env(safe-area-inset-bottom,0px));
-  --cx:calc(var(--jr) + var(--js)/2);--cy:calc(var(--jb) + var(--js)/2);
+/* ===== compact square tiles =====
+   One 40 px tile style for every small button: Music + Garage (left, under the top row), Map + Chat + Armed (right, under the minimap),
+   Run / Scooter / Heli (bottom row) and Emote / Camera (upper row, nearest to Jump). Modes (Battle Royale, Hide & Seek, ...) live in the main menu. */
+:root{--tile:40px}
+#bChat{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5.5h16v11H10l-5 4v-4H4z'/%3E%3C/svg%3E")}
+:is(#toolTiles button,#coHud .coRow button,#actBtns>button:not(#bJump)){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:var(--tile);height:var(--tile);min-width:0;padding:0;border-radius:11px;font:800 6.5px/1 var(--f-disp);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;text-shadow:0 1px 0 rgba(0,0,0,.55)}
+:is(#toolTiles button,#actBtns>button) i{font-style:normal;display:flex;line-height:0}
+:is(#toolTiles button,#actBtns>button) svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:is(#toolTiles button,#actBtns>button) b{font:inherit;letter-spacing:inherit;opacity:.92}
+#coHud .coRow button::before{margin:0;width:18px;height:18px}
+#toolTiles button{clip-path:none;border:1.5px solid var(--hud-rim);background:var(--hud-bg);color:#f3f1ea;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.26);backdrop-filter:none;-webkit-backdrop-filter:none}
+#toolTiles button.on{background:var(--hud-on);color:#1b1204;border-color:rgba(255,255,255,.85);text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #9a5e0c,0 0 16px rgba(255,190,60,.5)}
+#toolTiles button:active{background:linear-gradient(180deg,#fff,#d9dde8);color:#0a0a0a;border-color:#fff;transform:translateY(2px) scale(.97)}
+@media (hover:hover){#toolTiles button:hover:not(.on){background:linear-gradient(180deg,rgba(70,90,134,.82),rgba(26,36,64,.88));color:#fff;border-color:rgba(255,255,255,.6)}}
+#toolTiles{position:absolute;left:max(16px,env(safe-area-inset-left));top:calc(118px + env(safe-area-inset-top,0px));display:flex;gap:4px}
+/* top left: place name, then cash + distance home as plain text (it used to be an oval under the minimap), then the small weather/menu pills */
+#homeDir{position:static;width:auto;margin-top:3px;padding:0;background:none;border-radius:0;text-align:left;white-space:nowrap;font-size:12px;font-weight:700;letter-spacing:.02em;text-shadow:0 1px 8px rgba(0,0,0,.65),0 0 2px rgba(0,0,0,.7)}
+#topBtns{top:calc(80px + env(safe-area-inset-top,0px))}
+/* top right: the minimap circle (tap = big map) and the tiles under it */
+#mini{pointer-events:auto;cursor:pointer}
+#coHud{left:auto;right:max(14px,env(safe-area-inset-right));top:calc(154px + env(safe-area-inset-top,0px));align-items:flex-end;max-width:none}
+#coHud .coRow{gap:4px;justify-content:flex-end}
+/* modes only show in the HUD while one is running */
+#bBR:not(.on){display:none}#bBR.on{font-size:0}#bBR.on::after{content:"Leave match";font-size:10px}
+#topBtns #bHS{display:none}body.hs-on #topBtns #bHS{display:inline-flex}
+/* thumb cluster: Jump in the corner, a bottom row of tiles to its left and a short upper row on top of the first one's right end (a small staircase) */
+#actBtns{--J:72px;--g:4px;--jr:max(14px,env(safe-area-inset-right,0px));--jb:calc(14px + env(safe-area-inset-bottom,0px));
   position:absolute;left:auto;top:auto;right:0;bottom:0;width:0;height:0;max-width:none;display:block;gap:0;pointer-events:none}
-#actBtns>button{--rr:var(--r1);--lx:1;--uy:0;position:absolute;pointer-events:auto;width:var(--bs);height:var(--bs);
-  right:calc(var(--cx) + var(--rr)*var(--lx) - var(--bs)/2);bottom:calc(var(--cy) + var(--rr)*var(--uy) - var(--bs)/2)}
-#actBtns>#bJump{position:fixed;width:var(--js);height:var(--js);right:var(--jr);bottom:var(--jb)}
-#actBtns>#bRun{--rr:var(--r1);--lx:1;--uy:0}
-#actBtns>#bEmote{--rr:var(--r1);--lx:.7071;--uy:.7071}
-#actBtns>#bView{--rr:var(--r1);--lx:0;--uy:1}
-#actBtns>#bScoot{--rr:var(--r2);--lx:.9239;--uy:.3827}
-#actBtns>#bHeli{--rr:var(--r2);--lx:.3827;--uy:.9239}
-#actBtns>#bBoat{--rr:calc(var(--r1) + var(--bs) + 14px);--lx:1;--uy:0}
-#actBtns>#bJet{--rr:calc(var(--r1) + 2*var(--bs) + 22px);--lx:1;--uy:0}
-body.heliOn #actBtns>button:not(#bHeli):not(#bJump){display:none}body.heliOn #actBtns>#bHeli{--rr:var(--r1);--lx:1;--uy:0}   /* flying: only Jump and the Heli (exit) tile stay, next to the Up/Down/Left/Right pad */
-#bAct{bottom:calc(228px + env(safe-area-inset-bottom,0px))}
-@media (max-height:520px){#bAct{right:calc(max(16px,env(safe-area-inset-right,0px)) + 310px);bottom:calc(76px + env(safe-area-inset-bottom,0px))}}   /* short screens: the prompt sits left of the ring, above the speedometer, instead of under the minimap */
-@media (max-height:430px){#actBtns{--bs:44px;--js:68px;--r1:78px;--r2:140px}}
+#actBtns>button{--col:0;--row:0;position:absolute;pointer-events:auto;
+  right:calc(var(--jr) + var(--J) + var(--g) + var(--col)*(var(--tile) + var(--g)));bottom:calc(var(--jb) + var(--row)*(var(--tile) + var(--g)))}
+#actBtns>#bJump{position:fixed;width:var(--J);height:var(--J);right:var(--jr);bottom:var(--jb)}
+#actBtns>#bRun{--col:0;--row:0}#actBtns>#bScoot{--col:1;--row:0}#actBtns>#bHeli{--col:2;--row:0}#actBtns>#bBoat{--col:3;--row:0}#actBtns>#bJet{--col:4;--row:0}
+#actBtns>#bEmote{--col:0;--row:1}#actBtns>#bView{--col:1;--row:1}
+body.heliOn #actBtns>button:not(#bHeli):not(#bJump){display:none}   /* flying: only Jump and the Heli (exit) tile stay, next to the Up/Down/Left/Right pad */
+body.heliOn #actBtns>#bHeli{--col:0;--row:0}
+#bAct{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+@media (max-height:430px){:root{--tile:36px}:is(#toolTiles button,#coHud .coRow button,#actBtns>button:not(#bJump)){font-size:5.8px}#actBtns{--J:64px}#bAct{bottom:calc(98px + env(safe-area-inset-bottom,0px))}}
+/* main menu: the Modes row */
+#mModes{display:flex;flex-direction:column;gap:6px;min-width:0;margin:8px 0 10px}
+#mModes h3{margin:0;font:700 11px/1 var(--f-disp);letter-spacing:.22em;text-transform:uppercase;color:var(--sun)}
+#mmRow{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;touch-action:pan-x}
+#mmRow::-webkit-scrollbar{display:none}
+#mmRow button.mm{flex:none;display:grid;grid-template-columns:26px 1fr;column-gap:10px;row-gap:3px;align-items:center;width:178px;padding:10px 18px 10px 12px;border:0;border-left:5px solid transparent;border-radius:0;background:rgba(0,0,0,.58);color:#e9e6dc;text-align:left;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);transition:background .12s,color .12s,transform .12s}
+#mmRow button.mm i{display:flex;line-height:0;grid-row:1/3}
+#mmRow button.mm svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#mmRow button.mm b{font:700 13px/1.1 var(--f-disp);letter-spacing:.07em;text-transform:uppercase}
+#mmRow button.mm small{font:500 11px/1.3 var(--f-body);color:var(--muted);letter-spacing:0;text-transform:none;white-space:normal}
+#mmRow button.mm:hover:not(:disabled),#mmRow button.mm:focus-visible{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateY(-2px)}
+#mmRow button.mm:hover:not(:disabled) small,#mmRow button.mm:focus-visible small{color:#333}
+#mmRow button.mm:disabled{opacity:.55;cursor:default}
 </style>
 <div id="app">
   <canvas id="c"></canvas>
   <div id="hud" hidden>
-    <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span></div>
+    <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span><div id="homeDir">Home · 0 m</div></div>
     <canvas id="mini" width="264" height="264"></canvas>
-    <div id="homeDir">Home · 0 m</div>
-    <div id="coHud" hidden><div class="coRow" id="coTools"><button id="bSpk">Music</button><button id="bCar"><b>Garage</b></button></div><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
+    <div id="coHud"><div class="coRow"><button id="bMap">Map</button><button id="bFriends" hidden>👥 0</button><button id="bChat">Chat</button></div><div id="coList" hidden></div></div>
+    <div id="toolTiles"><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
-    <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
+    <div id="topBtns"><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button></div>
+    <div id="actBtns"><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scoot</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button></div>
     <div id="heliControls" hidden><button id="bFlyUp">Up</button><button id="bFlyDown">Down</button><button id="bFlyLeft">&#9664; Left</button><button id="bFlyRight">Right &#9654;</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
@@ -301,7 +329,7 @@ body.heliOn #actBtns>button:not(#bHeli):not(#bJump){display:none}body.heliOn #ac
       <div id="mBrand"><div id="mLogo"><span>My</span><b>Odesa</b></div><div id="mTag">Open world · real map · co-op</div></div>
       <nav id="mNav">
         <button id="bStart" disabled>Loading the map…</button>
-        <button id="bBRm" disabled>Battle Royale</button>
+        <div id="mModes"><h3>Modes</h3><div id="mmRow"></div></div>
         <button id="bChar" disabled>Character</button>
         <button data-p="pSet">Settings</button>
         <button data-p="pOnl">Online co-op</button>
@@ -335,6 +363,22 @@ body.heliOn #actBtns>button:not(#bHeli):not(#bJump){display:none}body.heliOn #ac
   <div id="fade"></div>
 </div>
 
+<script>
+// ===== game modes: every mode is ONE MODES.add({...}) call (see the block after BR.init); the main menu "Modes" row builds its tiles from this list.
+// {id, name, sub, icon (svg inner markup, 24x24, stroked), play()} - play() runs ~1 s after the game has started from that tile.
+const MODES={list:[],want:null,en:false,
+  add(m){if(!this.get(m.id))this.list.push(m);this.render()},
+  get(id){return this.list.find(m=>m.id===id)},
+  render(){const row=document.getElementById('mmRow');if(!row)return;row.textContent='';
+    for(const m of this.list){const b=document.createElement('button');b.className='mm';b.dataset.mode=m.id;b.disabled=!this.en;
+      const i=document.createElement('i');i.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+(m.icon||'')+'</svg>';
+      const n=document.createElement('b');n.textContent=m.name;const d=document.createElement('small');d.textContent=m.sub||'';
+      b.append(i,n,d);b.onclick=()=>this.pick(m.id);row.appendChild(b)}
+    const box=document.getElementById('mModes');if(box)box.hidden=!this.list.length},
+  ready(){this.en=true;this.render()},                       // the map has loaded: tiles become pressable
+  pick(id){if(!this.en)return;this.want=id;document.getElementById('bStart').click()},   // goes through the character screen the first time
+  onStart(){const m=this.get(this.want);this.want=null;if(m)setTimeout(()=>{try{m.play()}catch(e){console.error('mode '+m.id,e)}},900)}};
+</script>
 <script src="lib/three.min.js"></script>
 <script src="lib/GLTFLoader.js"></script>
 <script src="lib/EffectComposer.js"></script>
@@ -7391,9 +7435,9 @@ function setupInput(){
   $('bHeli').onclick=()=>HELI.toggle();$('bView').onclick=()=>CAMV.next();
   $('bScoot').onclick=toggleScoot;$('bAct').onclick=doAction;
   $('bSpk').onclick=()=>{if((typeof SPK!=='undefined')&&SPK)SPK.panel()};
-  setInterval(()=>{const t=$('topBtns'),c=$('coHud');if(t&&c&&!c.hidden){const b=t.getBoundingClientRect().bottom;if(b>40)c.style.top=Math.round(b+8)+'px'}},500);   // Music/Garage/Chat column hangs under however many rows the top buttons wrap to
+  setInterval(()=>{const t=$('topBtns'),c=$('toolTiles');if(t&&c){const b=t.getBoundingClientRect().bottom;if(b>40)c.style.top=Math.round(b+6)+'px'}},500);   // Music/Garage tiles hang under however many rows the top buttons wrap to
   $('bEmote').onclick=()=>{if(typeof POSE!=='undefined')POSE.wheel()};
-  $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
+  $('bMap').onclick=openMap;$('mini').onclick=openMap;$('mapClose').onclick=closeMap;
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
   $('bMenu').onclick=()=>{started=false;COOP.push(true);$('menu').hidden=false;$('hud').hidden=true;$('bStart').textContent='Continue'};
   $('mapMe').onclick=()=>mapFly(player.x,player.z,.35);
@@ -7462,6 +7506,9 @@ async function boot(){
   try{GUN.build()}catch(e){console.error('guns build',e)}
   try{BR.init()}catch(e){console.error('br init',e)}
   try{HS.build()}catch(e){console.error('hs build',e)}
+  // ---- the game modes of the main menu "Modes" row: a friend wants another mode = one more MODES.add here ----
+  try{MODES.add({id:'br',name:'Battle Royale',sub:'Drop, loot, build, win',icon:'<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>',play:()=>BR.start()});
+    MODES.add({id:'hs',name:'Hide & Seek',sub:'Friends hide, you seek',icon:'<path d="M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',play:()=>{$('hsUI').hidden=false;HS.ui()}})}catch(e){console.error('modes',e)}
   $('bStart').textContent='Loading the map…';await new Promise(r=>requestAnimationFrame(()=>r()));
   try{
     const fontsReady=document.fonts?Promise.resolve(document.fonts.ready).catch(()=>{}):Promise.resolve();
@@ -7495,7 +7542,7 @@ async function boot(){
   window.addEventListener('resize',onResize);
   setupInput();
   if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
-  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';
+  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;MODES.ready();$('bStart').textContent='Play';
   requestAnimationFrame(loop);
   COOP.init();
 }
@@ -7559,8 +7606,7 @@ if(TOUCH)$('keysTxt').textContent='Left half of the screen — walk, right half 
 $('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');return}started=true;$('menu').hidden=true;$('hud').hidden=false;
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
   if(!boot.greeted){boot.greeted=true;cam.yaw=player.yaw;toast('Chykalenka St, 59k','formerly Williams St · Tairove')}
-  COOP.onStart();if(typeof BR!=='undefined'&&BR.want){BR.want=false;setTimeout(()=>BR.start(),900)}};
-$('bBRm').onclick=()=>{if(typeof BR==='undefined')return;BR.want=true;$('bStart').click()};      // main menu: Battle Royale (goes through the character screen the first time)
+  COOP.onStart();MODES.onStart()};
 
 // ===================== CO-OP: friends in the same Odesa (artifact `room` capability) =====================
 // Each open copy of the game shares its player state as room presence (~15 Hz). Others are drawn as
@@ -7889,7 +7935,7 @@ const HS={on:false,rd:0,role:'',sk:'',zone:null,t0:0,hT:60,sT:300,fd:[],myFound:
   bar(){const b=$('hsBar');if(!b)return;if(!this.on){b.style.display='none';return}const ph=this.phase(),l=Math.max(0,Math.ceil(this.left()));const m=Math.floor(l/60),s=String(l%60).padStart(2,'0');
     const hs=this.hiders();const tot=hs.length+(this.role==='H'?1:0);const fo=this.role==='S'?this.fd.length:(this.myFound?1:0);
     b.style.display='block';b.textContent=(this.role==='S'?'🔍 SEEKER':'🙈 HIDER')+' · '+(ph==='hide'?'hiding ':'seeking ')+m+':'+s+(this.role==='S'?' · found '+fo+'/'+tot:(this.myFound?' · you are found':''))},
-  ui(){const p=$('hsUI');if(!p)return;const on=this.on;$('hsIdle').style.display=on?'none':'block';$('hsRun').style.display=on?'block':'none';
+  ui(){const p=$('hsUI');if(!p)return;const on=this.on;document.body.classList.toggle('hs-on',!!on);$('hsIdle').style.display=on?'none':'block';$('hsRun').style.display=on?'block':'none';
     $('hsSw').style.display=(on&&this.role==='H')?'flex':'none';$('hsRole').textContent=on?(this.role==='S'?'You are the seeker. Get close to a hider and press Catch.':'You are hiding. Choose your colour and stand still near matching walls or trees.'):''},
   build(){
     const css=document.createElement('style');css.textContent='#hsBar{position:absolute;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--glass2);border:1px solid var(--line);border-radius:999px;padding:7px 16px;font-weight:700;font-size:14px;pointer-events:none;display:none;white-space:nowrap}'+
@@ -8391,7 +8437,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ui.det=mk('button','gunDet');ui.det.onclick=()=>this.detonate();ui.det.hidden=true;
     ui.hudw=mk('div','gunHud');ui.wn=document.createElement('div');ui.hp=document.createElement('i');const hb=document.createElement('div');hb.className='hpb';hb.appendChild(ui.hp);ui.kd=document.createElement('div');ui.hudw.append(ui.wn,hb,ui.kd);
     ui.board=mk('div','gunBoard');ui.down=mk('div','gunDown');ui.down.textContent='You were tagged — respawning…';ui.down.hidden=true;
-    ui.btn=document.createElement('button');ui.btn.id='bGun';ui.btn.textContent='Armed';ui.btn.onclick=()=>this.setArmed(!this.armed);$('topBtns').appendChild(ui.btn);
+    ui.btn=document.createElement('button');ui.btn.id='bGun';ui.btn.textContent='Armed';ui.btn.onclick=()=>this.setArmed(!this.armed);$('coHud').firstElementChild.appendChild(ui.btn);
     this.ui=ui;this.sync();
     addEventListener('keydown',e=>{if(!started||!this.armed)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
       if(e.code==='KeyF'){if(!e.repeat){this.held=true;this.fire()}}else if(/^Digit[1-9]$/.test(e.code))this.pick(+e.code.slice(5)-1);else if(e.code==='KeyE')this.detonate()});
