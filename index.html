@@ -4525,6 +4525,7 @@ function updatePeds(dt,player,maxN){
     const prev={ri:p.ri,dir:p.dir,s:p.s,x:p.x,z:p.z};
     let s=segInfo(p.ri,p.dir);const dpx=player.x-p.x,dpz=player.z-p.z,dp=Math.hypot(dpx,dpz);
     let spd=p.speed;if(p.wait>0){p.wait-=dt;spd=0}else if(Math.random()<dt*.01)p.wait=2+Math.random()*4;if(dp<1.1)spd=0;
+    if(spd>0&&typeof TL!=='undefined'&&TL.hold(s.end,s.tx,s.tz,s.L-p.s))spd=0;   // wait at the kerb for the green man
     p.moving=spd>0;p.s+=spd*dt;p.phase+=spd*dt*3.3;
     let guard=0;while(p.s>s.L&&guard++<8){p.s-=s.L;const [nr,nd]=nextSeg(p.ri,p.dir,false);p.ri=nr;p.dir=nd;s=segInfo(p.ri,p.dir)}
     const off=pedOffset(p.ri,p.side,p.jit);const nx=-s.tz,nz=s.tx;
