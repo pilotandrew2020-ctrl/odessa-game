@@ -94,10 +94,11 @@ const FL_LAYOUT={
     K.light(-3.0,2.3,1.2,S.light,.8,6);K.light(0,2.3,1.2,S.light,.8,6);K.light(3.0,2.3,1.2,0xffffff,.9,6);
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
     K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
-    K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.3,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
-    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.75,2.52,0);flProp(E,'vintage_wooden_drawer_01',-1.95,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)
-    K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
-    K.light(-2.3,2.2,4.5,S.light,1.4,10);
+    K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.6,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
+    // the doorway from the hall (x -.55) opens into the north-east corner: sideboard and armchair used to wall the landing in, so the whole living room was unreachable
+    K.table(-2.7,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-4.05,6.72,PI);flProp(E,'vintage_wooden_drawer_01',-3.4,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)
+    K.plant(-4.55,5.6,1.1);K.chandelier(-2.7,4.5,2.1,.34);
+    K.light(-2.6,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
     K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);flCurtains(E,K,hw-.12,5.2,-PI/2,1.2,1.3,1.2,['#9aa8c8','#efe9dc','#6f8a64']);flCurtains(E,K,2.8,D-.12,PI,1.2,1.1,1.75,['#9aa8c8','#efe9dc','#6f8a64']);
     K.light(2.6,2.2,4.6,S.light,1.1,9)},

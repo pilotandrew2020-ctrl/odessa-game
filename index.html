@@ -6785,8 +6785,9 @@ function stepPlayer(dt){
   // Depenetration: collide() gives up and returns the current point when it cannot find a free
   // direction, which leaves a character that ended up inside geometry frozen for ever. If we are
   // already embedded, search outward once per frame at head height until we are clear.
-  if(!player.air&&insideAny(player.x,player.z,.33,player.y)){
-    const esc=collide(player.x,player.z,.33,player.y+1.4);
+  const PR=PORTAL.cur?.22:(player.scoot?.45:.33);     // indoors the body is a 44 cm cylinder: with the street radius (.33) a 90 cm door left a 24 cm channel and most flats could not be walked through
+  if(!player.air&&insideAny(player.x,player.z,PR<.3?PR:.33,player.y)){
+    const esc=collide(player.x,player.z,PR<.3?PR:.33,player.y+1.4);
     if(esc[0]!==player.x||esc[1]!==player.z){player.x=esc[0];player.z=esc[1];player.vx=player.vz=0}
   }
   let ix=0,iz=0;
@@ -6799,8 +6800,8 @@ function stepPlayer(dt){
   const acc=player.scoot?(im>0?3.4:2.2):(player.air?2:10);
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
   let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
-  [nx,nz]=collide(nx,nz,player.scoot?.45:.33,player.y);
-  if(!PORTAL.cur&&insideAny(nx,nz,player.scoot?.45:.33,player.y)&&!insideAny(player.x,player.z,player.scoot?.45:.33,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}   // collide() gives up deep inside a solid: do not let that walk you through walls
+  [nx,nz]=collide(nx,nz,PR,player.y);
+  if(!PORTAL.cur&&insideAny(nx,nz,PR,player.y)&&!insideAny(player.x,player.z,PR,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}   // collide() gives up deep inside a solid: do not let that walk you through walls
   if(PORTAL.cur&&!specialGround(nx,nz,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}
   const sp=specialGround(nx,nz,player.y);
   const gN=sp?sp.h:(PORTAL.cur?player.y:groundH(nx,nz)+sidewalkLift(nx,nz));
