@@ -30,10 +30,22 @@ const EM={
     HY(P,-.07);HX(P,-sw*.1);R3(P.hips,0,0,-sw*.12);R3(P.spine,.08,0,sw*.16);R3(P.head,0,0,-sw*.1);
     P.arms.forEach(A=>{R3(A.sh,.35,0,sw*.95);R3(A.el,-.08)});
     P.legs.forEach(g=>{R3(g.hp,-.22,0,g.s*.1+sw*.08);R3(g.kn,.5);R3(g.ft,0)})}},
-  griddy:{n:'Hitting the Griddy',loop:1,f(P,a,t){const sw=Math.sin(a);
-    HY(P,-.15);R3(P.spine,.14,sw*.1,0);R3(P.hips,0,-sw*.12,0);R3(P.head,-.08+Math.abs(Math.cos(a))*.06,sw*.1,0);
+  // Get Griddy: knees wide and bent, the hips rock, both hands come up beside the eyes and shake
+  griddy:{n:'Get Griddy',loop:1,f(P,a,t){const sw=Math.sin(a),sh=Math.sin(a*4);
+    HY(P,-.17-Math.abs(sw)*.03);R3(P.spine,.16,sw*.12,sw*.05);R3(P.hips,0,-sw*.16,0);R3(P.head,-.1+Math.abs(Math.cos(a))*.05,sw*.12,0);
     P.legs.forEach(g=>{const q=a+(g.s>0?0:PI),lift=Math.max(0,Math.sin(q));R3(g.hp,-.55-lift*.5,g.s*sw*.3,g.s*(.42-lift*.1));R3(g.kn,.95+lift*.45);R3(g.ft,.1)});
-    P.arms.forEach((A,i)=>{const ph=a*2+(i?PI*.5:0);R3(A.sh,-.15,0,A.s*1.15);R3(A.el,-1.65+Math.sin(ph)*.4)});grip(P,0,'flat');grip(P,1,'flat')}},
+    P.arms.forEach((A,i)=>{R3(A.sh,-1.15+sh*.05,0,A.s*.55);R3(A.el,-2.35+sh*.12*(i?-1:1))});grip(P,0,'flat');grip(P,1,'flat')}},
+  // Gangnam Style: four beats of galloping on an invisible horse with a lasso, then four beats of crossed arms and bent knees
+  gangnam:{n:'Gangnam Style',loop:1,f(P,a,t){const b8=(t*2.133)%8,gal=b8<4,s2=Math.sin(a*2),G=P.arms[1],S=P.arms[0];
+    if(gal){const hop=Math.abs(s2);
+      HY(P,-.2+hop*.07);R3(P.spine,.12,0,Math.sin(a*2+1)*.05);R3(P.hips,0,0,0);R3(P.head,-.05,Math.sin(a)*.08,0);
+      P.legs.forEach(g=>{const q=a*2+(g.s>0?0:PI),lf=Math.max(0,Math.sin(q));R3(g.hp,-.5-lf*.55,0,g.s*(.34-lf*.12));R3(g.kn,.95+lf*.55);R3(g.ft,.1)});
+      R3(G.sh,-2.7,0,G.s*(.15+Math.cos(a*4)*.5));R3(G.el,-.35+Math.sin(a*4)*.15);grip(P,1,'bar');          // the lasso above the head
+      hdReach(S,V1.set(.02,.17+s2*.04,.34));grip(P,0,'bar')}                                            // the reins
+    else{const bob=Math.sin(a*2);
+      HY(P,-.22+Math.abs(bob)*.05);R3(P.spine,.1+bob*.05,0,0);R3(P.hips,bob*.06,0,0);R3(P.head,-.06,0,0);
+      P.legs.forEach(g=>{R3(g.hp,-.55,0,g.s*.28);R3(g.kn,1.05+Math.abs(bob)*.12);R3(g.ft,.1)});
+      hdReach(G,V1.set(-.1,.23+bob*.015,.27));hdReach(S,V2.set(.11,.25+bob*.015,.3));grip(P,0,'flat');grip(P,1,'flat')}}},
   creep:{n:'Right Foot Creep',loop:1,f(P,a,t){const bt=t*2.133,b4=bt%4,st=Math.sin(a*.5);
     HY(P,-.11-.025*Math.sin(a*2));R3(P.spine,.2,st*.12,0);R3(P.hips,0,-st*.18,0);R3(P.head,.14,-st*.1,0);
     const rf=P.legs.find(g=>g.s<0),lf=P.legs.find(g=>g.s>0),tap=b4<1?Math.sin(PI*b4):0,cr=(b4>=1?Math.max(0,Math.sin(PI*((b4-1)/1.5))):0);
@@ -67,7 +79,8 @@ const CLS={
   rifle  :{r0:[.18,.15,.25],r1:[.10,.375,.36],f:[-.02,-.04,0],fd:.34},
   shotgun:{r0:[.18,.15,.25],r1:[.10,.38,.36],f:[-.02,-.04,0],fd:.30},
   sniper :{r0:[.18,.15,.25],r1:[.10,.385,.35],f:[-.02,-.045,0],fd:.40},
-  tube   :{legacy:1},melee:{legacy:1}};
+  dual   :{r0:[.19,.17,.30],r1:[.17,.38,.40],f:[0,0,0],fd:0},
+  tube   :{legacy:1},melee:{legacy:1},pick:{legacy:1},bat:{legacy:1},hammer:{legacy:1}};
 const hold0=[.22,-.02,.1];                                       // the hip, where the draw starts
 
 function elQuat(A,out){out.setFromEuler(E1.set(A.sh.rotation.x,A.sh.rotation.y,A.sh.rotation.z,'XYZ'));Q2.setFromAxisAngle(VX,A.el.rotation.x);return out.multiply(Q2)}
@@ -75,14 +88,51 @@ function elQuat(A,out){out.setFromEuler(E1.set(A.sh.rotation.x,A.sh.rotation.y,A
 function aimModel(A,gw,d,roll){elQuat(A,Q1).invert();V3.copy(d).applyQuaternion(Q1);gw.quaternion.setFromUnitVectors(VZ,V3);
   if(roll){Q2.setFromAxisAngle(VZ,roll);gw.quaternion.multiply(Q2)}}
 
+// a swung tool: the pickaxe (one hand, overhead, the swing alternates across the body and back out), the bat (flat sweep, alternating),
+// the hammer (both hands, straight overhead smash). gs.pk counts the swing down 1 → 0, gs.dir flips with every new strike
+function swing(P,gp,gs,dt,dr){
+  const G=P.arms[1],S=P.arms[0],cls=gp.cls,sl=gp.slash||0;
+  if(sl>(gs.psl||0)+.3){gs.dir=-(gs.dir||-1);gs.pk=1}
+  gs.psl=sl;
+  const dur=cls==='hammer'?.66:cls==='bat'?.42:.5;if(gs.pk>0)gs.pk=Math.max(0,gs.pk-dt/dur);
+  const u=gs.pk>0?1-gs.pk:-1,d=gs.dir||1,sw=u>=0;
+  // keyframes: ready → wind-up (to .32) → strike (to .58) → back to ready
+  const K=(r,a,b)=>!sw?r:u<.32?lerp(r,a,ease(u/.32)):u<.58?lerp(a,b,ease((u-.32)/.26)):lerp(b,r,ease((u-.58)/.42));
+  free(P);
+  if(cls==='hammer'){
+    G.sh.rotation.x=lerp(-.3,K(-1.15,-2.9,-.85),dr);G.sh.rotation.z=G.s*.12;G.el.rotation.x=lerp(-.4,K(-.9,-1.3,-.15),dr);
+    S.sh.rotation.x=lerp(-.3,K(-1.1,-2.8,-.8),dr);S.sh.rotation.z=S.s*.12;S.el.rotation.x=lerp(-.4,K(-.9,-1.3,-.15),dr);
+    P.spine.rotation.x+=K(.05,-.18,.38)*dr;HY(P,K(0,.02,-.1)*dr);grip(P,0,'bar');grip(P,1,'bar');return}
+  if(cls==='bat'){
+    const z0=d>0?1.35:-.5,z1=d>0?-.55:1.35;
+    G.sh.rotation.x=lerp(-.3,K(-1.2,-1.55,-1.35),dr);G.sh.rotation.z=G.s*lerp(0,K(.2,z0,z1),dr);G.el.rotation.x=lerp(-.4,K(-.7,-.9,-.25),dr);
+    P.spine.rotation.y+=K(0,-d*.55,d*.55)*dr;S.sh.rotation.x=lerp(-.2,-.35,dr);S.sh.rotation.z=S.s*.3*dr;S.el.rotation.x=-.5;grip(P,1,'bar');return}
+  // pickaxe
+  const zA=d>0?.95:-.3,zB=d>0?-.5:.95;
+  G.sh.rotation.x=lerp(-.3,K(-.95,-2.75,-.75),dr);G.sh.rotation.z=G.s*lerp(0,K(.15,zA,zB),dr);G.el.rotation.x=lerp(-.4,K(-1,-1.45,-.25),dr);
+  P.spine.rotation.y+=K(0,-d*.5,d*.5)*dr;P.spine.rotation.x+=K(0,-.1,.28)*dr;
+  S.sh.rotation.x=lerp(-.2,K(-.35,-.7,-.5),dr);S.sh.rotation.z=S.s*lerp(0,K(.3,.5,.45),dr);S.el.rotation.x=-.6;grip(P,1,'bar')}
+
+// the second pistol of a pair lives in the support hand (built from WEAPONS[w].bm2 the first time it is needed)
+function pair(P,gp){
+  const W=WEAPONS[gp.w];if(!W||!W.bm2||typeof BRM==='undefined')return null;
+  if(P._gw2&&P._gw2.userData.src!==gp.w){P._gw2.parent&&P._gw2.parent.remove(P._gw2);P._gw2=null}
+  if(!P._gw2){const g=new THREE.Group();BRM[W.bm2](g);const o=new THREE.Group();o.add(g);o.position.set(0,-.2,.04);o.userData.src=gp.w;o.userData.base=1;P.arms[0].el.add(o);P._gw2=o}   // aimModel replaces o's rotation, so the model sits un-rotated inside
+  return P._gw2}
+function unpair(P){if(P._gw2){P._gw2.parent&&P._gw2.parent.remove(P._gw2);P._gw2=null}}
+
 function weapon(P,st,dt){
-  const gp=P._gp,gs=P._gs||(P._gs={t:0,rl:-1,rec:0,aim:0,w:-1,sw:0}),C=CLS[gp.cls||'pistol']||CLS.pistol,G=P.arms[1],S=P.arms[0],gw=P._gw;
+  let gp=P._gp;const gs=P._gs||(P._gs={t:0,rl:-1,rec:0,aim:0,w:-1,sw:0}),C=CLS[gp.cls||'pistol']||CLS.pistol,G=P.arms[1],S=P.arms[0],gw=P._gw;
   if(gs.w!==gp.w){gs.w=gp.w;gs.t=0}
-  gs.t=Math.min(1,gs.t+dt/(gp.draw||.45));if(gs.rec>0)gs.rec=Math.max(0,gs.rec-dt*7);
+  gs.t=Math.min(1,gs.t+dt/(gp.draw||.45));
+  if(gs.rec>(gs.prec||0)+.3)gs.side=gs.side?0:1;gs.prec=gs.rec;                            // a pair of pistols: the shots alternate between the hands
+  if(gs.rec>0)gs.rec=Math.max(0,gs.rec-dt*7);
   gs.aim+=((gp.aim?1:0)-gs.aim)*(1-Math.exp(-dt*9));
   const dr=ease(gs.t);
-  if(C.legacy){                                               // katana (two hands, a sweeping strike) and the shoulder tubes
-    if(gp.cls==='melee'){const sl=gp.slash||0,k=sl>0?Math.sin(PI*(1-sl)):0;
+  if(P._sl>0){P._sl=Math.max(0,P._sl-dt*3.4);if(!gp.slash)gp=Object.assign({},gp,{slash:P._sl})}   // a friend's swing, seen through the shot counter
+  if(C.legacy){                                               // katana (two hands, a sweeping strike), tools, and the shoulder tubes
+    if(gp.cls==='pick'||gp.cls==='bat'||gp.cls==='hammer'){swing(P,gp,gs,dt,dr)}
+    else if(gp.cls==='melee'){const sl=gp.slash||0,k=sl>0?Math.sin(PI*(1-sl)):0;
       G.sh.rotation.x=lerp(-.2,-1.15-1.1*k,dr);G.sh.rotation.z=sl>0?.9*Math.cos(PI*(1-sl)):0;G.el.rotation.x=lerp(-.4,-.35,dr);
       S.sh.rotation.x=lerp(-.2,-1.0-.6*k,dr);S.sh.rotation.z=.35*dr;S.el.rotation.x=lerp(-.4,-.6,dr);grip(P,0,'bar');grip(P,1,'bar')}
     else{G.sh.rotation.x=lerp(-.3,-1.42+(gs.rec||0)*.12,dr);G.sh.rotation.z=0;G.el.rotation.x=-.05;S.sh.rotation.x=lerp(-.3,-1.2,dr);S.sh.rotation.z=.25*dr;S.el.rotation.x=lerp(-.4,-.4,dr);grip(P,0,'bar');grip(P,1,'bar')}
@@ -91,15 +141,16 @@ function weapon(P,st,dt){
   const ap=(gp.ap||0)+.1*gs.rec;
   Q1.copy(P.hips.quaternion).multiply(P.spine.quaternion).invert();
   const dd=V1.set(0,Math.sin(ap),Math.cos(ap)).applyQuaternion(Q1);
-  const k=gs.aim,T=V2.set(lerp(C.r0[0],C.r1[0],k),lerp(C.r0[1],C.r1[1],k),lerp(C.r0[2],C.r1[2],k));
-  T.x=lerp(hold0[0],T.x,dr);T.y=lerp(hold0[1],T.y,dr);T.z=lerp(hold0[2],T.z,dr)-.045*gs.rec;
+  const k=gs.aim,T=V2.set(lerp(C.r0[0],C.r1[0],k),lerp(C.r0[1],C.r1[1],k),lerp(C.r0[2],C.r1[2],k)),dual=gp.cls==='dual';
+  T.x=lerp(hold0[0],T.x,dr);T.y=lerp(hold0[1],T.y,dr);const zb=lerp(hold0[2],T.z,dr);T.z=zb-(dual&&!gs.side?0:.045*gs.rec);
   const rl=gs.rl>=0&&gs.rl<1?gs.rl:-1;
   let roll=0;
   hdReach(G,T);
-  // the support hand: on the fore-grip, or off to the belt and back while reloading
-  const H=hdHandPos(G,V3),fore=new THREE.Vector3(H.x+C.f[0]+dd.x*C.fd,H.y+C.f[1]+dd.y*C.fd,H.z+C.f[2]+dd.z*C.fd);
+  // the support hand: on the fore-grip, or off to the belt and back while reloading (a pair of pistols: the mirror image of the first hand)
+  const H=hdHandPos(G,V3),fore=dual?new THREE.Vector3(-T.x,T.y,zb-(gs.side?0:.045*gs.rec)):new THREE.Vector3(H.x+C.f[0]+dd.x*C.fd,H.y+C.f[1]+dd.y*C.fd,H.z+C.f[2]+dd.z*C.fd);
   let Tl=fore;
-  if(rl>=0){const belt=new THREE.Vector3(-.06,.02,.16),mag=new THREE.Vector3(H.x-.02,H.y-.07,H.z+.05+C.fd*.25);
+  if(rl>=0&&dual){const tilt=Math.sin(PI*clamp((rl-.2)/.65,0,1));roll=tilt*.55;dd.y-=tilt*.25;dd.normalize()}
+  else if(rl>=0){const belt=new THREE.Vector3(-.06,.02,.16),mag=new THREE.Vector3(H.x-.02,H.y-.07,H.z+.05+C.fd*.25);
     if(rl<.25)Tl=fore.clone().lerp(belt,ease(rl/.25));else if(rl<.5)Tl=belt.clone().add(V1.set(0,Math.sin(rl*40)*.006,0));
     else if(rl<.8)Tl=belt.clone().lerp(mag,ease((rl-.5)/.3));else Tl=mag.clone().lerp(fore,ease((rl-.8)/.2));
     const tilt=Math.sin(PI*clamp((rl-.2)/.65,0,1));roll=tilt*.55;dd.y-=tilt*.25;dd.normalize()}
@@ -107,6 +158,7 @@ function weapon(P,st,dt){
   grip(P,1,'bar');grip(P,0,C.fd?'cup':'bar');
   P.spine.rotation.x+=-ap*.35;
   if(gw){gw.visible=true;aimModel(G,gw,dd,roll);const sc=gw.userData.base||1;gw.scale.setScalar(sc*(.55+.45*dr))}
+  if(dual){const g2=pair(P,gp);if(g2){g2.visible=true;aimModel(S,g2,dd,-roll);g2.scale.setScalar(.55+.45*dr)}}
 }
 
 // ---------------------------------------------------------------- drinking (the jar goes to the mouth)
@@ -133,6 +185,7 @@ function sky(P,st,dt){const w=P.sky===1;P.hips.position.y=P.hipY;
 function layer(P,st,dt){
   if(!(dt>0))return;
   const m=st&&st.mode;if(m==='drive'||m==='suv'||m==='bike'||m==='sit'||m==='scoot')return;
+  if(P._gw2){if(P._gp&&P._gp.cls==='dual')P._gw2.visible=!(P.emo||P.drk||P.rch||P.sky);else unpair(P)}
   if(P.sky){W=1;sky(P,st,dt);return}
   const E=P.emo;
   if(E){E.t+=dt;const def=EM[E.id];
@@ -158,9 +211,9 @@ function buildWheel(){
   const css=document.createElement('style');css.textContent=`
 #emoW{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:rgba(0,0,0,.45);touch-action:none}
 #emoW[hidden]{display:none}
-#emoW .ring{position:relative;width:min(84vmin,380px);height:min(84vmin,380px)}
+#emoW .ring{position:relative;width:min(92vmin,470px);height:min(92vmin,470px)}
 #emoW .ring::before{content:'EMOTES';position:absolute;inset:0;display:grid;place-items:center;font:800 13px var(--f-disp,system-ui);letter-spacing:.3em;color:var(--sun,#f2c14e)}
-#emoW button{position:absolute;left:50%;top:50%;width:min(31vmin,128px);margin:calc(min(31vmin,128px)*-.2) 0 0 calc(min(31vmin,128px)*-.5);padding:11px 8px;border:0;border-left:4px solid var(--sun,#f2c14e);border-radius:0;background:rgba(0,0,0,.72);color:#e9e6dc;font:700 10.5px/1.15 var(--f-disp,system-ui);letter-spacing:.06em;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%);transform:rotate(var(--a)) translateY(calc(min(84vmin,380px)*-.39)) rotate(calc(var(--a)*-1))}
+#emoW button{position:absolute;left:50%;top:50%;width:min(26vmin,112px);margin:calc(min(26vmin,112px)*-.2) 0 0 calc(min(26vmin,112px)*-.5);padding:11px 8px;border:0;border-left:4px solid var(--sun,#f2c14e);border-radius:0;background:rgba(0,0,0,.72);color:#e9e6dc;font:700 10.5px/1.15 var(--f-disp,system-ui);letter-spacing:.06em;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%);transform:rotate(var(--a)) translateY(calc(min(92vmin,470px)*-.4)) rotate(calc(var(--a)*-1))}
 #emoW button:active,#emoW button.on{background:var(--sun,#f2c14e);color:#111;border-left-color:#fff}
 @media (hover:hover){#emoW button:hover{background:#fff;color:#0a0a0a}}
 @media (max-width:560px),(max-height:520px){#emoW .ring{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(92vw,380px);height:auto}
@@ -172,7 +225,7 @@ function buildWheel(){
   wheel.addEventListener('pointerdown',e=>{if(e.target===wheel)POSE.wheel(false)});document.body.appendChild(wheel);
   addEventListener('keydown',e=>{if(typeof started==='undefined'||!started)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
     if(e.code==='KeyX'&&!e.repeat){e.preventDefault();POSE.wheel()}else if(e.code==='Escape'&&wOpen){e.stopImmediatePropagation();POSE.wheel(false)}
-    else if(wOpen&&/^Digit[1-8]$/.test(e.code)){e.stopImmediatePropagation();POSE.wheel(false);POSE.emote(PLR,IDS[+e.code.slice(5)-1],true)}},true);
+    else if(wOpen&&/^Digit[0-9]$/.test(e.code)){e.stopImmediatePropagation();const n=+e.code.slice(5),id=IDS[n===0?9:n-1];if(!id)return;POSE.wheel(false);POSE.emote(PLR,id,true)}},true);
 }
 
 const POSE={EM,IDS,CLS,layer,

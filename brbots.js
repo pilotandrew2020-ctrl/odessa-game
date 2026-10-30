@@ -22,7 +22,8 @@ const BOTS={list:[],NAMES:['Andrii','Maks','Dasha','Oleh','Kolya','Sasha','Vlad'
       for(const [h,r,hd] of [[1.62,.22,true],[1.1,.34,false],[.5,.32,false]]){const cx=b.x-o.x,cy=b.y+h-o.y,cz=b.z-o.z,t=cx*d.x+cy*d.y+cz*d.z;if(t<0||t>max)continue;
         const qx=cx-d.x*t,qy=cy-d.y*t,qz=cz-d.z*t;if(qx*qx+qy*qy+qz*qz<r*r){if(!best||t<best.t)best={b,t,head:hd};break}}}
     return best},
-  damage(b,v,by,direct){if(!b.alive||v<=0)return;v=Math.round(v);if(!direct){const a=Math.min(b.sh,v);b.sh-=a;v-=a}b.hp-=v;b.hurtT=.5;
+  damage(b,v,by,direct){if(!b.alive||v<=0)return;v=Math.round(v);let sa=0;if(!direct){sa=Math.min(b.sh,v);b.sh-=sa;v-=sa}const was=Math.max(0,b.hp);b.hp-=v;b.hurtT=.5;
+    if(typeof BRFX!=='undefined')BRFX.hit(b,Math.min(v,was),sa,b.hd,!!(by&&by.me));b.hd=false;
     if(b.hp<=0)this.kill(b,by);else if(by&&(by.me||by.bot)&&b.st!=='bus'){b.alert=2;if(by.me&&!b.tgt)b.tgt='me'}},
   kill(b,by){b.alive=false;b.st='dead';b.die=0;b.hp=0;const killer=by&&by.me?'You':by&&by.bot?by.bot.name:'Storm';
     BR.feed(killer,b.name,by&&by.w||(by&&by.zone?'Storm':''),by&&by.me);
@@ -68,7 +69,7 @@ const BOTS={list:[],NAMES:['Andrii','Maks','Dasha','Oleh','Kolya','Sasha','Vlad'
     // 4. loot
     let it=null,id=1e9;const have=!!b.w;
     for(const q of BR.items){if(q.taken)continue;const d=Math.hypot(q.x-b.x,q.z-b.z);if(d>(have?90:220)||d>=id)continue;
-      if(q.k==='x'){if(q.open)continue}else if(q.k==='w'){if(have&&RAR[q.rar].m<=RAR[b.w.rar].m)continue}else if(q.k==='a'){continue}else if(q.k==='c'){if(b.cons.length>=4)continue}
+      if(q.k==='x'){if(q.open)continue}else if(q.k==='w'){if(BRW[q.id].melee||have&&RAR[q.rar].m<=RAR[b.w.rar].m)continue}else if(q.k==='a'){continue}else if(q.k==='c'){if(b.cons.length>=4)continue}
       if(BR.inZone(q.x,q.z)){it=q;id=d}}
     if(it){b.goal={x:it.x,z:it.z,it};b.st='loot';return}
     // 5. roam towards the next circle
