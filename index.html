@@ -1731,7 +1731,7 @@ function addPolyBuilding(g,rings,lv,st,sd,fl,P,S,opt){
   // gas pipe along walls of residential (yellow), at ground-floor top
   if(P&&opt.props!==false&&(resid||st===HOUSE||st===SHOP)&&lv<=16&&r()<.75){const gy=y0+(GF>0?GF-.3:FH*.95);for(const W of walls){if(W.L<4||W.ri>0||retailSpan(W))continue;
     P.box((W.x1+W.x2)/2+W.nx*.12,gy,(W.z1+W.z2)/2+W.nz*.12,W.L,.09,.09,Math.atan2(W.tx,W.tz)-Math.PI/2,sRGB('#e3b81f'),1)}}
-  if(typeof FAC!=='undefined')FAC.dress({P,st,lv,sd,y0,top,GF,FH,H,walls,signPl,area,opt,pitchedOnly:false,rings});
+  if(typeof FAC!=='undefined')FAC.dress({P,g,st,lv,sd,fl,y0,top,GF,FH,H,walls,signPl,area,opt,pitchedOnly:false,rings,obb,rect});
   return {top,y0,walls,ents,rings,obb};
 }
 // ---------- per-chunk collider polygons ----------
