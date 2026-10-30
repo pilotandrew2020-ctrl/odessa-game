@@ -201,6 +201,44 @@ body #gunBar::-webkit-scrollbar{display:none}
 body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
 #joy{width:44vw;height:52vh}
 @media (max-height:430px){#actBtns>button{width:44px;height:44px}#qMenu{left:44px}#qMenu button{padding:8px 22px 8px 11px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#topBtns button{padding:6px 14px 6px 9px}#heliControls{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
+/* ===== in-game HUD v3 (2026-10-30): game-style rounded tiles with icons instead of the slanted menu bars. Dark glass panel, thin light rim,
+   a hard bottom edge so it reads as a physical key, one warm-yellow "selected" state with a glow; every handler/id above is untouched ===== */
+:root{--hud-bg:linear-gradient(180deg,rgba(30,42,70,.74),rgba(12,18,36,.82));--hud-rim:rgba(255,255,255,.24);--hud-on:linear-gradient(180deg,#ffe07a,#f4a93a)}
+#topBtns{gap:6px}
+#topBtns button,#coHud .coRow button,#actBtns>button,#qMenu button,#heliControls button{clip-path:none;border:1.5px solid var(--hud-rim);border-radius:11px;background:var(--hud-bg);color:#f3f1ea;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.26);transform:none;text-shadow:0 1px 0 rgba(0,0,0,.55)}
+#topBtns button,#coHud .coRow button{display:inline-flex;align-items:center;padding:8px 12px 8px 10px;font:800 10px/1 var(--f-disp);letter-spacing:.07em}
+:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
+#bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
+#topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:8px 9px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:15px;height:15px}   /* weather = icon-only tiles (the buttons keep their title text) */
+#coHud{top:calc(190px + env(safe-area-inset-top,0px))}
+#bMap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z'/%3E%3Ccircle cx='12' cy='10' r='2.3'/%3E%3C/svg%3E")}
+#bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8'/%3E%3C/svg%3E")}
+#bRain{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 15.5a4.5 4.5 0 1 1 1-8.9 5.5 5.5 0 0 1 10.4 2A3.5 3.5 0 0 1 17.5 15.5z'/%3E%3Cpath d='M8.5 18.5l-1 2M12.5 18.5l-1 2M16.5 18.5l-1 2'/%3E%3C/svg%3E")}
+#bSnow{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.5v19M4 7l16 10M20 7L4 17'/%3E%3Cpath d='M9.5 4L12 6.5 14.5 4M9.5 20L12 17.5 14.5 20'/%3E%3C/svg%3E")}
+#bFog{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 8h13M6 12h15M3 16h12M8 20h11'/%3E%3C/svg%3E")}
+#bMenu{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3C/svg%3E")}
+#bGun{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
+#bHS{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E")}
+#bBag{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 8V6a5 5 0 0 1 10 0v2'/%3E%3Crect x='4.5' y='8' width='15' height='13' rx='3'/%3E%3Cpath d='M9 14h6'/%3E%3C/svg%3E")}
+#topBtns button.on,#coHud .coRow button.on,#actBtns>button.on,#qMenu button.on,#actBtns>button.has.open,#actBtns.open>#bQuick{background:var(--hud-on);color:#1b1204;border-color:rgba(255,255,255,.85);text-shadow:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #9a5e0c,0 0 16px rgba(255,190,60,.5)}
+#topBtns button:active,#coHud .coRow button:active,#actBtns>button:active,#qMenu button:active,#heliControls button:active{background:linear-gradient(180deg,#fff,#d9dde8);color:#0a0a0a;border-color:#fff;transform:translateY(2px) scale(.97);box-shadow:inset 0 1px 0 #fff,0 0 0 rgba(0,0,0,0)}
+@media (hover:hover){#topBtns button:hover,#actBtns>button:hover:not(.on):not(#bJump),#qMenu button:hover,#heliControls button:hover{background:linear-gradient(180deg,rgba(70,90,134,.82),rgba(26,36,64,.88));color:#fff;border-color:rgba(255,255,255,.6);transform:translateY(-1px)}
+  #topBtns button.on:hover,#qMenu button.on:hover{background:var(--hud-on);color:#1b1204}}
+#topBtns button:focus-visible{outline:2px solid #fff;outline-offset:2px;background:var(--hud-bg);color:#fff}
+#actBtns{gap:7px}
+#actBtns>button{width:52px;height:52px;border-radius:13px}
+#actBtns>button b{font:800 7px/1 var(--f-disp);letter-spacing:.1em}
+#actBtns>button.has::after{right:7px;top:6px;box-shadow:0 0 0 2px rgba(10,16,30,.85)}
+#actBtns>#bJump{border-radius:50%;width:80px;height:80px;border:3px solid rgba(255,255,255,.9);background:radial-gradient(circle at 50% 30%,#ffe786,#f2a93a 78%);color:#2a1a04;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),0 4px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.4)}
+#actBtns>#bJump:active{background:radial-gradient(circle at 50% 30%,#fff,#e6e9f0 78%);transform:translateY(3px)}
+#qMenu button{gap:11px;min-width:184px;padding:10px 18px 10px 12px;border-radius:12px}
+#qMenu button svg{width:20px;height:20px}
+#heliControls button{border-radius:11px;border-left-width:1.5px}
+#bAct{clip-path:none;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:var(--hud-on);color:#1b1204;padding:12px 20px 12px 14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
+#bAct:active{background:#fff;transform:translateY(2px)}
+@media (max-height:430px){#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
 </style>
 <div id="app">
   <canvas id="c"></canvas>
@@ -782,12 +820,13 @@ const GROUND_SURF=`
  } else if(k<1.5){
    vec4 a=texture2D(tAsph,p/3.5);sAlb=toLin(a.rgb)*.95;sH=a.a;sRough=.85;sBump=.12;
    float hw=cl<.5?5.:(cl<1.5?3.5:2.6);float x=vU*hw;
-   float dI=min(vR.y+vR.x,vR.z+(vR.w-vR.x));float mk=0.;
+   float sP=step(1500.,vR.y),sN=step(1500.,vR.z);float eP=vR.y-2000.*sP+vR.x,eN=vR.z-2000.*sN+(vR.w-vR.x);float dI=min(eP,eN);float mk=0.;
    if(dI>9.){
      if(cl<.5){mk+=step(abs(abs(x)-.18),.07);mk+=step(abs(abs(x)-2.5),.06)*step(.5,fract(vR.x/6.));mk+=step(abs(abs(x)-4.6),.07);}
      else if(cl<1.5){mk+=step(abs(x),.07)*step(.45,fract(vR.x/7.));}
    }
    if(cl<1.5&&dI>2.5&&dI<6.5)mk+=step(.5,fract(x/1.1))*step(abs(x),hw-.4);
+   if(cl<1.5)mk+=sN*step(abs(eN-7.4),.2)*step(.15,x)*step(x,hw-.3)+sP*step(abs(eP-7.4),.2)*step(x,-.15)*step(-hw+.3,x);   // tl.js: stop line across the approaching lane, in front of the zebra
    mk=clamp(mk,0.,1.)*smoothstep(.25,.6,vn(p*3.1)+.35);
    sAlb=mix(sAlb,vec3(.62,.62,.58),mk);sRough=mix(sRough,.6,mk);
    sAlb*=1.-.1*smoothstep(.75,1.,abs(vU));
@@ -1263,7 +1302,8 @@ function buildGround2(id){
     const hA=groundH(ax,az),hB=groundH(bx,bz),hM=groundH((ax+bx)/2,(az+bz)/2);
     const flat=Math.abs(hA)+Math.abs(hB)+Math.abs(hM)<.01;
     const nsub=flat?1:Math.max(1,Math.ceil(L/8));
-    const dP=D.dPrev[i],dN=D.dNext[i+1];
+    const tlOn=!ped&&c<=1&&typeof TL!=='undefined';   // +2000 marks an end that leads to a signalised arm: the shader paints the stop line there
+    const dP=D.dPrev[i]+(tlOn&&TL.has(i,-1)?2000:0),dN=D.dNext[i+1]+(tlOn&&TL.has(i,1)?2000:0);
     let prevL=-1,prevR=-1;
     for(let q=0;q<=nsub;q++){
       const t=q/nsub,px=ax+(bx-ax)*t,pz=az+(bz-az)*t;
@@ -1848,11 +1888,13 @@ function treeLimbBuilder(g){
       const ids=[g.v({position:P(a0,0,r0),normal:N(a0),uv:[i/seg,0]}),g.v({position:P(a1,0,r0),normal:N(a1),uv:[(i+1)/seg,0]}),g.v({position:P(a1,1,r1),normal:N(a1),uv:[(i+1)/seg,L/2]}),g.v({position:P(a0,1,r1),normal:N(a0),uv:[i/seg,L/2]})];
       g.quad(ids[0],ids[3],ids[2],ids[1])}}}
 // leaf clump: several crossed cards around a centre, normals pointing out from the crown centre (soft round shading)
-function leafClump(lg,r,cx,cy,cz,rad,cards,crown){for(let i=0;i<cards;i++){
-  const u=r()*2-1,th=r()*6.283,rr=Math.sqrt(1-u*u);const px=cx+Math.cos(th)*rr*rad*.55,py=cy+u*rad*.45,pz=cz+Math.sin(th)*rr*rad*.55;
-  const s=rad*(.95+r()*.6);const ry=r()*6.283,rx=(r()-.5)*1.3;const c=Math.cos(ry),sn=Math.sin(ry),cr=Math.cos(rx),sr=Math.sin(rx);
+// v2 (2026-10-30): many small cards (≈1 m, leaves 5–10 cm on the atlas) spread through the clump volume instead of a few 2.6–4 m "burdock" sheets;
+// each card's normal is the crown-radial one with a random tilt, so neighbouring cards catch the light differently and the crown reads as leaves, not lumps
+function leafClump(lg,r,cx,cy,cz,rad,cards,crown){const cn=Math.round(cards*((typeof MOBILE!=='undefined'&&MOBILE)?2.2:4.5));for(let i=0;i<cn;i++){
+  const u=r()*2-1,th=r()*6.283,rr=Math.sqrt(1-u*u),dd=Math.pow(r(),.5);const px=cx+Math.cos(th)*rr*rad*.66*dd,py=cy+u*rad*.5*dd,pz=cz+Math.sin(th)*rr*rad*.66*dd;
+  const s=rad*(.45+r()*.28);const ry=r()*6.283,rx=(r()-.5)*1.5;const c=Math.cos(ry),sn=Math.sin(ry),cr=Math.cos(rx),sr=Math.sin(rx);
   const T=(x,y)=>{const y2=y*cr,z2=y*sr;return [px+x*c+z2*sn,py+y2,pz-x*sn+z2*c]};
-  const nrm=[px-crown[0],(py-crown[1])*1.3+rad*.3,pz-crown[2]];const nl=Math.hypot(...nrm)||1;const n=nrm.map(v=>v/nl);
+  const nrm=[px-crown[0]+(r()-.5)*rad*.9,(py-crown[1])*1.3+rad*.3+(r()-.5)*rad*.7,pz-crown[2]+(r()-.5)*rad*.9];const nl=Math.hypot(...nrm)||1;const n=nrm.map(v=>v/nl);
   const u0=((r()*2)|0)*.5,v0=.5;
   const ids=[[-s/2,-s/2,0,0],[s/2,-s/2,1,0],[s/2,s/2,1,1],[-s/2,s/2,0,1]].map(([x,y,a,b])=>lg.v({position:T(x,y),normal:n,uv:[u0+a*.5,v0+b*.5]}));
   lg.quad(ids[0],ids[1],ids[2],ids[3])}}
@@ -4487,7 +4529,7 @@ function updateCars(dt,player,maxN){
     const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw);
     const big=c.type===8?1:c.type===3?.5:0;const chk=(ox,oz,r)=>{const rx=ox-c.x,rz=oz-c.z;const ahead=rx*fx+rz*fz,lat=Math.abs(rx*fz-rz*fx);r+=big*10;if(ahead>0&&ahead<r&&lat<2.0+big*.9)tgt=Math.min(tgt,Math.max(0,(ahead-5.5-big*5.5)*1.2))};
     chk(player.x,player.z,15);for(const o of CARS){if(o!==c)chk(o.x,o.z,13)}
-    if(typeof TL!=='undefined'){const e=TL.stop(c.v,s.end,s.tx,s.tz,s.L,c.s,big);if(e<tgt)tgt=e}   // red / yellow light ahead
+    if(typeof TL!=='undefined'){const e=TL.stop(c.v,c.ri,c.dir,s.L,c.s,big);if(e<tgt)tgt=e}   // red / yellow light ahead
     if(c.hitT>0){c.hitT-=dt;tgt=0}   // just hit: stands there for a few seconds
     if(c.route){
       if(c.dw>0){c.dw-=dt;tgt=0}
@@ -4528,7 +4570,7 @@ function updatePeds(dt,player,maxN){
     const prev={ri:p.ri,dir:p.dir,s:p.s,x:p.x,z:p.z};
     let s=segInfo(p.ri,p.dir);const dpx=player.x-p.x,dpz=player.z-p.z,dp=Math.hypot(dpx,dpz);
     let spd=p.speed;if(p.wait>0){p.wait-=dt;spd=0}else if(Math.random()<dt*.01)p.wait=2+Math.random()*4;if(dp<1.1)spd=0;
-    if(spd>0&&typeof TL!=='undefined'&&TL.hold(s.end,s.tx,s.tz,s.L-p.s))spd=0;   // wait at the kerb for the green man
+    if(spd>0&&typeof TL!=='undefined'&&TL.hold(p.x,p.z,s.tx,s.tz))spd=0;   // wait at the zebra kerb for the green man
     p.moving=spd>0;p.s+=spd*dt;p.phase+=spd*dt*3.3;
     let guard=0;while(p.s>s.L&&guard++<8){p.s-=s.L;const [nr,nd]=nextSeg(p.ri,p.dir,false);p.ri=nr;p.dir=nd;s=segInfo(p.ri,p.dir)}
     const off=pedOffset(p.ri,p.side,p.jit);const nx=-s.tz,nz=s.tx;
