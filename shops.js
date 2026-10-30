@@ -217,7 +217,7 @@ function shBagPanel(){let p=document.getElementById('bagPanel');
   p.querySelector('#bagX').onclick=()=>{p.hidden=true};
   p.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;shHold(HELD.name===k?null:k);shBagPanel()});
   return p}
-function shBagInit(){const row=document.getElementById('topBtns');if(!row||document.getElementById('bBag'))return;const b=document.createElement('button');b.id='bBag';b.textContent='Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};row.appendChild(b)}
+function shBagInit(){const ex=document.getElementById('bBag'),row=document.getElementById('topBtns');if(!ex&&!row)return;const b=ex||document.createElement('button');b.id='bBag';if(!ex)b.textContent='Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};if(!ex)row.appendChild(b)}      // the button is static markup in the thumb cluster (next to the camera tile); the fallback appends it to the top row
 
 // ---------- atrium dressing: palms in planters and a glass roof over the concourse ----------
 function shPalm(E,x,z,h){const ox=E.ox,oz=E.oz,P=E.P,bark=sRGB('#7b5a3a'),bark2=sRGB('#8f6b45'),gr=[sRGB('#2f7a3a'),sRGB('#3f9a46'),sRGB('#2a6a34')];
