@@ -16,10 +16,10 @@ const HOUSE_DEF={
   house2:{name:'Lagoon house',cls:'Middle class',idx:52,W:16,D:13,H:3.2,style:'lodge'},
   house3:{name:'Island mansion',cls:'Elite villa',idx:53,W:26,D:16,H:3.9,style:'elite'}};
 const HOUSE_STYLE={
-  log:{exp:.62,wood:'#6b4426',wall:'#a9743d',wm:5,floor:'#9a6a3a',fm:5,trim:'#6b4426',ceil:'#8a5a30',cm:5,beams:true,sofa:['#7a3b2e','#a8553f'],accent:'#b5422d',light:0xffd9a0},
-  coast:{exp:.46,wood:'#b9936a',wall:'#d9e2e6',wm:0,floor:'#b99466',fm:5,trim:'#ffffff',ceil:'#eef0ee',cm:0,beams:false,sofa:['#3d5a80','#98c1d9'],accent:'#3d5a80',light:0xfff1dc},
-  lodge:{exp:.62,wood:'#3f2a18',wall:'#7d5632',wm:5,floor:'#6a4426',fm:5,trim:'#3f2a18',ceil:'#e6d6bb',cm:0,beams:true,sofa:['#2f5d45','#527a62'],accent:'#8a4b2a',light:0xffd29a},
-  elite:{exp:.46,wood:'#3a2a1c',wall:'#cdbfa6',wm:0,floor:'#8d8374',fm:7,trim:'#c9a24a',ceil:'#e8e1d2',cm:0,beams:false,sofa:['#e4dccd','#b99b66'],accent:'#c9a24a',light:0xfff4e2}};
+  log:{door:'#5a3a20',hw:'#2a2a2c',curt:'#a8553f',standGlb:true,standTint:'#c89060',exp:.62,wood:'#6b4426',wall:'#a9743d',wm:5,floor:'#9a6a3a',fm:5,trim:'#6b4426',ceil:'#8a5a30',cm:5,beams:true,sofa:['#7a3b2e','#a8553f'],accent:'#b5422d',light:0xffd9a0},
+  coast:{door:'#ffffff',hw:'#b8bcc0',curt:'#e9eef1',exp:.46,wood:'#b9936a',wall:'#d9e2e6',wm:0,floor:'#b99466',fm:5,trim:'#ffffff',ceil:'#eef0ee',cm:0,beams:false,sofa:['#3d5a80','#98c1d9'],accent:'#3d5a80',light:0xfff1dc},
+  lodge:{door:'#3f2a18',hw:'#c9a24a',curt:'#7a3b2e',standGlb:true,standTint:'#8a6a4a',exp:.62,wood:'#3f2a18',wall:'#7d5632',wm:5,floor:'#6a4426',fm:5,trim:'#3f2a18',ceil:'#e6d6bb',cm:0,beams:true,sofa:['#2f5d45','#527a62'],accent:'#8a4b2a',light:0xffd29a},
+  elite:{door:'#e8e1d2',hw:'#c9a24a',curt:'#d8cdb0',exp:.46,wood:'#3a2a1c',wall:'#cdbfa6',wm:0,floor:'#8d8374',fm:7,trim:'#c9a24a',ceil:'#e8e1d2',cm:0,beams:false,sofa:['#e4dccd','#b99b66'],accent:'#c9a24a',light:0xfff4e2}};
 
 function hsInit(){
   if(HSTATE.ready)return;HSTATE.ready=true;
@@ -34,23 +34,27 @@ function hsKit(E,S,L){
   const cy=(x,z,ry,u,y,v,r1,r2,h,c,m,seg)=>{const p=loc(x,z,ry)(u,v);E.P.cyl(ox+p[0],INT_Y+y,oz+p[1],r1,r2,h,seg||12,sRGB(c),m||0)};
   const ob=(x,z,ry,u,v,hw,hd)=>{const p=loc(x,z,ry)(u,v);E.obb(p[0],p[1],hw,hd,ry)};
   const wood=S.wood||S.trim,face=(x,z,tx,tz)=>Math.atan2(tx-x,tz-z);K.face=face;K.loc=loc;K.bx=bx;K.cy=cy;K.ob=ob;
-  const light=(x,y,z,col,i,d)=>{const l=new THREE.PointLight(col,0,d||14,1.5);l.position.set(ox+x,INT_Y+y,oz+z);l.userData.i=i;E.grp.add(l);L.push(l);return l};K.light=light;
+  const light=(x,y,z,col,i,d)=>{const l=new THREE.PointLight(col,0,d||14,1.5);l.position.set(ox+x,INT_Y+y,oz+z);l.userData.i=i;E.grp.add(l);L.push(l);if(window.FD)FD.lamp(E,S,x,y,z);return l};K.light=light;
   const sit=(x,z,ry,label,y)=>E.act(x,z,1.7,label,()=>{if(player.sit)return;player.sit={x:ox+x,z:oz+z,y:INT_Y+(y||.12),yaw:ry};cam.yaw=ry;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')});
   // sofa / armchair: back edge at (x,z), facing ry
-  K.sofa=(x,z,ry,len,c1,c2)=>{c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
+  K.sofa=(x,z,ry,len,c1,c2)=>{
+    if(S.sofaGlb&&len>1.5){const s=Math.min(1.35,len/1.57),p=loc(x,z,ry)(0,.33*s+.02);   // a real Poly Haven sofa (CC0) in styles that ask for it; the sit act and collision stay the kit's
+      MDL.put(E.grp,S.sofaGlb,{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
+    c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
     bx(x,z,ry,0,.2,.47,len,.4,.92,c1);bx(x,z,ry,0,.68,.1,len,.62,.2,c1);for(const s of [-1,1])bx(x,z,ry,s*(len/2-.1),.5,.47,.2,.56,.92,c1);
     for(let i=0;i<n;i++){const u=-len/2+w*(i+.5);bx(x,z,ry,u,.47,.56,w-.2*(n>1?.15:.5)-.05,.15,.68,c2);bx(x,z,ry,u,.72,.24,w-.28,.36,.16,c2)}
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};
   K.cornerSofa=(x,z,ry,a,b)=>{K.sofa(x,z,ry,a);const p=loc(x,z,ry)(a/2+.55,.9);K.sofa(p[0],p[1],ry+Math.PI/2,b-.9)};
   K.table=(x,z,ry,w,d,h,c)=>{bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
-  K.chair=(x,z,ry,c)=>{bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
+  K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
+    bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
   K.rug=(x,z,ry,w,d,c)=>bx(x,z,ry,0,.015,0,w,.03,d,c,0);
   K.lamp=(x,z,h,c)=>{E.P.cyl(ox+x,INT_Y,oz+z,.14,.14,.03,10,sRGB('#2a2a2c'),1);E.P.cyl(ox+x,INT_Y+.03,oz+z,.02,.02,h||1.5,6,sRGB('#2a2a2c'),1);E.box(x,(h||1.5)+.1,z,.38,.3,.38,c||'#ffe9bd',3);E.obb(x,z,.18,.18,0)};
   K.plant=(x,z,sc)=>{sc=sc||1;E.P.cyl(ox+x,INT_Y,oz+z,.2*sc,.16*sc,.35*sc,10,sRGB('#a65a3a'),0);for(let i=0;i<7;i++){const a=i*.9;E.P.box(ox+x+Math.cos(a)*.14*sc,INT_Y+(.55+(i%3)*.17)*sc,oz+z+Math.sin(a)*.14*sc,.3*sc,.05,.5*sc,a,sRGB(['#2f7a3a','#3f9a46','#2a6a34'][i%3]),0,.55)}E.obb(x,z,.25*sc,.25*sc,0)};
   K.shelf=(x,z,ry,w,h)=>{h=h||2;bx(x,z,ry,0,h/2,.16,w,h,.32,wood,5);for(let l=0;l<4;l++)bx(x,z,ry,0,.35+l*(h-.5)/3,.3,w-.08,.03,.3,'#d8c9a8',5);
     const cols=['#c8372d','#2f6db0','#e8b53a','#3f9a46','#8a4ab0','#e8e4da'];for(let l=0;l<3;l++)for(let i=0;i<Math.floor(w/.09);i++)bx(x,z,ry,-w/2+.07+i*.09,.35+l*(h-.5)/3+.14,.31,.06,.22+(i%3)*.03,.22,cols[(i*5+l*3)%6],0);ob(x,z,ry,0,.18,w/2,.18)};
   K.art=(x,z,ry,w,h,y,c)=>{bx(x,z,ry,0,y,.04,w+.1,h+.1,.04,wood,5);bx(x,z,ry,0,y,.065,w,h,.02,c||'#e8c8a0',0);bx(x,z,ry,w*.18,y-h*.12,.08,w*.4,h*.5,.01,'#3d6a8a',0);bx(x,z,ry,-w*.2,y+h*.15,.08,w*.25,h*.3,.01,'#f2c14e',0)};
-  K.window=(x,z,ry,w,h,y)=>{bx(x,z,ry,0,y,.03,w+.16,h+.16,.05,S.trim,5);bx(x,z,ry,0,y,.06,w,h,.02,'#bfe3ff',8);bx(x,z,ry,0,y,.075,.05,h,.02,S.trim,5);bx(x,z,ry,0,y,.075,w,.05,.02,S.trim,5)};
+  K.window=(x,z,ry,w,h,y)=>{bx(x,z,ry,0,y,.03,w+.16,h+.16,.05,S.trim,5);bx(x,z,ry,0,y,.06,w,h,.02,S.win||'#bfe3ff',8);bx(x,z,ry,0,y,.075,.05,h,.02,S.trim,5);bx(x,z,ry,0,y,.075,w,.05,.02,S.trim,5);if(window.FD)FD.window(E,K,S,x,z,ry,w,h,y)};
   // fireplace: stone surround and chimney, logs, animated flames and a flickering light; "Light / put out the fire"
   K.fire=(x,z,ry,w)=>{w=w||2.2;const f={flames:[],on:true,light:null};
     bx(x,z,ry,0,1.15,.33,w,2.3,.66,'#8c8176',7);bx(x,z,ry,0,.48,.67,1.0,.86,.04,'#0d0b0a',0);bx(x,z,ry,0,.05,.8,w+.5,.1,.9,'#6b645c',7);bx(x,z,ry,0,1.34,.55,w+.3,.1,.5,wood,5);
@@ -66,13 +70,16 @@ function hsKit(E,S,L){
     const t={m,tex,cv,g,on:false,t:0,light:light(...(()=>{const a=loc(x,z,ry)(0,1.2);return [a[0],1.3,a[1]]})(),0x9ac0ff,0,7)};t.light.userData.tv=1;t.light.userData.i=0;HSTATE.cur.tvs.push(t);ob(x,z,ry,0,.26,w/2+.1,.28);
     const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return t.on?'Turn the TV off':'Turn the TV on'},fn:()=>{t.on=!t.on;if(window.AUD)AUD.beep();if(!t.on){t.g.fillStyle='#08090b';t.g.fillRect(0,0,160,90);t.tex.needsUpdate=true}}});return t};
   K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
-    bx(x,z,ry,0,.66,1.45,w+.02,.06,1.25,c,0);bx(x,z,ry,0,.9,.04,w+.2,1.0,.1,wood,5);bx(x,z,ry,0,.5,2.14,w+.14,.5,.08,wood,5);ob(x,z,ry,0,1.05,w/2+.1,1.08);
+    const cl=window.FD?FD.shade(c,1.35):c,cd=window.FD?FD.shade(c,.72):c;
+    bx(x,z,ry,0,.68,1.42,w+.06,.12,1.3,c,0);bx(x,z,ry,0,.745,.83,w+.05,.03,.2,'#fbf8f2',0);bx(x,z,ry,0,.78,1.98,w+.1,.04,.34,cd,0);    // duvet, turned-down sheet, a throw over the foot
+    for(const s of [-1,1])bx(x,z,ry,s*w*.2,.725,.62,.32,.12,.14,cl,0);                                                                   // two scatter cushions
+    bx(x,z,ry,0,.9,.04,w+.2,1.0,.1,wood,5);bx(x,z,ry,0,.5,2.14,w+.14,.5,.08,wood,5);ob(x,z,ry,0,1.05,w/2+.1,1.08);
     const p=loc(x,z,ry)(w/2+.62,1.5);sit(p[0],p[1],ry-Math.PI/2,'Sit on the bed',.2)};
-  K.stand=(x,z,ry)=>{bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
+  K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
   K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
-  K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';
+  K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
     for(const [kind,w] of items){const c=u+w/2;u+=w;
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
@@ -97,17 +104,18 @@ function hsKit(E,S,L){
   K.shower=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.04,w/2,w,.08,w,'#e2e6e9',1);for(const s of [-1,1])bx(x,z,ry,s*w/2,1.05,w/2,.03,2.1,w,'#dce8ee',1);bx(x,z,ry,0,1.05,w,w,2.1,.03,'#dce8ee',1);bx(x,z,ry,w*.38,1.05,w+.02,.05,2.1,.03,'#9aa0a6',6);cy(x,z,ry,0,1.9,.1,.02,.02,.5,'#c8ccd0',6);cy(x,z,ry,0,2.38,.18,.1,.12,.04,'#c8ccd0',6);ob(x,z,ry,0,w/2,w/2,w/2)};
   K.hang=(x,z,ry,n)=>{for(let i=0;i<(n||3);i++)bx(x,z,ry,(i-1)*.35,1.4,.05,.26,.5,.03,['#2f6db0','#e8e4da','#c8372d'][i%3],0);bx(x,z,ry,0,1.7,.04,1.1,.03,.03,'#9aa0a6',6)};
   K.piano=(x,z,ry)=>{bx(x,z,ry,0,.75,.6,1.5,.15,1.3,'#111113',1);bx(x,z,ry,0,.4,.6,1.4,.8,1.1,'#111113',1);bx(x,z,ry,0,.8,.12,1.4,.05,.25,'#f4f1ea',0);for(const a of [-1,1])bx(x,z,ry,a*.62,.3,.0,.06,.6,.06,'#111113',1);K.chair(...(()=>{const p=loc(x,z,ry)(0,-.55);return [p[0],p[1],ry]})(),'#111113');ob(x,z,ry,0,.6,.8,.7)};
-  K.chandelier=(x,z,y,r)=>{r=r||.6;E.box(x,H-.15,z,.05,.3,.05,'#c9a24a',6);for(let i=0;i<8;i++){const a=i*Math.PI/4;E.box(x+Math.cos(a)*r,y,z+Math.sin(a)*r,.07,.28,.07,'#fff4d8',3);E.box(x+Math.cos(a)*r*.5,y+.12,z+Math.sin(a)*r*.5,r,.03,.03,'#c9a24a',6,-a)}E.box(x,y+.05,z,.2,.2,.2,'#c9a24a',6)};
+  K.chandelier=(x,z,y,r)=>{r=r||.6;(E.lampSkip=E.lampSkip||[]).push([x,z]);E.box(x,H-.15,z,.05,.3,.05,'#c9a24a',6);for(let i=0;i<8;i++){const a=i*Math.PI/4;E.box(x+Math.cos(a)*r,y,z+Math.sin(a)*r,.07,.28,.07,'#fff4d8',3);E.box(x+Math.cos(a)*r*.5,y+.12,z+Math.sin(a)*r*.5,r,.03,.03,'#c9a24a',6,-a)}E.box(x,y+.05,z,.2,.2,.2,'#c9a24a',6)};
   // wall segments along x at z (or along z at x) with doorways [centre,width]; a lintel closes each doorway
-  K.wallX=(z,xa,xb,gaps,m,c)=>{const gs=(gaps||[]).slice().sort((a,b)=>a[0]-b[0]);let t=xa;const seg=(a,b)=>{if(b-a>.05){E.box((a+b)/2,H/2,z,b-a,H,.22,c||S.wall,m==null?S.wm:m,0);wallSeg(ox+a,oz+z,ox+b,oz+z,.3,INT_Y-1,INT_Y+H+1)}};
-    for(const [g,w] of gs){seg(t,g-w/2);E.box(g,(2.2+H)/2,z,w,H-2.2,.22,c||S.wall,m==null?S.wm:m,0);for(const s of [-1,1])E.box(g+s*(w/2+.03),1.1,z,.06,2.2,.28,S.trim,5,0);E.box(g,2.2,z,w+.12,.06,.28,S.trim,5,0);t=g+w/2}seg(t,xb)};
-  K.wallZ=(x,za,zb,gaps,m,c)=>{const gs=(gaps||[]).slice().sort((a,b)=>a[0]-b[0]);let t=za;const seg=(a,b)=>{if(b-a>.05){E.box(x,H/2,(a+b)/2,.22,H,b-a,c||S.wall,m==null?S.wm:m,0);wallSeg(ox+x,oz+a,ox+x,oz+b,.3,INT_Y-1,INT_Y+H+1)}};
-    for(const [g,w] of gs){seg(t,g-w/2);E.box(x,(2.2+H)/2,g,.22,H-2.2,w,c||S.wall,m==null?S.wm:m,0);for(const s of [-1,1])E.box(x,1.1,g+s*(w/2+.03),.28,2.2,.06,S.trim,5,0);E.box(x,2.2,g,.28,.06,w+.12,S.trim,5,0);t=g+w/2}seg(t,zb)};
+  K.wallX=(z,xa,xb,gaps,m,c)=>{const gs=(gaps||[]).slice().sort((a,b)=>a[0]-b[0]);let t=xa;const seg=(a,b)=>{if(b-a>.05){E.box((a+b)/2,H/2,z,b-a,H,.22,c||S.wall,m==null?S.wm:m,0);wallSeg(ox+a,oz+z,ox+b,oz+z,.3,INT_Y-1,INT_Y+H+1);if(window.FD)FD.skirt(E,S,'x',z,a,b)}};
+    for(const [g,w,dopt] of gs){seg(t,g-w/2);if(window.FD)FD.door(E,S,'x',z,g,w,Object.assign({front:z===0},dopt));E.box(g,(2.2+H)/2,z,w,H-2.2,.22,c||S.wall,m==null?S.wm:m,0);for(const s of [-1,1])E.box(g+s*(w/2+.03),1.1,z,.06,2.2,.28,S.trim,5,0);E.box(g,2.2,z,w+.12,.06,.28,S.trim,5,0);t=g+w/2}seg(t,xb)};
+  K.wallZ=(x,za,zb,gaps,m,c)=>{const gs=(gaps||[]).slice().sort((a,b)=>a[0]-b[0]);let t=za;const seg=(a,b)=>{if(b-a>.05){E.box(x,H/2,(a+b)/2,.22,H,b-a,c||S.wall,m==null?S.wm:m,0);wallSeg(ox+x,oz+a,ox+x,oz+b,.3,INT_Y-1,INT_Y+H+1);if(window.FD)FD.skirt(E,S,'z',x,a,b)}};
+    for(const [g,w,dopt] of gs){seg(t,g-w/2);if(window.FD)FD.door(E,S,'z',x,g,w,dopt);E.box(x,(2.2+H)/2,g,.22,H-2.2,w,c||S.wall,m==null?S.wm:m,0);for(const s of [-1,1])E.box(x,1.1,g+s*(w/2+.03),.28,2.2,.06,S.trim,5,0);E.box(x,2.2,g,.28,.06,w+.12,S.trim,5,0);t=g+w/2}seg(t,zb)};
+  if(window.FD)FD.kit(E,K,S);
   return K}
 
 // ---------- shell: floor, ceiling (with beams), outer walls with the front door ----------
 function hsShell(E,K,S,def){const W=def.W,D=def.D,H=def.H;
-  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);
+  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);E.floor(-W/2-.1,W/2+.1,-.5,D+.1);
   if(S.beams){for(let x=-W/2+1.6;x<W/2;x+=2.6)E.box(x,H-.14,D/2,.24,.28,D,'#4a2f1a',5);for(const z of [D*.33,D*.66])E.box(0,H-.1,z,W,.2,.22,'#4a2f1a',5)}
   K.wallX(D,-W/2,W/2,[],null);K.wallZ(-W/2,0,D,[],null);K.wallZ(W/2,0,D,[],null);K.wallX(0,-W/2,W/2,[[0,1.3]],null);
   E.act(0,.7,1.8,'Go outside',()=>PORTAL.exit());
@@ -126,7 +134,8 @@ function hsBuild(def,id){
     K.kitchen(-3.7,D-.05,PI,[['fridge',.75],['cab',.9],['sink',1.2],['cab',.6],['stove',.7],['cab',.9]]);K.table(-3.6,7.1,0,1.3,.8,.76);K.chair(-4.6,7.1,PI/2);K.chair(-2.6,7.1,-PI/2);K.window(-3.7,D-.12,PI,1.4,.8,1.7);
     K.bed(hw-.05,2.3,-PI/2,1.7,'#b5422d');K.stand(hw-.05,.9,-PI/2);K.stand(hw-.05,3.7,-PI/2);K.wardrobe(3.9,.05,0,2.0);K.rug(4.2,2.3,0,2.6,2.2,'#d8c9a8');K.window(hw-.12,2.3,-PI/2,1.0,.8,1.95);K.art(1.93,3.4,PI/2,.8,.6,1.6);
     K.rug(4.15,6.8,0,4.6,4.3,'#c3d1d8');K.vanity(3.0,D-.05,PI,.9);K.toilet(5.3,4.72,0);K.tub(5.4,D-.05,PI,1.6);K.hang(1.93,5.6,PI/2,2);K.window(hw-.12,6.6,-PI/2,.8,.8,1.7);
-    K.light(-3,2.5,3,S.light,1.2,14);K.light(-3,2.5,7,S.light,.9,12);K.light(4.2,2.5,2.4,S.light,.8,10);K.light(4.2,2.5,6.8,0xffffff,.9,10)}
+    K.light(-3,2.5,3,S.light,1.2,14);K.light(-3,2.5,7,S.light,.9,12);K.light(4.2,2.5,2.4,S.light,.8,10);K.light(4.2,2.5,6.8,0xffffff,.9,10);
+    if(window.FD){FD.bath(E,1.8,hw,4.6,D,[['W',7.5,1.0]],S,1.5);K.shoes(-1.5,.12,0,.9);K.hang(1.6,.13,0,2)}}
   else if(id==='house1'){ // ----- Sea villa: bright coastal house; living room with a fireplace, open kitchen with a bar island, bedroom / bath / study along the back -----
     K.wallX(7.5,-hw,hw,[[-4.7,1.1],[1.1,1.0],[5.8,1.1]]);K.wallZ(-1,7.5,D,[]);K.wallZ(3.2,7.5,D,[]);
     K.fire(-hw+.02,3.6,PI/2,2.4);K.rug(-3.8,3.7,0,4.8,3.4,'#cbd9e4');K.sofa(-3.8,6.6,PI,2.7);K.sofa(-1.2,3.6,-PI/2,1.1);K.table(-3.8,3.5,0,1.5,.8,.4,'#d8cdb8');K.tv(-3.8,.06,0,1.7);
@@ -136,7 +145,8 @@ function hsBuild(def,id){
     K.bed(-5.0,D-.05,PI,1.8,'#3d5a80');K.stand(-6.35,D-.05,PI);K.stand(-3.65,D-.05,PI);K.wardrobe(-hw+.03,10.0,PI/2,2.2);K.rug(-5.0,9.6,0,2.8,2.4,'#dfe7ee');K.art(-1.12,9.2,-PI/2,.9,.7,1.7);
     K.rug(1.1,9.75,0,4.0,4.3,'#c3d1d8');K.vanity(1.1,D-.05,PI,1.0);K.toilet(-.4,7.62,0);K.tub(3.0,10.0,-PI/2,1.7);K.hang(-.87,10.6,PI/2,2);
     K.desk(6.5,11.55,PI,1.6);K.shelf(hw-.03,9.0,-PI/2,1.8,2.1);K.sofa(4.3,7.62,0,1.7);K.plant(8.0,7.9,1.1);K.art(3.32,10.0,PI/2,.8,.6,1.7);
-    K.light(-4,2.7,3.5,S.light,1.3,15);K.light(4.5,2.7,3.5,S.light,1.2,14);K.light(-5,2.7,9.8,S.light,.9,10);K.light(1,2.7,9.8,0xffffff,.8,8);K.light(6,2.7,9.8,S.light,.8,10)}
+    K.light(-4,2.7,3.5,S.light,1.3,15);K.light(4.5,2.7,3.5,S.light,1.2,14);K.light(-5,2.7,9.8,S.light,.9,10);K.light(1,2.7,9.8,0xffffff,.8,8);K.light(6,2.7,9.8,S.light,.8,10);
+    if(window.FD){FD.bath(E,-1,3.2,7.5,D,[['S',1.1,1.0]],S,1.6);K.shoes(-1.3,.12,0,.9);K.towelRail(3.09,8.4,-PI/2,.5)}}
   else if(id==='house2'){ // ----- Lagoon house: timber lodge, long open living room round a stone fireplace, kitchen and dining east, two bedrooms and a bath across the back -----
     K.wallX(8.2,-hw,hw,[[-5.2,1.1],[0,1.0],[5.0,1.1]]);K.wallZ(-2.6,8.2,D,[]);K.wallZ(2.6,8.2,D,[]);
     K.fire(-3.2,.02,0,2.4);K.rug(-3.4,4.2,0,5.4,3.6,'#6a3a2a');K.sofa(-3.4,6.9,PI,2.8);K.sofa(-.6,4.0,-PI/2,2.0);K.sofa(-6.4,6.6,PI-.4,1.1);K.table(-3.4,4.3,0,1.4,.8,.4);
@@ -145,7 +155,8 @@ function hsBuild(def,id){
     K.bed(-5.2,D-.05,PI,1.7,'#8a4b2a');K.stand(-6.5,D-.05,PI);K.stand(-3.9,D-.05,PI);K.wardrobe(-hw+.03,10.6,PI/2,2.0);K.rug(-5.2,10.5,0,2.6,2.2,'#d8c9a8');K.art(-2.72,10.4,-PI/2,.8,.6,1.7);
     K.bed(5.6,D-.05,PI,1.3,'#2f5d45');K.stand(4.6,D-.05,PI);K.wardrobe(hw-.03,10.8,-PI/2,1.6);K.desk(3.1,9.4,PI/2,1.3);K.art(2.72,11.6,PI/2,.8,.6,1.7);
     K.rug(0,10.6,0,5.0,4.6,'#c3d1d8');K.vanity(0,D-.05,PI,1.0);K.toilet(-1.7,8.32,0);K.tub(2.45,11.0,-PI/2,1.7);K.shower(-1.9,D-.05,PI,1.0);
-    K.light(-3.4,2.8,4.4,S.light,1.4,15);K.light(5,2.8,4.5,S.light,1.2,13);K.light(-5,2.8,10.6,S.light,.9,10);K.light(5,2.8,10.6,S.light,.9,10);K.light(0,2.8,10.5,0xffffff,.8,8)}
+    K.light(-3.4,2.8,4.4,S.light,1.4,15);K.light(5,2.8,4.5,S.light,1.2,13);K.light(-5,2.8,10.6,S.light,.9,10);K.light(5,2.8,10.6,S.light,.9,10);K.light(0,2.8,10.5,0xffffff,.8,8);
+    if(window.FD){FD.bath(E,-2.6,2.6,8.2,D,[['S',0,1.0]],S,1.6);K.shoes(-1.4,.12,0,.9);K.towelRail(2.49,9.3,-PI/2,.5)}}
   else{                    // ----- Island mansion: premium villa, great room with a grand fireplace and a piano, dining and kitchen with a bar island, master suite with an en-suite, guest room, study -----
     K.wallX(8.5,-hw,hw,[[-8.0,1.3],[-1.0,1.3],[2.2,1.2],[6.0,1.3]]);K.wallZ(-4.5,8.5,D,[]);K.wallZ(4.5,8.5,D,[]);K.wallZ(-.1,8.5,D,[]);
     K.fire(-hw+.02,4.2,PI/2,3.0);K.rug(-8.6,4.3,0,7.0,5.0,'#6d5a3c');K.cornerSofa(-8.6,7.6,PI,3.2,2.4);K.sofa(-5.9,4.2,-PI/2,1.1);K.table(-8.6,4.3,0,1.8,1.0,.38,'#2a2418');K.tv(-8.6,.08,0,2.2);K.piano(-11.7,1.6,-PI/2);
@@ -157,7 +168,8 @@ function hsBuild(def,id){
     K.rug(-2.3,12.2,0,4.2,7.3,'#c3d1d8');K.vanity(-3.4,D-.05,PI,1.0);K.vanity(-2.2,D-.05,PI,1.0);K.tub(-4.38,10.5,PI/2,1.9);K.toilet(-3.3,8.62,0);K.shower(-.8,D-.05,PI,1.0);
     K.bed(2.2,D-.05,PI,1.5,'#6f8fa8');K.stand(1.0,D-.05,PI);K.stand(3.4,D-.05,PI);K.wardrobe(4.42,10.5,-PI/2,1.8);K.rug(2.0,12.6,0,2.4,2.0,'#d8dfe6');
     K.desk(8.5,15.5,PI,1.8);K.shelf(hw-.03,11.5,-PI/2,2.4,2.2);K.sofa(10.0,8.62,0,2.0);K.plant(12.3,9.3,1.4);K.art(4.62,12.4,PI/2,1.0,.7,1.8);
-    K.light(-8.6,3.4,4.4,S.light,1.6,18);K.light(6.5,3.4,3.2,S.light,1.4,16);K.light(-8.6,3.4,12.4,S.light,1.1,12);K.light(2.2,3.4,12.4,S.light,.9,10);K.light(-2.2,3.4,12.2,0xffffff,.9,9);K.light(8.5,3.4,12,0xffffff,1.0,12);K.light(0,3.4,5.5,S.light,1.0,14)}
+    K.light(-8.6,3.4,4.4,S.light,1.6,18);K.light(6.5,3.4,3.2,S.light,1.4,16);K.light(-8.6,3.4,12.4,S.light,1.1,12);K.light(2.2,3.4,12.4,S.light,.9,10);K.light(-2.2,3.4,12.2,0xffffff,.9,9);K.light(8.5,3.4,12,0xffffff,1.0,12);K.light(0,3.4,5.5,S.light,1.0,14);
+    if(window.FD){FD.bath(E,-4.5,-.1,8.5,D,[['S',-1.0,1.3]],S,1.8);K.towelRail(-.21,10.2,-PI/2,.5)}}
   E.fin();const pg=E.P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));
   INDOORS.push({name:'house',title:def.name,sub:def.cls,floor:'wood',exp:S.exp,lights:L.filter(l=>!l.userData.fire&&!l.userData.tv),test:(x,z)=>x>ox-hw-1&&x<ox+hw+1&&z>oz-1&&z<oz+D+1,ceil:()=>INT_Y+H-.3});
   grp.visible=false;const hs=HSTATE.cur;

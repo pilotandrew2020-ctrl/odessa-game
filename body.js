@@ -184,3 +184,17 @@ function bdEyes(head,HR,HH){if(!BD_CORNEA)BD_CORNEA=new THREE.MeshPhongMaterial(
 // warm blood-red rim on skin where the surface turns away from the eye — a cheap stand-in for subsurface scattering on ears, nose, cheeks and fingers
 function bdSkinRim(m){m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\n{float rim=pow(1.0-clamp(abs(dot(normalize(vNormal),normalize(vViewPosition))),0.0,1.0),2.6);totalEmissiveRadiance+=vec3(.42,.14,.08)*rim*.3;}')};
   m.customProgramCacheKey=()=>'skinrim';m.needsUpdate=true}
+
+// ---- cloth: a tiny tileable bump texture per weave (weave / twill / knit) so shirts and jeans catch the light like fabric instead of plastic.
+// 64 px tiles, mip-mapped, so it only shows up close and never shimmers at a distance. Shared by every material of that kind.
+const BD_FAB={};
+function bdFabric(mat,kind,scale){
+  let t=BD_FAB[kind];
+  if(!t){const N=64,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d'),im=g.createImageData(N,N);let s=17;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++){let v;
+      if(kind==='twill')v=((x+y)>>1)&1?.62:.38;                                  // diagonal ridges (denim)
+      else if(kind==='knit')v=((x%4)<2?((y+(x>>2&1)*2)%4<2?.66:.4):.3);            // rows of little stitches
+      else v=(((x>>1)+(y>>1))&1)?.6:.4;                                           // plain weave
+      v+=(r()-.5)*.12;const o=(y*N+x)*4,c=Math.max(0,Math.min(255,v*255))|0;im.data[o]=im.data[o+1]=im.data[o+2]=c;im.data[o+3]=255}
+    g.putImageData(im,0,0);t=BD_FAB[kind]=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(10,10);t.anisotropy=2}
+  mat.bumpMap=t;mat.bumpScale=scale||.5;mat.needsUpdate=true}

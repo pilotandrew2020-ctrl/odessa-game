@@ -14,6 +14,7 @@ const MDL={base:'assets/models/props/',buf:{},wait:{},gl:{},
       m.scale.multiplyScalar(s);m.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3());
       m.position.x-=c.x;m.position.z-=c.z;m.position.y-=b.min.y;
       m.traverse(x=>{if(x.isMesh){x.castShadow=true;x.receiveShadow=true;x.frustumCulled=!x.isSkinnedMesh}});
+      if(o.tint){const tc=new THREE.Color(o.tint).convertSRGBToLinear();m.traverse(x=>{if(x.isMesh&&x.material&&x.material.color){x.material=x.material.clone();x.material.color.multiply(tc)}})}   // tint: multiply the diffuse colour (recolour a painted prop)
       holder.add(m);holder.userData.model=m;holder.userData.clips=g.animations||[];
       if(o.ready)o.ready(holder,m,g.animations||[])}).catch(e=>console.warn('[models]',name,e&&e.message||e));
     return holder}};

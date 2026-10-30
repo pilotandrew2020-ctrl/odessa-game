@@ -36,7 +36,7 @@ function cnFallbackDraw(t){const c=CN.cx;if(!c)return;const W=512,H=288;const g=
 // ---------- the interior ----------
 function cnBuild(){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+800+56*200,oz=INT_Z,W=30,D=54,FH=5.4,HH=12.4,ZH=14;
-  const E=shEnv(grp,ox,oz,FH),L=[];CN_SEATS.length=0;
+  const E=shEnv(grp,ox,oz,FH),L=[];CN_SEATS.length=0;E.floor(-W/2+.1,W/2-.1,.1,D-.1,'carpet');   // without a ground function stepPlayer refuses every step inside an interior
   const light=(x,y,z,col,i,d)=>{const l=new THREE.PointLight(col,0,d||14,1.5);l.position.set(ox+x,INT_Y+y,oz+z);l.userData.i=i;grp.add(l);L.push(l);return l};
   // floors and ceilings
   E.box(0,-.05,ZH/2,W,.1,ZH,'#4a1b26',4);E.box(0,-.05,(ZH+D)/2,W,.1,D-ZH,'#2a1219',4);E.box(0,FH+.05,ZH/2,W,.1,ZH,'#d8cdbb',4);E.box(0,HH+.05,(ZH+D)/2,W,.1,D-ZH,'#0e0e13',0);

@@ -11,11 +11,12 @@
 const FL={built:{},leaving:0,ready:false};
 const FL_DEF={
   panel:{idx:58,W:9.6,D:6.8,H:2.5,door:0,title:'Your flat',sub:'panel block · carpet on the wall, wall unit, folding sofa',
-    S:{exp:.56,wood:'#6b4a2c',wall:'#dcc799',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#f1ede2',cm:0,beams:false,sofa:['#8a3a2e','#c9a86a'],accent:'#8a2f2a',light:0xffe2b0}},
+    // a quiet winter night: the lamps are dim and a little cold, the windows show blue snow-light (no New Year, no samovar)
+    S:{door:'#efe9d9',hw:'#a8905a',rad:'cast',standGlb:true,standTint:'#d8b080',tileA:'#efe9da',tileB:'#c8c0ae',tileC:'#e6e0d0',exp:.46,wood:'#6b4a2c',wall:'#d3c3a0',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#ece8de',cm:0,beams:false,sofa:['#b3561f','#d6893c'],accent:'#7a3a2a',light:0xe6e3d6,win:'#46598a'}},
   stalin:{idx:59,W:12,D:8.2,H:3.5,door:-5,title:'Your flat',sub:'Stalin-era house · tall windows, piano, long corridor',
-    S:{exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
+    S:{door:'#f2ede0',hw:'#b99a4a',rad:'cast',curt:['#a85a4a','#f1e6cf','#6f8a58'],standGlb:true,standTint:'#8a6240',tileA:'#f3f1ea',tileB:'#cfc8b8',tileC:'#e8e4d8',exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
   new:{idx:60,W:11,D:7.2,H:2.9,door:-4.4,title:'Your flat',sub:'new build · open plan, kitchen island, glass wall',
-    S:{exp:.5,wood:'#b99a6c',wall:'#e4e5e6',wm:0,floor:'#8c8e92',fm:7,trim:'#ffffff',ceil:'#f3f3f3',cm:0,beams:false,sofa:['#7d838b','#d6d9dd'],accent:'#1d6a8a',light:0xfff3df}}};
+    S:{door:'#e9e5dd',hw:'#9aa0a6',curt:'#e3e6e8',tileA:'#e6e8ea',tileB:'#aeb4b8',tileC:'#d6dadd',exp:.5,wood:'#b99a6c',wall:'#e4e5e6',wm:0,floor:'#8c8e92',fm:7,trim:'#ffffff',ceil:'#f3f3f3',cm:0,beams:false,sofa:['#7d838b','#d6d9dd'],accent:'#1d6a8a',light:0xfff3df}}};
 
 function installFlats(){
   if(FL.ready)return;FL.ready=true;
@@ -37,6 +38,17 @@ function flArm(E,x,z,ry,h){
 // a real standing prop (Poly Haven, CC0) on the floor at flat coordinates (x,z) with an oriented collision box (half sizes hw across, hd deep)
 function flProp(E,name,x,z,ry,hw,hd,o){MDL.put(E.grp,name,Object.assign({x:E.ox+x,y:INT_Y,z:E.oz+z,ry:ry},o||{}));E.obb(x,z,hw,hd,ry)}
 
+// floral curtains on both sides of a window (same arguments as K.window): a printed canvas texture, cached per colour theme
+const FL_CURT={};
+function flCurtains(E,K,x,z,ry,w,h,y,theme){theme=theme||['#c98f9b','#f3e3d3','#7a8f58'];const key=theme.join();
+  if(!FL_CURT[key]){const cv=document.createElement('canvas');cv.width=128;cv.height=256;const g=cv.getContext('2d');g.fillStyle=theme[1];g.fillRect(0,0,128,256);let s=7;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+    for(let i=0;i<46;i++){const px=rnd()*128,py=rnd()*256,r=5+rnd()*7;g.fillStyle=theme[2];g.globalAlpha=.8;g.beginPath();g.ellipse(px+r,py+r*.6,r*.8,r*.35,.6,0,6.3);g.fill();g.globalAlpha=.92;g.fillStyle=theme[0];for(let k=0;k<5;k++){const a=k/5*6.283;g.beginPath();g.arc(px+Math.cos(a)*r*.6,py+Math.sin(a)*r*.6,r*.5,0,6.3);g.fill()}g.fillStyle='#f0d27a';g.beginPath();g.arc(px,py,r*.35,0,6.3);g.fill()}
+    g.globalAlpha=1;for(let x2=0;x2<128;x2+=8){g.fillStyle='rgba(0,0,0,.06)';g.fillRect(x2,0,3,256)}
+    const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;FL_CURT[key]=new THREE.MeshStandardMaterial({map:tex,roughness:.95,side:THREE.DoubleSide})}
+  const ch=h+.5,cw=Math.max(.3,w*.34);
+  for(const s of [-1,1]){const p=K.loc(x,z,ry)(s*(w/2+cw/2-.02),.14);const m=new THREE.Mesh(new THREE.PlaneGeometry(cw,ch),FL_CURT[key]);m.position.set(E.ox+p[0],INT_Y+y+h/2-ch/2+.2,E.oz+p[1]);m.rotation.y=ry;E.grp.add(m)}
+  const p=K.loc(x,z,ry)(0,.1),rg=new THREE.Group(),rod=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,w+cw*2+.1,6),new THREE.MeshStandardMaterial({color:0x5a4a3a,roughness:.6}));rod.rotation.z=Math.PI/2;rg.add(rod);rg.rotation.y=ry;rg.position.set(E.ox+p[0],INT_Y+y+h/2+.22,E.oz+p[1]);E.grp.add(rg)}
+
 function flToStair(k){if(FL.leaving)return;FL.leaving=1;const o=PORTAL.opt||{};PORTAL.go('stair',{ent:o.ent||1,floor:o.floor||1,style:k});setTimeout(()=>{FL.leaving=0},1800)}
 
 function flBuild(k){
@@ -44,7 +56,7 @@ function flBuild(k){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+800+def.idx*200,oz=INT_Z;
   const E=shEnv(grp,ox,oz,H),L=[];HSTATE.cur={tvs:[],fires:[],taps:[]};const K=hsKit(E,S,L);
   // ----- shell: floor, ceiling, outer walls and the front door -----
-  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);
+  E.box(0,-.05,D/2,W,.1,D,S.floor,S.fm);E.box(0,H+.05,D/2,W,.1,D,S.ceil,S.cm);E.floor(-hw-.1,hw+.1,-.5,D+.1);
   K.wallX(D,-hw,hw,[]);K.wallZ(-hw,0,D,[]);K.wallZ(hw,0,D,[]);K.wallX(0,-hw,hw,[[dx,1.0]]);
   for(const s of [-1,1])E.box(s*(hw-.12),.1,D/2,.04,.2,D-.3,'#ffffff',0);
   E.box(dx,.012,.7,1.1,.024,.8,'#3a3a3e',0);
@@ -70,23 +82,27 @@ function flTick(dt){
 const FL_LAYOUT={
   // ===== nine-storey panel block: hall in the middle, kitchen west, bath east, living room + bedroom behind =====
   panel(E,K,S,L,hw,D,H){const PI=Math.PI;
-    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.2,0,2.4,[[.7,.8]]);K.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
+    // the east partition used to sit at x 1.2, right in the bedroom doorway (x .4–1.3): only a 20 cm channel was left, so it is at 1.5 now
+    K.wallZ(-1.2,0,2.4,[[.7,.9]]);K.wallZ(1.5,0,2.4,[[.7,.8]]);K.wallX(2.4,-hw,hw,[[-.55,.9],[.85,.9]]);K.wallZ(.2,2.4,D,[]);
+    FD.floor(E,-hw,-1.2,0,2.4,'chess','#d9ceb4','#9c8460');FD.floor(E,-1.2,1.5,0,2.4,'lino','#8a5a3a','#6a4028','#a07a50');FD.bath(E,1.5,hw,0,2.4,[['W',.7,.8]],S);     // kitchen chequer, hall lino, tiled bathroom
     // hall: coats, a shoe bench, mirror and the telephone table
-    K.hang(-1.07,1.6,PI/2,2);K.art(1.09,1.0,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.05,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.0,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
+    K.hang(-1.07,1.6,PI/2,2);K.art(1.39,1.78,-PI/2,.5,.7,1.55,'#cfd8dc');K.bx(1.35,1.75,-PI/2,0,.38,0,.4,.76,.5,'#6b4a2c',5);K.bx(1.3,1.75,-PI/2,0,.82,.05,.2,.1,.18,'#1c1c1e',6);K.bx(-.4,.35,0,0,.12,0,.9,.24,.34,'#5a4030',5);
     // kitchen (west): worktop run on the partition, small table, window
     K.kitchen(-3.0,2.28,PI,[['fridge',.6],['cab',.6],['sink',1.0],['cab',.5],['stove',.6]],'#ebe4d2');
-    K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);
-    E.box(-3.0,1.2,2.28,3.3,.6,.02,'#eef2f2',5);                                          // tiles behind the worktop
+    K.table(-4.0,.95,0,.9,.6,.75,'#d8c9ad');K.chair(-3.3,.95,PI/2,'#7a5a3a');K.chair(-4.0,1.55,PI,'#7a5a3a');K.window(-3.2,.12,0,1.3,1.2,1.25);flCurtains(E,K,-3.2,.12,0,1.3,1.2,1.25,['#d9a86a','#f3ecd8','#8a9a58']);
     // bathroom (east): tub, toilet, basin, washing machine
-    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(1.34,1.78,PI/2,.8);K.bx(2.2,.55,0,0,.45,0,.6,.9,.6,'#f2f2f2',1);K.rug(2.4,1.5,0,1.0,.7,'#9fc3d6');
+    K.tub(3.9,.05,0,1.7);K.toilet(3.0,2.33,PI);K.vanity(4.25,2.33,PI,.8);K.washer(1.62,1.6,PI/2);K.towelRail(4.7,1.6,-PI/2,.5);K.rug(2.7,1.5,0,1.0,.7,'#9fc3d6');
     K.light(-3.0,2.3,1.2,S.light,.8,6);K.light(0,2.3,1.2,S.light,.8,6);K.light(3.0,2.3,1.2,0xffffff,.9,6);
     // living room: wall unit with glass doors, TV on the opposite wall, folding sofa under a wall carpet, round table, chandelier
-    K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);
-    K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.3,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
-    K.table(-2.4,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-3.3,2.52,0);K.plant(-4.4,6.4,1.1);K.chandelier(-2.4,4.5,2.1,.34);
-    K.light(-2.3,2.2,4.5,S.light,1.4,10);
+    K.shelf(-1.9,D-.03,PI,2.4,2.2);K.window(-4.0,D-.12,PI,1.3,1.3,1.2);flCurtains(E,K,-4.0,D-.12,PI,1.3,1.3,1.2);
+    K.tv(-4.69,4.5,PI/2,.8);K.rug(-2.6,4.5,0,3.4,3.0,'#9a3a30');K.sofa(.09,4.5,-PI/2,2.0);K.art(.09,4.5,-PI/2,1.7,1.1,1.45,'#8a2f2a');
+    // the doorway from the hall (x -.55) opens into the north-east corner: sideboard and armchair used to wall the landing in, so the whole living room was unreachable
+    K.table(-2.7,4.5,0,1.1,1.1,.5,'#6b4a2c');flArm(E,-4.05,6.72,PI);flProp(E,'vintage_wooden_drawer_01',-3.4,2.88,0,.85,.45);   // the sideboard (Poly Haven, CC0)
+    K.plant(-4.55,5.6,1.1);K.chandelier(-2.7,4.5,2.1,.34);
+    K.light(-2.6,2.2,4.5,S.light,1.4,10);
     // bedroom: double bed under the window wall, bedside stands, wardrobe on the partition, rug
-    K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);
+    K.bed(2.8,D-.05,PI,1.6,S.accent);K.stand(1.7,D-.05,PI);K.stand(3.9,D-.05,PI);K.wardrobe(.33,4.6,PI/2,1.8);K.rug(2.9,4.5,0,2.4,1.8,'#b9a07a');K.window(hw-.12,5.2,-PI/2,1.2,1.3,1.2);K.window(2.8,D-.12,PI,1.2,1.1,1.75);flCurtains(E,K,hw-.12,5.2,-PI/2,1.2,1.3,1.2,['#9aa8c8','#efe9dc','#6f8a64']);flCurtains(E,K,2.8,D-.12,PI,1.2,1.1,1.75,['#9aa8c8','#efe9dc','#6f8a64']);
+    K.dresser(4.68,3.7,-PI/2,1.0);K.clock(.09,3.0,-PI/2,1.95);
     K.light(2.6,2.2,4.6,S.light,1.1,9)},
   // ===== Stalin-era flat: corridor along the front, salon with a piano, bedroom, bath and kitchen =====
   stalin(E,K,S,L,hw,D,H){const PI=Math.PI;
@@ -98,14 +114,16 @@ const FL_LAYOUT={
     K.hang(-4.0,1.49,PI,3);K.art(-1.2,1.49,PI,.7,1.5,1.75,'#cfd8dc');K.window(0,.12,0,.9,1.4,1.7);K.rug(0,.8,0,10,.9,'#7a3a3a');K.plant(5.4,.5,1.2);K.bx(-5.5,.35,0,0,.4,0,.5,.8,.4,'#4a3220',5);
     // salon: grand rug, chandelier, piano by the west wall, sofa and armchairs round a low table, bookcases, TV on the partition
     K.rug(-2.6,5.0,0,4.4,3.6,S.accent);K.rug(-2.6,5.0,0,5.0,4.2,'#8a6a3a');K.chandelier(-2.6,5.0,2.75,.85);
-    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);K.table(-2.6,6.3,0,1.2,.7,.42,'#4a3220');flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
+    K.piano(-5.95,4.6,PI/2);K.sofa(-2.6,8.0,PI,2.6);flProp(E,'WoodenTable_01',-2.6,6.3,0,.64,.3,{s:.7});flArm(E,-4.8,6.2,PI/2);flArm(E,-.4,6.2,-PI/2);
     K.shelf(-5.2,D-.03,PI,1.5,2.7);K.shelf(-.2,D-.03,PI,1.5,2.7);K.tv(.69,3.2,-PI/2,1.1);K.plant(-5.4,2.3,1.5);
     K.window(-4.4,D-.12,PI,1.2,2.2,1.8);K.window(-1.0,D-.12,PI,1.2,2.2,1.8);K.window(-hw+.12,3.0,PI/2,1.3,2.2,1.8);K.window(-hw+.12,6.7,PI/2,1.3,2.2,1.8);
+    K.clock(-2.6,D-.11,PI,2.75);
     K.light(-2.6,3.0,5.0,S.light,1.5,14);K.light(-4.8,3.0,3.0,S.light,.8,8);
     // bedroom (north-east): bed under the north windows, wardrobe, stands
     K.bed(3.4,D-.05,PI,1.8,S.accent);K.stand(2.2,D-.05,PI);K.stand(4.6,D-.05,PI);K.wardrobe(5.0,4.52,0,1.8);K.rug(3.4,6.0,0,2.8,2.2,'#b0a080');
     K.window(1.8,D-.12,PI,1.2,2.0,1.7);K.window(hw-.12,6.3,-PI/2,1.4,2.0,1.7);K.light(3.4,3.0,6.0,S.light,1.2,10);
-    // bathroom (centre): tub on the west wall, toilet, basin
+    // bathroom (centre): tub on the west wall, toilet, basin — tiled walls and floor
+    FD.bath(E,.8,3.4,1.6,4.4,[['S',2.3,.8]],S,1.8);FD.floor(E,3.4,hw,1.6,4.4,'chess','#e6dcc2','#a48a5e');K.shoes(2.4,.12,0,.9);K.dresser(.92,5.0,PI/2,1.0);K.mirror(.95,2.55,PI/2,.7,.8,1.55);
     K.tub(.95,2.55,PI/2,1.5);K.toilet(2.6,4.29,PI);K.vanity(3.3,2.0,-PI/2,.7);K.rug(2.4,3.0,0,1.0,.8,'#9fc3d6');K.light(2.1,3.0,3.0,0xffffff,.9,6);
     // kitchen (east, with the window): run on the south... along the divider, table by the window
     K.kitchen(4.7,4.29,PI,[['fridge',.55],['sink',.8],['cab',.4],['stove',.55]],'#efe8d6');K.table(4.9,2.8,0,1.0,.8,.75,'#d8c9ad');K.chair(4.3,2.8,PI/2,'#7a5a3a');K.chair(5.5,2.8,-PI/2,'#7a5a3a');K.window(hw-.12,2.9,-PI/2,1.1,1.5,1.55);K.light(4.7,3.0,3.0,S.light,1.0,8)},
@@ -115,8 +133,9 @@ const FL_LAYOUT={
     E.box(1.1,.005,D/2,8.4,.01,D-.1,'#b99a6c',5);                                       // oak floor in the open-plan part, polished concrete in the hall and bath
     E.box(hw-.125,H/2,5.7,.03,H,3.6,'#3d4650',5);                                        // slate accent wall behind the TV
     for(const x of [-.2,1.0,2.2]){E.box(x,2.3,2.2,.02,1.0,.02,'#222428',6);E.box(x,1.75,2.2,.34,.2,.34,'#fff3d6',3)}   // pendant lamps over the island
-    // hall: a mirror, shoe cabinet and coat hooks; the bathroom behind it
-    K.wardrobe(-hw+.03,.95,PI/2,1.4);K.plant(-3.7,.45,1.1);
+    // hall: a mirror, shoe cabinet and coat hooks; the bathroom behind it (tiled)
+    FD.bath(E,-hw,-3.3,1.8,4.4,[['S',-4.4,.9]],S,1.9);E.lampSkip=[[-.2,2.2],[1,2.2],[2.2,2.2]];K.washer(-3.42,2.8,-PI/2);
+    K.wardrobe(-hw+.03,.95,PI/2,1.4);
     K.shower(-4.85,4.29,PI,1.0);K.toilet(-3.8,4.29,PI);K.vanity(-hw+.05,2.9,PI/2,.9);K.rug(-4.3,3.0,0,1.2,.8,'#cdd9e0');K.light(-4.4,2.4,1.0,S.light,.9,7);K.light(-4.4,2.4,3.1,0xffffff,1.0,6);
     // sleeping alcove behind a glass partition
     K.bed(-4.55,D-.05,PI,1.4,S.accent);K.rug(-4.4,6.0,0,1.9,1.6,'#d6dade');K.window(-hw+.12,6.2,PI/2,1.1,1.8,1.5);K.light(-4.4,2.4,6.0,S.light,1.0,8);
@@ -125,7 +144,7 @@ const FL_LAYOUT={
     K.bx(.4,2.2,0,0,.46,0,2.2,.92,.8,'#e9eaec',5);K.bx(.4,2.2,0,0,.94,0,2.3,.05,.9,'#4a4f55',7);E.obb(.4,2.2,1.15,.45,0);for(const x of [-.3,1.1])K.chair(x,3.0,PI,'#2a2d32');
     K.table(3.4,2.7,0,1.8,.9,.76,'#d8c9ad');for(const x of [2.7,4.1]){K.chair(x,1.9,0,'#2a2d32');K.chair(x,3.5,PI,'#2a2d32')}
     // lounge facing the TV wall, with the glass wall behind
-    K.rug(1.8,5.7,0,3.6,2.8,'#b7bbc0');K.sofa(-.2,5.7,PI/2,2.6);K.table(1.4,5.7,PI/2,1.1,.6,.4,'#2a2d32');K.tv(hw-.03,5.7,-PI/2,1.7);K.sofa(2.6,6.6,PI,1.0,'#1d6a8a','#6fb0cc');K.plant(4.9,6.8,1.3);K.lamp(4.9,4.5,1.6);
+    K.rug(1.8,5.7,0,3.6,2.8,'#b7bbc0');K.sofa(-.2,5.7,PI/2,2.6);K.table(1.4,5.7,PI/2,1.1,.6,.4,'#2a2d32');K.tv(hw-.03,5.7,-PI/2,1.7);K.sofa(2.6,6.6,PI,1.0,'#1d6a8a','#6fb0cc');K.plant(4.9,6.8,1.3);K.plant(-2.8,3.5,1.1);K.lamp(4.9,4.5,1.6);
     // glass walls: the back wall and the east wall are windows from the sill almost to the ceiling
     K.window(.9,D-.12,PI,2.6,2.1,1.3);K.window(3.7,D-.12,PI,2.0,2.1,1.3);K.window(hw-.12,2.7,-PI/2,1.6,2.1,1.3);
     K.light(.9,2.6,2.4,S.light,1.3,12);K.light(2.6,2.6,5.6,0xffffff,1.3,12)}

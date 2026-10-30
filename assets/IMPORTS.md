@@ -16,6 +16,13 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `models/props/vintage_wooden_drawer_01.glb` | Poly Haven | CC0 | `soviet.js` lounge, south wall (5.2k tris, diffuse only) |
 | `models/props/coffee_table_round_01.glb` | Poly Haven | CC0 | `modern.js` living room via `flProp()` (4k tris, diffuse only, `s:.7`; replaces the box table) |
 | `models/props/side_table_01.glb` | Poly Haven | CC0 | `soviet.js` lounge, between the armchairs (2.8k tris, diffuse only) |
+| `models/props/Sofa_01.glb` | Poly Haven | CC0 | modern flat living room via `S.sofaGlb` in `houses.js` K.sofa (4.1k tris, diffuse only; the kit's sit act + collision kept) |
+| `models/props/modern_ceiling_lamp_01.glb` | Poly Haven | CC0 | modern flat: two pendant lamps over the living room and hall (5.6k tris) |
+| `models/props/WoodenTable_01.glb` | Poly Haven | CC0 | stalin flat salon coffee table via `flProp()` in `flats.js` (952 tris, 204 KB, `s:.7`; replaces the box table) |
+| `models/props/painted_wooden_nightstand.glb` | Poly Haven | CC0 | `fdet.js` `FD.stand()` — bedside tables of every `hsKit` bedroom (modern / panel / stalin / new-build flats, island houses via `S.standGlb`); 470 tris, 609 KB, diffuse only, `w:.46`, optional `S.standTint` |
+| `models/props/wall_clock.glb` | Poly Haven | CC0 | `fdet.js` `K.clock()` — hall / living-room wall clocks (modern flat, Soviet flat hall); 3.7k tris, 492 KB, diffuse only |
+| `models/avatar/Man.glb` | Quaternius (Universal Base Characters, Standard) | CC0 | `real.js` realistic player/NPC body (itch.io pack; rig kept, hair/clothes/shoes rebuilt in Blender, textures baked, 1.8 MB, lazy loaded after the page `load` event) |
 | `models/apache.glb` | already in the project | unknown | helicopter in `index.html` |
+| `textures/bark_platanus.jpg` | Poly Haven "Bark Platanus" (1k diffuse, https://polyhaven.com/a/bark_platanus) | CC0 | tree trunk/branch texture (`MATS.bark` in `index.html`, loaded after start, lightened on a canvas) |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.

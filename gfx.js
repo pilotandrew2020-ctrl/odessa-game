@@ -28,7 +28,7 @@ const LOOK={
 };
 const RAIN_CL={cover:1.3,op:1,lit:[.72,.76,.82],shade:[.20,.23,.28],glow:[.10,.06,.03],rim:0,tint:[0,0,0,0]};
 
-const G={ready:false,t:0,rain:0,pass:null,rays:true,carLights:true,
+const G={ready:false,t:0,rain:0,snow:0,fog:0,pass:null,rays:true,carLights:true,
   k:{sun:1,hemi:1,fog:1,exp:1,flash:0},
   fogDensity:.002,fogCol:new THREE.Color(),flT:-1,ltT:8,carN:0,lampT:0,lampN:0,halo:null,cloud:null,birds:null,rainM:null,rs:null};
 const _v=new THREE.Vector3(),_d=new THREE.Vector3(),_c=new THREE.Color(),_c2=new THREE.Color();
@@ -260,7 +260,7 @@ function thunder(){
 // ===================================================================================================
 function init(scene){
   if(G.ready)return;
-  try{makeClouds(scene);makeBirds(scene);makeHalos(scene);makeRain(scene);G.rain=(S.weather==='rain'&&S.season!=='winter')?1:0;G.ready=true}catch(e){console.error('GFX init failed',e)}
+  try{makeClouds(scene);makeBirds(scene);makeHalos(scene);makeRain(scene);G.rain=(S.weather==='rain'&&S.season!=='winter')?1:0;G.snow=S.weather==='snow'?1:0;G.fog=S.weather==='fog'?1:0;G.ready=true}catch(e){console.error('GFX init failed',e)}
 }
 function applyTime(){        // called at the end of the game's applyTime()
   if(!G.ready)return;
@@ -278,25 +278,37 @@ function apply(){            // look uniforms for the current time / season (wea
   if(G.pass){const u=G.pass.uniforms;u.uTS.value.set(...L.tS);u.uTH.value.set(...L.tH);u.uRayC.value.set(...L.rayC);
     u.uSat.value=L.sat*(W?.86:1);u.uCon.value=L.con;u.uVig.value=L.vig;u.uGrain.value=L.grain;u.uCA.value=L.ca}
 }
+const WEATHERS={clear:'Clear sky',rain:'Rain',snow:'Snow',fog:'Fog'};
 function setWeather(w){
+  if(!WEATHERS[w])w='clear';
   if(w==='rain'&&S.season==='winter'){if(typeof toast!=='undefined')toast('Rain','summer only — it snows in winter');return}
-  S.weather=w==='rain'?'rain':'clear';saveS();applyTime_();
-  if(typeof toast!=='undefined')toast(S.weather==='rain'?'Rain':'Clear sky','');
+  S.weather=w;saveS();applyTime_();
+  if(typeof toast!=='undefined')toast(WEATHERS[w],w==='snow'?'soft flakes, white ground':w==='fog'?'thick, quiet and grey':'');
 }
-function applyTime_(){const w=(S.weather==='rain'&&S.season!=='winter')?'rain':'clear';document.querySelectorAll('[data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===w));const rb=document.getElementById('bRain');if(rb)rb.classList.toggle('on',w==='rain')}
-function toggleWeather(){setWeather(S.weather==='rain'?'clear':'rain')}
+function currentWeather(){return(S.weather==='rain'&&S.season==='winter')?'clear':(WEATHERS[S.weather]?S.weather:'clear')}
+function applyTime_(){const w=currentWeather();document.querySelectorAll('[data-w]').forEach(b=>b.classList.toggle('on',b.dataset.w===w));
+  for(const [id,k] of [['bRain','rain'],['bSnow','snow'],['bFog','fog']]){const b=document.getElementById(id);if(b)b.classList.toggle('on',w===k)}}
+function toggleWeather(w){w=typeof w==='string'?w:'rain';setWeather(S.weather===w?'clear':w)}
 
 function update(dt){
   if(!G.ready)return;
   G.t+=dt;camera.updateMatrixWorld();
   const L=LOOK[S.time]||LOOK.day,W=S.season==='winter',night=UNI.uNight.value,indoor=UNI.uIndoor.value,inP=!!PORTAL.cur;
   // ---- weather ease ----
-  const want=(S.weather==='rain'&&!W)?1:0;
+  const wn=currentWeather(),want=wn==='rain'?1:0,sw=wn==='snow'?1:0,fw=wn==='fog'?1:0;
   G.rain+=(want-G.rain)*Math.min(1,dt*.4);if(Math.abs(want-G.rain)<.003)G.rain=want;
-  const R=G.rain,Rp=R*R*(3-2*R);
-  G.k.sun=lerp(1,.26,Rp);G.k.hemi=lerp(1,1.25,Rp);G.k.exp=lerp(1,1.04,Rp);
-  scene.fog.density=G.fogDensity*(1+Rp*1.6);
-  _c.copy(G.fogCol);_c2.setRGB(.34,.37,.42).multiplyScalar(S.time==='night'?.28:S.time==='dusk'?.7:1);scene.fog.color.copy(_c).lerp(_c2,Rp*.75);
+  G.snow+=(sw-G.snow)*Math.min(1,dt*.35);if(Math.abs(sw-G.snow)<.003)G.snow=sw;
+  G.fog+=(fw-G.fog)*Math.min(1,dt*.35);if(Math.abs(fw-G.fog)<.003)G.fog=fw;
+  const R=G.rain,Rp=R*R*(3-2*R),Sn=G.snow*G.snow*(3-2*G.snow),Fg=G.fog*G.fog*(3-2*G.fog),Ov=Math.max(Rp,Sn*.78,Fg*.72);   // Ov: how overcast the sky is (rain, snowfall or fog)
+  G.k.sun=lerp(1,.26,Ov);G.k.hemi=lerp(1,1.25,Ov);G.k.exp=lerp(1,1.04,Ov);
+  scene.fog.density=G.fogDensity*(1+Rp*1.6+Sn*1.3+Fg*6);
+  const tm=S.time==='night'?.28:S.time==='dusk'?.7:1;
+  _c.copy(G.fogCol);_c2.setRGB(.34,.37,.42).multiplyScalar(tm);scene.fog.color.copy(_c).lerp(_c2,Rp*.75);
+  _c2.setRGB(.80,.82,.86).multiplyScalar(tm);scene.fog.color.lerp(_c2,Sn*.7);_c2.setRGB(.74,.76,.78).multiplyScalar(tm);scene.fog.color.lerp(_c2,Fg*.85);
+  const pmT=(typeof ksMood==='function'&&!inP)?ksMood(camera.position.x,camera.position.z):0;G.pm=(G.pm||0)+(pmT-(G.pm||0))*Math.min(1,dt*.6);const Pm=G.pm;   // panel-block districts: extra haze, cooler grey
+  if(Pm>.003){scene.fog.density*=1+Pm*.8;_c2.setRGB(.70,.72,.75).multiplyScalar(tm);scene.fog.color.lerp(_c2,Pm*.45)}
+  UNI.uWinter.value=Math.max(W?1:0,.48*Sn);                 // snowfall in summer: a partial white cover on ground and roofs
+  if(typeof snowPts!=='undefined'&&snowPts){const on=(W||G.snow>.02)&&!inP;if(on!==snowPts.visible)snowPts.visible=on;if(on){const m=snowPts.material;m.size=.12*(1+.45*Sn);m.opacity=W?.78:.78*Math.min(1,Sn*2.2)}}
   const su=seaMesh.material.uniforms;su.uFogC.value.copy(scene.fog.color);su.uFogD.value=scene.fog.density;
   UNI.uWet.value=lerp(W?.35:(S.time==='night'?.45:S.time==='dusk'?.28:.08),1,Rp);UNI.uWetG.value=lerp(W?0:(S.time==='night'?.50:S.time==='dusk'?.24:0),1,Rp);
   // ---- lightning ----
@@ -305,14 +317,15 @@ function update(dt){
   const fl=G.k.flash*(1-indoor);
   // ---- clouds ----
   const cl=G.cloud,U=cl.U;cl.m.position.copy(camera.position);U.uT.value+=dt*(1+Rp*1.5);
-  const B=L.cl,cover=W&&!Rp?Math.max(B.cover,.8):B.cover;
-  U.uCover.value=lerp(cover,RAIN_CL.cover,Rp);U.uOp.value=lerp(B.op,1,Rp);U.uRim.value=lerp(B.rim,0,Rp);
+  const B=L.cl,cover=W&&!Ov?Math.max(B.cover,.8):B.cover;
+  U.uCover.value=lerp(cover,RAIN_CL.cover,Ov);U.uOp.value=lerp(B.op,1,Ov);U.uRim.value=lerp(B.rim,0,Ov);
   const wk=W?.78:1,rk=S.time==='night'?.09:S.time==='dusk'?.5:1;   // a rain sky is as dark as the hour
-  for(let i=0;i<3;i++){U.uLit.value.setComponent(i,lerp(B.lit[i]*(i===2?1:wk)+(W?.1:0),RAIN_CL.lit[i]*rk,Rp));U.uShade.value.setComponent(i,lerp(B.shade[i],RAIN_CL.shade[i]*rk,Rp));U.uGlow.value.setComponent(i,lerp(B.glow[i],RAIN_CL.glow[i],Rp))}
-  U.uTint.value.set(...B.tint).multiplyScalar(1);U.uTint.value.w=B.tint[3]*(1-Rp);
+  const lt=1+(Ov-Rp)*.5;                                       // snow / fog skies are lighter than rain skies
+  for(let i=0;i<3;i++){U.uLit.value.setComponent(i,lerp(B.lit[i]*(i===2?1:wk)+(W?.1:0),RAIN_CL.lit[i]*rk*lt,Ov));U.uShade.value.setComponent(i,lerp(B.shade[i],RAIN_CL.shade[i]*rk*lt,Ov));U.uGlow.value.setComponent(i,lerp(B.glow[i],RAIN_CL.glow[i],Ov))}
+  U.uTint.value.set(...B.tint).multiplyScalar(1);U.uTint.value.w=B.tint[3]*(1-Ov);
   U.uSunD.value.copy(sunDir);U.uFlash.value.set(.55,.6,.8).multiplyScalar(fl*1.4);
   // ---- birds ----
-  const b=G.birds,bc=L.bird;b.m.visible=!!bc&&!inP&&Rp<.4;
+  const b=G.birds,bc=L.bird;b.m.visible=!!bc&&!inP&&Ov<.4;
   if(b.m.visible){const u=b.U;u.uTime.value=G.t;u.uCam.value.copy(camera.position);u.uCell.value.set(Math.floor(camera.position.x/400)*400+200,Math.floor(camera.position.z/400)*400+200);u.uCol.value.set(...bc)}
   // ---- halos + headlights ----
   const H=G.halo;H.m.visible=night>.02&&!inP;
@@ -327,8 +340,8 @@ function update(dt){
   if(G.pass){const u=G.pass.uniforms;u.uTime.value=G.t;u.uAsp.value=innerWidth/innerHeight;
     _v.copy(sunDir).multiplyScalar(1000).add(camera.position).project(camera);u.uSun.value.set(_v.x*.5+.5,_v.y*.5+.5);
     camera.getWorldDirection(_d);const front=smooth(clamp(_d.dot(sunDir)*3.2,0,1))*smooth(clamp((sunDir.y+.04)*14,0,1));
-    u.uRays.value=(G.rays?L.ray:0)*front*(1-indoor)*(1-Rp*.92)*(W?.7:1);
-    u.uFlash.value=fl*.16;u.uSat.value=lerp(L.sat*(W?.86:1),.78,Rp);u.uVig.value=L.vig+Rp*.08}
+    u.uRays.value=(G.rays?L.ray:0)*front*(1-indoor)*(1-Ov*.92)*(W?.7:1);
+    u.uFlash.value=fl*.16;u.uSat.value=lerp(L.sat*(W?.86:1),Fg>Rp&&Fg>Sn?.7:.78,Ov)*(1-.16*(G.pm||0));u.uVig.value=L.vig+Ov*.08}
 }
 const smooth=x=>x*x*(3-2*x);
 

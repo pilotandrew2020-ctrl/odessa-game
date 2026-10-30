@@ -217,6 +217,25 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   INTERACT.push({x:ox-3.9,z:oz+5.3,r:1.4,label:'Pet the cat',fn:()=>toast('Мурр','the cat purrs and does not blink')});
   INTERACT.push({x:ox-9.2,z:oz+8.2,r:1.9,label:'Look at Ded Moroz',fn:()=>toast('Дед Мороз и Снегурочка','cotton-wool figures from the 70s')})}
 
+// marker / chalk scrawl on a wall: a transparent canvas decal a hair off the surface (ry: 0 faces +z, PI/2 faces +x, -PI/2 faces -x, PI faces -z)
+function svScrawl(grp,x,y,z,ry,w,h,lines,o){o=o||{};const cv=document.createElement('canvas');cv.width=512;cv.height=Math.max(64,Math.round(512*h/w));const g=cv.getContext('2d');
+  g.translate(cv.width/2,cv.height/2);g.rotate(o.rot||0);g.textAlign='center';g.textBaseline='middle';
+  const fs=o.size||Math.floor(cv.height/(lines.length+.5));g.font='bold '+fs+'px "Segoe Print","Segoe Script","Comic Sans MS","Marker Felt",cursive';
+  g.fillStyle=o.color||'#1b1b1f';g.globalAlpha=o.alpha||.82;lines.forEach((t,i)=>g.fillText(t,0,(i-(lines.length-1)/2)*fs*1.08,cv.width*.94));
+  if(o.under){g.strokeStyle=g.fillStyle;g.lineWidth=fs*.07;g.beginPath();g.moveTo(-cv.width*.4,fs*(lines.length*.54+.1));g.quadraticCurveTo(0,fs*(lines.length*.54+.3),cv.width*.4,fs*(lines.length*.54));g.stroke()}
+  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,transparent:true,depthWrite:false,roughness:1,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));
+  m.position.set(x,y,z);m.rotation.y=ry;grp.add(m);return m}
+// the stairwell notice board: green felt, a wooden frame, pinned paper notices
+function svBoard(grp,x,y,z,ry,w,h){const cv=document.createElement('canvas');cv.width=512;cv.height=Math.round(512*h/w);const g=cv.getContext('2d');
+  g.fillStyle='#3d5f48';g.fillRect(0,0,cv.width,cv.height);g.strokeStyle='#6b4a2d';g.lineWidth=18;g.strokeRect(0,0,cv.width,cv.height);
+  const sheets=[[30,34,210,150,'#f1efe4',-.03,['ОБЪЯВЛЕНИЕ','В субботу в 10:00','субботник во дворе','Жэк']],[262,30,214,120,'#efe6b8',.04,['Отключение','горячей воды','с 12 по 20']],[40,210,170,140,'#e6ecef',.03,['Продаётся','детская коляска','т. 34-17-52']],[250,190,226,150,'#f1efe4',-.02,['Соблюдайте','тишину','после 23:00']]];
+  for(const [sx,sy,sw,sh,col,rot,txt] of sheets){g.save();g.translate(sx+sw/2,sy+sh/2);g.rotate(rot);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(-sw/2+4,-sh/2+5,sw,sh);g.fillStyle=col;g.fillRect(-sw/2,-sh/2,sw,sh);
+    g.fillStyle='#b33';g.beginPath();g.arc(0,-sh/2+10,6,0,6.3);g.fill();g.fillStyle='#222';g.textAlign='center';g.textBaseline='middle';
+    txt.forEach((t,i)=>{g.font=(i===0?'bold 24px':'20px')+' Arial,sans-serif';g.fillText(t,0,-sh/2+38+i*28,sw-14)});g.restore()}
+  const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:tex,roughness:.9}));m.position.set(x,y,z);m.rotation.y=ry;grp.add(m);return m}
+
 // ===================== the stairwell: green-and-white walls, concrete flights, a green rail, three doors, an old lift =====================
 function svStair(opt){
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+400,oz=INT_Z;
@@ -231,30 +250,42 @@ function svStair(opt){
   const band=(x,z,w,d)=>{B(x,.95,z,w,1.9,d,GR,1);B(x,1.93,z,w+(w>d?0:.01),.05,d+(w>d?.01:0),GD,1)};
   band(-3.69,4.5,.03,10.8);band(3.69,4.5,.03,10.8);band(0,9.89,7.4,.03);band(-2.45,-.89,2.5,.03);band(2.45,-.89,2.5,.03);
   // flight 1: concrete steps with red-brown nosings rising along the left wall; mid landing; flight 2 doubling back above it
-  for(let i=0;i<12;i++){const zc=1.6+i*.4+.2,top=(i+1)*.2;B(-2.5,top/2,zc,2.6,top,.4,CON);B(-2.5,top-.035,zc-.15,2.6,.07,.12,NOS)}
-  B(-1.7,2.3,8.2,4.2,.2,3.6,CON);
-  for(let j=0;j<10;j++){const zc=6.2-j*.4,top=2.4+(j+1)*.2;B(-.4,top-.11,zc,1.6,.22,.4,CON);B(-.4,top-.035,zc+.15,1.6,.07,.12,NOS)}
-  B(-.4,3.36,4.4,1.6,.28,Math.hypot(3.6,1.8)+.7,'#7d7c77',9,0,Math.atan2(.2,.4));                    // solid underside of the second flight
-  B(-1.7,H-.1,3.0,4.2,.2,4.0,'#e9e6dc');
+  // the two flights really climb one storey (FLAT_FLOOR_HEIGHT = FH): 12 steps up to the mid landing (LH), 12 more to the next floor — you walk them, see `ramp` below
+  const FH=FLAT_FLOOR_HEIGHT,LH=FH/2,R=LH/12;
+  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*R;B(-2.5,top/2,zc,2.6,top,.4,CON);B(-2.5,top-.02,zc-.15,2.6,.04,.12,NOS)}
+  B(-1.7,LH-.1,8.2,4.2,.2,3.6,CON);
+  for(let j=0;j<12;j++){const zc=6.2-j*.4,top=LH+(j+1)*R;B(-.4,top-.11,zc,1.6,.22,.4,CON);B(-.4,top-.02,zc+.15,1.6,.04,.12,NOS)}
+  B(-.4,LH*1.5+R/2-.14,4.0,1.6,.28,Math.hypot(4.8,LH)+.3,'#7d7c77',9,0,Math.atan2(LH,4.8));          // solid underside of the second flight
+  B(-1.7,FH-.1,.3,4.2,.2,2.6,'#e9e6dc');                                                           // the next floor's slab over the arrival area
   // handrails and rods (green painted steel)
-  const slope=Math.atan2(.2,.4),rl=Math.hypot(.4,.2);
-  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*.2;B(-1.2,top+.5,zc,.035,.9,.035,RAIL,1)}
-  B(-1.2,1.65,4.0,.07,.07,Math.hypot(4.4,2.2),RAIL,1,0,-slope);
-  for(let j=0;j<6;j++){const zc=6.2-j*.4,top=2.4+(j+1)*.2;B(.4,top+.5,zc,.035,.9,.035,RAIL,1)}
-  B(.4,3.9,5.0,.07,.07,Math.hypot(2.4,1.2),RAIL,1,0,slope);
-  for(let k=0;k<6;k++)B(.4,2.9,6.6+k*.6,.035,.9,.035,RAIL,1);B(.4,3.4,8.2,.07,.07,3.6,RAIL,1);
+  const slope=Math.atan2(LH,4.8),rl=Math.hypot(4.8,LH);
+  for(let i=0;i<12;i++){const zc=1.8+i*.4,top=(i+1)*R;B(-1.2,top+.5,zc,.035,.9,.035,RAIL,1)}
+  B(-1.2,LH/2+.95,4.0,.07,.07,rl,RAIL,1,0,-slope);
+  for(let j=0;j<12;j++){const zc=6.2-j*.4,top=LH+(j+1)*R;B(.4,top+.5,zc,.035,.9,.035,RAIL,1)}
+  B(.4,LH*1.5+R/2+.95,4.0,.07,.07,rl,RAIL,1,0,slope);
+  for(let k=0;k<6;k++)B(.4,LH+.45,6.6+k*.6,.035,.9,.035,RAIL,1);B(.4,LH+.9,8.2,.07,.07,3.6,RAIL,1);
   // window on the landing, a radiator under it and a pipe
-  B(-1.7,3.5,9.9,2.1,1.4,.08,'#f4f2ea');B(-1.7,3.5,9.88,1.9,1.2,.05,'#d6ecc4',3);B(-1.7,3.5,9.86,.05,1.2,.06,'#f4f2ea');B(-1.7,3.5,9.86,1.9,.05,.06,'#f4f2ea');B(-1.7,3.0,9.8,2.3,.06,.2,'#bfbfb8');
+  const WY=LH+1.55;B(-1.7,WY,9.9,2.1,1.4,.08,'#f4f2ea');B(-1.7,WY,9.88,1.9,1.2,.05,'#d6ecc4',3);B(-1.7,WY,9.86,.05,1.2,.06,'#f4f2ea');B(-1.7,WY,9.86,1.9,.05,.06,'#f4f2ea');B(-1.7,WY-.5,9.8,2.3,.06,.2,'#bfbfb8');
+  B(-1.7,WY-1.0,9.86,1.4,.7,.1,'#ece8da',6);for(let k=0;k<7;k++)B(-2.2+k*.17,WY-1.0,9.8,.06,.62,.06,'#d9d5c4',6);                      // a ribbed radiator under the window
   B(-3.6,2.2,9.7,.14,4.4,.14,'#d8d8cc',6);
   // right wall: mailboxes, floor sign, three flat doors (nearest the stairs / opposite the rail / on the small landing), electric panel
   B(3.6,1.6,.65,.1,1.2,1.2,'#4d6a86',1);for(let r=0;r<3;r++)for(let k=0;k<3;k++)B(3.54,1.2+r*.4,.25+k*.4,.03,.3,.34,'#3a526a',1);
   const sign=plateMesh(['ПІД\'ЇЗД '+ent+' · ПОВЕРХ '+fl],{w:512,h:96,size:44,color:'#fff',bg:'#2a4a6a'},1.6,.3);sign.position.set(ox+3.62,INT_Y+2.7,oz+.65);sign.rotation.y=-Math.PI/2;grp.add(sign);
   B(2.75,.015,8.5,2.1,.03,3.0,'#7c7266');B(2.75,.03,7.0,2.1,.03,.06,'#c9c2b0');                                      // small landing: darker tile and a threshold line
   const doors=[[2.4,1],[5.4,2],[8.4,3]];
-  for(const [z,n] of doors){B(3.64,1.45,z,.14,2.9,1.7,'#2e2420',5);B(3.58,1.4,z,.1,2.8,1.5,'#4b2f22',5);B(3.52,1.4,z-.35,.03,2.2,.5,'#5a3a2a',5);B(3.52,1.4,z+.35,.03,2.2,.5,'#5a3a2a',5);
-    B(3.5,1.4,z+.55,.04,.5,.14,'#c9ccd0',6);B(3.48,1.3,z+.58,.05,.4,.05,'#c9ccd0',6);Cy(3.5,1.9,z,.03,.03,.04,'#b0b4b8',6,0,Math.PI/2);B(2.9,.015,z,1.0,.02,1.2,'#5a4a3a');
+  for(const [z,n] of doors){B(3.64,1.45,z,.14,2.9,1.7,'#2e2420',5);B(2.9,.015,z,1.0,.02,1.2,'#5a4a3a');
+    // the leaf is a real hinged mesh (hinge on the stair side, handle on the other) so it can swing open when you turn the key
+    const pv=new THREE.Group();pv.position.set(ox+3.56,INT_Y,oz+z-.75);grp.add(pv);
+    const part=(w,h,d,x,y,zz,hex,rx)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),svMat(hex));m.position.set(x,y,zz);if(rx)m.rotation.x=rx;m.receiveShadow=true;pv.add(m);return m};
+    part(.1,2.8,1.5,0,1.4,.75,'#4b2f22');part(.03,2.2,.5,-.06,1.4,.4,'#5a3a2a');part(.03,2.2,.5,-.06,1.4,1.1,'#5a3a2a');
+    part(.04,.5,.14,-.08,1.4,1.3,'#c9ccd0');part(.05,.4,.05,-.1,1.3,1.33,'#c9ccd0');part(.04,.06,.06,-.07,1.9,.75,'#b0b4b8');
+    part(.02,.16,.08,-.065,1.08,1.25,'#8d9296');part(.022,.032,.012,-.075,1.08,1.25,'#101214');   // lock plate and the keyhole
+    const setLeaf=k=>{pv.rotation.y=-1.22*k},hv=new THREE.Vector3();
     const pl=plateMesh(['КВ. '+n],{w:128,h:64,size:34,color:'#fff',bg:'#2a4a6a'},.5,.25);pl.position.set(ox+3.6,INT_Y+3.25,oz+z);pl.rotation.y=-Math.PI/2;grp.add(pl);
-    INTERACT.push({x:ox+2.9,z:oz+z,r:1.7,label:'Open Flat '+n,cond:()=>grp.visible,fn:()=>PORTAL.enter('flat',null,{ent:PORTAL.opt.ent,floor:fl,unit:n})})}
+    const kz=oz+z+.5;
+    INTERACT.push({x:ox+2.9,z:oz+z,r:1.7,label:'Open Flat '+n,cond:()=>grp.visible,act:'key',
+      actO:()=>({tx:ox+3.47,tz:kz,stand:[ox+2.95,kz],lock:[ox+3.49,floorY+1.08,kz],back:[ox+1.75,kz],leaf:setLeaf,handlePos:()=>{pv.updateWorldMatrix(true,false);return pv.localToWorld(hv.set(-.1,1.3,1.33))}}),
+      fn:()=>PORTAL.enter('flat',null,{ent:PORTAL.opt.ent,floor:fl,unit:n})})}
   B(3.62,2.0,7.0,.12,1.0,.7,'#9aa0a2',1);B(3.55,2.0,7.0,.03,.9,.6,'#868c8e',1);B(3.55,2.35,6.8,.03,.05,.05,'#e8c040',3);
   // the old lift on the back wall: dark green-grey sliding doors with little windows, a call button and a floor indicator
   B(2.75,1.5,9.9,2.0,3.0,.12,'#3b3f3c',5);B(2.35,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(3.15,1.4,9.82,.88,2.8,.06,'#6f7b73',6);B(2.35,1.9,9.78,.26,.6,.02,'#202a2e',2);B(3.15,1.9,9.78,.26,.6,.02,'#202a2e',2);
@@ -262,22 +293,45 @@ function svStair(opt){
   const ls=plateMesh(['ЛІФТ'],{w:128,h:64,size:36,color:'#fff',bg:'#2a4a6a'},.6,.3);ls.position.set(ox+2.75,INT_Y+3.55,oz+9.84);ls.rotation.y=Math.PI;grp.add(ls);
   const lift=$('liftUI');if(!lift.dataset.ok){lift.dataset.ok=1;const L=$('liftBtns');for(let f=1;f<=10;f++){const b=document.createElement('button');b.textContent=f;b.onclick=()=>{lift.hidden=true;if(window.AUD)AUD.beep();PORTAL.go('stair',{ent:PORTAL.opt.ent,floor:f,floors:PORTAL.opt.floors,style:PORTAL.opt.style,home:PORTAL.opt.home})};L.appendChild(b)}$('liftClose').onclick=()=>{lift.hidden=true}}
   INTERACT.push({x:ox+2.75,z:oz+8.9,r:1.6,label:'Call the old lift',fn:()=>{const mf=(PORTAL.opt&&PORTAL.opt.floors)||10;[...$('liftBtns').children].forEach((b,i)=>{b.style.display=i<mf?'':'none'});lift.hidden=false}});
+  // lived-in details: scuffed wall feet, cables along the ceiling, a fire extinguisher, a notice board and marker writing (each floor draws its own lines)
+  for(const [x,z,w,d] of [[-3.68,4.5,.03,10.8],[3.68,4.5,.03,10.8],[0,9.88,7.4,.03]])B(x,.17,z,w+(w>d?0:.004),.34,d+(w>d?.004:0),'#25563a',1);
+  B(3.2,H-.06,4.5,.03,.03,11,'#1a1a1a',1);B(3.3,H-.06,4.5,.03,.03,11,'#1a1a1a',1);B(3.25,H-.07,5.5,.14,.05,.18,'#e8e6dc',1);
+  Cy(3.52,1.0,9.35,.085,.085,.5,'#b8262a',1);B(3.52,1.3,9.35,.06,.07,.06,'#2a2a2a',1);B(3.62,1.0,9.35,.04,.5,.18,'#7a1a1c',1);
+  svBoard(grp,ox+3.66,INT_Y+1.7,oz+3.9,-Math.PI/2,.95,.7);
+  {const rg=rng(ent*131+fl*17+7),pk=a=>a[Math.floor(rg()*a.length)],W='#f1efe6',K='#1b1b1f',RD='#a82a2a',BL='#2a4a9a',Y='#e8dc9a';
+   const ink=a=>({color:pk(a),rot:(rg()-.5)*.14});
+   svScrawl(grp,ox-3.665,INT_Y+2.05+.45,oz+3.0,Math.PI/2,1.5,.6,[pk(['ЦОЙ ЖИВ!','КИНО ★','Nirvana','ДДТ','Metallica'])],Object.assign(ink([K,RD,W]),{under:true}));
+   svScrawl(grp,ox-3.665,INT_Y+2.75,oz+5.3,Math.PI/2,1.5,.45,[pk(['Саша + Лена = ♥','Маша + Паша ♥','Вася + Оля = ♥','Андрей + Наташа ♥'])],ink([RD,K,Y]));
+   svScrawl(grp,ox-3.665,INT_Y+LH+1.4,oz+7.7,Math.PI/2,1.5,.5,[pk(['Одесса — мама','Здесь был Вася','Привет из 90-х!','Серёга дурак'])],ink([W,K,BL]));
+   svScrawl(grp,ox-2.3,INT_Y+1.55,oz-.86,0,1.3,.5,[pk(['ДМБ-98','ДМБ-91','Здесь был Вася','1994'])],ink([K,W,RD]));
+   svScrawl(grp,ox+3.665,INT_Y+.95,oz+6.9,-Math.PI/2,1.2,.5,['Черноморец —','чемпион!'],ink([BL,K]));
+   svScrawl(grp,ox+.6,INT_Y+1.5,oz+9.86,Math.PI,1.3,.5,[pk(['тел. 34-17-52 Галя','звонить после 18:00','Не плюй!','кв. 5 — не звонить'])],ink([K,BL,RD]));
+   svScrawl(grp,ox+.6,INT_Y+2.35,oz+9.86,Math.PI,.5,.4,[pk(['☺','★','♥'])],{color:pk([RD,K]),size:90})}
   // ceiling lamps (old frosted globes) and the stairs / exit interactions
   for(const [x,z] of [[1.6,3.0],[1.6,8.0],[-1.7,8.2]])Cy(x,H-.2,z,.3,.3,.35,'#f4f0e0',3);
   if(fl===1)INTERACT.push({x:ox,z:oz+.5,r:1.5,label:'Go out to the yard',fn:()=>PORTAL.exit()});
   if(fl===1){let leaving=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||leaving)return;if(player.z<oz+.1&&Math.abs(player.x-ox)<3.6&&!RIDE.on){leaving=1;PORTAL.exit();setTimeout(()=>{leaving=0},1800)}})}   // walk out through the entrance door
-  INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Climb the stairs',cond:()=>fl<((PORTAL.opt&&PORTAL.opt.floors)||10),fn:()=>PORTAL.go('stair',{ent,floor:fl+1})});   // a five-storey block stops at five (opt.floors)
-  if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',{ent,floor:fl-1})});
-  addWall(ox-2.5,oz+5.8,2.6,8.4,0,INT_Y-1,INT_Y+5.5);addWall(ox-.4,oz+6.5,1.6,7.0,0,INT_Y-1,INT_Y+5.5);
+  const maxFl=()=>((PORTAL.opt&&PORTAL.opt.floors)||10),nextOpt=a=>({ent,floor:fl+a,floors:PORTAL.opt&&PORTAL.opt.floors,style:PORTAL.opt&&PORTAL.opt.style,home:PORTAL.opt&&PORTAL.opt.home,arrive:a>0?'up':'down'});
+  INTERACT.push({x:ox+1.0,z:oz+3.0,r:1.5,label:'Go up to the next floor',cond:()=>fl<maxFl(),fn:()=>PORTAL.go('stair',nextOpt(1))});   // a five-storey block stops at five (opt.floors); walking up the flights does the same
+  if(fl>1)INTERACT.push({x:ox-1.3,z:oz+.8,r:1.5,label:'Go down the stairs',fn:()=>PORTAL.go('stair',nextOpt(-1))});   // lands you at the top of the lower floor's flights, then you walk down
+  // walking up: stepping off the top of flight 2 carries you to the next floor, next to the foot of its first flight
+  {let climbing=0;ANIM.push(()=>{if(!grp.visible||PORTAL.cur!=='stair'||climbing||player.sit)return;const lx=player.x-ox,lz=player.z-oz;
+    if(fl<maxFl()&&lx>-1.2&&lx<.4&&lz>1.2&&lz<1.75&&player.y>floorY+FH-.35){climbing=1;PORTAL.go('stair',nextOpt(1));setTimeout(()=>{climbing=0},1800)}})}
+  // collision: the sides of the flights and landing (y-limited, so you can walk ON the stairs but not under or across them)
+  addWall(ox-1.2,oz+4.0,.1,4.8,0,INT_Y-1,INT_Y+FH+.4);addWall(ox+.45,oz+5.8,.1,8.4,0,INT_Y-1,INT_Y+FH+.4);addWall(ox-.4,oz+1.65,1.6,.1,0,INT_Y-1,INT_Y+1.0);
   const pg=P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));
   const l1=new THREE.PointLight(0xfff0d0,0,13,1.5),l2=new THREE.PointLight(0xfff0d0,0,13,1.5);l1.position.set(ox+1.5,INT_Y+H-.9,oz+3);l2.position.set(ox+1.2,INT_Y+H-.9,oz+8);l1.userData.i=.9;l2.userData.i=.75;grp.add(l1,l2);
-  SPECIAL.push((x,z)=>{if(!grp.visible)return null;const p=grp.worldToLocal(new THREE.Vector3(x,0,z));return Math.abs(p.x-ox)<=HW+.1&&p.z>=oz-2&&p.z<=oz+Z1+1?{h:floorY,pri:10,surf:'stone'}:null});
+  // floor height: flat, except on the two flights (smooth ramp through the treads) and the mid landing
+  const ramp=(lx,lz)=>{if(lx<-3.8||lx>.4||lz<1.6||lz>10.1)return 0;if(lz>6.4)return LH;if(lx<-1.2)return Math.min(LH,R*((lz-1.6)/.4+.5));return Math.min(FH,LH+R*((6.4-lz)/.4+.5))};
+  SPECIAL.push((x,z)=>{if(!grp.visible)return null;const lx=x-ox,lz=z-oz;return Math.abs(lx)<=HW+.1&&lz>=-2&&lz<=Z1+1?{h:floorY+ramp(lx,lz),pri:10,surf:'stone'}:null});
   grp.position.y=floorY;grp.updateMatrixWorld(true);
   const staticWalls=[];for(let i=staticWallStart;i<STATIC_WALLS.length;i++){const w=STATIC_WALLS[i];w.y0+=floorY;w.y1+=floorY;staticWalls.push([w,w.hw,w.hd])}
   for(let i=interactStart;i<INTERACT.length;i++){const it=INTERACT[i],prior=it.cond;it.y=it.y===undefined?floorY:it.y;it.cond=()=>grp.visible&&(!prior||prior())}
   grp.userData.interiorCollision={lowObbs:[],staticWalls};setInteriorGroupVisible(grp,false);
-  INDOORS.push({name:'stair',title:'Stairwell',sub:'',floor:'stone',exp:.7,lights:[l1,l2],test:(x,z)=>x>ox-HW&&x<ox+HW&&z>oz+Z0&&z<oz+Z1+1,ceil:()=>floorY+H-.3});
-  grp.visible=false;return {grp,spawn:[ox+1.8,oz+2.0],spawnY:floorY,spawnYaw:0,title:'Stairwell',sub:'old lift · floor '+fl,peds:[],onEnter(){PORTAL.peds=[]}}}
+  INDOORS.push({name:'stair',title:'Stairwell',sub:'',floor:'stone',exp:.7,lights:[l1,l2],test:(x,z)=>grp.visible&&x>ox-HW&&x<ox+HW&&z>oz+Z0&&z<oz+Z1+1,ceil:()=>floorY+H-.3});   // grp.visible: every floor shares this footprint, and the first one built used to win (wrong ceiling for the camera, wrong lamps)
+  grp.visible=false;return {grp,spawn:[ox+1.8,oz+2.0],spawnY:floorY,spawnYaw:0,title:'Stairwell',sub:'old lift · floor '+fl,peds:[],
+    onEnter(opt){PORTAL.peds=[];const a=opt&&opt.arrive;    // arriving by the stairs: up = beside the foot of the flights, down = on the top step of the lower floor's flight 2
+      if(a==='up'){this.spawn=[ox-.4,oz+1.1];this.spawnY=floorY;this.spawnYaw=-Math.PI/2}else if(a==='down'){this.spawn=[ox-.4,oz+2.9];this.spawnY=floorY+ramp(-.4,2.9)+.02;this.spawnYaw=0}else{this.spawn=[ox+1.8,oz+2.0];this.spawnY=floorY;this.spawnYaw=0}}}}
 
 // ===================== the big New Year tree in the middle of Derybasivska =====================
 function svTree(grp,P){

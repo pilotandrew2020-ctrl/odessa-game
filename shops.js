@@ -50,6 +50,8 @@ function shEnv(grp,ox,oz,H,Pext){const P=Pext||new PB(),E={grp,P,ox,oz,H,peds:[]
   E.plate=(lines,x,y,z,ry,w,h,opt)=>{const m=plateMesh(lines,Object.assign({w:1024,h:Math.round(1024*h/w),size:130,color:'#fff',bg:'#333',weight:'900'},opt||{}),w,h,opt&&opt.emis!==undefined?opt.emis:.8);m.position.set(ox+x,INT_Y+y,oz+z);m.rotation.y=ry;grp.add(m);return m};
   E.logo=(key,x,y,z,ry,w,h,glow)=>{const m=shLogoMesh(key,w,h,glow);m.position.set(ox+x,INT_Y+y,oz+z);m.rotation.y=ry;grp.add(m);return m};
   E.act=(x,z,r,label,fn)=>INTERACT.push({x:ox+x,z:oz+z,r,label,fn});
+  // the walkable floor of a room built from boxes: stepPlayer refuses every step inside an interior that has no ground function (room() adds one for the older interiors)
+  E.floor=(x0,x1,z0,z1,surf)=>SPECIAL.push((x,z)=>{if(!grp.visible)return null;const lx=x-ox,lz=z-oz;return lx>x0&&lx<x1&&lz>z0&&lz<z1?{h:INT_Y,pri:9,surf:surf||'wood'}:null});
   E.ped=(x,z,yaw,route,o)=>{const p=intPed(ox+x,oz+z,yaw,route&&route.map(q=>[ox+q[0],oz+q[1]]));if(o)Object.assign(p,o);p.basket=!!(o&&o.basket);E.peds.push(p);return p};
   // real 3D goods (products.js): rows are collected here and turned into instanced meshes by E.fin() once the interior is furnished
   E.B=null;E.rowW=(cat,x,y,z,dx,dz,len,yaw,seed,o)=>PRD.row(E.B||(E.B=PRD.batch()),cat,ox+x,INT_Y+y,oz+z,dx,dz,len,yaw,seed,o);
@@ -215,7 +217,7 @@ function shBagPanel(){let p=document.getElementById('bagPanel');
   p.querySelector('#bagX').onclick=()=>{p.hidden=true};
   p.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;shHold(HELD.name===k?null:k);shBagPanel()});
   return p}
-function shBagInit(){const row=document.getElementById('topBtns');if(!row||document.getElementById('bBag'))return;const b=document.createElement('button');b.id='bBag';b.textContent='🎒 Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};row.appendChild(b)}
+function shBagInit(){const row=document.getElementById('topBtns');if(!row||document.getElementById('bBag'))return;const b=document.createElement('button');b.id='bBag';b.textContent='Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};row.appendChild(b)}
 
 // ---------- atrium dressing: palms in planters and a glass roof over the concourse ----------
 function shPalm(E,x,z,h){const ox=E.ox,oz=E.oz,P=E.P,bark=sRGB('#7b5a3a'),bark2=sRGB('#8f6b45'),gr=[sRGB('#2f7a3a'),sRGB('#3f9a46'),sRGB('#2a6a34')];
