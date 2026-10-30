@@ -174,7 +174,7 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #actBtns>button.has::after{content:"";position:absolute;right:11px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
 #actBtns>button.has.open,#actBtns.open>#bQuick{background:var(--sun);color:#111}
 #bView b::before{content:"Camera · "}
-#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
+#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:10px}
 #actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
 #actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
 #actBtns>#bJump:active{background:#fff}
@@ -208,7 +208,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #topBtns button,#coHud .coRow button,#actBtns>button,#qMenu button,#heliControls button{clip-path:none;border:1.5px solid var(--hud-rim);border-radius:11px;background:var(--hud-bg);color:#f3f1ea;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.26);transform:none;text-shadow:0 1px 0 rgba(0,0,0,.55)}
 #topBtns button,#coHud .coRow button{display:inline-flex;align-items:center;padding:8px 12px 8px 10px;font:800 10px/1 var(--f-disp);letter-spacing:.07em}
-:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
+:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag,#bSpk,#bCar)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
 #topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:8px 9px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:15px;height:15px}   /* weather = icon-only tiles (the buttons keep their title text) */
 #coHud{top:calc(190px + env(safe-area-inset-top,0px))}
@@ -239,6 +239,27 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bAct{clip-path:none;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:var(--hud-on);color:#1b1204;padding:12px 20px 12px 14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
 #bAct:active{background:#fff;transform:translateY(2px)}
 @media (max-height:430px){#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
+/* ===== thumb ring: Jump sits in the corner and the other action tiles fan out around it on two staggered arcs;
+   Music + Garage live in a row above Chat (top left). Every id/handler is unchanged ===== */
+#bSpk{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 9.5v5h3.5l4.5 4v-13l-4.5 4z'/%3E%3Cpath d='M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11'/%3E%3C/svg%3E")}
+#bCar{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2'/%3E%3Ccircle cx='7' cy='16.8' r='2.2'/%3E%3Ccircle cx='17' cy='16.8' r='2.2'/%3E%3C/svg%3E")}
+#actBtns{--bs:52px;--js:80px;--r1:92px;--r2:146px;--jr:max(16px,env(safe-area-inset-right,0px));--jb:calc(16px + env(safe-area-inset-bottom,0px));
+  --cx:calc(var(--jr) + var(--js)/2);--cy:calc(var(--jb) + var(--js)/2);
+  position:absolute;left:auto;top:auto;right:0;bottom:0;width:0;height:0;max-width:none;display:block;gap:0;pointer-events:none}
+#actBtns>button{--rr:var(--r1);--lx:1;--uy:0;position:absolute;pointer-events:auto;width:var(--bs);height:var(--bs);
+  right:calc(var(--cx) + var(--rr)*var(--lx) - var(--bs)/2);bottom:calc(var(--cy) + var(--rr)*var(--uy) - var(--bs)/2)}
+#actBtns>#bJump{position:fixed;width:var(--js);height:var(--js);right:var(--jr);bottom:var(--jb)}
+#actBtns>#bRun{--rr:var(--r1);--lx:1;--uy:0}
+#actBtns>#bEmote{--rr:var(--r1);--lx:.7071;--uy:.7071}
+#actBtns>#bView{--rr:var(--r1);--lx:0;--uy:1}
+#actBtns>#bScoot{--rr:var(--r2);--lx:.9239;--uy:.3827}
+#actBtns>#bHeli{--rr:var(--r2);--lx:.3827;--uy:.9239}
+#actBtns>#bBoat{--rr:calc(var(--r1) + var(--bs) + 14px);--lx:1;--uy:0}
+#actBtns>#bJet{--rr:calc(var(--r1) + 2*var(--bs) + 22px);--lx:1;--uy:0}
+body.heliOn #actBtns>button:not(#bHeli):not(#bJump){display:none}body.heliOn #actBtns>#bHeli{--rr:var(--r1);--lx:1;--uy:0}   /* flying: only Jump and the Heli (exit) tile stay, next to the Up/Down/Left/Right pad */
+#bAct{bottom:calc(228px + env(safe-area-inset-bottom,0px))}
+@media (max-height:520px){#bAct{right:calc(max(16px,env(safe-area-inset-right,0px)) + 310px);bottom:calc(76px + env(safe-area-inset-bottom,0px))}}   /* short screens: the prompt sits left of the ring, above the speedometer, instead of under the minimap */
+@media (max-height:430px){#actBtns{--bs:44px;--js:68px;--r1:78px;--r2:140px}}
 </style>
 <div id="app">
   <canvas id="c"></canvas>
@@ -246,12 +267,12 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span></div>
     <canvas id="mini" width="264" height="264"></canvas>
     <div id="homeDir">Home · 0 m</div>
-    <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
+    <div id="coHud" hidden><div class="coRow" id="coTools"><button id="bSpk">Music</button><button id="bCar"><b>Garage</b></button></div><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
     <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button></div>
+    <div id="actBtns"><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button></div>
     <div id="heliControls" hidden><button id="bFlyUp">Up</button><button id="bFlyDown">Down</button><button id="bFlyLeft">&#9664; Left</button><button id="bFlyRight">Right &#9654;</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
@@ -6105,7 +6126,7 @@ const HELI={
       toast(this.loadError?'Helicopter unavailable':'Helicopter loading','Check the model asset and reload the game');
       return;
     }
-    this.on=!this.on;
+    this.on=!this.on;document.body.classList.toggle('heliOn',this.on);
     if(this.on){
       this.yaw=player.yaw;this.pitch=this.roll=0;this.throttle=.62;this.liftInput=0;this.velocity.set(0,0,0);
       this.root.position.set(player.x,player.y+2.2,player.z);this.root.rotation.set(0,this.yaw,0);
@@ -7370,6 +7391,7 @@ function setupInput(){
   $('bHeli').onclick=()=>HELI.toggle();$('bView').onclick=()=>CAMV.next();
   $('bScoot').onclick=toggleScoot;$('bAct').onclick=doAction;
   $('bSpk').onclick=()=>{if((typeof SPK!=='undefined')&&SPK)SPK.panel()};
+  setInterval(()=>{const t=$('topBtns'),c=$('coHud');if(t&&c&&!c.hidden){const b=t.getBoundingClientRect().bottom;if(b>40)c.style.top=Math.round(b+8)+'px'}},500);   // Music/Garage/Chat column hangs under however many rows the top buttons wrap to
   $('bEmote').onclick=()=>{if(typeof POSE!=='undefined')POSE.wheel()};
   $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
