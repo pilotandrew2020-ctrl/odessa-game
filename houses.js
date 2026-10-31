@@ -95,8 +95,17 @@ function hsKit(E,S,L){
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
   K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
+    // own Blender modules (dev/blender/wetkit.py): 1 m wide, the back flush with the wall; (c,vc) is the middle of the module's footprint, sc stretches it to the unit's width
+    const glb=typeof MDL!=='undefined'&&window.FD&&!S.boxKitchen;
+    const mod=(name,c,w,vc,y)=>{const p=loc(x,z,ry)(c,vc);MDL.put(E.grp,name,{x:ox+p[0],y:INT_Y+(y||0),z:oz+p[1],ry:ry,sc:[w-.01,1,1],tints:{tint_cab:cab}})};
+    const run=(name,c,w,vc,y)=>{const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++)mod(name,c-w/2+(i+.5)*w/n,w/n,vc,y)};
     for(const [kind,w] of items){const c=u+w/2;u+=w;
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
+      else if(glb){ob(x,z,ry,c,.32,w/2,.33);
+        if(kind==='cab'){if(kc===null)kc=c;run('kit_base',c,w,.336);run('kit_wall',c,w,.199,1.4)}
+        else if(kind==='sink'){const ws=Math.min(w,1.1),cs=c+(w-ws)/2;mod('kit_sink',cs,ws,.336);if(w-ws>.2)mod('kit_base',c-w/2+(w-ws)/2,w-ws,.336);run('kit_wall',c,w,.199,1.4);
+          const t=loc(x,z,ry)(cs,.25);K.tap(t[0],t[1],ry,'Run the tap',1.035,true)}
+        else if(kind==='stove'){mod('kit_stove',c,w,.352);mod('kit_hood',c,w*.9,.26,1.85);bx(x,z,ry,c,(1.93+H)/2,.17,.26,H-1.93,.2,'#9aa0a6',6)}}
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
         if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
         if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
@@ -112,10 +121,20 @@ function hsKit(E,S,L){
     E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.5,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
     if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.5,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
     return t};
-  K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
+  K.vanity=(x,z,ry,w)=>{w=w||1.0;
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // cabinet, porcelain top with an inset basin, faucet and framed mirror (dev/blender/wetkit.py)
+      const p=loc(x,z,ry)(0,.2875);MDL.put(E.grp,'vanity',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}});
+      ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.195);K.tap(t[0],t[1],ry,'Wash your hands',1.02);return}
+    bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
-  K.toilet=(x,z,ry)=>{bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
-  K.tub=(x,z,ry,len)=>{len=len||1.7;bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};
+  K.toilet=(x,z,ry)=>{
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){const p=loc(x,z,ry)(0,.32);MDL.put(E.grp,'toilet',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[1,1,.92]});ob(x,z,ry,0,.35,.25,.4);return}
+    bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
+  K.tub=(x,z,ry,len)=>{len=len||1.7;
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // a real recessed tub; the model's tap end is at -x, turned round it sits at the +u end like the box one
+      const p=loc(x,z,ry)(0,.4);MDL.put(E.grp,'tub',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry+Math.PI,sc:[len/1.7,1,1]});ob(x,z,ry,0,.4,len/2,.42);
+      const a=loc(x,z,ry)(len/2-.2,.32);K.tap(a[0],a[1],ry,'Run the bath',.66);return}
+    bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};
   K.shower=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.04,w/2,w,.08,w,'#e2e6e9',1);for(const s of [-1,1])bx(x,z,ry,s*w/2,1.05,w/2,.03,2.1,w,'#dce8ee',1);bx(x,z,ry,0,1.05,w,w,2.1,.03,'#dce8ee',1);bx(x,z,ry,w*.38,1.05,w+.02,.05,2.1,.03,'#9aa0a6',6);cy(x,z,ry,0,1.9,.1,.02,.02,.5,'#c8ccd0',6);cy(x,z,ry,0,2.38,.18,.1,.12,.04,'#c8ccd0',6);ob(x,z,ry,0,w/2,w/2,w/2)};
   K.hang=(x,z,ry,n)=>{for(let i=0;i<(n||3);i++)bx(x,z,ry,(i-1)*.35,1.4,.05,.26,.5,.03,['#2f6db0','#e8e4da','#c8372d'][i%3],0);bx(x,z,ry,0,1.7,.04,1.1,.03,.03,'#9aa0a6',6)};
   K.piano=(x,z,ry)=>{bx(x,z,ry,0,.75,.6,1.5,.15,1.3,'#111113',1);bx(x,z,ry,0,.4,.6,1.4,.8,1.1,'#111113',1);bx(x,z,ry,0,.8,.12,1.4,.05,.25,'#f4f1ea',0);for(const a of [-1,1])bx(x,z,ry,a*.62,.3,.0,.06,.6,.06,'#111113',1);K.chair(...(()=>{const p=loc(x,z,ry)(0,-.55);return [p[0],p[1],ry]})(),'#111113');ob(x,z,ry,0,.6,.8,.7)};

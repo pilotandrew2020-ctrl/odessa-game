@@ -25,3 +25,4 @@ Everything else in the game (buildings, cars, characters, interiors) is procedur
 - `fill_data.js` — outlines of 29 cemeteries and ~200 parks of Odesa from **OpenStreetMap** (© OpenStreetMap contributors, **ODbL**), converted to game metres; `fill.js` fills them with graves, benches and flower beds.
 - `assets/models/props/bed_double.glb`, `wardrobe.glb` — own work, built with the Blender script `dev/blender/bedkit.py`; released as **CC0**.
 - `assets/models/props/sofa.glb`, `armchair.glb`, `chair.glb`, `table.glb` — own work, built with the Blender script `dev/blender/homekit.py`; released as **CC0**.
+- `assets/models/props/kit_base.glb`, `kit_sink.glb`, `kit_stove.glb`, `kit_wall.glb`, `kit_hood.glb`, `toilet.glb`, `tub.glb`, `vanity.glb` — own work, built with the Blender script `dev/blender/wetkit.py`; released as **CC0**.
