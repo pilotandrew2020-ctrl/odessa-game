@@ -22,7 +22,7 @@ function installModern(){
 function mdToStair(){if(MD.leaving)return;MD.leaving=1;const o=PORTAL.opt||{};PORTAL.go('stair',{ent:o.ent||1,floor:o.floor||1,home:1});setTimeout(()=>{MD.leaving=0},1800)}
 
 function mdBuild(){
-  const S=MD_STYLE,W=9.6,D=8.4,H=2.7,hw=W/2,PI=Math.PI,idx=57;
+  const S=MD_STYLE,W=9.6,D=8.4,H=3.0,hw=W/2,PI=Math.PI,idx=57;
   const grp=new THREE.Group();scene.add(grp);const ox=INT_X+800+idx*200,oz=INT_Z;
   const E=shEnv(grp,ox,oz,H),L=[];HSTATE.cur={tvs:[],fires:[],taps:[]};const K=hsKit(E,S,L);
   // ----- shell: floor, ceiling, outer walls, the front door (a gap at x=-3.2 in the south wall) -----
