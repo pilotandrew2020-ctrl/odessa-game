@@ -118,21 +118,21 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   for(const x of [3.85,4.3,4.75])C(x,1.28,20.94,.06,.06,.06,'#1c1c1c',1,Math.PI/2);
   C(3.9,1.8,21.25,.3,.24,.42,'#e9e2cf',1);C(3.9,2.04,21.25,.1,.1,.06,'#2a2a2a',1);B(3.62,1.9,21.25,.3,.06,.06,'#e9e2cf',1,0,.3);B(4.2,1.95,21.25,.05,.34,.05,'#2a2a2a',1);   // kettle
   C(4.7,1.72,21.65,.3,.3,.2,'#4a4d50',6);B(4.2,1.72,21.65,.4,.04,.07,'#2a2a2a',1);                                                                         // frying pan
-  solid(4.3,21.3,.75,.55);
+  solid(4.3,21.4,.75,.45);
   // gas meter and pipes
   B(4.3,2.4,21.78,.4,.5,.18,'#bfc4c6',1);C(4.3,2.4,21.68,.1,.1,.02,'#eee',1,Math.PI/2);C(4.3,1.98,21.78,.035,.035,.9,'#bdbdb0',6);C(3.6,2.62,21.78,.035,.035,1.4,'#bdbdb0',6,0,Math.PI/2);
   // counters with wooden fronts and cream tops
   const run=(x0,x1)=>{const w=x1-x0,cx=(x0+x1)/2,cells=Math.max(1,Math.round(w/.75));B(cx,.72,21.4,w,1.44,.9,woodD,5);B(cx,1.5,21.38,w+.04,.08,.96,cream,1);
-    for(let k=0;k<cells;k++){const xc=x0+(k+.5)*w/cells;B(xc,.75,20.94,w/cells-.06,1.2,.03,wood,5);B(xc+.18,1.2,20.91,.03,.18,.03,steel,6)}solid(cx,21.2,w/2,.55)};
+    for(let k=0;k<cells;k++){const xc=x0+(k+.5)*w/cells;B(xc,.75,20.94,w/cells-.06,1.2,.03,wood,5);B(xc+.18,1.2,20.91,.03,.18,.03,steel,6)}solid(cx,21.4,w/2,.45)};      // the collision box is the drawn worktop (front at 20.95): it used to stand 30 cm in front of it, so nobody could reach the tap or the hob
   run(5.05,6.2);run(8.0,9.5);
   // sink cabinet with a steel basin, chrome mixer, dish rack with plates and cups
   B(7.1,.72,21.4,1.8,1.44,.9,woodD,5);B(7.1,1.5,21.38,1.84,.08,.96,'#d9d6cc',1);B(7.1,1.545,21.4,1.2,.03,.7,'#aeb4b7',6);C(7.1,1.56,21.4,.07,.07,.02,'#333',1);
   for(const k of [0,1,2])B(6.6+k*.5,.75,20.94,.44,1.2,.03,wood,5);
-  C(7.1,1.78,21.72,.04,.04,.5,steel,6);C(7.1,2.02,21.52,.035,.035,.45,steel,6,Math.PI/2);B(6.8,1.62,21.7,.1,.1,.1,steel,6);B(7.4,1.62,21.7,.1,.1,.1,steel,6);
+  C(7.1,1.78,21.72,.04,.04,.5,steel,6);C(7.1,2.02,21.43,.035,.035,.63,steel,6,Math.PI/2);      // the spout reaches over the front of the basin, so the hands under it are within an arm's length of the cabinetB(6.8,1.62,21.7,.1,.1,.1,steel,6);B(7.4,1.62,21.7,.1,.1,.1,steel,6);
   B(7.1,2.1,21.62,1.4,.04,.4,steel,6);B(7.1,2.5,21.62,1.4,.04,.4,steel,6);for(const x of [6.4,7.8])B(x,2.3,21.62,.03,.42,.4,steel,6);
   for(let k=0;k<6;k++)C(6.6+k*.18,2.34,21.62,.22,.22,.03,k%2?'#cfe0ea':'#eeeee8',1,0,Math.PI/2);
   for(let k=0;k<3;k++){C(6.65+k*.3,2.58,21.62,.07,.06,.12,'#f2efe6',1);C(6.65+k*.3,2.58,21.62,.071,.071,.03,'#2a62b8',1)}
-  solid(7.1,21.2,.9,.55);
+  solid(7.1,21.4,.9,.45);
   // wall cupboards
   for(const [x,w] of [[8.75,1.5]]){B(x,2.35,21.65,w,.9,.42,wood,5);B(x,2.35,21.43,w-.06,.8,.03,'#a56a30',5);B(x+.2,2.2,21.4,.03,.2,.03,steel,6)}
   // bread, board, tangerines
@@ -152,10 +152,10 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   K.done();
   // the flat is moved into the real building after it is built, so act targets are converted to world coordinates when used
   const wp=(x,z,y)=>grp.localToWorld(new THREE.Vector3(x,y==null?Y:y,z));
-  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),tg=wp(ox+3.9,oz+21.25);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:tg.x,tz:tg.z,reach:.95,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
-  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
-  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
-  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
+  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),kb=wp(ox+3.85,oz+20.91,Y+1.28);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:kb.x,tz:kb.z,knob:[kb.x,kb.y,kb.z],reach:.4,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
+  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.15);sinkJet.visible=false;grp.add(sinkJet);
+  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.15);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.42,ty:1.62,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
+  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.15);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.42,ty:1.62,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
   INTERACT.push({x:ox+2.9,z:oz+20.4,r:1.5,label:'Look at the preserves',fn:()=>toast('Pickles, tomatoes, beans','grandma\'s jars for the whole winter')});
   INTERACT.push({x:ox+2.6,z:oz+19.4,r:1.5,label:'Look at the wall carpet',fn:()=>toast('Ковёр на стене','red, with a diamond pattern — warm against the draught and a tradition')});
   INTERACT.push({x:ox+2.6,z:oz+13.1,r:1.5,label:'Check the clock',fn:()=>toast('23:58','two minutes to the New Year')});

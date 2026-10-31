@@ -87,7 +87,7 @@ function hsKit(E,S,L){
         if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
         if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.58,.02,.02,.3,'#c8ccd0',6);const t=loc(x,z,ry)(c,.5);K.tap(t[0],t[1],ry,'Run the tap',1.12,true);for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
     // an electric kettle on the first free worktop
-    if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
+    if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.5})}};
   // a tap with a thin jet of water that runs for a few seconds when used
   K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.26,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));const p=loc(x,z,ry)(0,.08);
     m.position.set(ox+p[0],INT_Y+(y||.95)-.15,oz+p[1]);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
