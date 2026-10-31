@@ -5216,7 +5216,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
       const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];
       if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
-      this.place(B);
+      this.place(B);lampT=0;lampBudget(0);
       if(DRIVE.on)exitCar();player.scoot=false;
       toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
   exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];doorCd=2.5;this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
@@ -5224,7 +5224,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
   go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       this.opt=opt||{};const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
-      this.place(B);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
+      this.place(B);lampT=0;lampBudget(0);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
   place(B){player.x=B.spawn[0];player.z=B.spawn[1];player.y=B.spawnY||INT_Y;player.yaw=B.spawnYaw||0;cam.yaw=player.yaw;cam.init=false;
     player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null}};
 // shop doors: walking into the glass opens it, and the interior behind it is built — and drawn once so every shader is compiled — while the player is still on the way
@@ -5232,10 +5232,16 @@ const DOORS=[];let doorCd=0,warmT=1;
 function warmInterior(d){const key=PORTAL.cacheKey(d.name,d.opt||{});let B=PORTAL.built[key];
   if(!B){try{B=INTERIORS[d.name](d.opt||{});B.grp.userData.portalName=d.name;PORTAL.built[key]=B;setInteriorGroupVisible(B.grp,false);d.warm=1}catch(e){console.warn('[portal] warm failed',d.name,e);d.warm=3}return}
   d.warm=2;
-  try{const pos=camera.position.clone(),q=camera.quaternion.clone();PORTAL.setCity(false);B.grp.visible=true;
-    camera.position.set(B.spawn[0],INT_Y+1.6,B.spawn[1]);camera.lookAt(B.spawn[0],INT_Y+1.2,B.spawn[1]+6);camera.updateMatrixWorld(true);renderer.render(scene,camera);
+  try{const pos=camera.position.clone(),q=camera.quaternion.clone();PORTAL.setCity(false);B.grp.visible=true;lampBudget(0,B);
+    camera.position.set(B.spawn[0],INT_Y+1.6,B.spawn[1]);camera.lookAt(B.spawn[0],INT_Y+1.2,B.spawn[1]+6);camera.updateMatrixWorld(true);
+    // draw everything that is visible indoors, in view or not (the avatar and the other people stand outside the picture here), so every program they need is compiled now
+    const fc=[];scene.traverseVisible(o=>{if(o.frustumCulled){o.frustumCulled=false;fc.push(o)}});
+    try{renderer.render(scene,camera)}finally{for(const o of fc)o.frustumCulled=true}
     camera.position.copy(pos);camera.quaternion.copy(q);camera.updateMatrixWorld(true)}catch(e){console.warn('[portal] warm render failed',e)}
-  PORTAL.setCity(true)}
+  PORTAL.setCity(true);lampT=0;lampBudget(0)}
+// the first indoor render compiles the shaders every room shares: do it once, behind the fade right after Play, not while the first door is opening
+function warmBoot(){const f=$('fade');if(warmBoot.done||!f||!INTERIORS.bg_cafe)return;warmBoot.done=1;f.style.opacity=1;
+  setTimeout(()=>{try{const d={name:'bg_cafe'};warmInterior(d);warmInterior(d)}catch(e){console.warn('[warm]',e&&e.message||e)}f.style.opacity=0},450)}
 function tickDoors(dt){doorCd=Math.max(0,doorCd-dt);warmT-=dt;
   if(!started||PORTAL.cur||DRIVE.on||RIDE.on||HELI.on||player.sit||PASS.host||MARINE.cur||EXT.cur)return;
   const sp=Math.hypot(player.vx||0,player.vz||0),fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);let warm=null,wd=900;
@@ -7483,16 +7489,21 @@ let ftAcc=0,ftN=0,ftT=0;
 // Every standard-material fragment loops over ALL visible point lights, and three.js compiles each shader for the current light count (a change recompiles everything in view).
 // A flat carries a dozen lamps, so entering one froze phones for seconds. Only the nearest INT_LAMPS stay lit, always the same number, and lamps of other rooms are off.
 const INT_LAMPS=MOBILE?3:5,_lampV=new THREE.Vector3();let lampT=0;
-function lampBudget(dt){lampT-=dt;if(lampT>0)return;lampT=.25;
-  let set=null;const B=PORTAL.cur&&PORTAL.active;
+// The visible PointLight count must be the same in every room: three.js builds a separate program for each count, and entering the first clinic with a count nobody had used
+// recompiled ~70 programs (avatar, sky ...) in one frame. Zero-intensity stand-ins pad every room up to INT_LAMPS, so the shaders compiled once serve all of them.
+const LAMP_PAD=[];
+function lampPad(n){if(!LAMP_PAD.length)for(let i=0;i<INT_LAMPS;i++){const l=new THREE.PointLight(0xffffff,0,1,2);l.position.set(0,-500,0);l.visible=false;scene.add(l);LAMP_PAD.push(l)}
+  for(let i=0;i<LAMP_PAD.length;i++)LAMP_PAD[i].visible=i<n}
+function lampBudget(dt,warmB){lampT-=dt;if(lampT>0&&!warmB)return;lampT=.25;
+  let set=null;const B=warmB||(PORTAL.cur&&PORTAL.active);
   if(B){if(!B.__pl){B.__pl=[];B.grp.traverse(o=>{if(o.isPointLight)B.__pl.push(o)})}set=B.__pl}
   else if(typeof curIndoor!=='undefined'&&curIndoor&&curIndoor.lights)set=curIndoor.lights;
   for(const r of INDOORS)if(r.lights&&r.lights!==set)for(const l of r.lights)l.visible=false;
   for(const n in PORTAL.built){const b=PORTAL.built[n];if(b.__pl&&b.__pl!==set)for(const l of b.__pl)l.visible=false}
-  if(!set)return;
-  if(set.length<=INT_LAMPS){for(const l of set)l.visible=true;return}
+  if(!set){lampPad(0);return}
+  if(set.length<=INT_LAMPS){for(const l of set)l.visible=true;lampPad(INT_LAMPS-set.length);return}
   const c=camera.position,d=set.map(l=>{l.getWorldPosition(_lampV);return [(_lampV.x-c.x)**2+(_lampV.y-c.y)**2+(_lampV.z-c.z)**2,l]}).sort((a,b)=>a[0]-b[0]);
-  d.forEach((x,i)=>{x[1].visible=i<INT_LAMPS})}
+  d.forEach((x,i)=>{x[1].visible=i<INT_LAMPS});lampPad(0)}
 function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;if(ftT<2.5)return;const avg=ftAcc/ftN;ftAcc=ftN=ftT=0;
   if(pixelScale<=.56&&avg>.05&&S.q!=='low'){adaptRes.slow=(adaptRes.slow||0)+1;if(adaptRes.slow>=2){adaptRes.slow=0;S.q=S.q==='high'?'mid':'low';saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));pixelScale=1;applyQuality();applyTime();toast('Graphics lowered','to keep the game smooth');return}}else adaptRes.slow=0;
   // every change reallocates the drawing buffer (a hitch, and on iPad a memory spike): step down quickly, step up only after three calm windows in a row, and never twice within 6 s
@@ -7617,7 +7628,7 @@ if(TOUCH)$('keysTxt').textContent='Left half of the screen — walk, right half 
 $('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');return}started=true;$('menu').hidden=true;$('hud').hidden=false;
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
   if(!boot.greeted){boot.greeted=true;cam.yaw=player.yaw;toast('Chykalenka St, 59k','formerly Williams St · Tairove')}
-  COOP.onStart();MODES.onStart()};
+  COOP.onStart();MODES.onStart();warmBoot()};
 
 // ===================== CO-OP: friends in the same Odesa (artifact `room` capability) =====================
 // Each open copy of the game shares its player state as room presence (~15 Hz). Others are drawn as
