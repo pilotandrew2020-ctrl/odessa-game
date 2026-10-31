@@ -40,13 +40,20 @@ function hsKit(E,S,L){
   K.sofa=(x,z,ry,len,c1,c2)=>{
     if(S.sofaGlb&&len>1.5){const s=Math.min(1.35,len/1.57),p=loc(x,z,ry)(0,.33*s+.02);   // a real Poly Haven sofa (CC0) in styles that ask for it; the sit act and collision stay the kit's
       MDL.put(E.grp,S.sofaGlb,{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
-    c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
+    c1=c1||S.sofa[0];c2=c2||S.sofa[1];
+    if(typeof MDL!=='undefined'&&!S.boxSofa){   // own Blender model (dev/blender/homekit.py): rounded arms, a back with leaning cushions, three seat cushions; the kit's sit act and collision stay
+      const arm=len<=1.5,p=loc(x,z,ry)(0,.47);MDL.put(E.grp,arm?'armchair':'sofa',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[len/(arm?.92:2.0),1,1],tints:{tint_sofa:c1,tint_cushion:c2}});
+      ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair');return}
+    const n=Math.max(1,Math.round(len/.75)),w=len/n;
     bx(x,z,ry,0,.2,.47,len,.4,.92,c1);bx(x,z,ry,0,.68,.1,len,.62,.2,c1);for(const s of [-1,1])bx(x,z,ry,s*(len/2-.1),.5,.47,.2,.56,.92,c1);
     for(let i=0;i<n;i++){const u=-len/2+w*(i+.5);bx(x,z,ry,u,.47,.56,w-.2*(n>1?.15:.5)-.05,.15,.68,c2);bx(x,z,ry,u,.72,.24,w-.28,.36,.16,c2)}
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};
   K.cornerSofa=(x,z,ry,a,b)=>{K.sofa(x,z,ry,a);const p=loc(x,z,ry)(a/2+.55,.9);K.sofa(p[0],p[1],ry+Math.PI/2,b-.9)};
-  K.table=(x,z,ry,w,d,h,c)=>{bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
+  K.table=(x,z,ry,w,d,h,c)=>{
+    if(typeof MDL!=='undefined'&&!S.boxTable){MDL.put(E.grp,'table',{x:ox+x,y:INT_Y,z:oz+z,ry:ry,sc:[w/1.2,h/.75,d/.7],tints:{tint_wood:c||wood}});ob(x,z,ry,0,0,w/2,d/2);return}   // own Blender table: rounded top, apron, tapered legs
+    bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
   K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
+    if(typeof MDL!=='undefined'&&!S.boxChair){MDL.put(E.grp,'chair',{x:ox+x,y:INT_Y,z:oz+z,ry:ry,tints:{tint_wood:c||wood,tint_cushion:'#e8e0d0'}});return}   // own Blender chair: ladder back, tapered legs, a pad on the seat
     bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
   K.rug=(x,z,ry,w,d,c)=>bx(x,z,ry,0,.015,0,w,.03,d,c,0);
   K.lamp=(x,z,h,c)=>{E.P.cyl(ox+x,INT_Y,oz+z,.14,.14,.03,10,sRGB('#2a2a2c'),1);E.P.cyl(ox+x,INT_Y+.03,oz+z,.02,.02,h||1.5,6,sRGB('#2a2a2c'),1);E.box(x,(h||1.5)+.1,z,.38,.3,.38,c||'#ffe9bd',3);E.obb(x,z,.18,.18,0)};
