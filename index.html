@@ -7012,9 +7012,14 @@ function stepPlayer(dt){
   // direction, which leaves a character that ended up inside geometry frozen for ever. If we are
   // already embedded, search outward once per frame at head height until we are clear.
   const PR=PORTAL.cur?.22:(player.scoot?.45:.33);     // indoors the body is a 44 cm cylinder: with the street radius (.33) a 90 cm door left a 24 cm channel and most flats could not be walked through
-  if(!player.air&&insideAny(player.x,player.z,PR<.3?PR:.33,player.y)){
-    const esc=collide(player.x,player.z,PR<.3?PR:.33,player.y+1.4);
-    if(esc[0]!==player.x||esc[1]!==player.z){player.x=esc[0];player.z=esc[1];player.vx=player.vz=0}
+  let okSafe=false;
+  if(!player.air){
+    if(insideAny(player.x,player.z,PR<.3?PR:.33,player.y)){
+      const esc=collide(player.x,player.z,PR<.3?PR:.33,player.y+1.4);
+      if(esc[0]!==player.x||esc[1]!==player.z){player.x=esc[0];player.z=esc[1];player.vx=player.vz=0}
+      else{player.stuck=(player.stuck||0)+dt;      // nowhere to push out to: after half a second go back to the last free spot instead of freezing in a wall for ever
+        const sf=player.safe;if(player.stuck>.5&&sf&&sf.p===PORTAL.cur){player.x=sf.x;player.z=sf.z;player.y=sf.y;player.vx=player.vz=0;player.stuck=0}}
+    }else{player.stuck=0;okSafe=true}
   }
   let ix=0,iz=0;
   if(inp.k.KeyW||inp.k.ArrowUp)iz+=1;if(inp.k.KeyS||inp.k.ArrowDown)iz-=1;if(inp.k.KeyA||inp.k.ArrowLeft)ix-=1;if(inp.k.KeyD||inp.k.ArrowRight)ix+=1;
@@ -7025,10 +7030,15 @@ function stepPlayer(dt){
   const vmax=(player.scoot?28:(player.skate?(running?7.5:4.4):(running?5.4*1.25:1.8*1.25)))*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
   const acc=player.scoot?(im>0?3.4:2.2):(player.skate?(im>0?1.5:.3):(player.air?3.2:10));      // skates: slow to build speed, long glide
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
-  let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
-  [nx,nz]=collide(nx,nz,PR,player.y);
-  if(!PORTAL.cur&&insideAny(nx,nz,PR,player.y)&&!insideAny(player.x,player.z,PR,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}   // collide() gives up deep inside a solid: do not let that walk you through walls
-  if(PORTAL.cur&&!specialGround(nx,nz,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}
+  // the move is cut into steps of at most 15 cm: one long step (a slow frame, a scooter) used to jump over a thin wall or a balcony rail and out of the flat
+  const nSub=Math.min(PORTAL.cur?8:4,Math.max(1,Math.ceil(Math.hypot(player.vx,player.vz)*dt/.15)));
+  let nx=player.x,nz=player.z;
+  for(let s=0;s<nSub;s++){
+    let tx=nx+player.vx*dt/nSub,tz=nz+player.vz*dt/nSub;
+    [tx,tz]=collide(tx,tz,PR,player.y);
+    if(!PORTAL.cur&&insideAny(tx,tz,PR,player.y)&&!insideAny(nx,nz,PR,player.y)){player.vx*=.2;player.vz*=.2;break}   // collide() gives up deep inside a solid: do not let that walk you through walls
+    if(PORTAL.cur){const si=specialGround(tx,tz,player.y);if(!si||si.h<player.y-2.2){player.vx*=.2;player.vz*=.2;break}}     // indoors only a floor close to your feet counts: a far lower surface of the city (station yard, street) is not a floor, there was nothing to fall onto and you walked on air round the house
+    nx=tx;nz=tz}
   const sp=specialGround(nx,nz,player.y);
   const gN=sp?sp.h:(PORTAL.cur?player.y:groundH(nx,nz)+sidewalkLift(nx,nz));
   // Walkable-step gate. The old hard 0.75 m limit rejected every kerb, ramp and stair tread above
@@ -7046,9 +7056,10 @@ function stepPlayer(dt){
   inp.jump=false;
   if(player.air){player.vy=Math.max(-30,player.vy-(player.vy>0?22:32)*dt);const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
     if(ny<=gLand){player.y=gLand;player.air=false;player.vy=0;if((typeof AUD!=='undefined')&&AUD)AUD.land()}else player.y=ny}
-  else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
+  else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3;const sf=player.safe;if(sf&&sf.p===PORTAL.cur&&sf.y>g+.5){player.x=sf.x;player.z=sf.z;player.y=sf.y;player.vx=player.vz=0}}else{player.air=true;player.vy=0}}
     else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
   if(player.y<SL-.7)player.y=Math.max(player.y,SL-.75);
+  if(okSafe&&!player.air&&!(PORTAL.cur&&player.y-g>2.2)){const sf=player.safe||(player.safe={});sf.x=player.x;sf.z=player.z;sf.y=player.y;sf.p=PORTAL.cur}     // the last spot that had a floor under it and no wall around it
   // anti-fall layer: if a stair / floor edge let the feet sink more than 1.5 m under the floor found from head height, lift back onto it
   if(!PORTAL.cur&&!player.air&&started&&!(typeof BLD!=='undefined'&&BLD.n)){const gs=groundAt(player.x,player.z,player.y+2);if(Number.isFinite(gs)&&gs>SL&&player.y<gs-1.5){player.y=gs;player.vy=0}}
   if(window.safetyNetCheck)window.safetyNetCheck(player);
