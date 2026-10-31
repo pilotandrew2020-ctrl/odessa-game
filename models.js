@@ -7,14 +7,15 @@ const MDL={base:'assets/models/props/',buf:{},wait:{},gl:{},
   // a model is parsed once; static models are cloned (sharing geometry + textures), skinned ones are parsed again
   make(name){if(!this.gl[name])this.gl[name]=this.parse(name).then(g=>{g.skinned=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)g.skinned=true});return g});
     return this.gl[name].then(g=>g.skinned?this.parse(name):{scene:g.scene.clone(true),animations:g.animations})},
-  // opts: h = target height (m) or s = scale; x,y,z,ry = placement; cx/cz keep the model's own centre instead of centring it on the holder
+  // opts: h = target height (m) or s = scale (sc = [kx,ky,kz] stretches on top of it); x,y,z,ry = placement; cx/cz keep the model's own centre instead of centring it on the holder
   put(parent,name,o){o=o||{};const holder=new THREE.Group();holder.position.set(o.x||0,o.y||0,o.z||0);holder.rotation.y=o.ry||0;parent.add(holder);
     this.make(name).then(g=>{const m=g.scene;let s=o.s||1;
       if(o.h||o.w||o.d){const b=new THREE.Box3().setFromObject(m),sz=b.getSize(new THREE.Vector3());s=o.h?o.h/sz.y:o.w?o.w/sz.x:o.d/sz.z}
-      m.scale.multiplyScalar(s);m.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3());
+      m.scale.multiplyScalar(s);if(o.sc)m.scale.multiply(new THREE.Vector3(o.sc[0],o.sc[1],o.sc[2]));m.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m),c=b.getCenter(new THREE.Vector3());
       m.position.x-=c.x;m.position.z-=c.z;m.position.y-=b.min.y;
       m.traverse(x=>{if(x.isMesh){x.castShadow=true;x.receiveShadow=true;x.frustumCulled=!x.isSkinnedMesh}});
-      if(o.tint){const tc=new THREE.Color(o.tint).convertSRGBToLinear();m.traverse(x=>{if(x.isMesh&&x.material&&x.material.color){x.material=x.material.clone();x.material.color.multiply(tc)}})}   // tint: multiply the diffuse colour (recolour a painted prop)
+      if(o.tint||o.tints){const tm=o.tints;   // tint: multiply the diffuse colour of every material (o.tint) or of the materials named in o.tints {name:'#colour'}
+        m.traverse(x=>{if(!x.isMesh||!x.material||!x.material.color)return;const t=tm?tm[x.material.name]:o.tint;if(!t)return;x.material=x.material.clone();x.material.color.multiply(new THREE.Color(t).convertSRGBToLinear())})}
       holder.add(m);holder.userData.model=m;holder.userData.clips=g.animations||[];
       if(o.ready)o.ready(holder,m,g.animations||[])}).catch(e=>console.warn('[models]',name,e&&e.message||e));
     return holder}};

@@ -69,14 +69,22 @@ function hsKit(E,S,L){
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w-.08,w*.58-.08),new THREE.MeshBasicMaterial({map:tex}));const p=loc(x,z,ry)(0,.235);m.position.set(ox+p[0],INT_Y+1.0,oz+p[1]);m.rotation.y=ry;E.grp.add(m);
     const t={m,tex,cv,g,on:false,t:0,light:light(...(()=>{const a=loc(x,z,ry)(0,1.2);return [a[0],1.3,a[1]]})(),0x9ac0ff,0,7)};t.light.userData.tv=1;t.light.userData.i=0;HSTATE.cur.tvs.push(t);ob(x,z,ry,0,.26,w/2+.1,.28);
     const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return t.on?'Turn the TV off':'Turn the TV on'},fn:()=>{t.on=!t.on;if(window.AUD)AUD.beep();if(!t.on){t.g.fillStyle='#08090b';t.g.fillRect(0,0,160,90);t.tex.needsUpdate=true}}});return t};
-  K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
+  K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBed){   // own Blender model (dev/blender/bedkit.py): padded headboard, mattress, draped duvet, pillows, throw; the kit's collision and sit act stay
+      const p=loc(x,z,ry)(0,1.1);MDL.put(E.grp,'bed_double',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[(w+.2)/1.8,1,1],tints:{tint_wood:wood,tint_duvet:c,tint_throw:FD.shade(c,.72),tint_cushion:FD.shade(c,1.3),tint_head:S.sofa?S.sofa[1]:c}});
+      ob(x,z,ry,0,1.05,w/2+.1,1.08);const q=loc(x,z,ry)(w/2+.62,1.5);sit(q[0],q[1],ry-Math.PI/2,'Sit on the bed',.2);return}
+    bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
     const cl=window.FD?FD.shade(c,1.35):c,cd=window.FD?FD.shade(c,.72):c;
     bx(x,z,ry,0,.68,1.42,w+.06,.12,1.3,c,0);bx(x,z,ry,0,.745,.83,w+.05,.03,.2,'#fbf8f2',0);bx(x,z,ry,0,.78,1.98,w+.1,.04,.34,cd,0);    // duvet, turned-down sheet, a throw over the foot
     for(const s of [-1,1])bx(x,z,ry,s*w*.2,.725,.62,.32,.12,.14,cl,0);                                                                   // two scatter cushions
     bx(x,z,ry,0,.9,.04,w+.2,1.0,.1,wood,5);bx(x,z,ry,0,.5,2.14,w+.14,.5,.08,wood,5);ob(x,z,ry,0,1.05,w/2+.1,1.08);
     const p=loc(x,z,ry)(w/2+.62,1.5);sit(p[0],p[1],ry-Math.PI/2,'Sit on the bed',.2)};
   K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
-  K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
+  K.wardrobe=(x,z,ry,w)=>{w=w||2;
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxWardrobe){   // panelled two-door modules from dev/blender/bedkit.py, one per metre
+      const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++){const p=loc(x,z,ry)(-w/2+(i+.5)*w/n,.33);MDL.put(E.grp,'wardrobe',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w/n,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}})}
+      ob(x,z,ry,0,.3,w/2,.3);return}
+    bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
   K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
