@@ -76,7 +76,7 @@ function khBuild(grp,P,GR,at,W,n,tag){
     bx(0,.1,1.45,1.8,2.2,.1,'#5a3822',5);bx(0,.16,1.45,.05,2.2,.05,'#2a1a10',5);                                                                    // brown double door, split line
     for(const dx of [-.45,.45]){bx(dx,.17,1.85,.62,1.0,.04,'#14181c',2);bx(dx,.17,.95,.62,.7,.04,'#4a2e1c',5)}
     bx(-.1,.2,1.3,.05,.25,.05,'#c4c8cc',6);bx(.1,.2,1.3,.05,.25,.05,'#c4c8cc',6);                                                                    // handles
-    bx(0,.62,.17,2.6,.34,.5,'#a6a39b');bx(0,1.12,.085,2.6,.17,.5,'#a6a39b');bx(-1.38,.8,.25,.1,.5,1.0,'#a6a39b');bx(1.38,.8,.25,.1,.5,1.0,'#a6a39b');       // two steps with cheek walls
+    STEPS.flight(P,dr.x,dr.z,dr.nx,dr.nz,y0+.34,{foot:y0,w:2.6,land:.87,run:.5,rise:.17,col:sRGB('#a6a39b'),noRamp:true});bx(-1.38,.8,.25,.1,.5,1.0,'#a6a39b');bx(1.38,.8,.25,.1,.5,1.0,'#a6a39b');       // two real steps (you climb them to the door) with cheek walls
     bx(0,.9,2.74,3.4,.38,1.8,'#d9a21b',1);bx(-1.55,1.72,1.36,.16,2.72,.16,'#d9a21b',1);bx(1.55,1.72,1.36,.16,2.72,.16,'#d9a21b',1);                  // yellow canopy on two posts
     for(const du of [-1.55,1.55])bx(du,1.72,.14,.2,.12,.2,'#a6a39b');
     const pm=plateMesh(['ПІД\'ЇЗД '+(s+1)],{w:512,h:96,size:60,color:'#3a2a10',bg:'#e0b030',weight:'800'},1.9,.34,.2),pp2=q(0,1.82);pm.position.set(pp2[0]+F.n[0]*.0,y0+2.74,pp2[1]);pm.rotation.y=ry;grp.add(pm);

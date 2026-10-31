@@ -137,10 +137,9 @@ function porch(P,k,c){
   const dc=k.door[(R()*k.door.length)|0];
   P.box(px+W.nx*.07,y0+1.02,pz+W.nz*.07,1.0,2.04,.1,ry,dc,5);                                         // door leaf
   strip(P,px-W.tx*.95,pz-W.tz*.95,px+W.tx*.95,pz+W.tz*.95,W.nx,W.nz,y0+2.4,.1,1.1,k.stone2,9);       // canopy
-  const gy=groundH(px+W.nx*1.6,pz+W.nz*1.6),drop=y0-gy;
-  if(drop>.12){const n=Math.min(8,Math.ceil(drop/.2));                                                  // steps down to the ground (a slope raises the whole house)
-    for(let i=0;i<n;i++){const top=y0-i*drop/n,d=.33,o=.2+d*(i+.5);P.box(px+W.nx*o,(top+gy)/2,pz+W.nz*o,1.5,top-gy,d,ry,k.stone2,9)}}
-  else P.box(px+W.nx*.55,y0+.05,pz+W.nz*.55,1.5,.1,.9,ry,k.stone2,9);                                  // threshold slab
+  // steps (or a ramp) down to the ground when a slope raises the house; they are real: the feet follow them (steps.js)
+  const sn=typeof STEPS!=='undefined'?STEPS.flight(P,px,pz,W.nx,W.nz,y0,{w:1.5,land:.45,col:k.stone2}):0;
+  if(!sn)P.box(px+W.nx*.55,y0+.05,pz+W.nz*.55,1.5,.1,.9,ry,k.stone2,9);                                  // threshold slab
   stat.porch++;FAC.lastPorch=[px,pz,W.nx,W.nz,y0]}
 
 function dress(c){
