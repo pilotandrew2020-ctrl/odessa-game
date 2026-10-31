@@ -21,11 +21,20 @@ const VEN={ready:false,cats:[],all:[],by:new Map(),byB:new Map(),live:new Map(),
     sweet:['#c2446b','C'],cloth:['#34373d','K'],pharm:['#1b7f3b','+'],cafe:['#7a4a2a','C'],rest:['#9a2a2a','R'],bar:['#6a3fd0','♪'],game:['#1fb5cc','G'],gym:['#e8801a','W'],ware:['#6a6e74','W'],bank:['#0b4a8c','$'],
     post:['#c8102e','✉'],med:['#1b9fbf','+'],edu:['#2a6da0','E'],hotel:['#7a58b8','H'],gov:['#3a5f8a','!'],culture:['#a04a4a','★'],fuel:['#2a8a56','⛽'],park:['#3f9a4a','P'],sight:['#c79a2a','★'],faith:['#8a8a96','†'],trans:['#4a7ab5','T']},
   IMP:new Set(['game','rest','bar','culture','hotel','gym','med','edu','bank','fuel','faith','sight','trans','park']),
+  // frontage of cafes, restaurants, bars and sweet shops: an open door with a warm room behind it, a chalk sandwich board, pavement tables
+  FRONT:new Set(['cafe','rest','bar','sweet']),
+  GLOW:{cafe:'#9a6a32',rest:'#a46a2e',bar:'#6a44b0',sweet:'#c07a80'},
+  MENU:{cafe:{t:'COFFEE',it:[['Espresso',45],['Cappuccino',70],['Flat white',80],['Raf',95],['Croissant',60],['Cheesecake',110]]},
+    rest:{t:'TODAY',it:[['Borscht',130],['Varenyky',160],['Chicken Kyiv',240],['Draniki',140],['Salmon',360],['Compote',45]]},
+    bar:{t:'COCKTAILS',it:[['Mojito',190],['Negroni',210],['Old fashioned',230],['Whisky sour',220],['Beer 0.5',95],['Shot',80]]},
+    sweet:{t:'SWEETS',it:[['Ice cream',45],['Eclair',60],['Napoleon',80],['Hot chocolate',70],['Pampushky',50],['Tea',35]]}},
+  late:new Set(),mtex:new Map(),mlive:new Map(),mpool:[],
 
   load(){fetch('assets/venues.json').then(r=>r.json()).then(j=>{
       this.cats=j.cats;let n=0;
       for(const r of j.v){const v={i:n++,c:j.cats[r[0]],x:r[1],z:r[2],name:r[3],m:0};this.all.push(v);const id=chunkIdAt2(v.x,v.z);if(id<0)continue;let a=this.by.get(id);if(!a)this.by.set(id,a=[]);a.push(v)}
-      this.ready=true;MAPP=null}).catch(e=>console.warn('venues.json',e))},
+      this.ready=true;MAPP=null;
+      for(const id of this.late){const c=chunks.get(id);if(c)disposeChunk(c)}this.late.clear()}).catch(e=>console.warn('venues.json',e))},   // chunks built before the list arrived get rebuilt with their frontage
   install(){if(this.grp)return;this.grp=new THREE.Group();scene.add(this.grp);ANIM.push(dt=>this.tick(dt));this.load();venInteriors()},
 
   // venue -> its building (the polygon holding it, else the nearest wall within 14 m)
@@ -71,8 +80,76 @@ const VEN={ready:false,cats:[],all:[],by:new Map(),byB:new Map(),live:new Map(),
     near.sort((a,b)=>a[0]-b[0]);const want=new Set();for(let i=0;i<near.length&&i<(MOBILE?22:40);i++)want.add(near[i][1]);
     for(const [v,m] of this.live)if(!want.has(v)){m.visible=false;this.pool.push(m);this.live.delete(v)}
     for(const v of want){if(this.live.has(v))continue;const m=this.pool.pop()||this.newMesh(),t=this.signTex(v),tall=t.userData.tall,w=Math.min(4.6,Math.max(1.8,Math.min(v.L-.5,.3*v.name.length+1.6))),h=w*(tall?.25:.157);
-      m.material.map=t;m.material.needsUpdate=true;m.scale.set(w,h,1);const hy=Math.max(1.9,Math.min(3.1,(v.lv||1)*3-.8));
-      m.position.set(v.sx+v.nx*.14,groundH(v.sx,v.sz)+hy,v.sz+v.nz*.14);m.rotation.y=Math.atan2(v.nx,v.nz);m.visible=true;this.live.set(v,m)}}
+      m.material.map=t;m.material.needsUpdate=true;m.scale.set(w,h,1);const hy0=Math.max(1.9,Math.min(3.1,(v.lv||1)*3-.8)),hy=v.dr?Math.min(Math.max(hy0,2.2+h/2),(v.lv||1)*3-.15-h/2):hy0;   // a venue with a door: the sign sits on the lintel
+      m.position.set(v.sx+v.nx*.14,groundH(v.sx,v.sz)+hy,v.sz+v.nz*.14);m.rotation.y=Math.atan2(v.nx,v.nz);m.visible=true;this.live.set(v,m)}
+    // the chalk text on the sandwich boards of the nearest few
+    const wm=[];for(const [d,v] of near){if(v.menu&&d<20){wm.push(v);if(wm.length>=(MOBILE?3:6))break}}
+    const wms=new Set(wm);
+    for(const [v,m] of this.mlive)if(!wms.has(v)){m.visible=false;this.mpool.push(m);this.mlive.delete(v)}
+    for(const v of wm){if(this.mlive.has(v))continue;const m=this.mpool.pop()||this.newMenu(),q=v.menu;
+      m.material.map=this.menuTex(v);m.material.needsUpdate=true;m.position.set(q.x,q.y,q.z);m.rotation.set(-q.a,q.ry,0);m.visible=true;this.mlive.set(v,m)}},
+
+  // ---- frontage (static, baked into the chunk's props by buildChunkGen) ----
+  frontage(id,P,ctx){
+    if(!this.ready){this.late.add(id);return}
+    const i0=id%NCX,j0=Math.floor(id/NCX),done=[];let budget=60;
+    for(let j=j0-1;j<=j0+1;j++)for(let i=i0-1;i<=i0+1;i++){if(i<0||j<0||i>=NCX||j>=NCZ)continue;const a=this.by.get(j*NCX+i);if(!a)continue;
+      for(const v of a){if(!this.FRONT.has(v.c))continue;if(!v.m){if(budget--<=0)continue;this.match(v)}
+        if(v.m!==1||chunkIdAt2(v.sx,v.sz)!==id)continue;
+        let dup=false;for(const q of done)if(Math.hypot(q[0]-v.sx,q[1]-v.sz)<3.2){dup=true;break}if(dup)continue;
+        done.push([v.sx,v.sz]);this.front1(id,P,ctx,v)}}},
+  front1(id,P,ctx,v){
+    const c=sRGB,nx=v.nx,nz=v.nz,tx=nz,tz=-nx,sx=v.sx,sz=v.sz,ry=Math.atan2(nx,nz),h=Math.imul(v.i+1,2654435761)>>>0;
+    const L=(s,d)=>[sx+tx*s+nx*d,sz+tz*s+nz*d],yb=(x,z)=>groundH(x,z)+.17,y0=yb(sx,sz);
+    const free=(x,z,m)=>!ctx.blockedStatic(x,z,m)&&!ctx.solid(x,z,m)&&!ctx.nearRoad(id,x,z,-SW[0]);
+    const wood=c(['#6a4a2e','#4a3426','#7a5a3a','#3a3a40'][(h>>3)&3]),iron=c('#1c1d20'),frame=c(['#3a2a1f','#2b3a36','#4a2a2a','#1f2b3a'][h&3]),glow=c(this.GLOW[v.c]||this.GLOW.cafe);
+    // the doorway: the room behind it is painted and lights up at night, two pendant lamps and a counter hint at a bar inside
+    let p=L(0,.035);P.box(p[0],y0+1.0,p[1],1.0,2.0,.04,ry,glow,8);
+    p=L(.1,.06);P.box(p[0],y0+.45,p[1],.78,.9,.02,ry,c('#2a1a10'),5);
+    p=L(0,.06);P.box(p[0],y0+1.88,p[1],.86,.05,.02,ry,c('#ffe3a8'),8);
+    for(let k=0;k<3;k++){p=L(-.2+k*.2,.07);P.box(p[0],y0+1.02,p[1],.06,.22,.02,ry,c(['#2e5a2e','#6a1d2a','#caa75a'][(h>>k)%3]),8)}
+    for(const s of [-1,1]){p=L(s*.54,.07);P.box(p[0],y0+1.04,p[1],.1,2.08,.14,ry,frame,5)}
+    p=L(0,.07);P.box(p[0],y0+2.07,p[1],1.2,.1,.14,ry,frame,5);
+    p=L(0,.2);P.box(p[0],y0+.04,p[1],1.1,.08,.4,ry,c('#8a8680'),9);
+    // the door leaf, swung open towards the street
+    const hs=(h&8)?1:-1,th=1.3,dx=-tx*hs*Math.cos(th)+nx*Math.sin(th),dz=-tz*hs*Math.cos(th)+nz*Math.sin(th),hg=L(hs*.5,.1),cx=hg[0]+dx*.46,cz=hg[1]+dz*.46,lry=Math.atan2(-dz,dx);
+    P.box(cx,y0+1.0,cz,.92,2.0,.045,lry,c(['#6a4a2e','#2d4a3e','#5a2a2a','#3a3a4a'][(h>>2)&3]),5);P.box(cx,y0+1.4,cz,.5,.95,.06,lry,c('#10161c'),2);
+    P.box(cx+dx*.38,y0+1.0,cz+dz*.38,.1,.03,.09,lry,c('#c9a64a'),6);
+    v.dr=1;
+    // the sandwich board (A-frame) beside the door; the text is a live decal, see tick()
+    const sd=(h&16)?1:-1,bp=L(sd*1.25,1.0),a=.25,ca=Math.cos(a),sa=Math.sin(a);
+    if(free(bp[0],bp[1],.4)){const yb2=yb(bp[0],bp[1]);
+      for(const f of [1,-1])P.box(bp[0]+nx*f*.109,yb2+.44,bp[1]+nz*f*.109,.56,.9,.035,ry,wood,5,-f*a);
+      const fx=bp[0]+nx*(.109+.0235*ca),fz=bp[1]+nz*(.109+.0235*ca),fy=yb2+.44+.0235*sa;      // the chalkboard face on the street-side leaf
+      P.box(fx,fy,fz,.46,.76,.012,ry,c('#1c2326'),4,-a);
+      const on=(lx,ly,lz)=>[fx+tx*lx+nx*(lz*ca-ly*sa),fy+ly*ca+lz*sa,fz+tz*lx+nz*(lz*ca-ly*sa)];   // a point in the face plane (lz = out of the board)
+      for(let k=0;k<5;k++){const q=on(((h>>k)&3)*.02-.03,.26-k*.11,.009);P.box(q[0],q[1],q[2],.3+((h>>(k+3))&3)*.03,.02,.006,ry,c(k?'#cfd6d4':'#e8c96a'),0,-a)}   // chalk lines, covered by the live text up close
+      ctx.cirs.push(bp[0],bp[1],.34);
+      const q=on(0,0,.0145);v.menu={x:q[0],y:q[1],z:q[2],ry,a}}
+    else v.menu=null;
+    // pavement tables with two chairs each (not for sweet shops)
+    if(v.c!=='sweet'){let placed=0;const topC=c(['#d8c9a8','#2f3a40','#b5472f','#e8e2d6'][(h>>5)&3]);
+      for(const s of [-sd*2.6,-sd*4.1,sd*3.0]){if(placed>=2)break;const q=L(s,1.8);if(!free(q[0],q[1],.95))continue;const y=yb(q[0],q[1]);placed++;
+        P.cyl(q[0],y,q[1],.2,.2,.03,10,iron,1);P.cyl(q[0],y+.03,q[1],.025,.025,.68,6,iron,1);P.cyl(q[0],y+.71,q[1],.34,.34,.035,12,topC,5);
+        for(const f of [-1,1]){const cx2=q[0]+tx*f*.62,cz2=q[1]+tz*f*.62,rc=Math.atan2(-tx*f,-tz*f),cr=Math.cos(rc),sr=Math.sin(rc),at=(lx,lz)=>[cx2+lx*cr+lz*sr,cz2-lx*sr+lz*cr];
+          P.box(cx2,y+.45,cz2,.4,.045,.4,rc,wood,5);for(const lx of [-.17,.17])for(const lz of [-.17,.17]){const w=at(lx,lz);P.box(w[0],y+.225,w[1],.03,.45,.03,rc,iron,1)}
+          const b=at(0,-.18);P.box(b[0],y+.7,b[1],.4,.42,.035,rc,wood,5)}
+        ctx.cirs.push(q[0],q[1],.5)}}},
+  newMenu(){const m=new THREE.Mesh(this.mgeo||(this.mgeo=new THREE.PlaneGeometry(.46,.76)),patchMat(new THREE.MeshStandardMaterial({map:this.mblank||(this.mblank=new THREE.CanvasTexture(document.createElement('canvas'))),roughness:.95,metalness:0}),{key:'menu',fSurf:'sRough=.95;'}));
+    m.rotation.order='YXZ';m.frustumCulled=true;this.grp.add(m);return m},
+  menuTex(v){const key=v.c+'|'+v.name;let t=this.mtex.get(key);if(t)return t;
+    const M=this.MENU[v.c]||this.MENU.cafe,h=Math.imul(v.i+1,2654435761)>>>0,cv=document.createElement('canvas');cv.width=256;cv.height=416;const g=cv.getContext('2d');
+    g.fillStyle='#1c2326';g.fillRect(0,0,256,416);
+    g.globalAlpha=.06;g.fillStyle='#ffffff';for(let i=0;i<16;i++)g.fillRect((i*67)%200,(i*109)%380,50+(i*29)%110,10+(i%3)*6);g.globalAlpha=1;
+    const f='"Segoe Print","Bradley Hand","Comic Sans MS",cursive';g.textBaseline='middle';g.textAlign='center';
+    g.fillStyle='#ffe08a';g.font='700 40px '+f;g.fillText(M.t,128,40);
+    let sz=22;g.fillStyle='#d9e6ea';g.font='600 '+sz+'px '+f;while(g.measureText(v.name).width>224&&sz>11){sz--;g.font='600 '+sz+'px '+f}g.fillText(v.name,128,82);
+    g.strokeStyle='#d9e6ea';g.lineWidth=2;g.beginPath();g.moveTo(34,106);g.lineTo(222,106);g.stroke();
+    g.font='600 24px '+f;M.it.forEach((it,k)=>{const y=142+k*44,pr=Math.round(it[1]*(.85+((h>>k)&7)/20)/5)*5;g.textAlign='left';g.fillStyle='#f2f4f0';g.fillText(it[0],18,y);g.textAlign='right';g.fillStyle='#ffd27a';g.fillText(String(pr),238,y)});
+    g.textAlign='center';g.fillStyle='#9fb4ba';g.font='500 18px '+f;g.fillText('open daily 9 – 23',128,398);
+    t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;this.mtex.set(key,t);
+    if(this.mtex.size>60){for(const [k,o] of this.mtex){let used=false;for(const m of this.mlive.values())if(m.material.map===o)used=true;if(!used){o.dispose();this.mtex.delete(k);break}}}
+    return t}
 };
 
 // ================= interiors for the venue kinds the old shop set did not cover =================

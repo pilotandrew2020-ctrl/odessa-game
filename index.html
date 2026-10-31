@@ -1022,10 +1022,18 @@ vec3 roomColor(vec2 c,vec2 ws,float sill,vec3 rd,float sd,float lit){
  vec3 wallC=a<.25?vec3(.78,.72,.58):a<.5?vec3(.62,.70,.66):a<.75?vec3(.80,.66,.62):vec3(.70,.70,.76);
  vec3 col;
  if(t==tm.z){col=wallC;
+   if(sill<.5){   // a shop window (low sill): shelves with goods on the back wall instead of a bedroom
+     float rw=hp.y/.5,rr=floor(rw),hh=h12(vec2(floor(hp.x/.2)+rr*19.,sd*3.1));
+     if(hp.y>.35&&hp.y<2.3){vec3 it=hh<.2?vec3(.78,.14,.10):hh<.4?vec3(.15,.38,.70):hh<.6?vec3(.88,.72,.18):hh<.8?vec3(.18,.56,.30):vec3(.88,.88,.82);
+       col=mix(wallC*.7,it,step(.16,hh)*step(.22,fract(rw))*step(fract(hp.x/.2),.78));
+       col=mix(col,vec3(.34,.26,.18),step(fract(rw),.08));}
+     else col=vec3(.30,.24,.18);
+   } else {
    if(b<.5&&hp.x>RW*.15&&hp.x<RW*.55&&hp.y<1.95)col=b<.25?vec3(.30,.22,.16):vec3(.55,.45,.35);   // wardrobe
    else if(b>=.5&&hp.x>RW*.3&&hp.x<RW*.75&&hp.y<.85)col=vec3(.42,.26,.22);                       // sofa
    if(e<.3&&hp.x>RW*.6&&hp.x<RW*.9&&hp.y>1.2&&hp.y<1.9)col=vec3(.15,.13,.12);                   // picture
- } else if(t==tm.y){col=rd.y<0.?(e<.5?vec3(.42,.28,.18):vec3(.55,.45,.36)):vec3(.88,.87,.85);}
+   }
+ } else if(t==tm.y){col=rd.y<0.?(e<.5?vec3(.42,.28,.18):vec3(.55,.45,.36)):(sill<.5?vec3(.56,.52,.44):vec3(.88,.87,.85));}
  else col=wallC*.82;
  col*=.55+.45*(1.-hp.z/RD);
  float light=mix(.16,1.,uIndoor);
@@ -1222,8 +1230,8 @@ const BLD_SURF=`
      float dayL=.22*(1.-uNight)+.02;
      vec3 lightC=mix(vec3(1.,.82,.58),vec3(.75,.85,1.),step(.86,h12(vec2(cell,1.9))));
      float tv=step(.9,h12(vec2(cell,21.3)));lightC=mix(lightC,vec3(.5,.68,1.),tv*.8);float flk=mix(1.,.5+.5*vn(vec2(uTime*6.,cell*3.1)),tv);   // some rooms have a TV flickering
-     sEmis=room*(dayL+lit*uNight*1.6*lightC*flk);
-     if(inWin>1.5&&inWin<2.5)sEmis=room*(dayL+lit*max(uNight,.0)*2.2)*vec3(1.,.92,.8);
+     sEmis=room*(dayL+lit*uNight*(1.05+.4*h12(vec2(cell,17.7)))*lightC*flk);
+     if(inWin>1.5&&inWin<2.5)sEmis=room*(dayL+lit*max(uNight,.0)*(1.4+.5*h12(vec2(cell,31.3))))*vec3(1.,.92,.8);
      sAlb=vec3(.01);sRough=.04;sMetal=0.;sBump=0.;sAO=1.;
      if(inWin>2.5&&inWin<3.5){sAlb=toLin(vec3(.30,.22,.16));sEmis=vec3(0.);sRough=.6;}
      if(home&&ground&&inWin<1.5&&step(.5,h12(vec2(ci,sd*3.)))>.5){float bx=step(fract(cuv.x*6.+.5),.13)+step(fract(cuv.y*3.),.07);if(bx>.5){sAlb=vec3(.03);sEmis=vec3(0.);sRough=.5;sMetal=.6;}}
@@ -6766,6 +6774,7 @@ function* buildChunkGen(id){
   yield;
   const solid=(x,z,m)=>{for(const c of cols)if(colPolyHit(c,x,z,m))return true;return insideOBB(obb,x,z,m)};
   if(typeof STREET!=='undefined')try{STREET.scatter(id,P,gr.lampPts,{solid,nearRoad,blockedStatic,cirs,lobb,cols})}catch(e){if(!STREET.err){STREET.err=e;console.warn('STREET.scatter',e)}}
+  if(typeof VEN!=='undefined')try{VEN.frontage(id,P,{solid,nearRoad,blockedStatic,cirs,lobb})}catch(e){if(!VEN.err){VEN.err=e;console.warn('VEN.frontage',e)}}      // open door, sandwich board and tables of cafes / bars (ven.js)
   if(typeof FILL!=='undefined')try{yield* FILL.scatterGen(id,P,{solid,nearRoad,blockedStatic,cirs,lobb,cols,benches})}catch(e){if(!FILL.err){FILL.err=e;console.warn('FILL.scatter',e)}}      // cemeteries and parks (fill.js), sliced
   // parked cars along yard sides
   const r=rng(id*31+5);const parked=[];
