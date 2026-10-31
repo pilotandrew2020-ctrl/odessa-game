@@ -40,6 +40,6 @@ const MDL={base:'assets/models/props/',buf:{},wait:{},gl:{},
         const I=G.index;for(let i=0;i<I.count;i+=3){const a=I.getX(i)+vo,b=I.getX(i+1)+vo,c=I.getX(i+2)+vo;idx[io++]=a;idx[io++]=flip?c:b;idx[io++]=flip?b:c}
         vo+=cnt}
       const geo=new THREE.BufferGeometry();for(const nm of names)geo.setAttribute(nm,new THREE.BufferAttribute(out[nm],g.ms[0].geometry.attributes[nm].itemSize,g.ms[0].geometry.attributes[nm].normalized));
-      geo.setIndex(new THREE.BufferAttribute(idx,1));const mesh=new THREE.Mesh(geo,g.mat);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.baked=true;parent.add(mesh);
+      geo.setIndex(new THREE.BufferAttribute(idx,1));const mesh=new THREE.Mesh(geo,g.mat);mesh.castShadow=false;mesh.receiveShadow=true;mesh.userData.baked=true;parent.add(mesh);
       for(const x of g.ms)if(x.parent)x.parent.remove(x)}
     for(const h of hs)if(h.parent&&!h.children.some(c=>c.children.length||c.isMesh)&&!h.userData.keepHolder)h.parent.remove(h)}};

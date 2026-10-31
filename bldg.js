@@ -41,23 +41,29 @@ function bgEnter(b){if(!b)return;const t=bgType(b),ret={x:player.x,z:player.z,ya
     if(v)setTimeout(()=>{const B=PORTAL.active;if(B&&PORTAL.cur===t.id){B.title=nm;B.sub=sb;toast(nm,sb)}},560)}}
 
 // ---------- interiors ----------
-function bgHouse(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y;
+function bgHouse(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y,glb=typeof MDL!=='undefined'&&!window.SH_BOX,put=(n,x,z,ry,o)=>MDL.put(grp,n,Object.assign({bake:1,x:ox+x,y:Y,z:oz+z,ry:ry},o));
   P.box(ox,Y+.02,oz+4,5.6,.03,4,0,c('#8a3b3b'),0);                                                          // rug
-  P.box(ox-2.6,Y+.3,oz+Dp-1.1,3,.6,1,0,c('#4a6a8a'),1);P.box(ox-2.6,Y+.78,oz+Dp-.7,3,.5,.2,0,c('#4a6a8a'),1);LOW_OBB.push(ox-2.6,oz+Dp-1.1,1.5,.55,1,0);   // sofa
-  P.box(ox-2.6,Y+.22,oz+Dp-2.6,1.5,.44,.8,0,c('#6b4a2e'),5);                                                // coffee table
+  if(glb)put('sofa',-2.6,Dp-.47,Math.PI,{sc:[1.5,1,1],tints:{tint_sofa:'#4a6a8a',tint_cushion:'#d8c9a8'}});     // the flats' own Blender sofa
+  else{P.box(ox-2.6,Y+.3,oz+Dp-1.1,3,.6,1,0,c('#4a6a8a'),1);P.box(ox-2.6,Y+.78,oz+Dp-.7,3,.5,.2,0,c('#4a6a8a'),1)}if(glb)LOW_OBB.push(ox-2.6,oz+Dp-.5,1.55,.5,1,0);else LOW_OBB.push(ox-2.6,oz+Dp-1.1,1.5,.55,1,0);   // sofa
+  if(glb)put('coffee_table_round_01',-2.6,Dp-1.9,0,{h:.46});else P.box(ox-2.6,Y+.22,oz+Dp-2.6,1.5,.44,.8,0,c('#6b4a2e'),5);                                                // coffee table
   P.box(ox+2.6,Y+.4,oz+Dp-.5,2,.8,.5,0,c('#3b2a1e'),5);P.box(ox+2.6,Y+1.15,oz+Dp-.55,1.4,.8,.08,0,c('#0b0b0d'),2);LOW_OBB.push(ox+2.6,oz+Dp-.5,1,.3,1,0);   // TV
-  P.box(ox+hw-1.2,Y+.3,oz+2.2,1.8,.6,2.2,0,c('#e8e2d4'),1);P.box(ox+hw-1.2,Y+.66,oz+3,1.7,.1,.7,0,c('#cfc8b8'),1);LOW_OBB.push(ox+hw-1.2,oz+2.2,.9,1.1,1,0);   // bed
-  P.box(ox-hw+.5,Y+1.1,oz+2.4,.6,2.2,2.2,0,c('#7a5a3a'),5);LOW_OBB.push(ox-hw+.5,oz+2.4,.3,1.1,1,0);          // wardrobe
+  if(glb)put('bed_double',hw-1.1,2.4,-Math.PI/2,{tints:{tint_wood:'#7a5a3a',tint_duvet:'#e8e2d4',tint_throw:'#a89f8a',tint_cushion:'#b5aa90',tint_head:'#8a6a4a'}});     // head against the east wall
+  else{P.box(ox+hw-1.2,Y+.3,oz+2.2,1.8,.6,2.2,0,c('#e8e2d4'),1);P.box(ox+hw-1.2,Y+.66,oz+3,1.7,.1,.7,0,c('#cfc8b8'),1)}LOW_OBB.push(ox+(glb?hw-1.1:hw-1.2),oz+(glb?2.4:2.2),glb?1.05:.9,glb?.95:1.1,1,0);   // bed
+  if(glb){for(const z of [1.85,2.95])put('wardrobe',-hw+.33,z,Math.PI/2,{sc:[1.1,1,1],tints:{tint_wood:'#7a5a3a',tint_panel:'#8a6a4a'}})}
+  else P.box(ox-hw+.5,Y+1.1,oz+2.4,.6,2.2,2.2,0,c('#7a5a3a'),5);LOW_OBB.push(ox-hw+.5,oz+2.4,.3,1.1,1,0);          // wardrobe
   INTERACT.push({x:ox-2.6,z:oz+Dp-2,r:1.8,label:'Sit on the sofa',fn:()=>toast('Cosy','someone left the TV on')})}
-function bgHall(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y;
-  P.box(ox,Y+.55,oz+Dp-2.2,4.2,1.1,.9,0,c('#5a3a24'),5);P.box(ox,Y+1.12,oz+Dp-2.2,4.4,.06,1.0,0,c('#2a1a10'),5);LOW_OBB.push(ox,oz+Dp-2.2,2.2,.5,1,0);   // reception desk
-  for(const s of [-1,1]){P.box(ox+s*4,Y+.25,oz+4,.7,.5,2.6,0,c('#6a4a2e'),5);P.box(ox+s*4.3,Y+.7,oz+4,.15,.5,2.6,0,c('#6a4a2e'),5);LOW_OBB.push(ox+s*4,oz+4,.45,1.3,1,0)
-    P.box(ox+s*(hw-.8),Y+.3,oz+Dp-.9,.6,.6,.6,0,c('#7a4a2a'),5);P.box(ox+s*(hw-.8),Y+.95,oz+Dp-.9,.8,.8,.8,0,c('#2f7a3a'),0)}                         // benches, plants
+function bgHall(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y,glb=typeof MDL!=='undefined'&&!window.SH_BOX,put=(n,x,z,ry,o)=>MDL.put(grp,n,Object.assign({bake:1,keep:1,x:ox+x,y:Y,z:oz+z,ry:ry},o));
+  if(glb)put('sh_reception',0,Dp-2.2,Math.PI);else{P.box(ox,Y+.55,oz+Dp-2.2,4.2,1.1,.9,0,c('#5a3a24'),5);P.box(ox,Y+1.12,oz+Dp-2.2,4.4,.06,1.0,0,c('#2a1a10'),5)}LOW_OBB.push(ox,oz+Dp-2.2,2.2,.5,1,0);   // reception desk
+  for(const s of [-1,1]){if(glb){put('sh_bench',s*4.05,4,-s*Math.PI/2);put('sh_plant',s*(hw-.8),Dp-.9,0)}
+    else{P.box(ox+s*4,Y+.25,oz+4,.7,.5,2.6,0,c('#6a4a2e'),5);P.box(ox+s*4.3,Y+.7,oz+4,.15,.5,2.6,0,c('#6a4a2e'),5);
+      P.box(ox+s*(hw-.8),Y+.3,oz+Dp-.9,.6,.6,.6,0,c('#7a4a2a'),5);P.box(ox+s*(hw-.8),Y+.95,oz+Dp-.9,.8,.8,.8,0,c('#2f7a3a'),0)}LOW_OBB.push(ox+s*4,oz+4,.45,1.3,1,0)}                         // benches, plants
   INTERACT.push({x:ox,z:oz+Dp-3.3,r:1.9,label:'Ask at the desk',fn:()=>toast('Nobody is in','back in five minutes')})}
-function bgWare(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y,cols=['#a9794a','#8e6338','#b88a55'];
-  for(const x of [-hw+2.2,hw-2.2]){P.box(ox+x,Y+1.2,oz+Dp*.55,1.2,2.4,Dp*.6,0,c('#3a5a7a'),6);LOW_OBB.push(ox+x,oz+Dp*.55,.65,Dp*.3,1,0);
-    for(let k=0;k<8;k++)P.box(ox+x+(k%2?.25:-.25),Y+.4+(k%4)*.6,oz+Dp*.3+k*(Dp*.5/8)+.5,.5,.45,.6,0,c(cols[k%3]),5)}
-  for(let k=0;k<6;k++){P.box(ox-1.6+(k%3)*1.4,Y+.45,oz+Dp-2+Math.floor(k/3)*1.4,1.1,.9,1.1,0,c(cols[k%3]),5)}LOW_OBB.push(ox,oz+Dp-1.6,2.4,1.3,1,0)}
+function bgWare(P,grp,ox,oz,hw,Dp){const c=sRGB,Y=INT_Y,cols=['#a9794a','#8e6338','#b88a55'],glb=typeof MDL!=='undefined'&&!window.SH_BOX,put=(n,x,z,ry,o)=>MDL.put(grp,n,Object.assign({bake:1,keep:1,x:ox+x,y:Y,z:oz+z,ry:ry},o));
+  for(const x of [-hw+2.2,hw-2.2]){LOW_OBB.push(ox+x,oz+Dp*.55,.65,Dp*.3,1,0);
+    if(glb){const n=Math.max(1,Math.round(Dp*.6/1.8)),k=Dp*.6/n;for(let i=0;i<n;i++)put('sh_palletrack',x,Dp*.25+(i+.5)*k,Math.PI/2,{sc:[k/1.8,1,1]})}      // steel racking with pallets and cartons, one bay per 1.8 m
+    else{P.box(ox+x,Y+1.2,oz+Dp*.55,1.2,2.4,Dp*.6,0,c('#3a5a7a'),6);
+      for(let k=0;k<8;k++)P.box(ox+x+(k%2?.25:-.25),Y+.4+(k%4)*.6,oz+Dp*.3+k*(Dp*.5/8)+.5,.5,.45,.6,0,c(cols[k%3]),5)}}
+  for(let k=0;k<6;k++){const cx=-1.6+(k%3)*1.4,cz=Dp-2+Math.floor(k/3)*1.4;if(glb)put('sh_crate',cx,cz,k*.4,{});else P.box(ox+cx,Y+.45,oz+cz,1.1,.9,1.1,0,c(cols[k%3]),5)}LOW_OBB.push(ox,oz+Dp-1.6,2.4,1.3,1,0)}
 
 function installBldg(){
   let idx=24;
