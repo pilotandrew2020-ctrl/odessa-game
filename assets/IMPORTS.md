@@ -30,3 +30,4 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `textures/bark_platanus.jpg` | Poly Haven "Bark Platanus" (1k diffuse, https://polyhaven.com/a/bark_platanus) | CC0 | tree trunk/branch texture (`MATS.bark` in `index.html`, loaded after start, lightened on a canvas) |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.
+| `audio/keys_bunch.mp3`, `audio/keys_jingle.mp3`, `audio/keys_items.mp3` | the owner's own recordings (zvuk-svjazki-kljuchej, zvuk-zvona-kljuchej, zvuki-predmetov-klyuchi) | owner-supplied | key-in-the-lock act (`KEYSND` in acts.js): key out, in, bolt, latch |

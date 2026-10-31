@@ -4171,23 +4171,25 @@ function animPlayerBase(P,st,dt){
   }
   P.scooter.visible=false;
   const run=sp>2.8;
-  P.phase+=dt*Math.PI*sp/(.5+.2*sp);   // one step = PI of phase and the step length grows with speed (.5 m + .2 m per m/s), so the feet never cover metres per step
+  P.phase+=dt*Math.PI*sp/(run?1.0+.08*sp:.5+.2*sp);   // one step = PI of phase; walking: step length .5 m + .2 m per m/s; running: a quick rhythm (2.3 steps/s at 2.8 m/s up to 4.4 steps/s at full speed) of compact steps instead of long strides
   const ws=P.ws=(P.ws||0)+(walkF-(P.ws||0))*(1-Math.exp(-dt*8));   // eased, so starting and stopping blends instead of snapping
-  const ph=P.phase;const amp=run?.8:.6*ws;
+  const ph=P.phase;const amp=run?.66:.6*ws;
   if(st.mode==='air'){
-    for(const g of P.legs){g.hp.rotation.x=g.s>0?-.7:.25;g.kn.rotation.x=g.s>0?1.1:.5;g.ft.rotation.x=0}
-    for(const A of P.arms){A.sh.rotation.x=-.6;A.sh.rotation.z=A.s*-.5;A.el.rotation.x=-.6}
-    P.spine.rotation.x=.1;P.hips.position.y=HY;P.idle=0;animLife(P,st,dt,'air',0);return;
+    {const vy=st.vy||0,up=Math.max(0,Math.min(1,vy/5)),dn=Math.max(0,Math.min(1,-vy/6)),e=P._ae=(P._ae||0)+((up-dn)-(P._ae||0))*(1-Math.exp(-dt*14));   // e: +1 rising, -1 falling
+     const r=Math.max(0,e),f=Math.max(0,-e);
+     for(const g of P.legs){const lead=g.s>0;g.hp.rotation.x=lead?(-.2-.95*r+.25*f):(.15+.3*r-.1*f);g.kn.rotation.x=lead?(.3+1.05*r-.1*f):(.35+.8*r-.1*f);g.ft.rotation.x=.25*f}
+     for(const A of P.arms){A.sh.rotation.x=-.35-.95*r-.15*f;A.sh.rotation.z=A.s*(-.12-.2*r-.55*f);A.el.rotation.x=-.5-.25*r-.1*f}
+     P.spine.rotation.x=.06+.1*r-.04*f;P.hips.position.y=HY-.03*f;P.idle=0;animLife(P,st,dt,'air',0);return}
   }
   for(const g of P.legs){const q=ph+(g.s>0?0:Math.PI);
     g.hp.rotation.x=-Math.sin(q)*amp*(run?1.0:.75);g.kn.rotation.x=Math.max(0,Math.sin(q+(run?1.9:1.3)))*amp*(run?1.6:1.0)+.04;g.ft.rotation.x=-Math.max(0,-Math.sin(q))*.2*amp}
   for(const A of P.arms){const q=ph+(A.s>0?Math.PI:0);
-    A.sh.rotation.x=-Math.sin(q)*amp*(run?.95:.6);A.sh.rotation.z=A.s*-.06;A.el.rotation.x=-(run?1.3:.2+.25*ws+.3*ws*Math.max(0,Math.sin(q+.6)));
+    A.sh.rotation.x=-Math.sin(q)*amp*(run?1.25:.6);A.sh.rotation.z=A.s*-.06;A.el.rotation.x=-(run?1.35+.22*Math.sin(q+.5):.2+.25*ws+.3*ws*Math.max(0,Math.sin(q+.6)));
     if(carry&&A.s>0){A.sh.rotation.x=-.25-Math.sin(q)*amp*.2;A.el.rotation.x=-.6}
     if(A.s<0&&!run){A.sh.rotation.x=-.15-Math.sin(q)*amp*.25;A.el.rotation.x=-.75}}   // holding the can
   const idle=1-walkF;
-  P.hips.position.y=HY+Math.abs(Math.cos(ph))*.035*amp-(run?.05:0)+idle*Math.sin(performance.now()*.002)*.005;
-  P.spine.rotation.x=run?.2:.03*ws;P.head.rotation.x=run?-.12:0;
+  P.hips.position.y=run?HY-.09+Math.abs(Math.sin(ph))*.075:HY+Math.abs(Math.cos(ph))*.035*amp+idle*Math.sin(performance.now()*.002)*.005;
+  P.spine.rotation.x=run?.24:.03*ws;P.head.rotation.x=run?-.16:0;
   // a real gait: the pelvis turns one way and the chest the other, the hips roll with each step, the head stays level, and the body breathes when standing
   {const sw=Math.sin(ph)*(run?1.5:1)*Math.min(1,amp);P.hips.rotation.y=sw*.075;P.hips.rotation.z=Math.sin(ph)*.03*amp;P.spine.rotation.y=-sw*.11;P.spine.rotation.z=-Math.sin(ph)*.02*amp;P.head.rotation.y=sw*.05;
    const br=Math.sin(performance.now()*.0017)*idle;P.spine.rotation.x+=br*.01;P.head.rotation.x+=br*.008}
@@ -4853,7 +4855,7 @@ function engineOn(on){
     DRIVE.eng={o1,o2,f,g,ng,nf}}
   const e=DRIVE.eng;if(on){ENG.load();DRIVE.sample=ENG.on(DRIVE.car)}else{ENG.off();DRIVE.sample=false}
   e.g.gain.setTargetAtTime(on&&!DRIVE.sample?.05:0,T,.15);if(!on)e.ng.gain.setTargetAtTime(0,T,.2);
-  if(on){AUD.tone(80,160,.35,.12,'sawtooth');AUD.burst(400,200,.3,.15,'lowpass',.7)}
+  if(on&&!DRIVE.sample){AUD.tone(80,160,.35,.12,'sawtooth');AUD.burst(400,200,.3,.15,'lowpass',.7)}
 }
 function engineUpdate(thr,dt){
   const e=DRIVE.eng;if(!e)return;const a=AUD.ctx,T=a.currentTime;const sp=Math.abs(DRIVE.v);
@@ -7010,7 +7012,7 @@ function stepPlayer(dt){
   let mx=fx*iz+rx*ix,mz=fz*iz+rz*ix;
   const running=player.run||inp.k.ShiftLeft||inp.k.ShiftRight;
   const vmax=(player.scoot?28:(player.skate?(running?7.5:4.4):(running?5.4*1.25:1.8*1.25)))*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
-  const acc=player.scoot?(im>0?3.4:2.2):(player.skate?(im>0?1.5:.3):(player.air?2:10));      // skates: slow to build speed, long glide
+  const acc=player.scoot?(im>0?3.4:2.2):(player.skate?(im>0?1.5:.3):(player.air?3.2:10));      // skates: slow to build speed, long glide
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
   let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
   [nx,nz]=collide(nx,nz,PR,player.y);
@@ -7029,9 +7031,9 @@ function stepPlayer(dt){
   if(Math.hypot(player.vx,player.vz)>.3){const ty=Math.atan2(player.vx,player.vz);let dy=ty-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*(player.scoot?5:10))}
   if(typeof BR!=='undefined'&&BR.on)player.yaw=BR.faceAim(player.yaw,dt);       // while shooting the body faces where the camera looks
   const g=groundAt(player.x,player.z,player.y);
-  if(inp.jump&&!player.air){player.vy=player.scoot?4.2:7.2;player.air=true;if((typeof AUD!=='undefined')&&AUD)AUD.jump()}
+  if(inp.jump&&!player.air){player.vy=player.scoot?5:7.4;player.air=true;if((typeof AUD!=='undefined')&&AUD)AUD.jump()}
   inp.jump=false;
-  if(player.air){player.vy=Math.max(-28,player.vy-13*dt);const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
+  if(player.air){player.vy=Math.max(-30,player.vy-(player.vy>0?22:32)*dt);const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
     if(ny<=gLand){player.y=gLand;player.air=false;player.vy=0;if((typeof AUD!=='undefined')&&AUD)AUD.land()}else player.y=ny}
   else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
     else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
@@ -7041,7 +7043,7 @@ function stepPlayer(dt){
   if(window.safetyNetCheck)window.safetyNetCheck(player);
   PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   const ph0=PLR.phase;
-  animPlayer(PLR,{spd:player.skate?player.spd*.4:player.spd,mode:player.air?'air':(player.scoot?'scoot':'walk')},dt);
+  animPlayer(PLR,{spd:player.skate?player.spd*.4:player.spd,mode:player.air?'air':(player.scoot?'scoot':'walk'),vy:player.vy},dt);
   if(!player.air&&!player.scoot&&player.spd>.4){const a=Math.floor(ph0/Math.PI),b=Math.floor(PLR.phase/Math.PI);if(a!==b&&(typeof AUD!=='undefined')&&AUD)AUD.step(surfaceAt(player.x,player.z,player.y),player.spd)}
 }
 function surfaceAt(x,z,y){

@@ -43,8 +43,19 @@ function actSteamTick(dt){const P=ACT.pts;if(!P)return;const now=performance.now
   ACT.pp.forEach((p,i)=>{if(p.a<1){p.a+=dt/1.7;p.x+=p.vx*dt;p.z+=p.vz*dt;p.y+=dt*(.38+.12*Math.sin(i));live++}const f=p.a<1?Math.sin(Math.min(1,p.a)*Math.PI)*.35:0;pos[i*3]=p.x;pos[i*3+1]=p.y;pos[i*3+2]=p.z;col[i*3]=col[i*3+1]=col[i*3+2]=f});
   P.geometry.attributes.position.needsUpdate=P.geometry.attributes.color.needsUpdate=true;P.visible=live>0}
 
+// the owner's own key recordings (assets/audio/keys_*.mp3), cut into short pieces: key out of the pocket, into the lock, the bolt, the latch.
+// The synth below only plays until they are decoded.
+const KEYSND={buf:{},st:0,n:0,G:{bunch:1.7,jingle:1,items:1.2},
+  P:{keyout:[['bunch',.1,.55]],keyin:[['jingle',.05,.4],['bunch',2.25,.5],['jingle',1.75,.42]],
+     bolt:[['items',.45,.15],['items',1.3,.25],['items',2.55,.25],['items',8,.15]],latch:[['items',7,.15],['items',9.45,.15],['items',5.15,.1]]},
+  load(){if(this.st||!window.AUD||!AUD.ctx)return;this.st=1;
+    for(const k of ['bunch','jingle','items'])fetch('assets/audio/keys_'+k+'.mp3').then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>AUD.ctx.decodeAudioData(b,ok,no))).then(d=>{this.buf[k]=d}).catch(e=>{this.st=0;console.warn('[keys]',k,e&&e.message||e)})},
+  play(k){const L=this.P[k];if(!L||!window.AUD||!AUD.ok)return false;this.load();const q=L[this.n++%L.length],b=this.buf[q[0]];if(!b)return false;
+    const c=AUD.ctx,s=c.createBufferSource(),g=c.createGain(),T=c.currentTime,d=q[2];s.buffer=b;
+    g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(this.G[q[0]],T+.008);g.gain.setValueAtTime(this.G[q[0]],T+d-.05);g.gain.linearRampToValueAtTime(0,T+d);
+    s.connect(g);g.connect(AUD.sfx);s.start(T,q[1],d);return true}};
 // ---------- sounds (AUD is the game's synth) ----------
-function actSfx(k){if(!window.AUD||!AUD.ok)return;
+function actSfx(k){if(!window.AUD||!AUD.ok)return;if(KEYSND.play(k))return;
   if(k==='water')AUD.burst(4200,2600,.18,.05,'bandpass',.6);
   else if(k==='click')AUD.tone(900,520,.05,.12,'square');
   else if(k==='thunk')AUD.tone(130,70,.14,.22,'sine');
@@ -114,7 +125,7 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
     a.prop.visible=t>5.6&&t<9.6;for(const s of [7.3,8.3,9.1])if(at(s))actSfx('gulp')}
   else if(a.kind==='door'){if(at(.5))actSfx('latch');if(at(.9))actSfx('creak');if(o.leaf)o.leaf(actWin(t,.9,2.0))}
   else if(a.kind==='key'){
-    a.prop.visible=t>.25&&t<3.0;if(at(.3))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
+    a.prop.visible=t>.25&&t<3.0;if(at(.2))actSfx('keyout');if(at(.7))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
     if(o.leaf)o.leaf(actWin(t,3.6,4.7));
     // the leaf swings out over where you stand, so step back as you pull it open
     if(o.back&&a.gx!==undefined){const adv=actWin(t,3.4,4.2),nx=a.gx+(o.back[0]-a.gx)*adv,nz=a.gz+(o.back[1]-a.gz)*adv;
