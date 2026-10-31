@@ -39,10 +39,10 @@ function hsKit(E,S,L){
   // sofa / armchair: back edge at (x,z), facing ry
   K.sofa=(x,z,ry,len,c1,c2)=>{
     if(S.sofaGlb&&len>1.5){const s=Math.min(1.35,len/1.57),p=loc(x,z,ry)(0,.33*s+.02);   // a real Poly Haven sofa (CC0) in styles that ask for it; the sit act and collision stay the kit's
-      MDL.put(E.grp,S.sofaGlb,{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
+      MDL.put(E.grp,S.sofaGlb,{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
     c1=c1||S.sofa[0];c2=c2||S.sofa[1];
     if(typeof MDL!=='undefined'&&!S.boxSofa){   // own Blender model (dev/blender/homekit.py): rounded arms, a back with leaning cushions, three seat cushions; the kit's sit act and collision stay
-      const arm=len<=1.5,p=loc(x,z,ry)(0,.47);MDL.put(E.grp,arm?'armchair':'sofa',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[len/(arm?.92:2.0),1,1],tints:{tint_sofa:c1,tint_cushion:c2}});
+      const arm=len<=1.5,p=loc(x,z,ry)(0,.47);MDL.put(E.grp,arm?'armchair':'sofa',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[len/(arm?.92:2.0),1,1],tints:{tint_sofa:c1,tint_cushion:c2}});
       ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair');return}
     const n=Math.max(1,Math.round(len/.75)),w=len/n;
     bx(x,z,ry,0,.2,.47,len,.4,.92,c1);bx(x,z,ry,0,.68,.1,len,.62,.2,c1);for(const s of [-1,1])bx(x,z,ry,s*(len/2-.1),.5,.47,.2,.56,.92,c1);
@@ -50,10 +50,10 @@ function hsKit(E,S,L){
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};
   K.cornerSofa=(x,z,ry,a,b)=>{K.sofa(x,z,ry,a);const p=loc(x,z,ry)(a/2+.55,.9);K.sofa(p[0],p[1],ry+Math.PI/2,b-.9)};
   K.table=(x,z,ry,w,d,h,c)=>{
-    if(typeof MDL!=='undefined'&&!S.boxTable){MDL.put(E.grp,'table',{x:ox+x,y:INT_Y,z:oz+z,ry:ry,sc:[w/1.2,h/.75,d/.7],tints:{tint_wood:c||wood}});ob(x,z,ry,0,0,w/2,d/2);return}   // own Blender table: rounded top, apron, tapered legs
+    if(typeof MDL!=='undefined'&&!S.boxTable){MDL.put(E.grp,'table',{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,sc:[w/1.2,h/.75,d/.7],tints:{tint_wood:c||wood}});ob(x,z,ry,0,0,w/2,d/2);return}   // own Blender table: rounded top, apron, tapered legs
     bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
-  K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
-    if(typeof MDL!=='undefined'&&!S.boxChair){MDL.put(E.grp,'chair',{x:ox+x,y:INT_Y,z:oz+z,ry:ry,tints:{tint_wood:c||wood,tint_cushion:'#e8e0d0'}});return}   // own Blender chair: ladder back, tapered legs, a pad on the seat
+  K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
+    if(typeof MDL!=='undefined'&&!S.boxChair){MDL.put(E.grp,'chair',{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,tints:{tint_wood:c||wood,tint_cushion:'#e8e0d0'}});return}   // own Blender chair: ladder back, tapered legs, a pad on the seat
     bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
   K.rug=(x,z,ry,w,d,c)=>bx(x,z,ry,0,.015,0,w,.03,d,c,0);
   K.lamp=(x,z,h,c)=>{E.P.cyl(ox+x,INT_Y,oz+z,.14,.14,.03,10,sRGB('#2a2a2c'),1);E.P.cyl(ox+x,INT_Y+.03,oz+z,.02,.02,h||1.5,6,sRGB('#2a2a2c'),1);E.box(x,(h||1.5)+.1,z,.38,.3,.38,c||'#ffe9bd',3);E.obb(x,z,.18,.18,0)};
@@ -78,7 +78,7 @@ function hsKit(E,S,L){
     const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return t.on?'Turn the TV off':'Turn the TV on'},fn:()=>{t.on=!t.on;if(window.AUD)AUD.beep();if(!t.on){t.g.fillStyle='#08090b';t.g.fillRect(0,0,160,90);t.tex.needsUpdate=true}}});return t};
   K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;
     if(typeof MDL!=='undefined'&&window.FD&&!S.boxBed){   // own Blender model (dev/blender/bedkit.py): padded headboard, mattress, draped duvet, pillows, throw; the kit's collision and sit act stay
-      const p=loc(x,z,ry)(0,1.1);MDL.put(E.grp,'bed_double',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[(w+.2)/1.8,1,1],tints:{tint_wood:wood,tint_duvet:c,tint_throw:FD.shade(c,.72),tint_cushion:FD.shade(c,1.3),tint_head:S.sofa?S.sofa[1]:c}});
+      const p=loc(x,z,ry)(0,1.1);MDL.put(E.grp,'bed_double',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[(w+.2)/1.8,1,1],tints:{tint_wood:wood,tint_duvet:c,tint_throw:FD.shade(c,.72),tint_cushion:FD.shade(c,1.3),tint_head:S.sofa?S.sofa[1]:c}});
       ob(x,z,ry,0,1.05,w/2+.1,1.08);const q=loc(x,z,ry)(w/2+.62,1.5);sit(q[0],q[1],ry-Math.PI/2,'Sit on the bed',.2);return}
     bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
     const cl=window.FD?FD.shade(c,1.35):c,cd=window.FD?FD.shade(c,.72):c;
@@ -89,7 +89,7 @@ function hsKit(E,S,L){
   K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
   K.wardrobe=(x,z,ry,w)=>{w=w||2;
     if(typeof MDL!=='undefined'&&window.FD&&!S.boxWardrobe){   // panelled two-door modules from dev/blender/bedkit.py, one per metre
-      const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++){const p=loc(x,z,ry)(-w/2+(i+.5)*w/n,.33);MDL.put(E.grp,'wardrobe',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w/n,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}})}
+      const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++){const p=loc(x,z,ry)(-w/2+(i+.5)*w/n,.33);MDL.put(E.grp,'wardrobe',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w/n,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}})}
       ob(x,z,ry,0,.3,w/2,.3);return}
     bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
@@ -97,7 +97,7 @@ function hsKit(E,S,L){
   K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
     // own Blender modules (dev/blender/wetkit.py): 1 m wide, the back flush with the wall; (c,vc) is the middle of the module's footprint, sc stretches it to the unit's width
     const glb=typeof MDL!=='undefined'&&window.FD&&!S.boxKitchen;
-    const mod=(name,c,w,vc,y)=>{const p=loc(x,z,ry)(c,vc);MDL.put(E.grp,name,{x:ox+p[0],y:INT_Y+(y||0),z:oz+p[1],ry:ry,sc:[w-.01,1,1],tints:{tint_cab:cab}})};
+    const mod=(name,c,w,vc,y)=>{const p=loc(x,z,ry)(c,vc);MDL.put(E.grp,name,{bake:1,x:ox+p[0],y:INT_Y+(y||0),z:oz+p[1],ry:ry,sc:[w-.01,1,1],tints:{tint_cab:cab}})};
     const run=(name,c,w,vc,y)=>{const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++)mod(name,c-w/2+(i+.5)*w/n,w/n,vc,y)};
     for(const [kind,w] of items){const c=u+w/2;u+=w;
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
@@ -123,16 +123,16 @@ function hsKit(E,S,L){
     return t};
   K.vanity=(x,z,ry,w)=>{w=w||1.0;
     if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // cabinet, porcelain top with an inset basin, faucet and framed mirror (dev/blender/wetkit.py)
-      const p=loc(x,z,ry)(0,.2875);MDL.put(E.grp,'vanity',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}});
+      const p=loc(x,z,ry)(0,.2875);MDL.put(E.grp,'vanity',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}});
       ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.195);K.tap(t[0],t[1],ry,'Wash your hands',1.02);return}
     bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
   K.toilet=(x,z,ry)=>{
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){const p=loc(x,z,ry)(0,.32);MDL.put(E.grp,'toilet',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[1,1,.92]});ob(x,z,ry,0,.35,.25,.4);return}
+    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){const p=loc(x,z,ry)(0,.32);MDL.put(E.grp,'toilet',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[1,1,.92]});ob(x,z,ry,0,.35,.25,.4);return}
     bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
   K.tub=(x,z,ry,len)=>{len=len||1.7;
     if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // a real recessed tub; the model's tap end is at -x, turned round it sits at the +u end like the box one
-      const p=loc(x,z,ry)(0,.4);MDL.put(E.grp,'tub',{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry+Math.PI,sc:[len/1.7,1,1]});ob(x,z,ry,0,.4,len/2,.42);
+      const p=loc(x,z,ry)(0,.4);MDL.put(E.grp,'tub',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry+Math.PI,sc:[len/1.7,1,1]});ob(x,z,ry,0,.4,len/2,.42);
       const a=loc(x,z,ry)(len/2-.2,.32);K.tap(a[0],a[1],ry,'Run the bath',.66);return}
     bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};
   K.shower=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.04,w/2,w,.08,w,'#e2e6e9',1);for(const s of [-1,1])bx(x,z,ry,s*w/2,1.05,w/2,.03,2.1,w,'#dce8ee',1);bx(x,z,ry,0,1.05,w,w,2.1,.03,'#dce8ee',1);bx(x,z,ry,w*.38,1.05,w+.02,.05,2.1,.03,'#9aa0a6',6);cy(x,z,ry,0,1.9,.1,.02,.02,.5,'#c8ccd0',6);cy(x,z,ry,0,2.38,.18,.1,.12,.04,'#c8ccd0',6);ob(x,z,ry,0,w/2,w/2,w/2)};

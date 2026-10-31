@@ -153,76 +153,72 @@ const VEN={ready:false,cats:[],all:[],by:new Map(),byB:new Map(),live:new Map(),
 };
 
 // ================= interiors for the venue kinds the old shop set did not cover =================
+// The furniture is real models (own Blender work, dev/blender/venkit.py): origin = middle of the footprint on the floor, front toward +Z, so mdl(...,ry) turns the front towards ry.
 function venInteriors(){
   const c=sRGB,Y=INT_Y,add=(key,idx,o)=>{INTERIORS[key]=()=>simpleInterior(key,idx,o);if(typeof BGW!=='undefined')BGW.push({name:key})};
-  const stool=(P,x,z,col)=>{P.cyl(x,Y,z,.04,.04,.62,6,c('#8a8f94'),6);P.cyl(x,Y+.62,z,.19,.19,.07,10,c(col||'#3b2a1e'),4);LOW_OBB.push(x,z,.2,.2,1,0)};
+  const PI=Math.PI,mdl=(grp,name,x,z,ry,o)=>MDL.put(grp,name,Object.assign({x,y:Y,z,ry:ry||0,keep:1,bake:1},o));
+  const run=(grp,name,x0,z0,dx,dz,n,ry,o)=>{for(let k=0;k<n;k++)mdl(grp,name,x0+dx*k,z0+dz*k,ry,o)};
+  // the emissive materials of a piece (screens, RGB strips) take the colour of its station
+  const glowTint=(col,re)=>h=>{const k=new THREE.Color(col).convertSRGBToLinear();h.traverse(o=>{if(o.isMesh&&o.material&&re.test(o.material.name)){o.material=o.material.clone();o.material.color.copy(k);o.material.emissive.copy(k)}})};
   // ---------- gaming club: rows of PCs with glowing screens, PlayStation corner, neon
   add('bg_game',80,{w:14,d:11,h:3.2,floor:0x15151c,fr:.4,wall:0x1c1a2e,ceil:0x0d0d14,title:'Gaming club',sub:'PCs, consoles and energy drinks',lights:[3,8],lcol:0x8a6cff,li:1.5,
     furnish(P,grp,ox,oz,hw,D){
       neonSign(grp,'GAME CLUB',ox,Y+2.55,oz+D-.1,Math.PI,5.4,'#46f2ff');neonSign(grp,'LEVEL UP',ox-hw+.1,Y+2.25,oz+6,Math.PI/2,3.2,'#ff5bd0');neonSign(grp,'GG',ox+hw-.1,Y+2.25,oz+6,-Math.PI/2,1.6,'#ffd84a');
       const glow=['#2c6bff','#8a3dff','#18d6ff','#ff3d8a','#27e08a'];
       for(const r of [0,1])for(let k=0;k<5;k++){const x=ox-4.8+k*2.4,z=oz+(r?8.4:5.2),g=glow[(k+r*2)%5];
-        P.box(x,Y+.74,z,1.5,.05,.75,0,c('#23252d'),1);for(const s of [-1,1])P.box(x+s*.7,Y+.37,z,.05,.74,.7,0,c('#101014'),6);
-        P.box(x,Y+.9,z+.12,.06,.2,.06,0,c('#111'),6);P.box(x,Y+1.12,z+.14,.66,.4,.04,0,c('#0a0a10'),2);P.box(x,Y+1.12,z+.115,.58,.33,.012,0,c(g),8);
-        P.box(x-.08,Y+.77,z-.16,.44,.02,.14,0,c('#15151c'),1);P.box(x-.08,Y+.78,z-.16,.4,.012,.1,0,c(g),8);P.box(x+.4,Y+.79,z-.15,.07,.025,.11,0,c('#15151c'),1);
-        P.box(x+.55,Y+.26,z+.18,.22,.46,.46,0,c('#0f0f16'),1);P.box(x+.55,Y+.3,z-.055,.14,.02,.012,0,c(g),8);
-        P.box(x,Y+.46,z-.85,.5,.08,.5,0,c('#17171d'),4);P.box(x,Y+.9,z-1.1,.5,.82,.08,0,c(r?'#1d5fd0':'#c0192c'),4);P.cyl(x,Y,z-.85,.04,.04,.46,6,c('#8a8f94'),6);
+        mdl(grp,'pc_station',x,z,PI,{tints:{tint_accent:r?'#1d5fd0':'#c0192c'},ready:glowTint(g,/^glow_(screen|rgb)/)});     // desk, monitor, keyboard, tower and a gaming chair; the user sits on the door side
         LOW_OBB.push(x,z,.78,.4,1,0);
         INTERACT.push({x,z:z-.9,r:1.2,label:'Play at this PC',fn:()=>toast('GG','you won the match 2–1 and lost an hour')})}
       for(const s of [-1,1]){P.box(ox+s*(hw-.08),Y+.04,oz+6,.03,.05,D-1,0,c(s<0?'#ff5bd0':'#46f2ff'),8);P.box(ox+s*(hw-.08),Y+3.1,oz+6,.03,.05,D-1,0,c(s<0?'#46f2ff':'#ff5bd0'),8)}
       // PlayStation corner (back left): sofa, wide TV, low table
-      P.box(ox-5,Y+.3,oz+D-1.2,3,.6,1,0,c('#3a2f55'),4);P.box(ox-5,Y+.8,oz+D-.8,3,.6,.2,0,c('#3a2f55'),4);LOW_OBB.push(ox-5,oz+D-1.2,1.5,.5,1,0);
-      P.box(ox-5,Y+1.5,oz+D-.15,2.2,1.25,.06,0,c('#0a0a10'),2);P.box(ox-5,Y+1.5,oz+D-.185,2.1,1.15,.01,0,c('#ff3d5a'),8);P.box(ox-5,Y+.2,oz+D-3,1.3,.4,.6,0,c('#1a1a22'),1);LOW_OBB.push(ox-5,oz+D-3,.65,.3,1,0);
+      MDL.put(grp,'sofa',{bake:1,x:ox-5,y:Y,z:oz+D-1.25,ry:PI,sc:[1.5,1,1],tints:{tint_sofa:'#3a2f55',tint_cushion:'#4d4170'}});LOW_OBB.push(ox-5,oz+D-1.2,1.5,.5,1,0);
+      P.box(ox-5,Y+1.5,oz+D-.15,2.2,1.25,.06,0,c('#0a0a10'),2);P.box(ox-5,Y+1.5,oz+D-.185,2.1,1.15,.01,0,c('#ff3d5a'),8);
+      MDL.put(grp,'table',{bake:1,x:ox-5,y:Y,z:oz+D-3,ry:0,sc:[1.08,.55,.85],tints:{tint_wood:'#23252d'}});LOW_OBB.push(ox-5,oz+D-3,.65,.3,1,0);
       INTERACT.push({x:ox-5,z:oz+D-2.3,r:1.6,label:'Play on the console',fn:()=>toast('PlayStation','FIFA, 3 goals in a row')});
-      // counter + fridge (back right)
-      P.box(ox+5,Y+.55,oz+D-2.4,2.6,1.1,.8,0,c('#2a2a33'),1);P.box(ox+5,Y+1.12,oz+D-2.4,2.7,.06,.9,0,c('#46f2ff'),8);LOW_OBB.push(ox+5,oz+D-2.4,1.35,.45,1,0);
-      P.box(ox+hw-.7,Y+1,oz+D-.6,.8,2,.7,0,c('#e9edf0'),1);P.box(ox+hw-.7,Y+1.1,oz+D-.94,.6,1.5,.02,0,c('#27e08a'),8);LOW_OBB.push(ox+hw-.7,oz+D-.6,.4,.35,1,0);
+      // counter + drinks fridge (back right)
+      mdl(grp,'shop_counter',ox+5,oz+D-2.4,PI,{tints:{tint_wood:'#2a2a33',tint_panel:'#3a3a46'},ready:glowTint('#46f2ff',/^glow_screen/)});P.box(ox+5,Y+1.1,oz+D-2.78,2.6,.02,.02,0,c('#46f2ff'),8);LOW_OBB.push(ox+5,oz+D-2.4,1.35,.45,1,0);
+      mdl(grp,'drink_fridge',ox+hw-.7,oz+D-.6,PI);LOW_OBB.push(ox+hw-.7,oz+D-.6,.4,.35,1,0);
       INTERACT.push({x:ox+5,z:oz+D-3.3,r:1.6,label:'Pay for an hour (₴60)',fn:()=>{if(typeof WALLET!=='undefined'&&WALLET.pay&&!WALLET.pay(60,'gaming hour'))return;toast('Time on','good luck, have fun')}})}});
-  // ---------- restaurant: tables with cloths and candles, a bar with bottles
+  // ---------- restaurant: tables with cloths, candles and chairs, a bar with bottles
   add('bg_rest',81,{w:12,d:10,h:3.5,floor:0x5a4636,fr:.6,wall:0xf0e3cd,ceil:0xe8ddc8,title:'Restaurant',sub:'a table by the window',lights:[2.5,7.5],lcol:0xffd9a8,li:1.8,
     furnish(P,grp,ox,oz,hw,D){
       neonSign(grp,'RESTAURANT',ox,Y+3,oz+D-.1,Math.PI,4.6,'#ffd28a');
       for(const z of [3.8,6.4,8.6])for(const x of [-3.6,-1.2,1.2,3.6]){if(z===8.6&&Math.abs(x)<1.5)continue;const X=ox+x,Z=oz+z;
-        P.cyl(X,Y+.74,Z,.52,.52,.05,14,c('#f4efe6'),4);P.cyl(X,Y,Z,.06,.06,.74,8,c('#2a211b'),6);P.cyl(X,Y,Z,.28,.28,.03,10,c('#2a211b'),6);P.cyl(X+.1,Y+.79,Z-.1,.03,.03,.12,6,c('#ffcf70'),3);
-        for(const [dx,dz] of [[-.8,0],[.8,0],[0,-.8]]){P.box(X+dx,Y+.44,Z+dz,.42,.05,.42,0,c('#7a5538'),5);P.box(X+dx,Y+.7,Z+dz+(dz?-.2*Math.sign(dz):0),dz?.42:.05,.5,dz?.05:.42,0,c('#7a5538'),5);P.cyl(X+dx,Y,Z+dz,.03,.03,.44,6,c('#2a211b'),6)}
-        LOW_OBB.push(X,Z,.95,.95,1,0)}
-      P.box(ox,Y+.55,oz+D-1.6,5,1.1,.7,0,c('#4a2f1d'),5);P.box(ox,Y+1.12,oz+D-1.6,5.2,.06,.8,0,c('#2a1a10'),5);LOW_OBB.push(ox,oz+D-1.6,2.6,.45,1,0);
-      for(let k=0;k<6;k++){P.box(ox-2+k*.8,Y+1.55,oz+D-.35,.5,.04,.3,0,c('#4a2f1d'),5);for(let q=0;q<3;q++)P.cyl(ox-2.2+k*.8+q*.17,Y+1.58,oz+D-.35,.045,.045,.28,6,c(['#2e5a2e','#6a1d2a','#d9c08a'][(k+q)%3]),3)}
-      for(let k=0;k<4;k++)stool(P,ox-1.8+k*1.2,oz+D-2.4);
-      P.box(ox+hw-.7,Y+1.1,oz+4.5,.8,2.2,2,0,c('#5a3d2a'),5);for(let q=0;q<8;q++)P.cyl(ox+hw-.55,Y+.3+(q%4)*.5,oz+3.9+Math.floor(q/4)*.9,.05,.05,.3,6,c('#6a1d2a'),3,0,Math.PI/2);LOW_OBB.push(ox+hw-.7,oz+4.5,.45,1,1,0);
+        mdl(grp,'bistro_set',X,Z,0,{tints:{tint_cloth:'#f4efe6',tint_wood:'#7a5538'}});LOW_OBB.push(X,Z,.95,.95,1,0)}
+      run(grp,'bar_counter',ox-2,oz+D-1.6,1,0,5,PI,{tints:{tint_wood:'#4a2f1d',tint_panel:'#5a3a24'}});LOW_OBB.push(ox,oz+D-1.6,2.6,.45,1,0);
+      run(grp,'back_bar',ox-2.5,oz+D-.2,1,0,6,PI,{tints:{tint_wood:'#4a2f1d',tint_panel:'#5a3a24'}});
+      run(grp,'bar_stool',ox-1.8,oz+D-2.5,1.2,0,4,0,{tints:{tint_seat:'#3b2a1e'}});
+      mdl(grp,'wine_rack',ox+hw-.3,oz+4.5,-PI/2,{tints:{tint_wood:'#5a3d2a',tint_panel:'#6a4a34'}});LOW_OBB.push(ox+hw-.5,oz+4.5,.35,1,1,0);
       INTERACT.push({x:ox,z:oz+D-3.2,r:1.8,label:'Order lunch',fn:()=>toast('Menu','forshmak, varenyky, grilled fish and a glass of wine')})}});
   // ---------- bar / club: long bar, glowing shelves, pool table, neon
   add('bg_bar',82,{w:12,d:9,h:3.2,floor:0x2a1d16,fr:.5,wall:0x20161a,ceil:0x120d10,title:'Bar',sub:'dim light and loud music',lights:[2.5,6.5],lcol:0xff9a5a,li:1.3,
     furnish(P,grp,ox,oz,hw,D){
       neonSign(grp,'BAR',ox,Y+2.55,oz+D-.1,Math.PI,2.6,'#ff4fb8');neonSign(grp,'COLD BEER',ox-hw+.1,Y+2.1,oz+4.5,Math.PI/2,2.8,'#ffd84a');
-      P.box(ox,Y+.55,oz+D-1.8,7,1.1,.8,0,c('#3b2a1e'),5);P.box(ox,Y+1.12,oz+D-1.8,7.2,.07,.95,0,c('#1a110b'),5);LOW_OBB.push(ox,oz+D-1.8,3.6,.5,1,0);
-      for(let k=0;k<6;k++)stool(P,ox-3+k*1.2,oz+D-2.9,'#8a2a2a');
-      P.box(ox,Y+1.7,oz+D-.12,7,2,.12,0,c('#2a1a14'),5);for(let r=0;r<3;r++){P.box(ox,Y+.95+r*.55,oz+D-.3,6.6,.04,.28,0,c('#4a3322'),5);P.box(ox,Y+.99+r*.55,oz+D-.3,6.4,.012,.06,0,c('#ffb868'),8);
-        for(let q=0;q<9;q++)P.cyl(ox-3.1+q*.78,Y+1+r*.55,oz+D-.3,.05,.05,.3,6,c(['#2e5a2e','#6a3a1d','#caa75a','#1e3a6a'][(q+r)%4]),3)}
-      // pool table
-      P.box(ox-3,Y+.8,oz+4.4,2.7,.12,1.5,0,c('#1d6a3a'),4);P.box(ox-3,Y+.72,oz+4.4,2.9,.1,1.7,0,c('#4a2f1d'),5);for(const [dx,dz] of [[-1.3,-.7],[1.3,-.7],[-1.3,.7],[1.3,.7]])P.box(ox-3+dx,Y+.35,oz+4.4+dz,.18,.7,.18,0,c('#3b2a1e'),5);LOW_OBB.push(ox-3,oz+4.4,1.45,.85,1,0);
-      for(const k of [0,1,2,3])P.cyl(ox-3.4+k*.2,Y+.87,oz+4.4,.045,.045,.05,8,c(['#d9261c','#f2c418','#2f6db0','#111'][k]),1);
+      run(grp,'bar_counter',ox-3,oz+D-1.8,1,0,7,PI,{tints:{tint_wood:'#3b2a1e',tint_panel:'#4a3322'}});LOW_OBB.push(ox,oz+D-1.8,3.6,.5,1,0);
+      run(grp,'back_bar',ox-3,oz+D-.2,1,0,7,PI,{tints:{tint_wood:'#3b2a1e',tint_panel:'#4a3322'}});
+      run(grp,'bar_stool',ox-3,oz+D-2.65,1.2,0,6,0,{tints:{tint_seat:'#8a2a2a'}});
+      mdl(grp,'pool_table',ox-3,oz+4.4,0,{tints:{tint_wood:'#4a2f1d',tint_cloth:'#1d6a3a'}});LOW_OBB.push(ox-3,oz+4.4,1.45,.85,1,0);
       INTERACT.push({x:ox-3,z:oz+3,r:1.5,label:'Play pool',fn:()=>toast('Break','solid ball in the corner pocket')});
-      for(const s of [-1,1]){P.cyl(ox+3.7,Y,oz+4.2+s*1.4,.4,.4,.05,10,c('#1a1a22'),1);P.cyl(ox+3.7,Y+.05,oz+4.2+s*1.4,.05,.05,1.0,8,c('#8a8f94'),6);P.cyl(ox+3.7,Y+1.05,oz+4.2+s*1.4,.34,.34,.05,12,c('#3b2a1e'),5);LOW_OBB.push(ox+3.7,oz+4.2+s*1.4,.4,.4,1,0)}
+      for(const s of [-1,1]){mdl(grp,'high_table',ox+3.7,oz+4.2+s*1.4,0,{tints:{tint_wood:'#3b2a1e'}});LOW_OBB.push(ox+3.7,oz+4.2+s*1.4,.4,.4,1,0)}
       INTERACT.push({x:ox,z:oz+D-3.7,r:2.2,label:'Order a drink',fn:()=>toast('Cheers','a cold one and a snack')})}});
-  // ---------- gym: treadmills, benches, racks, mirror wall
+  // ---------- gym: treadmills, benches with bars, dumbbell racks, mats, mirror wall
   add('bg_gym',83,{w:14,d:10,h:3.8,floor:0x2b2d31,fr:.8,wall:0xd7d9dc,ceil:0xeceff2,title:'Gym',sub:'iron, cardio and loud music',lights:[3,7],lcol:0xf2f6ff,li:1.9,
     furnish(P,grp,ox,oz,hw,D){
       neonSign(grp,'NO PAIN NO GAIN',ox,Y+3.1,oz+D-.1,Math.PI,5.4,'#ff9a2e');P.box(ox,Y+1.5,oz+D-.07,hw*2-1,2.4,.04,0,c('#8aa0b0'),2);
-      for(let k=0;k<5;k++){const x=ox-4.8+k*2.4,z=oz+D-2.2;P.box(x,Y+.12,z,.85,.24,1.8,0,c('#1a1c20'),1);P.box(x,Y+.27,z+.05,.7,.03,1.5,0,c('#0f1012'),1);P.box(x,Y+1.0,z+.75,.1,1.1,.1,0,c('#2a2d33'),6);P.box(x,Y+1.5,z+.7,.6,.3,.12,.0,c('#101216'),1);P.box(x,Y+1.5,z+.64,.5,.2,.01,0,c('#27e08a'),8);LOW_OBB.push(x,z,.45,.95,1,0)}
-      for(const [x,z] of [[-5,3.3],[-2.2,3.3]]){const X=ox+x,Z=oz+z;P.box(X,Y+.42,Z,.5,.1,1.3,0,c('#1a1c20'),4);for(const s of [-1,1])P.box(X+s*.8,Y+.65,Z-.35,.06,1.1,.06,0,c('#8a8f94'),6);P.cyl(X,Y+1.2,Z-.35,.025,.025,1.8,8,c('#b8bcc2'),6,0,Math.PI/2);for(const s of [-1,1])P.cyl(X+s*.78,Y+1.07,Z-.35,.22,.22,.08,12,c('#111'),1,0,Math.PI/2);LOW_OBB.push(X,Z,.95,.75,1,0)}
-      for(let k=0;k<3;k++){const X=ox+1.2+k*1.5;P.box(X,Y+.35,oz+3.3,1.3,.7,.5,0,c('#2a2d33'),1);for(let q=0;q<6;q++)P.cyl(X-.5+q*.2,Y+.7,oz+3.3,.07,.07,.2,8,c(q%2?'#c0192c':'#111'),1)}LOW_OBB.push(ox+2.7,oz+3.3,2.3,.3,1,0);
-      for(let k=0;k<3;k++)P.box(ox+4.4,Y+.02,oz+5.6+k*1.1,.7,.03,1.8,0,c(['#2f6db0','#d9261c','#2f9a4a'][k]),4);
+      for(let k=0;k<5;k++){const x=ox-4.8+k*2.4,z=oz+D-2.2;mdl(grp,'treadmill',x,z,0);LOW_OBB.push(x,z,.45,.95,1,0)}
+      for(const [x,z] of [[-5,3.3],[-2.2,3.3]]){const X=ox+x,Z=oz+z;mdl(grp,'bench_press',X,Z,0);LOW_OBB.push(X,Z,.95,.75,1,0)}
+      run(grp,'dumbbell_rack',ox+1.2,oz+3.3,1.5,0,3,PI);LOW_OBB.push(ox+2.7,oz+3.3,2.3,.3,1,0);
+      for(let k=0;k<3;k++)mdl(grp,'yoga_mat',ox+4.4,oz+5.6+k*1.1,0,{tints:{tint_mat:['#2f6db0','#d9261c','#2f9a4a'][k]}});
       INTERACT.push({x:ox-3.6,z:oz+4.6,r:1.8,label:'Work out',fn:()=>toast('Pump it','three sets of ten, feel the burn')})}});
-  // ---------- clothes shop: rails, folded stacks, mannequins, fitting rooms
+  // ---------- clothes shop: rails with hangers, folded stacks on the wall, mannequins, fitting rooms
   add('bg_cloth',84,{w:14,d:10,h:3.4,floor:0xd8d2c6,fr:.55,wall:0xf4f1ea,ceil:0xfbfaf6,title:'Clothes shop',sub:'new collection',lights:[3,7.5],lcol:0xfff4e0,li:2,
     furnish(P,grp,ox,oz,hw,D){
       neonSign(grp,'NEW COLLECTION',ox,Y+3,oz+D-.1,Math.PI,4.8,'#ffffff');const pal=['#d9261c','#2f6db0','#2f9a4a','#f2c418','#111111','#e8e2d4','#8a4ab0','#e07a2a'];
-      for(let r=0;r<3;r++){const z=oz+3.8+r*2.2;for(const s of [-1,1]){const X=ox+s*3.2;P.cyl(X,Y+1.45,z,.02,.02,3,8,c('#b8bcc2'),6,0,Math.PI/2);P.box(X-1.45,Y+.72,z,.04,1.45,.04,0,c('#b8bcc2'),6);P.box(X+1.45,Y+.72,z,.04,1.45,.04,0,c('#b8bcc2'),6);
-        for(let q=0;q<11;q++)P.box(X-1.35+q*.27,Y+1.05,z,.07,.8,.5,0,c(pal[(q*3+r+(s>0?2:0))%8]),4);LOW_OBB.push(X,z,1.5,.35,1,0)}}
-      for(let k=0;k<4;k++){const X=ox-5.8+k*.05;P.box(ox-hw+.6,Y+.5+k*.55,oz+3+k*1.7,.8,.9,1.2,0,c('#cfc7b8'),4);for(let q=0;q<4;q++)P.box(ox-hw+.6,Y+1+k*.55+q*.0,oz+3+k*1.7,.6,.14,.9,0,c(pal[(k+q*2)%8]),4)}LOW_OBB.push(ox-hw+.6,oz+5,.5,2.8,1,0);
-      for(const x of [-.8,.8]){P.cyl(ox+x,Y,oz+8.3,.22,.22,.04,10,c('#1a1a1e'),1);P.cyl(ox+x,Y+.04,oz+8.3,.025,.025,1.55,6,c('#8a8f94'),6);P.box(ox+x,Y+1.15,oz+8.3,.36,.62,.2,0,c(pal[x>0?1:0]),4);P.box(ox+x,Y+.62,oz+8.3,.34,.5,.2,0,c('#2a3a5a'),4);P.cyl(ox+x,Y+1.46,oz+8.3,.09,.09,.2,8,c('#e8d6c0'),4)}
-      P.box(ox+4,Y+.55,oz+D-1.3,2.6,1.1,.7,0,c('#e8e2d4'),1);P.box(ox+4,Y+1.12,oz+D-1.3,2.7,.05,.8,0,c('#2a2a2e'),1);LOW_OBB.push(ox+4,oz+D-1.3,1.35,.4,1,0);
-      for(const x of [-3,-1.8]){P.box(ox+x,Y+1.1,oz+D-.8,1.1,2.2,.1,0,c('#e8e2d4'),1);P.box(ox+x,Y+1.1,oz+D-.9,.9,1.7,.04,0,c('#9aa8b4'),2)}
+      const four=n=>({tint_a:pal[n%8],tint_b:pal[(n+2)%8],tint_c:pal[(n+5)%8],tint_d:pal[(n+7)%8]});
+      for(let r=0;r<3;r++){const z=oz+3.8+r*2.2;for(const s of [-1,1]){const X=ox+s*3.2;mdl(grp,'clothes_rail',X,z,0,{tints:four(r*3+(s>0?2:0))});LOW_OBB.push(X,z,1.5,.35,1,0)}}
+      for(let k=0;k<4;k++)mdl(grp,'wall_shelf',ox-hw+.22,oz+3+k*1.7,PI/2,{tints:Object.assign(four(k*2+1),{tint_wood:'#efe9dc'})});LOW_OBB.push(ox-hw+.6,oz+5,.5,2.8,1,0);
+      for(const x of [-.8,.8])mdl(grp,'mannequin',ox+x,oz+8.3,PI,{tints:{tint_top:pal[x>0?1:0],tint_bottom:'#2a3a5a'}});
+      mdl(grp,'shop_counter',ox+4,oz+D-1.3,PI,{tints:{tint_wood:'#e8e2d4',tint_panel:'#f4efe4'}});LOW_OBB.push(ox+4,oz+D-1.3,1.35,.4,1,0);
+      mdl(grp,'fitting_room',ox-3,oz+D-.6,PI,{tints:{tint_wood:'#e8e2d4',tint_curtain:'#8a4ab0'}});mdl(grp,'fitting_room',ox-1.8,oz+D-.6,PI,{tints:{tint_wood:'#e8e2d4',tint_curtain:'#2f6db0'}});
       INTERACT.push({x:ox,z:oz+5.5,r:2.2,label:'Browse the rails',fn:()=>toast('New in','jackets, jeans and sneakers')})}});
 }
