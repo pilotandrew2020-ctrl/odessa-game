@@ -111,5 +111,27 @@ const PM={mats:null,
     parts.gearN=gear(0,5.2,.7,.26);parts.gearL=gear(1.6,-1.2,.75,.34);parts.gearR=gear(-1.6,-1.2,.75,.34);
     parts.gearN.g.userData.fold=[-1.45,0,0];parts.gearL.g.userData.fold=[0,0,1.5];parts.gearR.g.userData.fold=[0,0,-1.5];
     const L=new THREE.Group();root.add(L);const lm=new MB();lm.sph('lightR',.1,4.95,-.1,-3.4);lm.sph('lightG',.1,-4.95,-.1,-3.4);lm.sph('lightW',.1,0,3.2,-6.4);lm.sph('lightR',.12,0,.9,.5);lm.build(L,M);parts.lights=L;
-    return {root,kind:'fighter',parts,dims}}
+    return {root,kind:'fighter',parts,dims}},
+  // ================================ LIGHT PLANE (Colomban Cri-Cri, assets/models/cricri.glb) ================================
+  // The model was converted from the user's FBX (see assets/IMPORTS.md): +z nose, +x left, metres, scaled 1.5x so a seated avatar fits under the
+  // canopy, origin at the wing root; nodes: body, cockpit, canopy, prop_l/r, wheel_n/l/r, ail_l/r, elev (each with its own pivot).
+  light:null,lightP:null,
+  loadLight(){if(this.lightP)return this.lightP;
+    return this.lightP=new Promise((res,rej)=>{try{new THREE.GLTFLoader().load('assets/models/cricri.glb',g=>{this.light=g.scene;res(g.scene)},undefined,e=>{this.lightP=null;rej(e)})}catch(e){this.lightP=null;rej(e)}})},
+  buildLight(){if(!this.light)throw new Error('light plane model is not loaded yet');
+    const root=new THREE.Group(),m=this.light.clone(true),parts={},dims={gearY:-.66,len:5.95,span:7.33,vr:25,vs:21,vmax:66,cabin:false,light:true};root.add(m);
+    const n=k=>m.getObjectByName(k);
+    m.traverse(o=>{if(o.isMesh){o.castShadow=o.name!=='canopy';o.receiveShadow=false}});
+    parts.canopy=n('canopy');parts.elev=[n('elev')];parts.ail=[n('ail_l'),n('ail_r')];parts.rud=new THREE.Group();root.add(parts.rud);   // the fin is part of the body: the rudder is only a dummy
+    // wheels: each gets a parent group at its axle (steering of the nose wheel turns that group; the wheel itself spins about x)
+    const gear=(k)=>{const w=n(k),g=new THREE.Group();g.position.copy(w.position);w.position.set(0,0,0);w.parent.add(g);g.add(w);g.userData.fold=[0,0,0];return {g,wheels:[w],len:.2}};
+    parts.gearN=gear('wheel_n');parts.gearL=gear('wheel_l');parts.gearR=gear('wheel_r');
+    // propellers spin about z; a faint disc shows up at speed
+    parts.fans=[n('prop_l'),n('prop_r')];parts.discs=[];
+    for(const f of parts.fans){const d=new THREE.Mesh(new THREE.CircleGeometry(.56,24),new THREE.MeshBasicMaterial({color:0xcfd6dc,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));d.position.copy(f.position);d.position.z+=.02;d.visible=false;d.renderOrder=2;m.add(d);parts.discs.push(d)}
+    // navigation lights
+    const L=new THREE.Group(),lm=(c)=>new THREE.MeshBasicMaterial({color:c,toneMapped:false});
+    for(const [x,y,z,c] of [[3.62,-.05,.1,0xff2a2a],[-3.62,-.05,.1,0x20e060],[0,.95,-3.35,0xffffff]]){const s=new THREE.Mesh(new THREE.SphereGeometry(.05,8,6),lm(c));s.position.set(x,y,z);L.add(s)}
+    root.add(L);parts.lights=L;
+    return {root,kind:'light',parts,dims}}
 };

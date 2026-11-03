@@ -140,16 +140,52 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     // the sign and ground are always cheap; hide the whole airport far away
     this.g.visible=Math.hypot(player.x-this.C[0],player.z-this.C[1])<5200||this.flight&&!this.flight.onGround},
   // ---------- spawn menu ----------
-  spawn(kind){const near=Math.hypot(player.x-this.P(0,150)[0],player.z-this.P(0,150)[1])<500;let a=this.mine&&this.mine[kind];
+  // Spawn is done in steps behind the fade (teleport -> aircraft -> crew) instead of in one burst: on a phone the
+  // aircraft meshes, textures and three avatars used to be built in the same moment as the 4 km teleport.
+  spawn(kind){if(this.busy)return;if(typeof DIAG!=='undefined')DIAG.note('spawn '+kind);
+    const near=Math.hypot(player.x-this.P(0,150)[0],player.z-this.P(0,150)[1])<500;let a=this.mine&&this.mine[kind];
     const spots={airliner:this.P(-110,125),fighter:this.P(60,125)};const sp=spots[kind],yaw=this.yawOf(0,1);
-    if(!a){a=PLN.add(kind,sp[0],sp[1],yaw);this.mine=this.mine||{};this.mine[kind]=a;PLN.crewInit&&kind==='airliner'&&PLN.crewInit(a)}
-    else{if(PLN.cur===a)PLN.leaveFighter();a.park(sp[0],sp[1],yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
-    a.manual=false;const go=()=>{if(!near){const q=this.P(-80,170);teleportRaw(q[0],q[1],this.yawOf(0,-1))}toast(kind==='airliner'?'Airliner spawned':'Fighter spawned','at Odesa Airport apron · walk up to it ('+(kind==='airliner'?'E to board':'E to climb in')+')')};
-    if(near)go();else{const f=$('fade');f.style.opacity=1;setTimeout(()=>{go();f.style.opacity=0},380)}},
+    const place=()=>{if(!a){a=PLN.add(kind,sp[0],sp[1],yaw);this.mine=this.mine||{};this.mine[kind]=a}
+      else{if(PLN.cur===a)PLN.leaveFighter();a.park(sp[0],sp[1],yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
+      a.manual=false};
+    const crew=()=>{if(kind==='airliner'&&a&&PLN.crewInit)PLN.crewInit(a)};      // crewInit is idempotent
+    const done=()=>{toast(kind==='airliner'?'Airliner spawned':'Fighter spawned','at Odesa Airport apron · walk up to it ('+(kind==='airliner'?'E to board':'E to climb in')+')');this.busy=false};
+    this.busy=true;
+    try{
+      if(near){place();setTimeout(()=>{try{crew()}finally{done()}},80)}
+      else{const f=$('fade');f.style.opacity=1;
+        setTimeout(()=>{try{const q=this.P(-80,170);teleportRaw(q[0],q[1],this.yawOf(0,-1))}catch(e){console.error(e)}
+          setTimeout(()=>{try{place()}catch(e){console.error(e)}
+            setTimeout(()=>{try{crew()}catch(e){console.error(e)}f.style.opacity=0;done()},260)},380)},380)}
+    }catch(e){this.busy=false;throw e}},
+  // The light plane appears on open ground just in front of the player, wherever that is (street, field, beach...), not at the airport.
+  // It looks for a clear spot (dry land, no building or wall within a wing span, gentle slope) by spiralling outwards from 9 m in front.
+  spawnLight(){if(this.busy)return;
+    if(PORTAL.cur){toast('Not indoors','go outside to spawn the plane');return}
+    if(PLN.cur||MP.on||DRIVE.on||HELI.on||RIDE.on||MARINE.cur||EXT.cur||PASS.host){toast('Not now','get out of what you are in first');return}
+    if(typeof DIAG!=='undefined')DIAG.note('spawn light plane');
+    this.busy=true;toast('Light plane','getting it ready…');
+    PM.loadLight().then(()=>{
+      try{
+        const yaw=cam.yaw,f=[Math.sin(yaw),Math.cos(yaw)];let spot=null;
+        // somebody swimming in open water gets the plane on the water right beside them (it floats; swim up to it and press E)
+        if(typeof SWIM!=='undefined'&&SWIM.on){const x=player.x+f[0]*11,z=player.z+f[1]*11;if(groundH(x,z)<SL-1.5&&!specialGround(x,z,SL))spot={x,z}}
+        const slope=(x,z)=>{let lo=1e9,hi=-1e9;for(const [dx,dz] of [[0,0],[3,0],[-3,0],[0,3],[0,-3],[3,3],[-3,-3]]){const h=groundH(x+dx,z+dz);lo=Math.min(lo,h);hi=Math.max(hi,h)}return hi-lo};
+        for(let r=9;r<=60&&!spot;r+=4)for(let a=0;a<7&&!spot;a++){const off=(a%2?1:-1)*Math.ceil(a/2)*.55,th=yaw+off,x=player.x+Math.sin(th)*r,z=player.z+Math.cos(th)*r,gy=groundH(x,z);
+          if(gy<SL+1.5||specialGround(x,z,gy+1))continue;if(insideAny(x,z,5.5,gy+1)||insideAny(x+f[0]*3,z+f[1]*3,2.5,gy+1)||insideAny(x-f[0]*3,z-f[1]*3,2.5,gy+1))continue;if(slope(x,z)>1.4)continue;spot={x,z}}
+        if(!spot){toast('No room here','find an open flat area (a field, a wide street or the beach) and try again');return}
+        let a=this.mine&&this.mine.light;
+        if(!a){a=PLN.add('light',spot.x,spot.z,yaw);this.mine=this.mine||{};this.mine.light=a}
+        else{a.park(spot.x,spot.z,yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
+        a.manual=false;a.thrT=0;
+        toast('Light plane spawned',(typeof SWIM!=='undefined'&&SWIM.on)?'swim up to it and press E · it floats and takes off from the water':'walk up to it and press E · it takes off and lands on any flat ground, even on water')
+      }catch(e){console.error('light plane',e);toast('Could not spawn the plane','try again')}
+      finally{this.busy=false}
+    }).catch(e=>{this.busy=false;console.error('light plane model',e);toast('Plane model failed to load','check the connection and try again')})},
   menu(){let m=document.getElementById('airPick');if(!m){m=document.createElement('div');m.id='airPick';m.hidden=true;
-      m.innerHTML='<div class="ap"><h3>Spawn</h3><button data-k="airliner">✈ Airliner (A320 class)</button><button data-k="fighter">🛩 Fighter jet</button><button data-k="yacht">🛥 Call the yacht to me</button><button data-k="goairport">📍 Go to Odesa Airport</button><button data-k="close" class="x">Close</button></div>';
+      m.innerHTML='<div class="ap"><h3>Spawn</h3><button data-k="airliner">✈ Airliner (A320 class)</button><button data-k="fighter">🛩 Fighter jet</button><button data-k="light">🛩 Light plane — lands anywhere</button><button data-k="yacht">🛥 Call the yacht to me</button><button data-k="goairport">📍 Go to Odesa Airport</button><button data-k="close" class="x">Close</button></div>';
       const st=document.createElement('style');st.textContent='#airPick{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}#airPick .ap{display:flex;flex-direction:column;gap:8px;min-width:260px;padding:16px;border-radius:16px;background:rgba(10,22,30,.92);border:1px solid rgba(255,255,255,.2);color:#fff;font:600 14px system-ui}#airPick h3{margin:0 0 4px;letter-spacing:.14em;color:#f2c14e;font:800 13px system-ui}#airPick button{padding:12px 14px;border-radius:11px;border:1.5px solid rgba(255,255,255,.25);background:rgba(40,60,80,.9);color:#fff;font:700 13px system-ui;text-align:left}#airPick button:active{background:#f2c14e;color:#111}#airPick .x{background:rgba(120,40,40,.8);text-align:center}';document.head.appendChild(st);(document.getElementById('hud')||document.body).appendChild(m);
-      m.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;m.hidden=true;if(k==='airliner'||k==='fighter')this.spawn(k);else if(k==='yacht')YACHT.summon();else if(k==='goairport'){const p=PLACES.find(q=>q.id==='airport');if(p)teleport(p)}})}
+      m.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;m.hidden=true;if(k==='airliner'||k==='fighter')this.spawn(k);else if(k==='light')this.spawnLight();else if(k==='yacht')YACHT.summon();else if(k==='goairport'){const p=PLACES.find(q=>q.id==='airport');if(p)teleport(p)}})}
     m.hidden=!m.hidden},
   addButton(){const ab=document.getElementById('qMenu')||document.getElementById('actBtns');if(!ab||document.getElementById('bSpawn'))return;const b=document.createElement('button');b.id='bSpawn';b.innerHTML='<i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></i><b>Spawn</b>';b.onclick=()=>this.menu();ab.appendChild(b)}
 };

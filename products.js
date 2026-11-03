@@ -107,7 +107,7 @@ const PRD={designs:[],ready:false,cats:{},cashiers:[],geo:{},_s:1};
 
 // ---------------------------------------------------------------- atlas + shapes
 PRD.init=function(){if(this.ready)return;this.ready=true;const N=this.designs.length,CELL=256,COLS=8,rows=Math.ceil(N/COLS);
-  const cv=document.createElement('canvas');cv.width=COLS*CELL;cv.height=Math.max(2,Math.pow(2,Math.ceil(Math.log2(rows*CELL))));const x=cv.getContext('2d');this.atlasH=cv.height;
+  const cv=document.createElement('canvas');cv.width=COLS*CELL;cv.height=Math.max(2,Math.pow(2,Math.ceil(Math.log2(rows*CELL))));const x=cv.getContext('2d',{willReadFrequently:true});this.atlasH=cv.height;
   this.designs.forEach(d=>{const c=d.i%COLS,r=Math.floor(d.i/COLS);x.save();x.translate(c*CELL,r*CELL);x.beginPath();x.rect(0,0,240,CELL);x.clip();try{d.paint(x)}catch(e){console.warn('[products]',d.id,e)}x.restore();
     // plain strip for the sides: the colour of the label's left edge
     const px=x.getImageData(c*CELL+4,r*CELL+CELL-60,1,1).data;x.fillStyle='rgb('+px[0]+','+px[1]+','+px[2]+')';x.fillRect(c*CELL+240,r*CELL,16,CELL);

@@ -25,7 +25,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   lin(h){const c=new THREE.Color(h);c.convertSRGBToLinear();return c},
   // the iris of the baked eye texture is blue; other colours are painted over it keeping the shading
   eye(img,hex){const k=String(hex).toLowerCase();if(this.eyeTex[k])return this.eyeTex[k];
-    try{const W=img.width,H=img.height,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');g.drawImage(img,0,0);const d=g.getImageData(0,0,W,H),p=d.data,
+    try{const W=img.width,H=img.height,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(img,0,0);const d=g.getImageData(0,0,W,H),p=d.data,
         t=[parseInt(k.slice(1,3),16),parseInt(k.slice(3,5),16),parseInt(k.slice(5,7),16)];
       for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];if(b>r+22&&b>gg+6){const f=.3+((r+gg+b)/3/255)*1.55;p[i]=Math.min(255,t[0]*f);p[i+1]=Math.min(255,t[1]*f);p[i+2]=Math.min(255,t[2]*f)}}
       g.putImageData(d,0,0);const T=new THREE.CanvasTexture(cv);T.flipY=false;T.encoding=THREE.sRGBEncoding;T.anisotropy=4;return this.eyeTex[k]=T}catch(e){return null}},
