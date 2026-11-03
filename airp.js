@@ -140,12 +140,24 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     // the sign and ground are always cheap; hide the whole airport far away
     this.g.visible=Math.hypot(player.x-this.C[0],player.z-this.C[1])<5200||this.flight&&!this.flight.onGround},
   // ---------- spawn menu ----------
-  spawn(kind){const near=Math.hypot(player.x-this.P(0,150)[0],player.z-this.P(0,150)[1])<500;let a=this.mine&&this.mine[kind];
+  // Spawn is done in steps behind the fade (teleport -> aircraft -> crew) instead of in one burst: on a phone the
+  // aircraft meshes, textures and three avatars used to be built in the same moment as the 4 km teleport.
+  spawn(kind){if(this.busy)return;if(typeof DIAG!=='undefined')DIAG.note('spawn '+kind);
+    const near=Math.hypot(player.x-this.P(0,150)[0],player.z-this.P(0,150)[1])<500;let a=this.mine&&this.mine[kind];
     const spots={airliner:this.P(-110,125),fighter:this.P(60,125)};const sp=spots[kind],yaw=this.yawOf(0,1);
-    if(!a){a=PLN.add(kind,sp[0],sp[1],yaw);this.mine=this.mine||{};this.mine[kind]=a;PLN.crewInit&&kind==='airliner'&&PLN.crewInit(a)}
-    else{if(PLN.cur===a)PLN.leaveFighter();a.park(sp[0],sp[1],yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
-    a.manual=false;const go=()=>{if(!near){const q=this.P(-80,170);teleportRaw(q[0],q[1],this.yawOf(0,-1))}toast(kind==='airliner'?'Airliner spawned':'Fighter spawned','at Odesa Airport apron · walk up to it ('+(kind==='airliner'?'E to board':'E to climb in')+')')};
-    if(near)go();else{const f=$('fade');f.style.opacity=1;setTimeout(()=>{go();f.style.opacity=0},380)}},
+    const place=()=>{if(!a){a=PLN.add(kind,sp[0],sp[1],yaw);this.mine=this.mine||{};this.mine[kind]=a}
+      else{if(PLN.cur===a)PLN.leaveFighter();a.park(sp[0],sp[1],yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
+      a.manual=false};
+    const crew=()=>{if(kind==='airliner'&&a&&PLN.crewInit)PLN.crewInit(a)};      // crewInit is idempotent
+    const done=()=>{toast(kind==='airliner'?'Airliner spawned':'Fighter spawned','at Odesa Airport apron · walk up to it ('+(kind==='airliner'?'E to board':'E to climb in')+')');this.busy=false};
+    this.busy=true;
+    try{
+      if(near){place();setTimeout(()=>{try{crew()}finally{done()}},80)}
+      else{const f=$('fade');f.style.opacity=1;
+        setTimeout(()=>{try{const q=this.P(-80,170);teleportRaw(q[0],q[1],this.yawOf(0,-1))}catch(e){console.error(e)}
+          setTimeout(()=>{try{place()}catch(e){console.error(e)}
+            setTimeout(()=>{try{crew()}catch(e){console.error(e)}f.style.opacity=0;done()},260)},380)},380)}
+    }catch(e){this.busy=false;throw e}},
   menu(){let m=document.getElementById('airPick');if(!m){m=document.createElement('div');m.id='airPick';m.hidden=true;
       m.innerHTML='<div class="ap"><h3>Spawn</h3><button data-k="airliner">✈ Airliner (A320 class)</button><button data-k="fighter">🛩 Fighter jet</button><button data-k="yacht">🛥 Call the yacht to me</button><button data-k="goairport">📍 Go to Odesa Airport</button><button data-k="close" class="x">Close</button></div>';
       const st=document.createElement('style');st.textContent='#airPick{position:absolute;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45)}#airPick .ap{display:flex;flex-direction:column;gap:8px;min-width:260px;padding:16px;border-radius:16px;background:rgba(10,22,30,.92);border:1px solid rgba(255,255,255,.2);color:#fff;font:600 14px system-ui}#airPick h3{margin:0 0 4px;letter-spacing:.14em;color:#f2c14e;font:800 13px system-ui}#airPick button{padding:12px 14px;border-radius:11px;border:1.5px solid rgba(255,255,255,.25);background:rgba(40,60,80,.9);color:#fff;font:700 13px system-ui;text-align:left}#airPick button:active{background:#f2c14e;color:#111}#airPick .x{background:rgba(120,40,40,.8);text-align:center}';document.head.appendChild(st);(document.getElementById('hud')||document.body).appendChild(m);
