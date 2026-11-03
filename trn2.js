@@ -112,6 +112,7 @@ const TRN2={
         placeTrain(T)}
       else{T.t+=dt;
         const wait=T.state==='wait',hold=wait?T.holdT:(mine?20:d0<80?60:14);
+        if(wait&&d0>600&&!mine)T.t=Math.min(T.t,hold-40);   // nobody near: the train waits at the platform (a visitor always finds one boarding)
         if(T.t>hold-7&&!T.closed){T.closed=true;if(mine||d0<120){toast('Doors closing','the train is about to depart');this.chime()}}
         if(T.t>hold){const out=wait;T.state='run';T.dir=out?1:-1;T.goal=out?T.sEnd:T.sHome;T.closed=false;T.depT=0;if(mine||d0<150){toast('The train departs',out?'sit down or walk through the train · it will stop at the end of the line':'returning to the station');this.chime()}}}
       T.cars.forEach((c,k)=>{const d=c.g.userData.trn2;if(!d)return;

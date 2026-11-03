@@ -116,7 +116,8 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
   sample(path,s){const S=path.S;let i=1;while(i<S.length-1&&S[i]<s)i++;const f=Math.max(0,Math.min(1,(s-S[i-1])/Math.max(1e-6,S[i]-S[i-1])));const a=path.pts[i-1],b=path.pts[i];
     return {x:a[0]+(b[0]-a[0])*f,z:a[1]+(b[1]-a[1])*f,h:path.H[i-1]+(path.H[i]-path.H[i-1])*f,sp:path.V[i-1]+(path.V[i]-path.V[i-1])*f,tx:b[0]-a[0],tz:b[1]-a[1],i}},
   aiStep(p,dt){const a=p.ai;if(!a)return;a.t+=dt;p.eng+=((p.engOn?1:0)-p.eng)*Math.min(1,dt*.35);p.thr+=((a.phase==='fly'?(p.v>50?.8:.35):0)-p.thr)*Math.min(1,dt);
-    if(a.phase==='hold'){p.v=0;p.onGround=true;p.mode='parked';p.doorOpen=(a.T-a.t)>25;p.engOn=false;p.parking=true;p.y=groundH(p.x,p.z)-p.bottom();
+    if(a.phase==='hold'){if(Math.hypot(player.x-p.x,player.z-p.z)>2500&&!(MP.on&&MP.plat===p.plat))a.t=Math.min(a.t,a.T-70);   // nobody near: the flight keeps waiting at the gate
+      p.v=0;p.onGround=true;p.mode='parked';p.doorOpen=(a.T-a.t)>25;p.engOn=false;p.parking=true;p.y=groundH(p.x,p.z)-p.bottom();
       if(p.manual&&!p.hold){p.mode='parked';return}
       if(a.t>=a.T){a.phase='push';a.s=0;a.t=0;p.doorOpen=false;p.engOn=true;p.parking=false;toast('Odesa Air 301','doors closed · pushback');p.fa&&0}return}
     if(a.phase==='push'){a.s+=2.2*dt;p.x-=Math.sin(p.yaw)*2.2*dt;p.z-=Math.cos(p.yaw)*2.2*dt;p.v=0;p.doorOpen=false;p.mode='ai';if(a.s>=22){a.phase='fly';a.s=0;a.path=a.path||this.buildPath();a.yawv=0}return}
