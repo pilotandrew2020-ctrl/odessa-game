@@ -5147,13 +5147,13 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
       if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
       this.place(B);
       if(DRIVE.on)exitCar();player.scoot=false;
-      toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
+      toast(B.title,B.sub||'');setTimeout(()=>{f.style.opacity=0},MOBILE?800:0)}catch(e){this.fail(e,name,f)}},380)},   // phones: stay black while the interior draws its first (heavy) frame
   exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];doorCd=2.5;this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       teleportRaw(r.x,r.z,r.yaw);f.style.opacity=0},380)},
   go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       this.opt=opt||{};const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
-      this.place(B);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
+      this.place(B);toast(B.title,B.sub||'');setTimeout(()=>{f.style.opacity=0},MOBILE?800:0)}catch(e){this.fail(e,name,f)}},380)},
   place(B){player.x=B.spawn[0];player.z=B.spawn[1];player.y=B.spawnY||INT_Y;player.yaw=B.spawnYaw||0;cam.yaw=player.yaw;cam.init=false;
     player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null}};
 // shop doors: walking into the glass opens it, and the interior behind it is built — and drawn once so every shader is compiled — while the player is still on the way
@@ -6386,7 +6386,7 @@ function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q
   if(!QUAL_MOBILE[key]){const m=Object.assign({},q,{bloom:false});for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
   return QUAL_MOBILE[key]}
 let lowRenderScale=1;
-function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)}
+function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)*((MOBILE&&typeof BR!=='undefined'&&BR.on)?.7:1)}   // Battle Royale on a phone: 30% shorter view = about half the chunks to build and keep
 
 // ---------- renderer / post ----------
 function setupRenderer(){
@@ -6915,6 +6915,16 @@ function stepPlayer(dt){
   if(block){nx=player.x;nz=player.z;player.vx*=.3;player.vz*=.3}
   const realV=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-4);
   player.x=nx;player.z=nz;player.spd+=(Math.min(realV,vmax)-player.spd)*Math.min(1,dt*8);
+  // Anti-stuck: movement is held but nothing happens for ~0.7 s (a phantom collider, a lip, a corner, the edge of a stair): look for a free spot a little way
+  // ahead (straight, then up to 90 deg to either side), checked along the whole way so it can never carry you through a wall, and step there. If there is none, a small hop.
+  if(Math.hypot(mx,mz)>.4&&realV<vmax*.12&&!player.air&&!PORTAL.cur&&!player.scoot){player.stuckT=(player.stuckT||0)+dt}else player.stuckT=0;
+  if(player.stuckT>.7){player.stuckT=0;const a0=Math.atan2(mx,mz);let done=false;
+    outer:for(const d of [.4,.7]){for(const da of [0,.52,-.52,1.05,-1.05,1.57,-1.57]){const ang=a0+da,tx=player.x+Math.sin(ang)*d,tz=player.z+Math.cos(ang)*d;
+      let free=true;for(let k=1;k<=4;k++){const px=player.x+(tx-player.x)*k/4,pz=player.z+(tz-player.z)*k/4;if(insideAny(px,pz,PR,player.y+.1)){free=false;break}}
+      if(!free)continue;const sp2=specialGround(tx,tz,player.y);if(sp2&&sp2.wall)continue;const g2=sp2?sp2.h:groundH(tx,tz)+sidewalkLift(tx,tz);
+      if(!sp2&&g2<SL-1.0&&!(typeof SWIM!=='undefined'&&SWIM.can()))continue;if(g2-player.y>STEP_MAX+.5)continue;
+      player.x=tx;player.z=tz;player.y=Math.max(player.y,g2);player.vx=player.vz=0;done=true;break outer}}
+    if(!done&&!PORTAL.cur&&!(sp&&sp.wall)&&rise>STEP_MAX){player.air=true;player.vy=Math.max(player.vy,3.2)}}   // the hop only when a too-high lip is what stops you, never against a wall
   if(Math.hypot(player.vx,player.vz)>.3){const ty=Math.atan2(player.vx,player.vz);let dy=ty-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*(player.scoot?5:10))}
   if(typeof BR!=='undefined'&&BR.on)player.yaw=BR.faceAim(player.yaw,dt);       // while shooting the body faces where the camera looks
   const g=groundAt(player.x,player.z,player.y);
