@@ -5,7 +5,10 @@ const MDL={base:'assets/models/props/',buf:{},wait:{},gl:{},
     return this.wait[name]||(this.wait[name]=fetch(this.base+name+'.glb').then(r=>{if(!r.ok)throw new Error(name+' '+r.status);return r.arrayBuffer()}).then(b=>this.buf[name]=b))},
   parse(name){return this.bytes(name).then(b=>new Promise((ok,no)=>new THREE.GLTFLoader().parse(b.slice(0),'',ok,no)))},
   // a model is parsed once; static models are cloned (sharing geometry + textures), skinned ones are parsed again
-  make(name){if(!this.gl[name])this.gl[name]=this.parse(name).then(g=>{g.skinned=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)g.skinned=true});return g});
+  // phones: textures of the props are shrunk to 512 px (a 1024 px one is 5.6 MB of video memory, a flat has a dozen of them)
+  shrink(scene,max){const done=new Set();scene.traverse(o=>{if(!o.isMesh||!o.material)return;for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(!t||!t.isTexture||done.has(t))continue;done.add(t);const im=t.image,w=im&&(im.width||im.videoWidth),h=im&&im.height;if(!w||!h||Math.max(w,h)<=max)continue;
+        try{const s=max/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*s));cv.height=Math.max(1,Math.round(h*s));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}catch(e){}}})},
+  make(name){if(!this.gl[name])this.gl[name]=this.parse(name).then(g=>{g.skinned=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)g.skinned=true});if(typeof MOBILE!=='undefined'&&MOBILE&&!g.skinned)this.shrink(g.scene,512);return g});
     return this.gl[name].then(g=>g.skinned?this.parse(name):{scene:g.scene.clone(true),animations:g.animations})},
   // opts: h = target height (m) or s = scale; x,y,z,ry = placement; cx/cz keep the model's own centre instead of centring it on the holder
   put(parent,name,o){o=o||{};const holder=new THREE.Group();holder.position.set(o.x||0,o.y||0,o.z||0);holder.rotation.y=o.ry||0;parent.add(holder);

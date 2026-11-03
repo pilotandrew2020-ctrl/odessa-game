@@ -5147,13 +5147,13 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
       if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
       this.place(B);
       if(DRIVE.on)exitCar();player.scoot=false;
-      toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
+      toast(B.title,B.sub||'');setTimeout(()=>{f.style.opacity=0},MOBILE?800:0)}catch(e){this.fail(e,name,f)}},380)},   // phones: stay black while the interior draws its first (heavy) frame
   exit(){const f=$('fade');f.style.opacity=1;setTimeout(()=>{const r=this.ret||PLACES[0];doorCd=2.5;this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       teleportRaw(r.x,r.z,r.yaw);f.style.opacity=0},380)},
   go(name,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);
       this.opt=opt||{};const key=this.cacheKey(name,this.opt);
       if(!this.built[key]){this.built[key]=INTERIORS[name](this.opt);this.built[key].grp.userData.portalName=name}const B=this.built[key];if(B.onEnter)B.onEnter(this.opt);this.active=B;this.cur=name;this.setCity(false);
-      this.place(B);toast(B.title,B.sub||'');f.style.opacity=0}catch(e){this.fail(e,name,f)}},380)},
+      this.place(B);toast(B.title,B.sub||'');setTimeout(()=>{f.style.opacity=0},MOBILE?800:0)}catch(e){this.fail(e,name,f)}},380)},
   place(B){player.x=B.spawn[0];player.z=B.spawn[1];player.y=B.spawnY||INT_Y;player.yaw=B.spawnYaw||0;cam.yaw=player.yaw;cam.init=false;
     player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null}};
 // shop doors: walking into the glass opens it, and the interior behind it is built — and drawn once so every shader is compiled — while the player is still on the way
@@ -6112,6 +6112,10 @@ const HELI={
 // ===================== audio: ambience, footsteps, cars, music speaker =====================
 const AUD={
   ctx:null,ok:false,indoor:null,time:'day',season:'summer',
+  // iPad/iPhone: with the ring/silent switch on, Web Audio is muted unless the page counts as a media player. Called when the speaker is turned on (a tap).
+  unmute(){if(this._um)return;this._um=1;try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}
+    try{const n=4000,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);
+      const a=document.createElement('audio');a.src=URL.createObjectURL(new Blob([b],{type:'audio/wav'}));a.loop=true;a.setAttribute('playsinline','');a.volume=.05;a.play().catch(()=>{});this._ua=a}catch(e){}},
   start(){
     if(this.ctx){this.ctx.resume();return}
     try{this.ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}
@@ -6246,7 +6250,7 @@ const SPK={
   route(){if(!this.out)return;const T=AUD.ctx.currentTime;this.direct.gain.setTargetAtTime(this.carry?1:0,T,.05);this.posG.gain.setTargetAtTime(this.carry?0:1.6,T,.05)},
   togglePlay(){this.playing?this.stop():(this.takeOut(),this.play())},
   next(){this.idx=(this.idx+1)%this.all().length;this.play()},prev(){this.idx=(this.idx-1+this.all().length)%this.all().length;this.play()},
-  play(){if(!this.ensure())return;this.stop(true);const t=this.all()[this.idx];this.playing=true;this.bpm=t.bpm||110;$('spkName').textContent=t.name;$('spkPlay').textContent='⏸';
+  play(){if(!this.ensure())return;if(AUD.unmute)AUD.unmute();this.stop(true);const t=this.all()[this.idx];this.playing=true;this.t0=Date.now();this.bpm=t.bpm||110;$('spkName').textContent=t.name;$('spkPlay').textContent='⏸';
     if(t.kind==='file'){this.el=new Audio(t.url);this.el.crossOrigin='anonymous';try{this.src=AUD.ctx.createMediaElementSource(this.el);this.src.connect(this.out)}catch(e){}this.el.onended=()=>this.next();this.el.play().catch(()=>{})}
     else{this.seq={t:AUD.ctx.currentTime+.08,step:0,kind:t.kind,bpm:t.bpm}}
     this.buildList();toast('♪ '+t.name,'speaker')},
@@ -6386,7 +6390,7 @@ function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q
   if(!QUAL_MOBILE[key]){const m=Object.assign({},q,{bloom:false});for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
   return QUAL_MOBILE[key]}
 let lowRenderScale=1;
-function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)}
+function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)*((MOBILE&&typeof BR!=='undefined'&&BR.on)?.7:1)}   // Battle Royale on a phone: 30% shorter view = about half the chunks to build and keep
 
 // ---------- renderer / post ----------
 function setupRenderer(){
@@ -6915,6 +6919,16 @@ function stepPlayer(dt){
   if(block){nx=player.x;nz=player.z;player.vx*=.3;player.vz*=.3}
   const realV=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-4);
   player.x=nx;player.z=nz;player.spd+=(Math.min(realV,vmax)-player.spd)*Math.min(1,dt*8);
+  // Anti-stuck: movement is held but nothing happens for ~0.7 s (a phantom collider, a lip, a corner, the edge of a stair): look for a free spot a little way
+  // ahead (straight, then up to 90 deg to either side), checked along the whole way so it can never carry you through a wall, and step there. If there is none, a small hop.
+  if(Math.hypot(mx,mz)>.4&&realV<vmax*.12&&!player.air&&!PORTAL.cur&&!player.scoot){player.stuckT=(player.stuckT||0)+dt}else player.stuckT=0;
+  if(player.stuckT>.7){player.stuckT=0;const a0=Math.atan2(mx,mz);let done=false;
+    outer:for(const d of [.4,.7]){for(const da of [0,.52,-.52,1.05,-1.05,1.57,-1.57]){const ang=a0+da,tx=player.x+Math.sin(ang)*d,tz=player.z+Math.cos(ang)*d;
+      let free=true;for(let k=1;k<=4;k++){const px=player.x+(tx-player.x)*k/4,pz=player.z+(tz-player.z)*k/4;if(insideAny(px,pz,PR,player.y+.1)){free=false;break}}
+      if(!free)continue;const sp2=specialGround(tx,tz,player.y);if(sp2&&sp2.wall)continue;const g2=sp2?sp2.h:groundH(tx,tz)+sidewalkLift(tx,tz);
+      if(!sp2&&g2<SL-1.0&&!(typeof SWIM!=='undefined'&&SWIM.can()))continue;if(g2-player.y>STEP_MAX+.5)continue;
+      player.x=tx;player.z=tz;player.y=Math.max(player.y,g2);player.vx=player.vz=0;done=true;break outer}}
+    if(!done&&!PORTAL.cur&&!(sp&&sp.wall)&&rise>STEP_MAX){player.air=true;player.vy=Math.max(player.vy,3.2)}}   // the hop only when a too-high lip is what stops you, never against a wall
   if(Math.hypot(player.vx,player.vz)>.3){const ty=Math.atan2(player.vx,player.vz);let dy=ty-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*(player.scoot?5:10))}
   if(typeof BR!=='undefined'&&BR.on)player.yaw=BR.faceAim(player.yaw,dt);       // while shooting the body faces where the camera looks
   const g=groundAt(player.x,player.z,player.y);
@@ -7588,7 +7602,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
+  drop(R){if(R.spk){R.spk.dispose();R.spk=null}if(R.spkMesh){scene.remove(R.spkMesh);R.spkMesh=null}if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
@@ -7617,6 +7631,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0);st.ct=[DRIVE.car.type|0,DRIVE.car.col|0]}   // car model + colour: everybody sees the same car
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
     if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
+    // my speaker, while it plays a built-in track: [track, carried (1) or standing (0), x, z where it stands, start time]
+    if(typeof SPK!=='undefined'&&SPK.owned&&SPK.playing&&SPK.idx<TRACKS.length){const g=SPK.ground.position;st.sp=[SPK.idx,SPK.carry?1:0,r2(g.x),r2(g.z),SPK.t0]}
     // swimming: [how flat I lie on the water, 0..1] (my own light plane below: parked or flown, everybody sees it)
     if(typeof SWIM!=='undefined'&&SWIM.on)st.sw=[r2(SWIM.tilt)];
     {const L=typeof AIRP!=='undefined'&&AIRP.mine&&AIRP.mine.light;if(L&&!L.crashed&&L.root.visible)st.pl=[r2(L.x),r2(L.y),r2(L.z),r2(L.yaw),r2(L.pitch),r2(L.roll),r2(L.thr),L.eng>.05?1:0,PLN.cur===L?1:0]}
@@ -7738,7 +7754,18 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
         const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R===R){CP_S.set(...carSeat(rt.idx)).applyMatrix4(M);seatPlayer(rt,CP_S.x,CP_S.y,CP_S.z,D.yaw,dt);rt.x=D.x;rt.y=D.y+1;rt.z=D.z;rt.yaw=D.yaw}}   // the camera follows the very same car pose
       R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+2.15,R.z);
       if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+2.6,R.z);R.bub.visible=R.bubT>0}}
+    for(const R of this.peers.values())this.peerSpeaker(R,dt);
     this.listT=(this.listT||0)-dt;if(this.listT<=0){this.listT=1;this.renderList()}},
+  // a friend's speaker: heard from where it stands (or from the friend while carried), seen as a boombox on the ground or in their hands
+  peerSpeaker(R,dt){const s=R.st,a=s&&s.in&&Array.isArray(s.sp)&&TRACKS[s.sp[0]|0]?s.sp:null;
+    if(!a||!AUD.ok||!R.has){if(R.spk){R.spk.dispose();R.spk=null}if(R.spkMesh)R.spkMesh.visible=false;if(R.P&&R.P.speaker&&R.spkHeld){R.P.speaker.visible=false;R.spkHeld=false}return}
+    const carried=a[1]===1,x=carried?R.x:+a[2],z=carried?R.z:+a[3],y=carried?R.y+1.1:groundH(x,z)+.3,far=Math.hypot(x-player.x,z-player.z);
+    if(far>140){if(R.spk)R.spk.out.gain.value=0}else{
+      if(!R.spk||R.spk.idx!==(a[0]|0)){if(R.spk)R.spk.dispose();R.spk=new PeerSpeaker(a[0]|0);R.spk.sync(+a[4]||Date.now())}
+      R.spk.out.gain.value=SPK.vol;R.spk.pos(x,y,z);R.spk.tick()}
+    // the boombox itself
+    if(!carried&&far<90){if(!R.spkMesh){R.spkMesh=SPK.ground.clone(true);scene.add(R.spkMesh)}R.spkMesh.visible=true;R.spkMesh.position.set(x,groundH(x,z),z)}else if(R.spkMesh)R.spkMesh.visible=false;
+    if(R.P&&R.P.speaker){const h=carried&&far<60;if(R.spkHeld!==h){R.spkHeld=h;R.P.speaker.visible=h}}},
   renderList(){const L=$('coList'),bf=$('bFriends');if(!L||!bf)return;
     const on=[...this.peers.values()].filter(R=>R.st&&R.st.in);const menu=[...this.peers.values()].filter(R=>!(R.st&&R.st.in));bf.textContent='👥 '+on.length+(menu.length?' (+'+menu.length+')':'');bf.hidden=!this.online();
     L.hidden=!this.listOpen||!this.online();if(L.hidden)return;L.innerHTML='';
@@ -8835,6 +8862,20 @@ class PeerPlane{
     if(P.discs){const o=Math.min(.4,this.eng*(.1+q.th*.4));for(const d of P.discs){d.visible=o>.03;d.material.opacity=o}}
     return q}
   dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local plane
+}
+// a friend's speaker: the same built-in track (the notes are synthesised, so only track + start time travel over the network), played from where it stands
+// (or from the friend, while carried) through its own 3D panner; your own tracks (files) cannot be sent.
+class PeerSpeaker{
+  constructor(idx){const c=AUD.ctx,t=TRACKS[idx];this.idx=idx;this.kind=t.kind;this.bpm=t.bpm;this.t0=0;this.t=0;this.step=0;
+    this.out=c.createGain();this.out.gain.value=SPK.vol;this.panner=c.createPanner();this.panner.panningModel='HRTF';this.panner.distanceModel='inverse';this.panner.refDistance=3;this.panner.rolloffFactor=1.3;
+    this.posG=c.createGain();this.posG.gain.value=1.6;this.out.connect(this.posG);this.posG.connect(this.panner);this.panner.connect(AUD.mus);
+    this.delay=c.createDelay(1);this.delay.delayTime.value=.25;this.fb=c.createGain();this.fb.gain.value=.25;this.delay.connect(this.fb);this.fb.connect(this.delay);this.delay.connect(this.out)}
+  sync(t0){this.t0=t0;const spb=60/this.bpm/4,el=Math.max(0,(Date.now()-t0)/1000);this.step=Math.floor(el/spb);this.t=AUD.ctx.currentTime+.08+((spb-el%spb)%spb)}
+  pos(x,y,z){const T=AUD.ctx.currentTime,p=this.panner;if(p.positionX){p.positionX.setTargetAtTime(x,T,.05);p.positionY.setTargetAtTime(y,T,.05);p.positionZ.setTargetAtTime(z,T,.05)}else p.setPosition(x,y,z)}
+  tick(){const c=AUD.ctx,spb=60/this.bpm/4,o=SPK.out,d=SPK.delay;SPK.out=this.out;SPK.delay=this.delay;
+    try{let n=0;while(this.t<c.currentTime+.15&&n++<8){MUSIC[this.kind](this.step,this.t,spb);this.t+=spb;this.step++}}finally{SPK.out=o;SPK.delay=d}
+    if(this.t<c.currentTime-1)this.sync(this.t0)}   // fell behind (tab in the background): jump back onto the beat
+  dispose(){try{this.out.disconnect();this.posG.disconnect();this.panner.disconnect();this.delay.disconnect();this.fb.disconnect()}catch(e){}}
 }
 // a friend's motor boat / jet ski: its own Watercraft model driven from the network, with the friend seated on it
 class PeerBoat{
