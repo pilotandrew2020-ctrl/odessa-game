@@ -163,12 +163,13 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
   spawnLight(){if(this.busy)return;
     if(PORTAL.cur){toast('Not indoors','go outside to spawn the plane');return}
     if(PLN.cur||MP.on||DRIVE.on||HELI.on||RIDE.on||MARINE.cur||EXT.cur||PASS.host){toast('Not now','get out of what you are in first');return}
-    if(typeof SWIM!=='undefined'&&SWIM.on){toast('You are swimming','get out of the water first');return}
     if(typeof DIAG!=='undefined')DIAG.note('spawn light plane');
     this.busy=true;toast('Light plane','getting it ready…');
     PM.loadLight().then(()=>{
       try{
         const yaw=cam.yaw,f=[Math.sin(yaw),Math.cos(yaw)];let spot=null;
+        // somebody swimming in open water gets the plane on the water right beside them (it floats; swim up to it and press E)
+        if(typeof SWIM!=='undefined'&&SWIM.on){const x=player.x+f[0]*11,z=player.z+f[1]*11;if(groundH(x,z)<SL-1.5&&!specialGround(x,z,SL))spot={x,z}}
         const slope=(x,z)=>{let lo=1e9,hi=-1e9;for(const [dx,dz] of [[0,0],[3,0],[-3,0],[0,3],[0,-3],[3,3],[-3,-3]]){const h=groundH(x+dx,z+dz);lo=Math.min(lo,h);hi=Math.max(hi,h)}return hi-lo};
         for(let r=9;r<=60&&!spot;r+=4)for(let a=0;a<7&&!spot;a++){const off=(a%2?1:-1)*Math.ceil(a/2)*.55,th=yaw+off,x=player.x+Math.sin(th)*r,z=player.z+Math.cos(th)*r,gy=groundH(x,z);
           if(gy<SL+1.5||specialGround(x,z,gy+1))continue;if(insideAny(x,z,5.5,gy+1)||insideAny(x+f[0]*3,z+f[1]*3,2.5,gy+1)||insideAny(x-f[0]*3,z-f[1]*3,2.5,gy+1))continue;if(slope(x,z)>1.4)continue;spot={x,z}}
@@ -177,7 +178,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
         if(!a){a=PLN.add('light',spot.x,spot.z,yaw);this.mine=this.mine||{};this.mine.light=a}
         else{a.park(spot.x,spot.z,yaw);a.engOn=false;a.eng=0;a.hold=false;a.parking=true;a.mode='parked';a.root.visible=true}
         a.manual=false;a.thrT=0;
-        toast('Light plane spawned','walk up to it and press E · it takes off and lands on any flat ground')
+        toast('Light plane spawned',(typeof SWIM!=='undefined'&&SWIM.on)?'swim up to it and press E · it floats and takes off from the water':'walk up to it and press E · it takes off and lands on any flat ground, even on water')
       }catch(e){console.error('light plane',e);toast('Could not spawn the plane','try again')}
       finally{this.busy=false}
     }).catch(e=>{this.busy=false;console.error('light plane model',e);toast('Plane model failed to load','check the connection and try again')})},

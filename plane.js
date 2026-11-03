@@ -20,8 +20,8 @@ class Plane{
   doorPos(){const t=performance.now();if(this._dp&&this._dpT!==undefined&&t-this._dpT<30)return this._dp;this._dpT=t;      // the boarding prompts ask for it several times per frame: a 30 ms cache (the plane is parked then)
     this.root.updateMatrixWorld();const a=this.kind==='airliner'?[3.2,-3.2,11.6]:(this.kind==='light'?[1.2,-.5,.45]:[1.6,-1,3.0]);return (this._dp||(this._dp=new THREE.Vector3())).set(a[0],a[1],a[2]).applyMatrix4(this.root.matrixWorld)}
   // ---------- placing ----------
-  park(x,z,yaw){this.x=x;this.z=z;this.yaw=yaw;this.pitch=0;this.roll=0;this.v=0;this.vy=0;this.thr=this.thrT=0;this.onGround=true;this.gear=this.gearT=1;this.flaps=0;this.y=groundH(x,z)-this.d.gearY;this.crashed=false;this.dead=0;this.root.visible=true;this.mode='parked';this.sync()}
-  groundY(){return groundH(this.x,this.z)}
+  park(x,z,yaw){this.x=x;this.z=z;this.yaw=yaw;this.pitch=0;this.roll=0;this.v=0;this.vy=0;this.thr=this.thrT=0;this.onGround=true;this.gear=this.gearT=1;this.flaps=0;this.y=this.groundY()-this.d.gearY;this.crashed=false;this.dead=0;this.root.visible=true;this.mode='parked';this.sync()}
+  groundY(){const g=groundH(this.x,this.z);return this.kind==='light'?Math.max(g,SL):g}      // the light plane lands on, floats on and takes off from the water: the sea surface is its ground
   bottom(){const g=this.gear;return -(g*(-this.d.gearY)+(1-g)*(this.kind==='airliner'?2.0:.8))}
   sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(-this.pitch,this.yaw,this.roll,'YXZ')}   // pitch > 0 = nose up; yaw > 0 = turning left (+x is left); roll > 0 = right wing down
   // ---------- inputs → controls ----------
@@ -33,7 +33,7 @@ class Plane{
     const td=((k.ShiftLeft||k.ShiftRight||k.Equal||k.NumpadAdd)?1:0)-((k.ControlLeft||k.ControlRight||k.Minus||k.NumpadSubtract)?1:0);if(td)this.thrT=Math.max(0,Math.min(1,this.thrT+td*(1/(this.kind==='airliner'?4:2.5))*(this._dt||.016)));
     this.brake=(!!k.Space&&this.kind==='airliner')||this.parking}
   // ---------- flight model ----------
-  fly(dt){const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;
+  fly(dt){const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;this.onWater=lt&&groundH(this.x,this.z)<SL-.05;
     if(this.manual)this.readInput();else if(!this.hold){c.p=c.r=c.y=0}
     // hold mode: simple autopilot on heading, altitude and speed
     if(this.hold&&!this.onGround){let dh=this.hdgT-this.yaw;while(dh>Math.PI)dh-=6.283;while(dh<-Math.PI)dh+=6.283;const rT=-Math.max(-.42,Math.min(.42,dh*1.4));c.r=Math.max(-1,Math.min(1,(rT-this.roll)*3));
@@ -45,7 +45,7 @@ class Plane{
     const ab=!fl&&this.ab&&this.thrT>.92&&this.eng>.9;const accMax=fl?5.4:(lt?6.5:(ab?24:15)),vmax=D.vmax;
     const kd=accMax/(vmax*vmax)*(1+this.gear*.45+this.flaps*.35);const air=!this.onGround,sp=this.v;
     let a=this.thr*this.eng*accMax-kd*sp*sp-(air?9.81*Math.sin(this.pitch)*.9:0);
-    if(this.onGround){a-=(this.brake?(fl?6.5:7):.18)+.0006*sp*sp;if(this.parking&&sp<.8)a=-sp/dt}
+    if(this.onGround){a-=(this.brake?(fl?6.5:7):.18)+.0006*sp*sp+(this.onWater?.9+.012*sp:0);/* water holds a floating plane back */if(this.parking&&sp<.8)a=-sp/dt}
     this.v=Math.max(0,this.v+a*dt);this.fireCd-=dt;
     const Vs=D.vs*(1-this.flaps*.12-this.gear*.03),Vr=D.vr*(1-this.flaps*.1);
     if(this.onGround){
@@ -73,7 +73,7 @@ class Plane{
       if(by<=gy+.02){
         const bad=lt?(this.vy<-6.5||Math.abs(this.roll)>.45||this.pitch<-.22||this.pitch>.6):(this.vy<-(fl?5.5:7.5)||Math.abs(this.roll)>.32||this.pitch<-.14||this.pitch>.5||(this.gear<.6&&this.v>(fl?24:30)));   // the light plane is forgiving: it can put down on any flat ground
         if(bad&&this.v>12){this.crash('hit the ground');return}
-        this.onGround=true;this.y=gy-this.bottom();this.vy=0;this.roll=0;if(this.manual)toast('Touchdown','brake with Space · throttle down')}
+        this.onGround=true;this.y=gy-this.bottom();this.vy=0;this.roll=0;if(this.manual)toast(this.onWater?'Splashdown':'Touchdown',this.onWater?'you float · steer and take off from the water too':'brake with Space · throttle down')}
       // low flight over buildings
       if(this.y-gy<42&&this.v>(lt?22:40)&&this.hits()){this.crash('hit a building');return}
     }
@@ -99,6 +99,10 @@ class Plane{
     if(P.discs){const o=Math.min(.4,this.eng*(.1+this.thr*.4));for(const d of P.discs){d.visible=o>.03;d.material.opacity=o}}
     if(P.flame){P.flame.material.opacity=(this.ab&&this.eng>.9&&this.thrT>.9?.8:this.eng>.5?.18*this.thr:0);P.flame.scale.set(1,1,.7+this.thr*.6+(this.ab?.6:0))}
     // lights: beacon/strobes blink, bright at night
+    if(this.kind==='light'){
+      if(this.onWater&&this.onGround&&this.v>.8&&this.root.visible){if(!this.wake){const g=new THREE.RingGeometry(.55,.7,28);g.rotateX(-Math.PI/2);this.wake=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false,fog:false}));this.wake.renderOrder=3;this.wake.frustumCulled=false;scene.add(this.wake)}
+        this.wakeT=(this.wakeT||0)+dt*(1.2+this.v*.07);const u=this.wakeT%1,w=this.wake;w.visible=true;w.position.set(this.x,SL+.05,this.z);const sc=2+u*(5+this.v*.25);w.scale.set(sc,1,sc);w.material.opacity=(1-u)*.42}
+      else if(this.wake)this.wake.visible=false}
     this.strobe+=dt;if(P.lights){P.lights.visible=this.lightsOn&&(Math.sin(this.strobe*7)>-.2||UNI.uNight.value<.3)}
     if(this.cabinMat)this.cabinMat.emissiveIntensity=this.cabinLights?.55+UNI.uNight.value*.9:.03;
     if(this.beltMat)this.beltMat.emissiveIntensity=this.seatbelt?1.6:.05;
@@ -212,7 +216,7 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
       if(p.kind==='light')toast('Light plane','⚙ Engines on the strip · THR + · hold S at about 90 km/h to lift off · lands on any flat ground · B = parking brake · E to get out')
       else toast('Fighter jet','click the glowing buttons (or the strip below) to start the engine · Space cannon · X bomb · V missile')}},
   leaveFighter(){const p=this.cur;if(!p)return;if(!p.onGround||p.v>3){toast('Not now','land and stop first');return}
-    this.cur=null;p.manual=false;p.parking=true;p.thrT=0;const w=MP.toWorld({root:p.root},0,0,0,new THREE.Vector3());{const lo=p.kind==='light'?1.7:3.2,fo=p.kind==='light'?1.5:0;player.x=p.x+Math.cos(p.yaw)*lo+Math.sin(p.yaw)*fo;player.z=p.z-Math.sin(p.yaw)*lo+Math.cos(p.yaw)*fo}player.y=groundAt(player.x,player.z,p.y);player.vx=player.vz=0;player.yaw=p.yaw;PLR.root.visible=true;PLR.root.rotation.set(0,p.yaw,0,'XYZ');cam.init=false;this.hudShow(false)},
+    this.cur=null;p.manual=false;p.parking=true;p.thrT=0;const w=MP.toWorld({root:p.root},0,0,0,new THREE.Vector3());{const lo=p.kind==='light'?1.7:3.2,fo=p.kind==='light'?1.5:0;player.x=p.x+Math.cos(p.yaw)*lo+Math.sin(p.yaw)*fo;player.z=p.z-Math.sin(p.yaw)*lo+Math.cos(p.yaw)*fo}{const g=groundAt(player.x,player.z,p.y);player.y=(g<SL-1&&!specialGround(player.x,player.z,g+1))?SL-.2:g}player.vx=player.vz=0;player.yaw=p.yaw;PLR.root.visible=true;PLR.root.rotation.set(0,p.yaw,0,'XYZ');cam.init=false;this.hudShow(false)},
   onCrash(p,why){toast(p.kind==='airliner'?'The airliner crashed':(p.kind==='light'?'The plane crashed':'The fighter crashed'),'you '+why);
     if(this.cur===p){this.cur=null;this.hudShow(false)}
     if(MP.on&&MP.plat===p.plat){MP.exit(true,{x:p.x,z:p.z,y:Math.max(groundH(p.x,p.z),p.y)});player.air=true}
@@ -315,7 +319,7 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
       else if(a==='eng'){if(p.kind==='airliner'){p.eng1=p.eng2=!p.engOn;p.batt=p.fuel=true;p.engOn=p.eng1;toast('Engines',p.engOn?'starting…':'shut down');p.btnDirty=true}else this.press(p,'eng')}
       else this.press(p,a)});},
   hudShow(on){if(!this.hudEl)return;this.hudEl.hidden=!on;const p=this.activePlane();for(const b of this.hudEl.querySelectorAll('.pF'))b.style.display=(p&&p.kind==='fighter')||(this.cur&&this.cur.kind==='fighter')?'':'none'},
-  hudUpdate(p){if(!this.hudEl||this.hudEl.hidden){this.hudShow(true)}const kn=Math.round(p.v*1.944),agl=Math.round(p.y+p.bottom()-groundH(p.x,p.z)),hd=Math.round(((p.yaw*180/Math.PI)%360+360)%360);
+  hudUpdate(p){if(!this.hudEl||this.hudEl.hidden){this.hudShow(true)}const kn=Math.round(p.v*1.944),agl=Math.round(p.y+p.bottom()-Math.max(groundH(p.x,p.z),SL)),hd=Math.round(((p.yaw*180/Math.PI)%360+360)%360);
     const r=document.getElementById('pRd');if(r)r.textContent=kn+' kt · '+Math.round(p.y-SL)+' m · '+agl+' AGL · VS '+Math.round(p.vy*196.85/100)*100/100+' · HDG '+String(hd).padStart(3,'0')+(p.hold?' · AUTO':'')+(p.onGround?' · GROUND':'');
     const t=document.getElementById('pThr');if(t)t.style.width=Math.round(p.thr*100)+'%'},
   tick(dt){this.update(dt);this.crewUpdate(dt);this.sound(dt);this.chipTick()},

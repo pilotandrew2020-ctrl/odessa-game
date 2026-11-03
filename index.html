@@ -7581,7 +7581,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
+  drop(R){if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
@@ -7610,6 +7610,9 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0);st.ct=[DRIVE.car.type|0,DRIVE.car.col|0]}   // car model + colour: everybody sees the same car
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
     if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
+    // swimming: [how flat I lie on the water, 0..1] (my own light plane below: parked or flown, everybody sees it)
+    if(typeof SWIM!=='undefined'&&SWIM.on)st.sw=[r2(SWIM.tilt)];
+    {const L=typeof AIRP!=='undefined'&&AIRP.mine&&AIRP.mine.light;if(L&&!L.crashed&&L.root.visible)st.pl=[r2(L.x),r2(L.y),r2(L.z),r2(L.yaw),r2(L.pitch),r2(L.roll),r2(L.thr),L.eng>.05?1:0,PLN.cur===L?1:0]}
     // on the water: the hull position plus [type, pitch, roll, forward speed]
     if(PASS.host){st.pp=PASS.host;st.pi=PASS.idx}
     {const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R&&rt.R.peer){st.pp=rt.R.peer;st.pi=rt.idx||1;st.m='pass'}}   // a seat in a friend's ordinary car: everybody seats me from that car, not from my own lagging position
@@ -7647,13 +7650,25 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const order=[...this.peers.values()].sort((a,b)=>(a.st&&a.st.m==='pass'?1:0)-(b.st&&b.st.m==='pass'?1:0));
     for(const R of order){const s=R.st;
       const show=!!(s&&s.in&&(s.zn||'')===zn&&typeof s.x==='number');
-      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.xveh)R.xveh.v.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
+      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.plane)R.plane.root.visible=false;if(R.swRing)R.swRing.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.xveh)R.xveh.v.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
       const lk=Array.isArray(s.lk)?s.lk.filter(x=>typeof x==='string').slice(0,4):[];
       const okey=s.cc?'c'+(s.cc|0):(s.ch?'h'+CHAR.clean(s.ch).join('.'):(s.o|0))+':'+lk.join(',');if(!R.P||R.outfit!==okey){if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):WARDROBE.outfit(s.ch?CHAR.opts(s.ch):(OUTFITS[s.o|0]||OUTFITS[0]).o,lk));R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
       // name tag text carries the live distance, e.g. "Andrii [340m]" (re-drawn per 5 m step, only past 25 m)
       const dd=Math.hypot((R.has?R.x:s.x)-player.x,((R.has?R.y:s.y)||0)-player.y,(R.has?R.z:s.z)-player.z),nm=(s.n||'Friend').slice(0,16)+(dd>25?' ['+Math.round(dd/5)*5+'m]':'');
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.material.fog=false;R.tag.frustumCulled=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
+      // a friend's light plane, parked or flying: drawn from the interpolation buffer; while they fly it the pilot sits inside (seated from the DRAWN plane, like the helicopter)
+      if(Array.isArray(s.pl)){
+        if(!PM.light){if(!this._pml){this._pml=1;PM.loadLight().catch(()=>{this._pml=0})}}
+        else{if(!R.plane)R.plane=new PeerPlane();if(R.plst!==s){R.plst=s;R.plane.push(s)}
+          const q=R.plane.update(dt),far=q?Math.hypot(q.x-player.x,q.z-player.z):1e9;R.plane.root.visible=far<2500;
+          if(q&&s.pl[8]===1){R.wasPlane=true;R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true;R.lo.visible=false;R.P.root.visible=R.plane.root.visible&&far<320;
+            if(R.P.root.visible){const w=MP.toWorld({root:R.plane.root},R.plane.seat.x,R.plane.seat.y,R.plane.seat.z,this._pv||(this._pv=new THREE.Vector3()));R.P.root.position.copy(w);R.P.root.quaternion.copy(R.plane.root.quaternion);animPlayer(R.P,{spd:0,mode:'sit'},dt)}
+            R.tag.visible=R.plane.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(q.x,q.y+2.6,q.z);
+            if(R.bub){R.bubT-=dt;R.bub.position.set(q.x,q.y+3.1,q.z);R.bub.visible=R.bubT>0}
+            continue}}}
+      else if(R.plane){R.plane.dispose();R.plane=null;R.plst=null}
+      if(R.wasPlane&&!(Array.isArray(s.pl)&&s.pl[8]===1)){R.wasPlane=false;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}   // got out of the plane: back to walking
       // flying friend: hide the walker, draw their Apache from the interpolation buffer
       // a friend riding as a passenger: seat them in that helicopter (mine, or another friend's)
       if(s.m==='pass'){const root=PASS.hostRoot(s);if(root){const lv=root.userData&&root.userData.lv,idx=s.pi|0,p=this._pv||(this._pv=new THREE.Vector3()),q=this._pq||(this._pq=new THREE.Quaternion());PASS.seatXform(root,idx,p,q);R.x=p.x;R.y=p.y;R.z=p.z;R.yaw=root.rotation.y;R.has=true;R.wasPass=true;
@@ -7701,10 +7716,14 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       else if(!R.has||Math.hypot(s.x-R.x,s.z-R.z)>30){R.x=s.x;R.y=s.y;R.z=s.z;R.yaw=s.r||0;R.has=true}
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
-      const P=R.P;const near=far<22,m0=s.m||'walk';P.root.visible=near||m0==='car'||m0==='tram'||m0==='sit'||m0==='scoot';R.lo.visible=!P.root.visible&&far<350;R.lo.position.set(R.x,R.y,R.z);R.lo.rotation.y=R.yaw;R.lo.castShadow=false;const sh=far<35;if(R.sh!==sh){R.sh=sh;P.root.traverse(o=>{if(o.isMesh)o.castShadow=sh})}P.root.position.set(R.x,R.y,R.z);P.root.rotation.y=R.yaw;
+      const P=R.P;const near=far<22,m0=s.m||'walk',sw=Array.isArray(s.sw);P.root.visible=near||(sw&&far<160)||m0==='car'||m0==='tram'||m0==='sit'||m0==='scoot';R.lo.visible=!P.root.visible&&far<350;R.lo.position.set(R.x,sw?SL-1.0:R.y,R.z);R.lo.rotation.y=R.yaw;R.lo.castShadow=false;const sh=far<35;if(R.sh!==sh){R.sh=sh;P.root.traverse(o=>{if(o.isMesh)o.castShadow=sh})}P.root.position.set(R.x,R.y,R.z);P.root.rotation.y=R.yaw;
+      if(sw&&P.root.visible){const T=Math.max(0,Math.min(1,+s.sw[0]||0)),sn=Math.sin(R.yaw),cs=Math.cos(R.yaw),back=.82*T;P.root.position.set(R.x-sn*back,SL-1.2+.78*T+Math.sin(performance.now()*.0017)*.03*(1-T),R.z-cs*back);P.root.rotation.set(1.25*T,R.yaw,0,'YXZ');P.swimming=true;
+        if(!R.swRing){const g=new THREE.RingGeometry(.55,.68,28);g.rotateX(-Math.PI/2);R.swRing=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false,fog:false}));R.swRing.renderOrder=3;R.swRing.frustumCulled=false;scene.add(R.swRing)}
+        R.swT=((R.swT||0)+dt*(T>.3?1.4:.7))%1;R.swRing.visible=true;R.swRing.position.set(R.x,SL+.04,R.z);R.swRing.scale.setScalar(.7+R.swT*2.6);R.swRing.material.opacity=(1-R.swT)*(T>.3?.32:.2)}
+      else{if(P.swimming){P.swimming=false;P.root.rotation.order='XYZ';P.root.rotation.x=0}if(R.swRing)R.swRing.visible=false}
       if(typeof POSE!=='undefined'&&s.em!==R.emCur){R.emCur=s.em;if(s.em)POSE.emote(P,s.em,false);else POSE.stop(P)}
       const m=s.m||'walk';
-      if(P.root.visible){if(m==='car'||m==='tram'||m==='sit')animPlayer(P,{spd:0,mode:'sit'},dt);else animPlayer(P,{spd:s.s||0,mode:m==='air'?'air':(m==='scoot'?'scoot':'walk')},dt)}else{R.lo.position.y+=Math.abs(Math.sin(performance.now()*.008))*.04*Math.min(1,(s.s||0))}
+      if(P.root.visible){if(m==='car'||m==='tram'||m==='sit')animPlayer(P,{spd:0,mode:'sit'},dt);else animPlayer(P,{spd:s.s||0,mode:sw?'swim':(m==='air'?'air':(m==='scoot'?'scoot':'walk'))},dt)}else{R.lo.position.y+=Math.abs(Math.sin(performance.now()*.008))*.04*Math.min(1,(s.s||0))}
       if(s.br&&typeof BR!=='undefined'&&P.root.visible)BR.peerPose(R,P,s);
       if(m==='car'||m==='tram')P.root.position.y+=.35;
       if(m==='car'){ // one global matrix for the drawn car; a passenger copies it (no raw stream offsets -> no jitter)
@@ -8798,6 +8817,17 @@ class PeerHeli{
   update(dt){const s=this.net.update(dt);if(!s)return null;this.root.position.set(s.x,s.y,s.z);this.root.rotation.set(s.p,s.yaw,s.r,'YXZ');
     if(this.main)this.main.rotation.y+=dt*(12+s.th*34);if(this.tail)this.tail.rotation.z+=dt*(22+s.th*45);return s}
   dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local Apache
+}
+// a friend's light plane (parked or flying): the same Cri-Cri model, driven from the network through the interpolation buffer
+class PeerPlane{
+  constructor(){const B=PM.buildLight();this.root=B.root;this.parts=B.parts;this.seat=new THREE.Vector3(0,-.25,.32);this.root.rotation.order='YXZ';this.net=new NetSnaps();this.eng=0;scene.add(this.root)}
+  push(s){const a=s.pl;this.net.push({x:+a[0],y:+a[1],z:+a[2],yaw:+a[3]||0,p:+a[4]||0,r:+a[5]||0,th:+a[6]||0,en:+a[7]||0},s.ts)}
+  update(dt){const q=this.net.update(dt);if(!q)return null;this.root.position.set(q.x,q.y,q.z);this.root.rotation.set(-q.p,q.yaw,q.r,'YXZ');   // same convention as Plane.sync: pitch > 0 = nose up
+    const P=this.parts;this.eng+=((q.en>.5?1:0)-this.eng)*Math.min(1,dt*.8);
+    if(P.fans)for(const f of P.fans)f.rotation.z+=dt*this.eng*(20+q.th*90);
+    if(P.discs){const o=Math.min(.4,this.eng*(.1+q.th*.4));for(const d of P.discs){d.visible=o>.03;d.material.opacity=o}}
+    return q}
+  dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local plane
 }
 // a friend's motor boat / jet ski: its own Watercraft model driven from the network, with the friend seated on it
 class PeerBoat{
