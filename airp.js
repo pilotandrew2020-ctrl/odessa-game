@@ -19,10 +19,10 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     this.mats();this.buildGround();this.buildTerminal();this.buildTower();this.buildHangar();this.buildLights();
     PLACES.push({id:'airport',name:'Odesa Airport',sub:'terminal · runway · airliner · fighter jet',x:this.P(-20,215)[0],z:this.P(-20,215)[1],yaw:this.yawOf(0,-1)});try{MAP_MAJOR.add('airport')}catch(e){}
     // aircraft: the scheduled airliner at stand A (nose to the terminal), a fighter on the apron
-    const sA=this.P(-20,140),yawA=this.yawOf(0,1);const A=PLN.add('airliner',sA[0],sA[1],yawA);A.mode='parked';A.ai={phase:'hold',t:0,T:75,s:0,path:null};A.parking=true;this.flight=A;PLN.crewInit(A);
+    const sA=this.P(-20,140),yawA=this.yawOf(0,1);const A=PLN.add('airliner',sA[0],sA[1],yawA);A.mode='parked';A.ai={phase:'hold',t:0,T:75,s:0,path:null};A.parking=true;this.flight=A;
     const sF=this.P(110,128);PLN.add('fighter',sF[0],sF[1],this.yawOf(0,1));
     PLN.aiStep=(p,dt)=>this.aiStep(p,dt);
-    this.queueInit();this.ready=true},
+    this.ready=true},
   mats(){const S=MBM.std,po={polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2};const stripe=MBM.tex(64,64,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h)});
     this.M={asphalt:S(0x3a3d41,.95,0,po),taxi:S(0x44474b,.95,0,po),apron:S(0x9a9c9e,.9,0,po),white:S(0xffffff,.8,0,po),yellow:S(0xe8c21a,.8,0,po),grass:S(0x4a6a38,1,0),conc:S(0xb8b6b0,.85,0),concD:S(0x8c8a84,.9,0),glass:MBM.glass(0x8fb8d0,.28),frame:S(0x2a2d31,.5,.5),roof:S(0xdfe3e6,.5,.3),wood:S(0x8a6a48,.8,0),
       desk:S(0x3a4a5a,.6,.2),deskT:S(0xe8e6e0,.6,0),blueL:MBM.emis(0x3060ff,1.2),greenL:MBM.emis(0x20e060,1.4),redL:MBM.emis(0xff3020,1.4),whiteL:MBM.emis(0xfff4dc,1.3),lamp:MBM.emis(0xfff0d0,.8),rope:S(0xc03030,.7),pole:S(0xc8ccd0,.3,.9),seat:S(0x2a4a78,.8),seatD:S(0x1b2f4f,.8),floor:S(0xc9c6bc,.35,.1),floorD:S(0x6b6e72,.5),tile:S(0xffffff,.35,.05,{map:MBM.tile('#d8d5cc','#c3c0b6')}),metal:S(0x8a9096,.4,.7),dark:S(0x18191c,.6,.3),plant:S(0x3f7a3a,.9),pot:S(0x8a5a3a,.8),sign:MBM.emis(0x2a7fd0,.9),tower:S(0xd8d6d0,.8),towerD:S(0x2a3038,.6,.3),orange:S(0xe85a1a,.7),wing:S(0xcfd2d4,.8)}},
@@ -95,7 +95,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     for(let i=0;i<8;i++){const P=mk();P.root.position.set(-20+(i%2?1.2:-1.2),0,155+i*3.2);P.root.rotation.y=Math.PI+(i%3-1)*.25;this.queue.push(P)}
     // a few people in the hall
     for(const [u,v,yaw,seat] of [[-61,222,Math.PI,1],[-58.5,222,Math.PI,1],[11,226,Math.PI,1],[37,222,Math.PI,1]]){const P=mk();P.root.position.set(u,.4+(seat?-.05:0),v);P.root.rotation.y=yaw;P.seat=seat;this.queue.push(P)}},
-  queueUpdate(dt){const near=Math.hypot(player.x-this.P(0,170)[0],player.z-this.P(0,170)[1])<230;const A=this.flight,a=A&&A.ai;const show=near&&a&&a.phase==='hold'&&(a.T-a.t>20);
+  queueUpdate(dt){const near=Math.hypot(player.x-this.P(0,170)[0],player.z-this.P(0,170)[1])<230;if(near&&!this.queueMade){this.queueMade=true;this.queueInit()}if(!this.queueMade)return;const A=this.flight,a=A&&A.ai;const show=near&&a&&a.phase==='hold'&&(a.T-a.t>20);
     this.queue.forEach((P,i)=>{const hall=i>=8;P.root.visible=near&&(hall||show);if(!P.root.visible)return;animPlayer(P,{spd:0,mode:P.seat?'sit':'walk'},dt)})},
   // ---------- departures board rows ----------
   rows(){const A=this.flight,a=A&&A.ai,R=[],clk=TRN2.clock.bind(TRN2);let st='ON TIME',t=clk(0),hold=0;

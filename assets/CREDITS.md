@@ -16,3 +16,5 @@
 Everything else in the game (buildings, cars, characters, interiors) is procedural geometry generated in code, with no model files.
 
 - `textures/bark_platanus.jpg` — "Bark Platanus", Poly Haven (polyhaven.com/a/bark_platanus), CC0 public domain; tree bark.
+
+- The yacht, Jungle Island (terrain, vegetation, animals), train interiors and timetable boards, aircraft (airliner, fighter), Odesa Airport and the companion character are procedural geometry written for this game; no third-party model files.

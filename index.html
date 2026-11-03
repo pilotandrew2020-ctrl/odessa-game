@@ -300,7 +300,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
         <div id="netStatus">No account needed: one of you presses Create room, the other types the code and presses Join.</div>
         <div id="coStatus">Co-op: …</div>
       </div>
-      <div class="mp" id="pKeys" hidden><h2>Controls</h2><div class="keys" id="keysTxt"><b>WASD</b> walk · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> action (enter, sit, tram) · <b>F</b> scooter · <b>C</b> call / leave your car (H — horn) · <b>U</b> or the Garage button: a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — pick one and it is brought to you (a friend can ride along — press E / F beside the car) · <b>O</b> or the View button: camera view (third person · first person · over the shoulder · far · top-down; in a car: chase · cockpit · bonnet) · <b>V</b> helicopter (nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E turn) · <b>B</b> boat / <b>J</b> jet ski at the shore · <b>Q</b> speaker · <b>M</b> map · <b>R</b> rain on/off · <b>T</b> chat · <b>G</b> go to friend · mouse turns the camera</div></div>
+      <div class="mp" id="pKeys" hidden><h2>Controls</h2><div class="keys" id="keysTxt"><b>WASD</b> walk · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> action (enter, sit, tram) · <b>F</b> scooter · <b>C</b> call / leave your car (H — horn) · <b>U</b> or the Garage button: a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — pick one and it is brought to you (a friend can ride along — press E / F beside the car) · <b>O</b> or the View button: camera view (third person · first person · over the shoulder · far · top-down; in a car: chase · cockpit · bonnet) · <b>V</b> helicopter (nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E turn) · <b>B</b> boat / <b>J</b> jet ski at the shore · <b>Q</b> speaker · <b>M</b> map · <b>R</b> rain on/off · <b>T</b> chat · <b>G</b> go to friend · mouse turns the camera<br><br><b>Yacht «Odesa Pearl»</b> (jetty at Velykyi Fontan beach, or More → Spawn → Call the yacht, then E for the tender): walk about, E sits · stairs up to the bridge and the sun deck · the left chair on the bridge is the helm: W/S throttle, A/D rudder, the panel has Autopilot → Jungle Island, Anchor, Horn, Camera · leave the helm and the yacht keeps sailing · E on the swim platform or a side door = ashore · <b>Jungle Island</b> (map → Jungle Island, ~25 km out to sea): tigers, panthers, gorillas, boars, hyenas, crocodiles, pythons — the beach camp fire keeps them away · <b>Trains</b>: just walk into an open door, walk through all cars, sit two to a bench, walk out at the next stop · timetable boards in the station · <b>Airport</b> (map → Odesa Airport): E boards the airliner, E on a seat sits (the left cockpit seat is the pilot's — click the glowing buttons, or use the strip below) · fighter jet: E to climb in · More → Spawn creates an airliner or a fighter · flying: S/W pitch · A/D roll · Z/C rudder · Shift/Ctrl throttle · G gear · L lights · P autopilot · Space brake (airliner) / cannon (fighter) · X bomb · V missile · O cockpit view · <b>Y</b> or More → Friend: a friend who walks with you, sits next to you and rides pillion</div></div>
     </section>
     <small id="mCredit">Map: © OpenStreetMap contributors (ODbL). Terrain: SRTM (NASA). The yard, station, opera, sea terminal, stairs and parks were hand-built from photos.</small>
   </div>
@@ -373,6 +373,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="planes.js"></script>
 <script src="plane.js"></script>
 <script src="airp.js"></script>
+<script src="buddy.js"></script>
 <script src="isle.js"></script>
 <script src="fauna.js"></script>
 <script src="ybuild.js"></script>
@@ -6792,6 +6793,7 @@ function updateCityLOD(dt){
 function teleportRaw(x,z,yaw,syncRadius=MOBILE?150:280){      // phones build less in one go; the streamer fills the rest within its per-frame budget
   if(typeof MP!=='undefined'&&MP.on)MP.exit(true);
   if(typeof PLN!=='undefined'&&PLN.cur){PLN.cur.manual=false;PLN.cur=null;PLN.hudShow(false);PLR.root.visible=true}
+  if(typeof BUDDY!=='undefined'&&BUDDY.on){BUDDY.reset=true;BUDDY.release()}
   if(RIDE.on){RIDE.on=false;RIDE.tram=null}
   if(MARINE.cur)MARINE.exit(true);
   if(EXT.cur){EXT.leave(EXT.cur);PLR.root.rotation.set(0,0,0,'XYZ')}
@@ -7451,6 +7453,7 @@ async function boot(){
   try{ISLE.init(scene)}catch(e){console.error('isle',e)}
   try{YACHT.init(scene)}catch(e){console.error('yacht',e)}
   try{PLN.init(scene);AIRP.init(scene);AIRP.addButton()}catch(e){console.error('airport',e)}
+  try{BUDDY.init()}catch(e){console.error('buddy',e)}
   bootMark('scene');applyQuality();applyTime();bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
@@ -7485,7 +7488,7 @@ function loop(t){
     // Safety net: the avatar is hidden while driving / flying and restored on exit. If any of
     // those exits is missed the local character stays invisible, so re-assert it here.
     if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&PLR.root.visible===false)PLR.root.visible=true;
-    updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();
+    updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();if(BUDDY.on)BUDDY.update(dt);
     if(typeof BATTERY411!=='undefined')BATTERY411.update(dt);
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);
     if((typeof AUD!=='undefined')&&AUD)AUD.update(dt);

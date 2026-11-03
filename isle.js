@@ -126,8 +126,8 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     this.iTree=mk(this.treeGeo,this.M.leaf,900);this.iPalm=mk(this.palmGeo,this.M.palm,600);this.iBush=mk(this.bushGeo,this.bush,2200);this.iRock=mk(this.rockGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),260);this.iBamboo=mk(this.bambooGeo,this.M.leaf,160);this.iFar=mk(this.farGeo,this.M.leaf,3600);
     },
   rebuildVeg(px,pz){const R=this.iTree,P=this.iPalm,B=this.iBush,K=this.iRock,Bm=this.iBamboo,F=this.iFar,m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),sc=new THREE.Vector3(),p=new THREE.Vector3(),c=new THREE.Color();
-    let nT=0,nP=0,nB=0,nK=0,nM=0,nF=0;const ix0=Math.floor(px/ISL_CELL),iz0=Math.floor(pz/ISL_CELL),RR=Math.ceil(1250/ISL_CELL);
-    for(let j=iz0-RR;j<=iz0+RR;j++)for(let i=ix0-RR;i<=ix0+RR;i++){const d2=((i-ix0)**2+(j-iz0)**2)*ISL_CELL*ISL_CELL;if(d2>1250*1250)continue;
+    let nT=0,nP=0,nB=0,nK=0,nM=0,nF=0;const ix0=Math.floor(px/ISL_CELL),iz0=Math.floor(pz/ISL_CELL),RR=Math.ceil(900/ISL_CELL);
+    for(let j=iz0-RR;j<=iz0+RR;j++)for(let i=ix0-RR;i<=ix0+RR;i++){const d2=((i-ix0)**2+(j-iz0)**2)*ISL_CELL*ISL_CELL;if(d2>900*900)continue;
       const cl=islCell(i,j);if(!cl)continue;const d=Math.sqrt(d2);
       if(d>340){if(cl.kind===0){if(nF<3600){p.set(cl.x,SL+cl.y-.5,cl.z);sc.set(cl.s*.9,cl.s,cl.s*.9);q.setFromEuler(e.set(0,cl.rot,0));m.compose(p,q,sc);F.setMatrixAt(nF++,m)}}continue}
       p.set(cl.x,SL+cl.y,cl.z);q.setFromEuler(e.set(0,cl.rot,0));
@@ -183,7 +183,8 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     if(!this.root.visible){this.root.visible=true}this.on=d<3900;
     this.updateTiles(this.firstBuild?2:40);this.firstBuild=true;
     const vx=Math.round(camera.position.x),vz=Math.round(camera.position.z);
-    if(d<3700&&(Math.hypot(vx-this.last[0],vz-this.last[1])>35||!this._v)){this._v=1;this.rebuildVeg(vx,vz)}
+    const now=performance.now();   // the rebuild looks at ~25 000 cells: at most once per 1.5 s and only after 60 m of movement
+    if(d<3700&&(!this._v||(Math.hypot(vx-this.last[0],vz-this.last[1])>60&&now-(this._lb||0)>1500))){this._v=1;this._lb=now;this.rebuildVeg(vx,vz)}
     else if(d>=3700&&this.iFar.count){for(const im of [this.iTree,this.iPalm,this.iBush,this.iRock,this.iBamboo,this.iFar])im.count=0;this.last=[1e9,1e9];this._v=0}
     // campfire flicker
     if(this.fireL){const near=Math.hypot(player.x-ISL.beach[0],player.z-ISL.beach[1])<90;this.fireL.intensity=near?(1.4+Math.sin(performance.now()*.02)*.35+Math.random()*.3):0;this.camp.visible=true}
