@@ -13,7 +13,7 @@ const WAR={
   // a falling bomb / flying rocket at point p with its own radius: the first target it overlaps (or null)
   airHit(p,rad){for(const t of this.targets()){if(t.pos.distanceTo(p)<=t.r+(rad||0))return t}return null},
   // a blast of radius r: every target inside it is destroyed
-  boom(x,y,z,r){const c=new THREE.Vector3(x,y,z);let n=0;for(const t of this.targets()){if(t.pos.distanceTo(c)<=r+t.r){t.kill(c);n++}}return n},
+  boom(x,y,z,r){if(typeof FAUNA!=='undefined')FAUNA.boom(x,y,z,r);const c=new THREE.Vector3(x,y,z);let n=0;for(const t of this.targets()){if(t.pos.distanceTo(c)<=r+t.r){t.kill(c);n++}}return n},
   // an expanding shock wave (TAC): kill what the front has reached, once
   sweep(w){const c=new THREE.Vector3(w.x,w.y,w.z);for(const t of this.targets()){const k=t.id||t;if(w.hit.has(k))continue;if(t.pos.distanceTo(c)<=w.r+t.r){w.hit.add(k);t.kill(c)}}},
 
