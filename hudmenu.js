@@ -5,8 +5,8 @@
 // Scripts that add a button to #topBtns later (Armed, Battle Royale, Hide & Seek, Bag) are picked up by a MutationObserver.
 const HUDM={
   MODES:['bBR','bHS'],
-  ORDER:['bMap','bTime','bRain','bSnow','bFog','bGun','bBag','bMenu'],
-  KEEP:new Set(['bTime','bRain','bSnow','bFog','bGun']),   // toggles keep the list open so you can flip several in a row
+  ORDER:['bMap','bTime','bRain','bSnow','bFog','bGun','bBag','bFlight','bMenu'],
+  KEEP:new Set(['bTime','bRain','bSnow','bFog','bGun','bFlight']),   // toggles keep the list open so you can flip several in a row
   bar:null,pm:null,pn:null,bm:null,bn:null,ready:false,
   css(){if(document.getElementById('hudmCss'))return;const st=document.createElement('style');st.id='hudmCss';st.textContent=`
 #topBtns .hmBox{position:relative;display:block}
@@ -42,6 +42,9 @@ const HUDM={
     for(const p of [this.pm,this.pn])p.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!this.KEEP.has(b.id))this.close()});
     document.addEventListener('pointerdown',e=>{if(this.ready&&!e.target.closest('.hmBox'))this.close()},true);
     document.addEventListener('keydown',e=>{if(e.key==='Escape')this.close()});
+    // flight controls: easy (up = climb) or pilot style (up = dive); remembered in the settings
+    {const f=document.createElement('button');f.id='bFlight';const lab=()=>{f.textContent='Flight: '+((typeof S!=='undefined'&&S.flyPilot)?'pilot':'easy')};lab();f.title='Flight controls: easy = up climbs, pilot = up dives';
+     f.onclick=()=>{if(typeof S==='undefined')return;S.flyPilot=!S.flyPilot;try{if(typeof saveS==='function')saveS()}catch(e){}lab();if(typeof toast==='function')toast('Flight controls',S.flyPilot?'pilot style: stick back = nose up':'easy: up is up, down is down')};bar.appendChild(f)}
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
     // buttons that scripts append to the bar from now on
     new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&n.parentNode===bar)this.adopt(n)}).observe(bar,{childList:true});

@@ -26,7 +26,8 @@ class Plane{
   sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(-this.pitch,this.yaw,this.roll,'YXZ')}   // pitch > 0 = nose up; yaw > 0 = turning left (+x is left); roll > 0 = right wing down
   // ---------- inputs → controls ----------
   readInput(){const k=inp.k,c=this.ctl;
-    const p=((k.KeyS||k.ArrowDown)?1:0)-((k.KeyW||k.ArrowUp)?1:0)-inp.jy;                 // S / stick back = nose up
+    // EASY (default): up is up: W / arrow up / joystick up = climb. PILOT style (Menu -> Flight): S / stick back = nose up, W / stick forward = dive.
+    const up=((k.KeyW||k.ArrowUp)?1:0)-((k.KeyS||k.ArrowDown)?1:0)+inp.jy,p=(typeof S!=='undefined'&&S.flyPilot)?-up:up;
     const r=((k.KeyD||k.ArrowRight)?1:0)-((k.KeyA||k.ArrowLeft)?1:0)+inp.jx;                // D / stick right = bank right
     const y=((k.KeyZ)?1:0)-((k.KeyC)?1:0);                                                 // Z rudder left, C right (E is the interact key)
     c.p=Math.max(-1,Math.min(1,p));c.r=Math.max(-1,Math.min(1,r));c.y=Math.max(-1,Math.min(1,y));
