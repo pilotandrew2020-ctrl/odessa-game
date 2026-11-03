@@ -214,7 +214,7 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
   board(p){if(p.kind==='airliner'){this.crewInit(p);MP.enter(p.plat,1.3,-.95,11.6,-Math.PI/2);cam.dist=Math.max(cam.dist,.5);if(p.mode==='ai')p.doorOpen=true;
       toast('Welcome aboard','walk down the aisle · E on a seat to sit · the pilot seat is the left seat in the cockpit (its buttons are clickable)')}
     else{this.cur=p;p.manual=true;p.parking=false;p.brake=false;cam.init=false;PLR.root.visible=true;this.hudShow(true);
-      if(p.kind==='light')toast('Light plane','⚙ Engines on the strip · THR + · hold S at about 90 km/h to lift off · lands on any flat ground · B = parking brake · E to get out')
+      if(p.kind==='light')toast('Light plane','⚙ Engines on the strip · THR + · hold '+((typeof S!=='undefined'&&S.flyPilot)?'S':'W / stick up')+' at about 90 km/h to lift off · lands on any flat ground · B = parking brake · E to get out')
       else toast('Fighter jet','click the glowing buttons (or the strip below) to start the engine · Space cannon · X bomb · V missile')}},
   leaveFighter(){const p=this.cur;if(!p)return;if(!p.onGround||p.v>3){toast('Not now','land and stop first');return}
     this.cur=null;p.manual=false;p.parking=true;p.thrT=0;const w=MP.toWorld({root:p.root},0,0,0,new THREE.Vector3());{const lo=p.kind==='light'?1.7:3.2,fo=p.kind==='light'?1.5:0;player.x=p.x+Math.cos(p.yaw)*lo+Math.sin(p.yaw)*fo;player.z=p.z-Math.sin(p.yaw)*lo+Math.cos(p.yaw)*fo}{const g=groundAt(player.x,player.z,p.y);player.y=(g<SL-1&&!specialGround(player.x,player.z,g+1))?SL-.2:g}player.vx=player.vz=0;player.yaw=p.yaw;PLR.root.visible=true;PLR.root.rotation.set(0,p.yaw,0,'XYZ');cam.init=false;this.hudShow(false)},
