@@ -73,7 +73,7 @@ function flBuild(k){
 function flTick(dt){
   const B=PORTAL.cur&&/flat$/.test(PORTAL.cur)&&FL.built[PORTAL.cur.replace(/flat$/,'')];if(!B||PORTAL.active!==B)return;const h=B.hs,t=HSTATE.t||0;
   if(!FL.leaving&&!player.sit&&!(ACT&&ACT.cur)&&player.z<B.oz+.25&&Math.abs(player.x-(B.ox+B.dx))<.8)flToStair(B.key);
-  for(const v of h.tvs){v.t+=dt;if(v.on&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
+  for(const v of h.tvs){v.t+=dt;if(v.on&&!v.ch&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
       for(let i=0;i<7;i++){g.fillStyle=cols[(s+i+2)%6];g.globalAlpha=.55;g.fillRect(((i*23+t*40)%190)-20,8+(i*13)%60,34,16+(i*7)%20);g.globalAlpha=1}g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,160,6);v.tex.needsUpdate=true}
     if(v.light)v.light.intensity=v.on?.9*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
   for(const w of h.taps)w.m.visible=t<w.until}

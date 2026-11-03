@@ -374,6 +374,8 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="hudmenu.js"></script>
 <script src="diag.js"></script>
 <script src="swim.js"></script>
+<script src="tv.js"></script>
+<script src="kitchen.js"></script>
 <script src="planes.js"></script>
 <script src="plane.js"></script>
 <script src="airp.js"></script>
@@ -6935,7 +6937,9 @@ function stepPlayer(dt){
   if(inp.jump&&!player.air){player.vy=player.scoot?4.2:7.2;player.air=true;if((typeof AUD!=='undefined')&&AUD)AUD.jump()}
   inp.jump=false;
   if(player.air){player.vy=Math.max(-28,player.vy-13*dt);const ny=player.y+player.vy*dt;const gLand=groundAt(player.x,player.z,player.y);
-    if(ny<=gLand){player.y=gLand;player.air=false;player.vy=0;if((typeof AUD!=='undefined')&&AUD)AUD.land()}else player.y=ny}
+    if(ny<=gLand){player.y=gLand;player.air=false;player.vy=0;if((typeof AUD!=='undefined')&&AUD)AUD.land()}else{player.y=ny;
+      // indoors your head stops at the ceiling (before, a jump took the camera through the roof)
+      if(player.vy>0&&curIndoor&&curIndoor.ceil){const cl=curIndoor.ceil(player.x,player.z,player.y);if(typeof cl==='number'&&cl>player.y+1.2&&player.y+1.78>cl){player.y=cl-1.78;player.vy=0}}}}
   else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
     else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
   if(player.y<SL-.7)player.y=Math.max(player.y,SL-.75);
@@ -9029,10 +9033,12 @@ function buildSovietDecor(grp,ox,oz,Y,oldFridge){
    const F={door,dw:W,set(k){door.rotation.y=-1.75*k;lampM.emissiveIntensity=.25+.65*Math.min(1,k*4)}};F.set(0);
    LOW_OBB.push(cx,cz,(W/2+.01)*SC,(D/2+.01)*SC,1,0);
    // the stand point is beside the handle edge, out of the door's sweep; the player steps in to the shelf later (like the modern fridge)
-   const fpos=(u,v)=>{fr.updateWorldMatrix(true,false);return fr.localToWorld(new THREE.Vector3(u,0,v))};let nf=0;
-   INTERACT.push({x:cx-(W/2+.02)*SC,z:cz-(D/2+.38)*SC,r:1.5,label:'Open the Dnepr fridge',fn:()=>{
-     const it=['kefir','milk'][nf++%2],c0=fpos(0,0),sa=fpos(W/2+.02,D/2+.38),sb=fpos(.16,D/2+.2);
-     if(ACT.start('fridge',{F,item:it,tx:c0.x,tz:c0.z,reach:1.05,stand:[sa.x,sa.z],step:[sb.x,sb.z],onEnd:ce=>{if(!ce)toast('ДНЕПР',it==='kefir'?'kefir, and the Olivier salad is saved for midnight':'cold milk — the champagne waits for the chimes')}}))toast('ДНЕПР','the old fridge hums and rattles')}})}
+   const fpos=(u,v)=>{fr.updateWorldMatrix(true,false);return fr.localToWorld(new THREE.Vector3(u,0,v))};
+   // the same hands-on fridge as the houses (kitchen.js): E opens the door yourself, a menu offers kefir / milk, you close it again
+   Object.assign(F,{w:W,ox:0,oz:0,stand:[cx-(W/2+.02)*SC,cz-(D/2+.38)*SC],foods:['kefir','milk'],
+     front(){const p=fpos(0,D/2+.04);return {x:p.x,z:p.z}},
+     shelf(k){fr.updateWorldMatrix(true,false);const q={kefir:[.1,.62],milk:[-.12,.45]}[k]||[0,.5];return fr.localToWorld(new THREE.Vector3(q[0],q[1],0))}});
+   KIT.fridge({ox:0,oz:0,grp},F)}
   // kitchen table with samovar, teapot, cups, sugar bowl
   {const t=new THREE.Group();t.position.set(ox+5.3,Y,oz+15);grp.add(t);const wood=M(0x6b4423,.55,.05),brass=M(0xc9a54a,.22,1),china=M(0xf4f1e8,.3),blue=M(0x2c4f9a,.4);
    xb(t,1.4,.06,.9,0,.76,0,wood);for(const sx of [-1,1])for(const sz of [-1,1])xb(t,.07,.76,.07,sx*.62,.38,sz*.38,wood);
