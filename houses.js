@@ -45,7 +45,8 @@ function hsKit(E,S,L){
     for(let i=0;i<n;i++){const u=-len/2+w*(i+.5);bx(x,z,ry,u,.47,.56,w-.2*(n>1?.15:.5)-.05,.15,.68,c2);bx(x,z,ry,u,.72,.24,w-.28,.36,.16,c2)}
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};
   K.cornerSofa=(x,z,ry,a,b)=>{K.sofa(x,z,ry,a);const p=loc(x,z,ry)(a/2+.55,.9);K.sofa(p[0],p[1],ry+Math.PI/2,b-.9)};
-  K.table=(x,z,ry,w,d,h,c)=>{bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
+  K.table=(x,z,ry,w,d,h,c)=>{bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2);
+    if(h>.3&&w>.6)KIT.spot(E,{x,z,y:INT_Y+h+.03,ry,name:h>.6?'Table':'Coffee table',r:Math.hypot(w,d)/2+.95,w})};   // somewhere to put the kettle, a cup, the milk
   K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
     bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
   K.rug=(x,z,ry,w,d,c)=>bx(x,z,ry,0,.015,0,w,.03,d,c,0);
@@ -68,7 +69,8 @@ function hsKit(E,S,L){
     const cv=document.createElement('canvas');cv.width=160;cv.height=90;const g=cv.getContext('2d');g.fillStyle='#08090b';g.fillRect(0,0,160,90);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w-.08,w*.58-.08),new THREE.MeshBasicMaterial({map:tex}));const p=loc(x,z,ry)(0,.235);m.position.set(ox+p[0],INT_Y+1.0,oz+p[1]);m.rotation.y=ry;E.grp.add(m);
     const t={m,tex,cv,g,on:false,t:0,light:light(...(()=>{const a=loc(x,z,ry)(0,1.2);return [a[0],1.3,a[1]]})(),0x9ac0ff,0,7)};t.light.userData.tv=1;t.light.userData.i=0;HSTATE.cur.tvs.push(t);ob(x,z,ry,0,.26,w/2+.1,.28);
-    const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return t.on?'Turn the TV off':'Turn the TV on'},fn:()=>{t.on=!t.on;if(window.AUD)AUD.beep();if(!t.on){t.g.fillStyle='#08090b';t.g.fillRect(0,0,160,90);t.tex.needsUpdate=true}}});return t};
+    // E at the set: off → the film → Odesa News 24 → off (tv.js)
+    const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return TVX.label(t)},fn:()=>{TVX.cycle(t);if(window.AUD)AUD.beep()}});return t};
   K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
     const cl=window.FD?FD.shade(c,1.35):c,cd=window.FD?FD.shade(c,.72):c;
     bx(x,z,ry,0,.68,1.42,w+.06,.12,1.3,c,0);bx(x,z,ry,0,.745,.83,w+.05,.03,.2,'#fbf8f2',0);bx(x,z,ry,0,.78,1.98,w+.1,.04,.34,cd,0);    // duvet, turned-down sheet, a throw over the foot
@@ -85,17 +87,16 @@ function hsKit(E,S,L){
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
         if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
         if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
-        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.58,.02,.02,.3,'#c8ccd0',6);const t=loc(x,z,ry)(c,.5);K.tap(t[0],t[1],ry,'Run the tap',1.12,true);for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
+        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.12,.02,.02,.42,'#c8ccd0',6);bx(x,z,ry,c,1.29,.2,.03,.03,.17,'#c8ccd0',6);const t=loc(x,z,ry)(c,.04);K.tap(t[0],t[1],ry,'Run the tap',1.23,true);/* a tall gooseneck: room for a kettle under it */for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
     // an electric kettle on the first free worktop
     if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
   // a tap with a thin jet of water that runs for a few seconds when used
-  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.26,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));const p=loc(x,z,ry)(0,.08);
-    m.position.set(ox+p[0],INT_Y+(y||.95)-.15,oz+p[1]);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
+  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,drink?.4:.26,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));const p=loc(x,z,ry)(0,.08),jf=drink?.17:0;
+    m.position.set(ox+p[0]+Math.sin(ry)*jf,INT_Y+(y||.95)-.15,oz+p[1]+Math.cos(ry)*jf);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
     if(label==='Run the bath'){E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast('You run the bath','');if(window.AUD)AUD.beep()});return t}
     // basins: really wash your hands (and at the kitchen sink pour a glass of water) — see acts.js
-    const wx=ox+p[0],wz=oz+p[1],jet=()=>{t.until=HSTATE.t+.4},L=loc(x,z,ry),a=L(drink?-.32:0,.75),b=L(.32,.75);
-    E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.5,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
-    if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.5,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
+    // you turn the tap on yourself, wash your hands in front of you, and turn it off again (kitchen.js)
+    const L=loc(x,z,ry),a=L(0,.75);KIT.sink(E,{t,wx:ox+p[0],wz:oz+p[1],y:INT_Y+(y||.95),cy:INT_Y+(drink?.905:.91),ry,drink,stand:[ox+a[0],oz+a[1]]});
     return t};
   K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
@@ -181,7 +182,7 @@ function hsTick(dt){HSTATE.t=(HSTATE.t||0)+dt;const B=typeof PORTAL!=='undefined
   if(player.z<B.oz+.2&&Math.abs(player.x-B.ox)<.8&&!player.sit&&!HSTATE.leaving){HSTATE.leaving=1;PORTAL.exit();setTimeout(()=>{HSTATE.leaving=0},1800)}      // walk out through the front door
   for(const f of h.fires){for(const m of f.flames){const i=m.userData.i;m.visible=f.on;m.scale.set(1+Math.sin(t*9+i*2)*.12,1+Math.sin(t*13+i)*.22,1+Math.cos(t*8+i)*.12)}
     if(f.light)f.light.intensity=f.on?(1.5+Math.sin(t*11)*.25+Math.sin(t*17.3)*.15)*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
-  for(const v of h.tvs){v.t+=dt;if(v.on&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
+  for(const v of h.tvs){v.t+=dt;if(v.on&&!v.ch&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
       for(let i=0;i<7;i++){g.fillStyle=cols[(s+i+2)%6];g.globalAlpha=.55;g.fillRect(((i*23+t*40)%190)-20,8+(i*13)%60,34,16+(i*7)%20);g.globalAlpha=1}g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,160,6);v.tex.needsUpdate=true}
     if(v.light)v.light.intensity=v.on?.9*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
   for(const w of h.taps)w.m.visible=HSTATE.t<w.until}

@@ -116,7 +116,7 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   B(4.3,.62,20.99,1.3,.8,.03,'#f6efd9',1);B(4.3,.66,20.97,.85,.5,.02,'#1a1c1e',2);B(4.3,1.02,20.95,1.0,.04,.05,steel,6);
   B(4.3,1.3,20.99,1.46,.28,.03,'#f6efd9',1);B(4.3,1.38,20.97,1.46,.04,.02,'#2f8f8a',1);
   for(const x of [3.85,4.3,4.75])C(x,1.28,20.94,.06,.06,.06,'#1c1c1c',1,Math.PI/2);
-  C(3.9,1.8,21.25,.3,.24,.42,'#e9e2cf',1);C(3.9,2.04,21.25,.1,.1,.06,'#2a2a2a',1);B(3.62,1.9,21.25,.3,.06,.06,'#e9e2cf',1,0,.3);B(4.2,1.95,21.25,.05,.34,.05,'#2a2a2a',1);   // kettle
+  /* the kettle on the gas ring is a real object now: picked up, filled, put on a table (kitchen.js, below) */
   C(4.7,1.72,21.65,.3,.3,.2,'#4a4d50',6);B(4.2,1.72,21.65,.4,.04,.07,'#2a2a2a',1);                                                                         // frying pan
   solid(4.3,21.3,.75,.55);
   // gas meter and pipes
@@ -152,10 +152,13 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   K.done();
   // the flat is moved into the real building after it is built, so act targets are converted to world coordinates when used
   const wp=(x,z,y)=>grp.localToWorld(new THREE.Vector3(x,y==null?Y:y,z));
-  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),tg=wp(ox+3.9,oz+21.25);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:tg.x,tz:tg.z,reach:.95,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
-  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
-  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
-  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.4);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.72,ty:1.66,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
+  // hands-on kitchen (kitchen.js): the tap, the soap, the kettle on the gas ring and the kitchen table all work like in the houses
+  {const Es={ox:0,oz:0,grp};
+   const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,.42,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
+   KIT.sink(Es,{t:{m:sinkJet,on:false,until:0},wx:ox+7.1,wz:oz+21.32,y:Y+1.75,cy:Y+1.5,ry:0,drink:true,stand:[ox+7.1,oz+20.35]});
+   const st=KIT.spot(Es,{x:ox+3.9,z:oz+21.25,y:Y+1.68,name:'Stove',onLabel:'Light the gas ring',whistle:true,r:1.5,w:.6}),kt=KIT.mkProp('kettle');
+   kt.position.set(ox+3.9,Y+1.68,oz+21.25);grp.add(kt);st.items.push({kind:'kettle',obj:kt,slot:0,water:0,boiled:false});
+   KIT.spot(Es,{x:ox+5.5,z:oz+15.3,y:Y+.8,name:'Kitchen table',w:1.4,r:1.8})}
   INTERACT.push({x:ox+2.9,z:oz+20.4,r:1.5,label:'Look at the preserves',fn:()=>toast('Pickles, tomatoes, beans','grandma\'s jars for the whole winter')});
   INTERACT.push({x:ox+2.6,z:oz+19.4,r:1.5,label:'Look at the wall carpet',fn:()=>toast('Ковёр на стене','red, with a diamond pattern — warm against the draught and a tradition')});
   INTERACT.push({x:ox+2.6,z:oz+13.1,r:1.5,label:'Check the clock',fn:()=>toast('23:58','two minutes to the New Year')});

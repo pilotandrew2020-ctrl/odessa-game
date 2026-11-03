@@ -241,19 +241,16 @@ function actFridge(E,x,z,ry,w,o){o=o||{};const H=o.h||1.9,Dp=.7,T=.03,c=Math.cos
   bx(-w/2+T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(w/2-T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(0,H-.03,Dp+.006,w,.02,.012,'#2a2c30',1);bx(0,.16,Dp+.006,w,.02,.012,'#2a2c30',1);
   door.castShadow=false;
   const hp=loc(-w/2,Dp+.037);door.position.set(E.ox+hp[0],INT_Y+H/2,E.oz+hp[1]);door.rotation.y=ry;E.grp.add(door);
-  const F={door,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62)};F.set(0);
-  const label=o.label||'Open the fridge',items=['milk','juice','kefir','cola'];let n=0;
-  E.act(F.stand[0],F.stand[1],1.5,label,()=>{const it=items[n++%items.length];const p=loc(0,Dp/2);
-    const sa=loc(.42,1.4),sb=loc(.2,1.04);   // stand to the handle's side, out of the door's sweep; step in to the shelf later
-    if(ACT.start('fridge',{F,item:it,tx:E.ox+p[0],tz:E.oz+p[1],reach:1.05,stand:[E.ox+sa[0],E.oz+sa[1]],step:[E.ox+sb[0],E.oz+sb[1]],onEnd:cx=>{if(!cx)toast('Cheers','you had some '+(it==='cola'?'cola':it))}}))toast('Fridge',it==='milk'?'a carton of cold milk':it==='juice'?'orange juice':it==='kefir'?'kefir':'a cold bottle of cola')});
+  // the fixture record kitchen.js works with: hinge angle, where to stand, the front of the door, and where each kind of food sits
+  const SH={milk:[-.14,.94],juice:[.1,1.3],kefir:[-.02,.6],cola:[.16,1.02]};
+  const F={door,w,H,ox:E.ox,oz:E.oz,ry,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62),
+    front(){const p=loc(0,Dp+.04);return {x:E.ox+p[0],z:E.oz+p[1]}},
+    shelf(k){const q=SH[k]||[0,1],p=loc(q[0],Dp*.5);return new THREE.Vector3(E.ox+p[0],INT_Y+q[1],E.oz+p[1])}};F.set(0);
+  KIT.fridge(E,F);                                   // E opens the door; a menu lets you take milk / juice / kefir / cola (kitchen.js)
   return F}
 
-// ---------- an electric kettle on a counter (x,z in E-local metres, y = counter top) ----------
-function actKettle(E,x,y,z,ry,o){o=o||{};const bx=(dx,dy,dz,sw,sh,sd,col,m)=>E.box(x+dx,y+dy,z+dz,sw,sh,sd,col,m||0,ry);
-  bx(0,.012,0,.18,.024,.18,'#2a2d32',1);bx(0,.14,0,.15,.24,.15,o.body||'#eef1f3',6);bx(0,.275,0,.12,.03,.12,'#cfd4d8',6);bx(.1,.2,0,.07,.05,.04,'#eef1f3',6);bx(-.095,.16,0,.025,.2,.05,'#1c1d20',1);bx(0,.31,0,.045,.02,.045,'#1c1d20',1);
-  const lamp=new THREE.Mesh(new THREE.BoxGeometry(.03,.012,.012),new THREE.MeshBasicMaterial({color:0x223344}));lamp.position.set(E.ox+x,INT_Y+y+.03,E.oz+z+.1);lamp.rotation.y=ry;E.grp.add(lamp);
-  E.obb(x,z,.12,.12,0);
-  const stand=o.stand||[x,z+.8];
-  E.act(stand[0],stand[1],1.3,o.label||'Boil the kettle',()=>{
-    if(ACT.start('kettle',{lamp,steam:[E.ox+x+.1,INT_Y+y+.3,E.oz+z],tx:E.ox+x,tz:E.oz+z,reach:o.reach||.85,onEnd:cx=>{if(!cx)toast('Tea','hot, sweet and exactly what you needed')}}))toast('Kettle','the button clicks and the water starts to hum')});
-  return {lamp}}
+// ---------- an electric kettle on a worktop (x,z in E-local metres, y = counter top above the floor) ----------
+// a real object you can pick up, fill at the tap, put on a table, switch on and pour from (kitchen.js)
+function actKettle(E,x,y,z,ry,o){o=o||{};
+  const sp=KIT.spot(E,{x,z,y:INT_Y+y,ry,name:'Worktop',r:1.5,w:.9}),obj=KIT.mkProp('kettle');
+  obj.position.set(E.ox+x,INT_Y+y,E.oz+z);obj.rotation.y=ry;E.grp.add(obj);sp.items.push({kind:'kettle',obj,slot:0,water:0,boiled:false});return {spot:sp}}
