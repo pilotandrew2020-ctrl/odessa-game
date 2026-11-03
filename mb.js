@@ -33,7 +33,7 @@ class MB{
   box(k,w,h,d,x,y,z,ry,rx,rz,tile){const m=this.mat4(x,y,z,rx,ry,rz,w,h,d);
     const uvf=tile?(i,u,v)=>{const f=(i/4)|0;return f<2?[u*d/tile,v*h/tile]:f<4?[u*w/tile,v*d/tile]:[u*w/tile,v*h/tile]}:null;this.addGeo(k,MB.G.box,m,uvf);return this}
   // a box between x0..x1, y0..y1, z0..z1
-  bx(k,x0,x1,y0,y1,z0,z1,tile){return this.box(k,x1-x0,y1-y0,z1-z0,(x0+x1)/2,(y0+y1)/2,(z0+z1)/2,0,0,0,tile)}
+  bx(k,x0,x1,y0,y1,z0,z1,tile){return this.box(k,Math.abs(x1-x0),Math.abs(y1-y0),Math.abs(z1-z0),(x0+x1)/2,(y0+y1)/2,(z0+z1)/2,0,0,0,tile)}
   cyl(k,rt,rb,h,seg,x,y,z,rx,ry,rz){const key=rt+'_'+rb+'_'+seg;let g=MB.G.cyl[key];if(!g)g=MB.G.cyl[key]=new THREE.CylinderGeometry(rt,rb,1,seg||10);const m=this.mat4(x,y,z,rx,ry,rz,1,h,1);this.addGeo(k,g,m);return this}
   // cylinder between two points
   rod(k,r,a,b,seg){const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],L=Math.hypot(dx,dy,dz);if(L<1e-4)return this;

@@ -370,6 +370,9 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="mp.js"></script>
 <script src="mb.js"></script>
 <script src="trn2.js"></script>
+<script src="planes.js"></script>
+<script src="plane.js"></script>
+<script src="airp.js"></script>
 <script src="isle.js"></script>
 <script src="fauna.js"></script>
 <script src="ybuild.js"></script>
@@ -4642,6 +4645,7 @@ function carAhead(c,d){return [c.x+Math.sin(c.yaw)*d,c.z+Math.cos(c.yaw)*d]}
 function toggleCar(){
   if(!started)return;
   if(typeof MP!=='undefined'&&MP.on){toast('Not now','leave the '+(MP.plat.name||'vehicle')+' first');return}
+  if(typeof PLN!=='undefined'&&PLN.cur)return;
   if(HELI.on){toast('Land first','leave the helicopter before driving');return}
   if(PASS.host){toast('Jump out first','press F');return}
   if(MARINE.cur){toast('Get off the '+MARINE.cur.spec.name+' first','steer up to the quay or a beach');return}
@@ -6070,7 +6074,7 @@ const HELI={
     tryModelPath(0);
   },
   toggle(){
-    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur||EXT.cur||PASS.host||(typeof MP!=='undefined'&&MP.on))return;
+    if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur||EXT.cur||PASS.host||(typeof MP!=='undefined'&&MP.on)||(typeof PLN!=='undefined'&&PLN.cur))return;
     if(!this.on&&this.dead){toast('Helicopter wrecked','a new one arrives in '+Math.ceil(this.deadT)+' s');return}
     if(!this.loaded){
       toast(this.loadError?'Helicopter unavailable':'Helicopter loading','Check the model asset and reload the game');
@@ -6787,6 +6791,7 @@ function updateCityLOD(dt){
 }
 function teleportRaw(x,z,yaw,syncRadius=MOBILE?150:280){      // phones build less in one go; the streamer fills the rest within its per-frame budget
   if(typeof MP!=='undefined'&&MP.on)MP.exit(true);
+  if(typeof PLN!=='undefined'&&PLN.cur){PLN.cur.manual=false;PLN.cur=null;PLN.hudShow(false);PLR.root.visible=true}
   if(RIDE.on){RIDE.on=false;RIDE.tram=null}
   if(MARINE.cur)MARINE.exit(true);
   if(EXT.cur){EXT.leave(EXT.cur);PLR.root.rotation.set(0,0,0,'XYZ')}
@@ -6962,6 +6967,7 @@ function stepCamera(dt){
   if(window.DBGCAM){const c=window.DBGCAM;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);return}
   if(HELI.on&&started)return HELI.stepCamera(dt);
   if(MP.on&&started)return MP.stepCamera(dt);
+  if(PLN.cur&&started)return PLN.stepCamera(dt);
   if(MARINE.cur&&started)return MARINE.stepCamera(dt);
   if(EXT.cur&&started)return EXT.stepCamera(dt);
   if(PASS.host&&started)return PASS.stepCamera(dt);
@@ -7091,6 +7097,7 @@ function updateHUD(dt){
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
   if(EXT.cur)best={label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
   best=MP.hudAction(best);
+  if(PLN.cur)best={label:'Get out of the fighter',fn:()=>PLN.leaveFighter()};
   curAct=best;const ab=$('bAct');if(best){ab.hidden=false;ab.textContent=(TOUCH?'':'E · ')+best.label}else ab.hidden=true;
   if(miniT<=0){miniT=.1;drawMini()}
 }
@@ -7387,7 +7394,7 @@ function setupInput(){
   bm.addEventListener('wheel',e=>{cancelAnimationFrame(_mapFly);mapZoomAt(e.clientX,e.clientY,e.deltaY<0?1.2:1/1.2);drawBigMap();e.preventDefault()},{passive:false});
   $('goHere').onclick=()=>{const p=MAPV.selPlace;if(p){closeMap();teleport(p);return}if(!MAPV.sel)return;const [x,z]=MAPV.sel;closeMap();teleport({x,z,yaw:cam.yaw,name:districtOf(x,z)[0],sub:'from the map'})};
 }
-function toggleScoot(){if(MP.on)return;if(EXT.cur){EXT.exit();return}if(player.sit||DRIVE.on||PORTAL.cur||RIDE.on)return;player.scoot=!player.scoot;$('bScoot').classList.toggle('on',player.scoot);if((typeof AUD!=='undefined')&&AUD)AUD.scoot(player.scoot)}
+function toggleScoot(){if(MP.on||(typeof PLN!=='undefined'&&PLN.cur))return;if(EXT.cur){EXT.exit();return}if(player.sit||DRIVE.on||PORTAL.cur||RIDE.on)return;player.scoot=!player.scoot;$('bScoot').classList.toggle('on',player.scoot);if((typeof AUD!=='undefined')&&AUD)AUD.scoot(player.scoot)}
 function cycleTime(){const o=['day','dusk','night'];S.time=o[(o.indexOf(S.time)+1)%3];saveS();applyTime()}
 // ---------- adaptive resolution ----------
 let ftAcc=0,ftN=0,ftT=0;
@@ -7443,6 +7450,7 @@ async function boot(){
   try{TRN2.initBoards(scene)}catch(e){console.error('trn2 boards',e)}
   try{ISLE.init(scene)}catch(e){console.error('isle',e)}
   try{YACHT.init(scene)}catch(e){console.error('yacht',e)}
+  try{PLN.init(scene);AIRP.init(scene);AIRP.addButton()}catch(e){console.error('airport',e)}
   bootMark('scene');applyQuality();applyTime();bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
   bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
@@ -7467,7 +7475,7 @@ function loop(t){
   UNI.uTime.value+=dt;
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
-    refreshCarObb();MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(AIRP.ready)AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
@@ -7560,7 +7568,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     $('bFriends').onclick=()=>{this.listOpen=!this.listOpen;this.renderList()};
     const cin=$('netCode');for(const k of ['keydown','keyup'])cin.addEventListener(k,e=>{e.stopPropagation();if(k==='keydown'&&e.key==='Enter')NET.join(cin.value)});
     $('netCreate').onclick=()=>NET.create();$('netJoin').onclick=()=>NET.join(cin.value);
-    addEventListener('keydown',e=>{if(!started||document.activeElement===ci)return;if(e.code==='KeyT'){e.preventDefault();this.openChat()}if(e.code==='KeyG')this.goTo(this.nearest())})},
+    addEventListener('keydown',e=>{if(!started||document.activeElement===ci)return;if(e.code==='KeyT'){e.preventDefault();this.openChat()}if(e.code==='KeyG'&&!(typeof PLN!=='undefined'&&PLN.flying()))this.goTo(this.nearest())})},
   status(t){const s=$('coStatus');if(s)s.textContent=t},
   online(){return !!this.room||NET.active},
   async init(){
@@ -7600,7 +7608,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   drop(R){if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
-  mode(){if(MP.on)return MP.mode();if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
+  mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
   carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
     R.drw={x:R.x,y:R.y,z:R.z,yaw:R.yaw};   // exactly where this car is drawn this frame: a passenger is seated from this, not from the newer network state
@@ -8714,7 +8722,7 @@ const MARINE={crafts:[],cur:null,eng:null,hulls:[],_v:new THREE.Vector3(),
   add(world,c,p,r){c.x=p[0];c.z=p[1];c.sync();world.add(c.root);this.crafts.push(c);
     INTERACT.push({get x(){return c.x},get z(){return c.z},r,label:'Board the '+c.spec.name,cond:()=>!this.cur&&this.free(),fn:()=>this.enter(c)})},
   findWater(c,x,z){for(let r=0;r<=40;r+=1.5)for(let i=0;i<(r?16:1);i++){const a=i/16*6.283,px=x+Math.cos(a)*r,pz=z+Math.sin(a)*r;if(c.navigable(px,pz,c.yaw))return [px,pz]}return null},
-  free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit&&!PASS.host&&!MP.on},
+  free(){return !DRIVE.on&&!HELI.on&&!RIDE.on&&!PORTAL.cur&&!player.sit&&!PASS.host&&!MP.on&&!PLN.cur},
   nearest(maxd){let best=null,bd=maxd;for(const c of this.crafts){const d=Math.hypot(c.x-player.x,c.z-player.z);if(d<bd){bd=d;best=c}}return best},
   keyF(){if(this.cur){this.exit();return true}if(!this.free())return false;const c=this.nearest(8.5);if(!c)return false;this.enter(c);return true},
   enter(c){if(this.cur||!this.free())return;
@@ -8810,7 +8818,7 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
     const H=COOP.peers.get(s.pp);return H&&H.has&&H.st&&H.st.m==='car'?(H.drw||H):null},
   // re-seat me after the co-op update has moved the car this frame (the sim step ran before it): the avatar and the camera stay glued to the seat
   post(){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o)return;this.seatXform(o.root,this.idx,this._v,this._q);player.x=this._v.x;player.y=this._v.y;player.z=this._v.z;PLR.root.position.copy(this._v);PLR.root.quaternion.copy(this._q)},
-  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!EXT.cur&&!RIDE.on&&!player.sit&&!this.host&&!MP.on},
+  free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!EXT.cur&&!RIDE.on&&!player.sit&&!this.host&&!MP.on&&!PLN.cur},
   // what a friend is flying or driving that I could sit in: {root,kind,lv?} or null
   hostObj(R){if(!R||!R.st)return null;if(R.heli&&R.st.m==='heli')return {root:R.heli.root,kind:'heli'};
     if(R.xveh&&Array.isArray(R.st.xv)&&R.xveh.v.seats.length>1)return {root:R.xveh.v.root,kind:R.xveh.kind,lv:R.xveh.v};
@@ -8991,7 +8999,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
     this.seaT-=dt;if(this.seaT<=0){this.seaT=.6;const show=started&&MARINE.free()&&!player.scoot&&!!MARINE.waterNear(40);this.boatBtn.hidden=!show;this.jetBtn.hidden=!show}
   },
-  enter(v){if(this.cur||v.dead||PASS.host||MP.on)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
+  enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=v;v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=v.kind!=='sub';LVSND.start(v.kind);
     const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
     toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?'joystick: drive':keys)+' · E to get off'+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':' · a friend can climb in (E / F near the car)'):''))},
@@ -9043,7 +9051,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     this.boatBtn=$('bBoat');this.jetBtn=$('bJet');
     // the vehicle garage (Garage button / U): a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — see garage.js
     addEventListener('keydown',e=>{if(!started||e.repeat||GAR.on)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyU')GAR.open()});
-    addEventListener('keydown',e=>{if(!started||e.repeat)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(e.code==='KeyB')MARINE.spawnNear('boat');else if(e.code==='KeyJ')MARINE.spawnNear('jetski')});
+    addEventListener('keydown',e=>{if(!started||e.repeat)return;const t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;if(typeof PLN!=='undefined'&&PLN.flying())return;if(e.code==='KeyB')MARINE.spawnNear('boat');else if(e.code==='KeyJ')MARINE.spawnNear('jetski')});
     ANIM.push(dt=>EXT.tick(dt));
     // land vehicles parked on level ground in the yard, a short walk from where you spawn
     const h=PLACES.find(p=>p.id==='home');

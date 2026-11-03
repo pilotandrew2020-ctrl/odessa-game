@@ -139,16 +139,16 @@ const TRN2={
     const extra=[['111','Mykolaiv',8,5,'ON TIME'],['064','Zaporizhzhia',26,6,'ON TIME'],['731','Dnipro',44,7,'DELAYED 10 MIN'],['117','Ivano-Frankivsk',63,6,'ON TIME'],['757','Kherson',85,5,'ON TIME']];
     for(const e of extra)R.push([e[0],'IC '+e[1],this.clock(e[2]*60),e[3],e[4],false]);
     return R},
-  drawBoard(cv,title){const x=cv.getContext('2d'),W=cv.width,H=cv.height;x.fillStyle='#07101a';x.fillRect(0,0,W,H);x.fillStyle='#10263a';x.fillRect(0,0,W,H*.14);
+  drawBoard(cv,title,rowsIn){const x=cv.getContext('2d'),W=cv.width,H=cv.height;x.fillStyle='#07101a';x.fillRect(0,0,W,H);x.fillStyle='#10263a';x.fillRect(0,0,W,H*.14);
     x.fillStyle='#f2c418';x.font=`800 ${H*.085|0}px "Unbounded",Arial,sans-serif`;x.textAlign='left';x.fillText(title,W*.03,H*.098);x.textAlign='right';x.fillStyle='#fff';x.fillText(this.clock(0),W*.97,H*.098);
     const cols=[.03,.14,.52,.67,.78],hy=H*.2;x.fillStyle='#8fb4cc';x.font=`700 ${H*.045|0}px Arial,sans-serif`;x.textAlign='left';['TRAIN','DESTINATION','DEPARTS','PLAT.','STATUS'].forEach((t,i)=>x.fillText(t,W*cols[i],hy));
-    const rows=this.rows(),rh=(H-hy-H*.04)/Math.max(9,rows.length);x.font=`700 ${rh*.62|0}px "Golos Text",Arial,sans-serif`;
+    const rows=rowsIn||this.rows(),rh=(H-hy-H*.04)/Math.max(9,rows.length);x.font=`700 ${rh*.62|0}px "Golos Text",Arial,sans-serif`;
     rows.forEach((r,i)=>{const y=hy+rh*(i+1);if(i%2===0){x.fillStyle='rgba(255,255,255,.04)';x.fillRect(0,y-rh*.78,W,rh)}
       x.fillStyle=r[5]?'#ffd24a':'#e8eef2';x.fillText(r[0],W*cols[0],y);x.fillText(r[1],W*cols[1],y);x.fillText(r[2],W*cols[2],y);x.fillText(String(r[3]),W*cols[3]+W*.02,y);
       x.fillStyle=/DELAY/.test(r[4])?'#ff7a5a':/BOARD|DEPARTING/.test(r[4])?'#5aff9a':/DEPARTED|ARRIV/.test(r[4])?'#8fb4cc':'#cfe8d8';x.fillText(r[4],W*cols[4],y)})},
-  makeBoard(w,h,title){const cv=document.createElement('canvas');cv.width=1024;cv.height=Math.round(1024*h/w);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+  makeBoard(w,h,title,rowsFn){const cv=document.createElement('canvas');cv.width=1024;cv.height=Math.round(1024*h/w);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));const fr=new THREE.Mesh(new THREE.BoxGeometry(w+.3,h+.3,.12),new THREE.MeshStandardMaterial({color:0x1a1c1f,roughness:.5,metalness:.4}));fr.position.z=-.07;m.add(fr);
-    const b={mesh:m,cv,tex,title};this.boards.push(b);this.drawBoard(cv,title);tex.needsUpdate=true;return b},
+    const b={mesh:m,cv,tex,title,rowsFn:rowsFn||(()=>this.rows()),own:!!rowsFn};if(!rowsFn)this.boards.push(b);this.drawBoard(cv,title,b.rowsFn());tex.needsUpdate=true;return b},
   boards:[],
   initBoards(grp){if(typeof STATION==='undefined'||!STATION||!STATION.F||this.boards.length)return;const F=STATION.F,y0=STATION.y0;
     // inside the hall on the west wall, facing east
@@ -159,6 +159,6 @@ const TRN2={
     this.boardGrp=grp},
   boardTick(dt){this.boardT-=dt;if(this.boardT>0||!this.boards.length)return;this.boardT=1;
     if(typeof STATION!=='undefined'&&STATION&&Math.hypot(player.x-STATION.F.P(52,20)[0],player.z-STATION.F.P(52,20)[1])>260)return;
-    for(const b of this.boards){this.drawBoard(b.cv,b.title);b.tex.needsUpdate=true}},
+    for(const b of this.boards){this.drawBoard(b.cv,b.title,b.rowsFn());b.tex.needsUpdate=true}},
   update(dt){}
 };
