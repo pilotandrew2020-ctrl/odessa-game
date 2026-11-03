@@ -13,7 +13,7 @@
 const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
-  bike:[{p:[0,.67,-.34],pose:'bike'}],
+  bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
   sub:[{p:[0,-.35,.55],pose:'sit'},{p:[0,-.35,-.75],pose:'sit'}]};   // closed cabin: both are hidden inside, the second is a co-op passenger
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
@@ -34,6 +34,11 @@ function seatPose(P,st,dt){
     for(const g of P.legs){g.hp.rotation.x=-1.5;g.kn.rotation.x=1.45;g.ft.rotation.x=0}
     for(const A of P.arms){if(st.role==='driver'){A.sh.rotation.x=-1.0;A.sh.rotation.z=A.s*-.12+steer*.25;A.el.rotation.x=-.45}else{A.sh.rotation.x=-.35;A.sh.rotation.z=A.s*-.08;A.el.rotation.x=-.9}}
     P.idle+=dt;return}
+  if(st.mode==='bike2'){            // pillion: sitting on the rack, hands round the rider's waist, feet on the pegs
+    P.hips.position.y=.16;P.spine.rotation.x=.32;P.head.rotation.x=-.28;
+    for(const g of P.legs){g.hp.rotation.x=-.98;g.kn.rotation.x=1.0;g.ft.rotation.x=.35}
+    for(const A of P.arms){A.sh.rotation.x=-.9;A.sh.rotation.z=A.s*-.28;A.el.rotation.x=-.6}
+    P.idle=0;return}
   if(st.mode==='bike'){             // leaning on the bars, legs follow the cranks
     const c=st.crank||0;P.hips.position.y=.16;P.spine.rotation.x=.52;P.head.rotation.x=-.42;
     for(const g of P.legs){const k=Math.cos(c+(g.s>0?0:Math.PI));g.hp.rotation.x=-1.12-.42*k;g.kn.rotation.x=1.12+.78*k;g.ft.rotation.x=-.25*k}
@@ -163,7 +168,7 @@ class LiteVehicle{
     xb(fk,.13,.1,.1,0,.07,.14,lamp);xb(fk,.02,.1,.02,.26,.19,.0,ch);                                                 // headlamp, bell
     const fw=mk();fw.piv.position.set(0,R-.8,.06);fk.add(fw.piv);this.wheels.push({piv:fk,spin:fw.spin,r:R,front:true,bike:true});
     xb(B,.1,.02,.55,0,R*2+.03,-.52,fr);                                                                                // rear mudguard
-    xb(B,.2,.03,.34,0,.62,-.68,dk);xb(B,.05,.05,.07,0,.64,-.86,red);                                                  // rear rack, tail light
+    xb(B,.2,.03,.34,0,.62,-.68,dk);xb(B,.16,.05,.3,0,.655,-.72,lea);xb(B,.05,.05,.07,0,.64,-.86,red);for(const s of [-1,1])xb(B,.08,.02,.07,s*.1,.33,-.52,ch);   // rear rack with a cushion for a passenger, footpegs                                                  // rear rack, tail light
     this.crank=new THREE.Group();this.crank.position.set(0,.29,-.04);this.root.add(this.crank);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.02,16),ch);ring.rotation.z=Math.PI/2;ring.position.x=.05;this.crank.add(ring);
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}

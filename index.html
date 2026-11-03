@@ -369,6 +369,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="war.js"></script>
 <script src="mp.js"></script>
 <script src="mb.js"></script>
+<script src="trn2.js"></script>
 <script src="isle.js"></script>
 <script src="fauna.js"></script>
 <script src="ybuild.js"></script>
@@ -4055,7 +4056,7 @@ function makePlayer(o){o=o||{};
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
 function animPlayerBase(P,st,dt){
-  if(st.mode==='drive'||st.mode==='suv'||st.mode==='bike'){seatPose(P,st,dt);return}
+  if(st.mode==='drive'||st.mode==='suv'||st.mode==='bike'||st.mode==='bike2'){seatPose(P,st,dt);return}
   const sp=st.spd;const walkF=sp<.05?0:Math.min(1,sp/1.2);const HY=P.hipY;
   const carry=P.speaker.visible;const L=P.arms[0];
   P.head.rotation.set(0,0,0);P.hips.rotation.set(0,0,0);P.spine.rotation.y=0;P.spine.rotation.z=0;
@@ -4944,8 +4945,8 @@ const TRAIN_SEATS=[];for(let i=0;i<10;i++){const z=-9.9+i*2.2;if(Math.abs(Math.a
 function trainAssets(){if(TRAIN_ASSETS)return TRAIN_ASSETS;
   const PX=44,W=Math.round(23.8*PX),H=Math.round(3.3*PX),bay=23.8/8,X=m=>m*PX,Y=m=>H-m*PX;
   const tex=(w,h,f)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;f(cv.getContext('2d'));const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t};
-  const holes=(x,fill)=>{for(let b=0;b<8;b++){const cx=(b+.5)*bay;const door=b===1||b===6;const r=door?[cx-.45,Y(2.6),.9,1.1]:[cx-.95,Y(2.5),1.9,1.25];
-    if(fill){x.fillStyle=fill;x.fillRect(X(r[0]),r[1],X(r[2]),X(r[3]))}else x.clearRect(X(r[0]),r[1],X(r[2]),X(r[3]))}};
+  const holes=(x,fill)=>{for(let b=0;b<8;b++){const cx=(b+.5)*bay;const door=b===1||b===6;const r=door?[cx-.66,Y(2.38),1.32,2.05]:[cx-.95,Y(2.5),1.9,1.25];   // doors are real openings now (TRN2 slides door leaves over them)
+    if(fill){if(!door){x.fillStyle=fill;x.fillRect(X(r[0]),r[1],X(r[2]),X(r[3]))}}else x.clearRect(X(r[0]),r[1],X(r[2]),X(r[3]))}};
   const side=tex(W,H,x=>{x.fillStyle='#2a5aa8';x.fillRect(0,0,W,H);x.fillStyle='#22262b';x.fillRect(0,Y(.35),W,X(.35));
     x.fillStyle='#f2c418';x.fillRect(0,Y(.62),W,X(.08));x.fillStyle='#e8ecf0';x.fillRect(0,Y(1.2),W,X(.12));x.fillRect(0,Y(3.2),W,X(.1));
     for(const b of [1,6]){const cx=(b+.5)*bay;x.fillStyle='#3d72c4';x.fillRect(X(cx-.8),Y(3.0),X(1.6),X(2.65));x.fillStyle='#1a3c70';x.fillRect(X(cx-.02),Y(3.0),X(.04),X(2.65))}
@@ -4958,10 +4959,7 @@ function trainAssets(){if(TRAIN_ASSETS)return TRAIN_ASSETS;
   // shell (floor, roof, ends, seats, undercarriage) as one vertex-coloured mesh
   const C=h=>sRGB(h),parts=[];const B=(cx,cy,cz,sx,sy,sz,c)=>parts.push([cx,cy,cz,sx,sy,sz,C(c)]);
   B(0,.72,0,3.2,.12,23.6,'#7a746c');B(0,3.72,0,3.3,.16,23.8,'#d9dcdf');B(0,3.9,6.5,1.8,.22,3.4,'#aeb3b7');B(0,3.9,-6.5,1.8,.22,3.4,'#aeb3b7');
-  for(const s of [-1,1])B(0,2.2,s*11.9,3.3,2.9,.18,'#2a5aa8');
   B(0,.5,0,3.0,.4,22,'#23262a');B(0,.45,3,2.4,.62,6,'#3a3d40');B(0,.45,-3,2.4,.62,6,'#3a3d40');for(const s of [-1,1])B(0,.4,s*8,2.8,.7,3.6,'#202326');
-  for(let i=0;i<10;i++){const z=-9.9+i*2.2;if(Math.abs(Math.abs(z)-7.44)<1.4)continue;for(const sx of [-.95,.95]){B(sx,.98,z,1.0,.16,.95,'#2b5fb0');B(sx,1.4,z-.47,1.0,.65,.1,'#2b5fb0');B(sx,.86,z,.9,.1,.8,'#4a4e54')}}
-  for(const z of [-7.44,7.44])for(const sx of [-.45,.45])B(sx,2.2,z,.05,2.9,.05,'#c8ccd0');
   const g=new GB({position:3,normal:3,color:3});
   for(const [cx,cy,cz,sx,sy,sz,col] of parts){const b=new THREE.BoxGeometry(sx,sy,sz),p=b.attributes.position,n=b.attributes.normal,ix=b.index,o=g.n;
     for(let i=0;i<p.count;i++)g.v({position:[p.getX(i)+cx,p.getY(i)+cy,p.getZ(i)+cz],normal:[n.getX(i),n.getY(i),n.getZ(i)],color:col});
@@ -4977,7 +4975,8 @@ function trainCar(A,headA,headB){const g=new THREE.Group();const sh=new THREE.Me
   for(const s of [-1,1]){const w=new THREE.Mesh(A.planeG,A.sideM);w.position.set(s*1.655,2.1,0);w.rotation.y=s*Math.PI/2;g.add(w);
     const gl=new THREE.Mesh(A.planeG,A.glassM);gl.position.set(s*1.668,2.1,0);gl.rotation.y=s*Math.PI/2;g.add(gl);
     const l=new THREE.Mesh(A.lamp,A.lampM);l.position.set(s*.55,3.62,0);g.add(l)}
-  for(const [on,z] of [[headA,-1],[headB,1]])if(on){const e=new THREE.Mesh(A.endG,A.endM);e.position.set(0,2.1,z*11.93);e.rotation.y=z>0?0:Math.PI;g.add(e)}
+  for(const [on,z] of [[headA,-1],[headB,1]])if(on&&typeof TRN2==='undefined'){const e=new THREE.Mesh(A.endG,A.endM);e.position.set(0,2.1,z*11.93);e.rotation.y=z>0?0:Math.PI;g.add(e)}
+  if(typeof TRN2!=='undefined')TRN2.decorate(g,headA,headB,A);
   return g}
 function makeRailLine(pts){const out=[pts[0]],cum=[0];for(let i=1;i<pts.length;i++){const [x0,z0]=out[out.length-1],[x1,z1]=pts[i];const l=Math.hypot(x1-x0,z1-z0);if(l<3.5&&i<pts.length-1)continue;out.push([x1,z1]);cum.push(cum[cum.length-1]+l)}
   return {pts:out,cum,L:cum[cum.length-1],stops:[]}}
@@ -4991,7 +4990,7 @@ function spawnTrain(grp,F,track,p0,nCar){
   const sEnd=Math.min(line.L-130,sH+2400);if(sEnd-sH<500)return false;
   const A=trainAssets(),T={line,s:sH,sHome:sH,sEnd,goal:sEnd,dir:1,v:0,state:'wait',t:0,hold:6,n:nCar,cars:[],cx:0,cz:0};
   for(let k=0;k<nCar;k++){const g=trainCar(A,k===0,k===nCar-1);grp.add(g);T.cars.push({g,off:(k-(nCar-1)/2)*TRAIN_CAR,x:0,y:0,z:0,yaw:0})}
-  TRAINS.push(T);placeTrain(T);return true}
+  TRAINS.push(T);placeTrain(T);if(typeof TRN2!=='undefined')TRN2.attach(T);return true}
 function placeTrain(T){const L=T.line;let sx=0,sz=0;
   for(const c of T.cars){const s=T.s+c.off;const a=tramAt(L,s-8,0),b=tramAt(L,s+8,0),m=tramAt(L,s,0);
     c.x=m[0];c.z=m[1];c.yaw=Math.atan2(b[0]-a[0],b[1]-a[1]);const ya=railY(a[0],a[1]),yb=railY(b[0],b[1]);c.y=(ya+yb)/2+.39;
@@ -5030,7 +5029,7 @@ function trainLeave(R){const T=R.T;if(T.v>.4){toast('Wait for the stop','the tra
   if(!best)best=[c.x+cs*3.2,c.z-sn*3.2];
   RIDE.on=false;RIDE.tram=null;player.x=best[0];player.z=best[1];player.y=walkH(best[0],best[1],c.y+1);player.vx=player.vz=0;cam.init=false}
 function initTrainRide(){
-  INTERACT.push({x:0,z:0,r:1e9,label:'Board the train',cond:()=>{if(RIDE.on||DRIVE.on||PORTAL.cur||player.sit)return false;trainNear=null;
+  INTERACT.push({x:0,z:0,r:1e9,label:'Board the train',cond:()=>{if(typeof TRN2!=='undefined')return false;if(RIDE.on||DRIVE.on||PORTAL.cur||player.sit)return false;trainNear=null;
     for(const T of TRAINS){if(T.state==='run'||T.v>.4||Math.hypot(T.cx-player.x,T.cz-player.z)>T.n*TRAIN_CAR/2+12)continue;
       for(let k=0;k<T.n;k++){const c=T.cars[k],dx=player.x-c.x,dz=player.z-c.z,fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),a=dx*fx+dz*fz,b=dx*fz-dz*fx;
         if(Math.abs(a)<12.6&&Math.abs(b)<5&&Math.abs(player.y-c.y)<2.8){trainNear={T,k};return true}}}return false},fn:()=>boardTrain(trainNear)})}
@@ -6386,7 +6385,12 @@ function nearBench(maxd){let best=null,bd=maxd;const chk=b=>{const d=Math.hypot(
   return best}
 INTERACT.push({x:0,z:0,r:1e9,label:'Get in the car',cond:()=>!!(DRIVE.car&&!DRIVE.on&&!player.sit&&Math.hypot(DRIVE.car.x-player.x,DRIVE.car.z-player.z)<3.4),fn:toggleCar});
 INTERACT.push({x:0,z:0,r:1e9,label:'Sit on the bench',cond:()=>{if(player.sit||player.scoot||(typeof DRIVE!=='undefined'&&DRIVE.on)||(curIndoor&&curIndoor.name!=='station'))return false;benchNear=nearBench(1.6);return !!benchNear},
-  fn:()=>{const b=benchNear;if(!b)return;player.sit={x:b.x+Math.sin(b.ry)*.04,z:b.z+Math.cos(b.ry)*.04,y:b.y+.03,yaw:b.ry};player.vx=player.vz=0;cam.yaw=b.ry;cam.pitch=Math.max(cam.pitch,.25);toast('Taking a rest','move to stand up')}});
+  fn:()=>{const b=benchNear;if(!b)return;
+    // a bench seats two: take the half you are standing at, or the other half when a friend already sits there
+    const lat=[Math.cos(b.ry),-Math.sin(b.ry)];let side=((player.x-b.x)*lat[0]+(player.z-b.z)*lat[1])>=0?1:-1;
+    const taken=sd=>{const sx=b.x+lat[0]*sd*.42,sz=b.z+lat[1]*sd*.42;if(typeof COOP!=='undefined')for(const R of COOP.peers.values())if(R.has&&R.st&&R.st.m==='sit'&&Math.hypot(R.x-sx,R.z-sz)<.6)return true;return !!(typeof BUDDY!=='undefined'&&BUDDY.sitsAt&&BUDDY.sitsAt(sx,sz))};
+    if(taken(side))side=-side;const sd=side*.42;
+    player.sit={x:b.x+lat[0]*sd+Math.sin(b.ry)*.04,z:b.z+lat[1]*sd+Math.cos(b.ry)*.04,y:b.y+.03,yaw:b.ry,bench:b};player.vx=player.vz=0;cam.yaw=b.ry;cam.pitch=Math.max(cam.pitch,.25);toast('Taking a rest',taken(-side)?'a friend sits next to you · move to stand up':'room for a friend next to you · move to stand up')}});
 const DOOR_KIND={2:'pharmacy',0:'market',1:'market',27:'market',34:'market',8:'market',33:'market',25:'market'};
 const DOOR_LBL={pharmacy:'Enter the pharmacy',market:'Enter the shop'};
 let doorNear=null;
@@ -7436,6 +7440,7 @@ async function boot(){
   try{MARINE.init(scene)}catch(e){console.error('marine',e)}
   try{EXT.init(scene)}catch(e){console.error('expansion',e)}
   try{WAR.init()}catch(e){console.error('war',e)}
+  try{TRN2.initBoards(scene)}catch(e){console.error('trn2 boards',e)}
   try{ISLE.init(scene)}catch(e){console.error('isle',e)}
   try{YACHT.init(scene)}catch(e){console.error('yacht',e)}
   bootMark('scene');applyQuality();applyTime();bootMark('chunks');
@@ -7464,7 +7469,7 @@ function loop(t){
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
-    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
+    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
@@ -8989,7 +8994,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   enter(v){if(this.cur||v.dead||PASS.host||MP.on)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=v;v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=v.kind!=='sub';LVSND.start(v.kind);
     const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
-    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?'joystick: drive':keys)+' · E to get off'+(v.seats.length>1?' · a friend can climb in (E / F near the car)':''))},
+    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?'joystick: drive':keys)+' · E to get off'+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
   leave(v,destroyed){if(this.cur!==v)return;this.cur=null;depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
     if(destroyed)toast('Your '+v.spec.name+' was destroyed','')},
