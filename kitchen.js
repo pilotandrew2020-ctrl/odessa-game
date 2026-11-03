@@ -45,9 +45,9 @@ KIT.openMenu=function(title,opts,x,z,r,again){this.dom();const m=this.menu;m.tex
 KIT.refreshMenu=function(){if(this.menuOn()&&this.menuFn&&!this.act)this.menuFn()};
 
 // ---------- things in the hand / on tables ----------
-KIT.SHORT={milk:'milk',juice:'orange juice',kefir:'kefir',cola:'cola',cup:'cup',tea:'green tea',glass:'glass',water:'glass of water',kettle:'kettle'};
-KIT.DRINKS=['milk','juice','kefir','cola','tea','water'];
-KIT.HALF={kettle:0,cup:.043,tea:.043,glass:.05,water:.05,milk:.075,juice:.075,kefir:.07,cola:.075};
+KIT.SHORT={omelette:'omelette',milk:'milk',juice:'orange juice',kefir:'kefir',cola:'cola',cup:'cup',tea:'green tea',glass:'glass',water:'glass of water',kettle:'kettle'};
+KIT.DRINKS=['milk','juice','kefir','cola','tea','water','omelette'];
+KIT.HALF={omelette:.02,kettle:0,cup:.043,tea:.043,glass:.05,water:.05,milk:.075,juice:.075,kefir:.07,cola:.075};
 // where the hand takes hold, relative to the item's base (the item stays upright in your view)
 KIT.GRIP=k=>k==='kettle'?new THREE.Vector3(.095,.15,0):new THREE.Vector3(0,(KIT.HALF[k]||.05)+.01,0);
 // a kettle: an upright group about 0.27 m tall, origin on its base, handle on the right (where the hand is), spout on the left
@@ -66,6 +66,9 @@ KIT.mkKettle=function(){const G=new THREE.Group(),M=(c,r,m)=>new THREE.MeshStand
 KIT.setFill=function(obj,v){const f=obj.userData.fill;if(!f)return;v=Math.max(.01,Math.min(1,v));f.scale.y=v;f.position.y=.083+.067*v};
 KIT.mkProp=function(kind){let p;
   if(kind==='kettle')p=this.mkKettle();
+  else if(kind==='omelette'){p=new THREE.Group();const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r==null?.6:r});
+    const pl=new THREE.Mesh(new THREE.CylinderGeometry(.11,.085,.02,18),M(0xf6f3ea,.3));p.add(pl);const om=new THREE.Mesh(new THREE.SphereGeometry(.085,12,8),M(0xf3cf3c,.55));om.scale.set(1.15,.32,.8);om.position.y=.03;p.add(om);
+    for(const [x,z] of [[.03,.02],[-.04,.0],[.0,-.04]]){const g=new THREE.Mesh(new THREE.SphereGeometry(.014,6,5),M(0x3f9a46));g.position.set(x,.052,z);p.add(g)}}
   else{const base=kind==='tea'?'cup':kind==='water'?'glass':kind;p=actProp(base);delete ACT.props[base];    // a fresh one every time (acts.js keeps one shared prop per kind)
     if(kind==='tea'||kind==='cup'){const lq=p.children[1];lq.visible=kind==='tea';if(kind==='tea')lq.material.color.setHex(0xa9c46a)}
     else if(kind==='water'||kind==='glass')p.children[1].visible=kind==='water'}
@@ -124,7 +127,7 @@ KIT.fpOff=function(){if(this.fp&&!this.hold&&!this.act){if(cam.dist<=.75)cam.dis
 KIT.updChip=function(){this.dom();const c=this.chip,h=this.hold;if(!h){c.classList.remove('on');return}
   c.textContent='';const b=document.createElement('b');b.textContent='In hand';c.appendChild(b);c.appendChild(document.createTextNode(' '+this.SHORT[h.kind]+(h.kind==='kettle'?(h.water>.95?' · full':h.water>.05?' · filling':' · empty'):'')));
   const mk=(t,f)=>{const q=document.createElement('button');q.textContent=t;q.onclick=f;c.appendChild(q)};
-  if(this.DRINKS.includes(h.kind))mk('Drink',()=>this.drink());
+  if(this.DRINKS.includes(h.kind))mk(h.kind==='omelette'?'Eat':'Drink',()=>this.drink());
   mk('Put down',()=>this.putDown());c.classList.add('on')};
 
 // ---------- timed steps ----------
@@ -192,8 +195,8 @@ KIT.stepAct=function(dt,a){if(this.freeze)dt=0;a.t+=dt;const t=a.t,w=this.win,Wd
       P.x+=sd*(.03+.02*wet+.05*rinse);P.z+=(sd>0?.05:-.03)*Math.sin(ph)*rub+.012*Math.sin(t*3+sd)*wet;P.y+=(sd>0?.016:-.01)*Math.sin(ph+.6)*rub-.04*rinse+.05;
       let tg=P;if(i===1&&get>0)tg=P.clone().lerp(sc,get);
       const f=tg.clone().sub(this.V(sd*.2,-.22,.05)).normalize();this.put(i,tg,f,this.V(-sd*(1-.5*rinse),.5*(rub+rinse),0).normalize(),rinse>.3?'cup':'flat')}
-    this.soap.visible=(t>.55&&t<4.8);
-    const foam=t>1.7&&t<5.3;for(const h of this.hand){const g=h.userData.foam;g.visible=foam;const q=1+.15*Math.sin(ph)*(rub>.3?1:0);g.scale.set(q,.8,q);if(t>4.9)g.scale.multiplyScalar(Math.max(.01,1-(t-4.9)/.45))}
+    this.soap.visible=!a.dishes&&(t>.55&&t<4.8);
+    const foam=!a.dishes&&t>1.7&&t<5.3;for(const h of this.hand){const g=h.userData.foam;g.visible=foam;const q=1+.15*Math.sin(ph)*(rub>.3?1:0);g.scale.set(q,.8,q);if(t>4.9)g.scale.multiplyScalar(Math.max(.01,1-(t-4.9)/.45))}
     if(t>=1.5&&t-dt<1.5)this.sfx('gulp')}
   else if(k==='fill'){const sk=a.sink,h=this.hold;if(!h||h.kind!=='kettle'){this.endAct(true);return}
     const st=sk.stand(),into=w(t,0,.7)*(1-w(t,3.5,4.1)),under=this.cs(st.x,st.y+.16,st.z).add(this.V(.095,0,0));
@@ -217,9 +220,15 @@ KIT.stepAct=function(dt,a){if(this.freeze)dt=0;a.t+=dt;const t=a.t,w=this.win,Wd
     if(t>a.dur-.22)this.hide(Wd)}
   else if(k==='sip'){const h=this.hold;if(!h){this.endAct(true);return}
     const up=w(t,0,.6)*(1-w(t,2.7,3.3)),sipP=Math.max(0,Math.sin(t*3.4+.3));
-    this.put(0,this.V(.27,-.25,-.6).lerp(this.V(.04,-.12+.03*sipP*up,-.36),up),this.V(-.28,.34,-1).lerp(this.V(-.1,.8,-.6),up),this.V(-1,.1,0),'glass');this.H[0].tilt=(.55+.25*sipP)*up;
+    this.put(0,this.V(.27,-.25,-.6).lerp(this.V(.04,-.12+.03*sipP*up,-.36),up),this.V(-.28,.34,-1).lerp(this.V(-.1,.8,-.6),up),this.V(-1,.1,0),'glass');this.H[0].tilt=(h.kind==='omelette'?.2+.1*sipP:.55+.25*sipP)*up;
     if(t>=.8&&t-dt<.8||t>=1.7&&t-dt<1.7||t>=2.5&&t-dt<2.5)this.sfx('gulp');
     if(h.kind==='tea'&&t>.6&&t<2.8){const c=camera.localToWorld(this.V(.04,-.2,-.4));actSteam(c.x,c.y,c.z,.1,5)}}
+  else if(k==='cook'){const pan=a.pan,pw=pan.getWorldPosition(this.V());pan.visible=t>.3;
+    // the pan on the ring, a spatula over it going round; sizzle, steam, the egg spreads and sets
+    const u=w(t,.3,.9)*(1-w(t,6.3,6.9)),ph=t*5.2;pw.x+=Math.cos(ph)*.045*u;pw.z+=Math.sin(ph)*.045*u;pw.y+=.2;this.reachW(Wd,pw,'bar',{max:.95});
+    pan.userData.egg.scale.set(Math.max(.01,w(t,.8,3.2)),1,Math.max(.01,w(t,.8,3.2)));pan.userData.egg.material.color.setRGB(.96,.94-.18*w(t,3,6),.82-.5*w(t,2.8,5.5));
+    if(t>.6&&t<6.3){const pp=pan.getWorldPosition(this.V());if((t*6|0)!==((t-dt)*6|0))this.sfx('boil');actSteam(pp.x,pp.y+.12,pp.z,.15,7+4*w(t,1,3))}
+    if(t>=.3&&t-dt<.3)this.sfx('click');if(t>a.dur-.25)this.hide(Wd)}
   if(this.act===a&&t>=a.dur)this.endAct(false)};
 
 // ---------- hand poses every frame ----------
@@ -248,6 +257,7 @@ KIT.sinkE=function(sk){const at=sk.at,look=()=>at;
 KIT.sinkMenu=function(sk){const t=sk.t,o=sk.o,h=this.hold,opts=[],at=sk.at,look=()=>at;if(!t.on)return;
   if(h&&h.kind==='kettle'){if(h.water<.95)opts.push(['Fill the kettle',()=>this.run('fill',{sink:sk,at,want:.6,look,pitch:-.75,then:()=>this.sinkMenu(sk)})])}
   else if(!h)opts.push(['Wash your hands',()=>this.run('wash',{sink:sk,at,want:.6,look,pitch:-.75,lookK:2.4,then:()=>this.sinkMenu(sk)})]);
+  if(o.drink&&!h){const now=performance.now(),cd=sk.dishAt||0;if(now>cd)opts.push(['Wash the dishes · '+(typeof WALLET!=='undefined'?WALLET.fmt(40):'₴40'),()=>this.run('wash',{sink:sk,at,want:.6,look,lookK:2.4,dishes:true,onEnd:()=>{sk.dishAt=performance.now()+40000;JOBS.pay(40,'dishes');toast('Dishes done','+'+WALLET.fmt(40)+' for the chore')},then:()=>this.sinkMenu(sk)})]);else opts.push(['The dishes are done for now',()=>{}])}
   if(o.drink&&!h)opts.push(['Pour a glass of water',()=>{this.setHold('water');this.sfx('water');toast('Water','a glass of cold water — Drink below')}]);
   opts.push(['Turn off the tap',()=>this.run('tap',{sink:sk,at,want:.62,look,pitch:-.5})]);
   this.openMenu(o.drink?'Kitchen sink':'Basin',opts,at.x,at.z,1.9,()=>this.sinkMenu(sk))};
@@ -306,9 +316,27 @@ KIT.makeTea=function(sp,it){if(this.act)return;
 
 // ---------- drink / put down ----------
 KIT.drink=function(){const h=this.hold;if(!h||!this.DRINKS.includes(h.kind)||this.act)return;
-  this.run('sip',{onEnd:()=>{h.sips--;if(h.sips<=0){const k=h.kind;this.setHold(null);this.fpOff();toast('Cheers',k==='tea'?'good green tea':k==='water'?'cold water':'delicious')}else toast('Mmm','still '+h.sips+' sip'+(h.sips>1?'s':'')+' left')}})};
+  this.run('sip',{onEnd:()=>{h.sips--;if(h.sips<=0){const k=h.kind;this.setHold(null);this.fpOff();toast(k==='omelette'?'Bon appétit':'Cheers',k==='tea'?'good green tea':k==='water'?'cold water':k==='omelette'?'a proper omelette':'delicious')}else toast('Mmm','still '+h.sips+' sip'+(h.sips>1?'s':'')+' left')}})};
 KIT.putDown=function(){const h=this.hold;if(!h||this.act)return;
   for(const F of this.fridges)if(F.open&&this.FOOD.some(f=>f[0]===h.kind)){const at=F.front();if(Math.hypot(player.x-at.x,player.z-at.z)<1.8){this.run('fput',{F,kind2:h.kind,wh:0,at,want:.55,look:()=>at,then:()=>this.fridgeMenu(F)});return}}
   let best=null,bd=1e9;for(const sp of this.spots){if(!sp.E.grp.visible)continue;const d=Math.hypot(sp.c.x-player.x,sp.c.z-player.z);if(d<sp.r&&d<bd){bd=d;best=sp}}
   if(!best){toast('Nowhere to put it','stand next to a table or the worktop');return}
   const at={x:best.c.x,z:best.c.z};this.run('place',{spot:best,pos:this.slotPos(best,this.freeSlot(best)),at,want:.7,look:()=>at,pitch:-.35})};
+
+// ---------- the bed: sit on it or sleep until morning ----------
+KIT.bed=function(E,o){INTERACT.push({x:E.ox+o.x,z:E.oz+o.z,r:1.8,cond:()=>E.grp.visible&&!KIT.act&&!player.sit&&!KIT.sleeping,label:'Bed',
+  fn:()=>{if(KIT.menuOn()){KIT.closeMenu();return}const c=KIT.W(E,E.ox+o.x,0,E.oz+o.z);KIT.openMenu('Bed',[['Lie down and sleep until morning',()=>KIT.sleep()],['Sit on the bed',()=>o.sit()]],c.x,c.z,2.6)}})};
+KIT.sleep=function(){if(this.sleeping)return;this.sleeping=true;this.dom();
+  let f=document.getElementById('kitFade');if(!f){f=document.createElement('div');f.id='kitFade';f.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:#000;opacity:0;transition:opacity 1.3s;z-index:90;pointer-events:none;display:flex;align-items:center;justify-content:center;color:#fff;font:700 22px/1.2 var(--f-disp,inherit);letter-spacing:.12em';document.body.appendChild(f)}
+  f.style.pointerEvents='auto';f.textContent='';f.style.opacity=1;
+  setTimeout(()=>{f.textContent='Zzz…'},1000);
+  setTimeout(()=>{try{S.time='day';applyTime();saveS()}catch(e){}f.textContent='Good morning';toast('Good morning','you slept well and it is a new day')},3000);
+  setTimeout(()=>{f.style.opacity=0;f.style.pointerEvents='none';f.textContent='';this.sleeping=false},4400)};
+// ---------- the stove: fry an omelette, eat it ----------
+KIT.cook=function(E,o){const pan=new THREE.Group(),M=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m||0});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.125,.1,.04,18),M(0x24262a,.5,.6));body.position.y=.02;const egg=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.012,18),M(0xf6efd0,.6));egg.position.y=.04;egg.scale.set(.01,1,.01);
+  const hd=new THREE.Mesh(new THREE.BoxGeometry(.16,.016,.024),M(0x1b1c1f,.6));hd.position.set(.2,.03,0);pan.add(body,egg,hd);pan.userData.egg=egg;pan.visible=false;pan.position.set(E.ox+o.x,o.y,E.oz+o.z);E.grp.add(pan);
+  INTERACT.push({x:E.ox+o.sx,z:E.oz+o.sz,r:1.25,cond:()=>E.grp.visible&&!KIT.act&&!KIT.hold,label:'Cook',
+    fn:()=>{if(KIT.menuOn()){KIT.closeMenu();return}const c=KIT.W(E,E.ox+o.sx,0,E.oz+o.sz),at=KIT.W(E,E.ox+o.x,0,E.oz+o.z),a={x:at.x,z:at.z};
+      KIT.openMenu('Stove',[['Fry an omelette',()=>KIT.run('cook',{pan,at:a,want:.62,look:()=>a,aim:()=>KIT.W(E,E.ox+o.x,o.y,E.oz+o.z),onCancel:()=>{pan.visible=false;pan.userData.egg.scale.set(.01,1,.01)},onEnd:()=>{pan.visible=false;pan.userData.egg.scale.set(.01,1,.01);KIT.setHold('omelette');toast('Omelette ready','Eat it from the bar below, or put it on the table')}})]],c.x,c.z,2.2)}})};
+KIT.DUR.cook=7;

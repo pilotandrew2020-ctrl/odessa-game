@@ -38,7 +38,7 @@ const TVX={vid:null,vtex:null,ncv:null,ntex:null,ng:null,nt:0,nd:0,sets:new Set(
     if(tv.ch===1){this.video();m.map=this.vtex;this.sets.add(tv);this.vid.muted=false;this.vid.volume=.4;const p=this.vid.play();if(p&&p.catch)p.catch(()=>{this.vid.muted=true;this.vid.play().catch(()=>{})})}
     else if(tv.ch===2){this.newsTex();m.map=this.ntex;this.sets.add(tv)}
     else{m.map=tv.tex;this.sets.delete(tv);tv.g.fillStyle='#08090b';tv.g.fillRect(0,0,160,90);tv.tex.needsUpdate=true}
-    m.needsUpdate=true;tv.on=tv.ch>0},
+    m.needsUpdate=true;tv.on=tv.ch>0;if(tv.overlay){tv.m.visible=tv.on;if(tv.m2)tv.m2.visible=tv.on}},
   label(tv){return !tv.ch?'Turn the TV on':(tv.ch===1?'Next channel (news)':'Turn the TV off')},
   // is the set drawn at all right now (inside the interior the player is in)?
   seen(tv){for(let o=tv.m;o;o=o.parent)if(o.visible===false)return false;return typeof PORTAL!=='undefined'&&!!PORTAL.cur},

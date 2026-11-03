@@ -5,7 +5,7 @@
 // Scripts that add a button to #topBtns later (Armed, Battle Royale, Hide & Seek, Bag) are picked up by a MutationObserver.
 const HUDM={
   MODES:['bBR','bHS'],
-  ORDER:['bMap','bTime','bRain','bSnow','bFog','bGun','bBag','bFlight','bMenu'],
+  ORDER:['bMap','bTime','bRain','bSnow','bFog','bGun','bBag','bJobs','bFlight','bMenu'],
   KEEP:new Set(['bTime','bRain','bSnow','bFog','bGun','bFlight']),   // toggles keep the list open so you can flip several in a row
   bar:null,pm:null,pn:null,bm:null,bn:null,ready:false,
   css(){if(document.getElementById('hudmCss'))return;const st=document.createElement('style');st.id='hudmCss';st.textContent=`
@@ -45,6 +45,7 @@ const HUDM={
     // flight controls: easy (up = climb) or pilot style (up = dive); remembered in the settings
     {const f=document.createElement('button');f.id='bFlight';const lab=()=>{f.textContent='Flight: '+((typeof S!=='undefined'&&S.flyPilot)?'pilot':'easy')};lab();f.title='Flight controls: easy = up climbs, pilot = up dives';
      f.onclick=()=>{if(typeof S==='undefined')return;S.flyPilot=!S.flyPilot;try{if(typeof saveS==='function')saveS()}catch(e){}lab();if(typeof toast==='function')toast('Flight controls',S.flyPilot?'pilot style: stick back = nose up':'easy: up is up, down is down')};bar.appendChild(f)}
+    {const j=document.createElement('button');j.id='bJobs';j.textContent='Earn money';j.title='Ways to earn money';j.onclick=()=>{if(typeof JOBS!=='undefined')JOBS.menu()};bar.appendChild(j)}
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
     // buttons that scripts append to the bar from now on
     new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&n.parentNode===bar)this.adopt(n)}).observe(bar,{childList:true});

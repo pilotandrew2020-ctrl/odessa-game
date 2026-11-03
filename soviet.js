@@ -192,7 +192,10 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   // old TV on a wooden cabinet with a cat figurine, bentwood chair
   place(-3.4,10.45,Math.PI,[[0,.55,0,2.2,1.1,.8,wood,5],[0,.55,.41,2.0,.9,.02,'#5e3a1a',5],[-.9,.1,.3,.1,.2,.1,'#3a2410',5],[.9,.1,.3,.1,.2,.1,'#3a2410',5]]);solid(-3.4,10.45,1.1,.45);
   MDL.put(grp,'cassette_player',{x:ox-2.62,y:Y+1.1,z:oz+10.45,ry:Math.PI,s:1.15});                       // a cassette recorder (≈16×27 cm) beside the set (Poly Haven, CC0)
-  MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
+  // the old CRT set shows the film / the news too: a screen-sized plane on its glass (tv.js), visible only while a programme runs
+  const svTv=window.svTv={m:null,m2:null,overlay:true,on:false,ch:0,t:0,light:null};{const cv=document.createElement('canvas');cv.width=160;cv.height=90;svTv.cv=cv;svTv.g=cv.getContext('2d');svTv.g.fillStyle='#08090b';svTv.g.fillRect(0,0,160,90);svTv.tex=new THREE.CanvasTexture(cv);svTv.tex.encoding=THREE.sRGBEncoding}
+  MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95,ready:(holder,m)=>{holder.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m),lo=holder.worldToLocal(b.min.clone()),hi=holder.worldToLocal(b.max.clone()),x0=Math.min(lo.x,hi.x),x1=Math.max(lo.x,hi.x),y0=Math.min(lo.y,hi.y),y1=Math.max(lo.y,hi.y),z0=Math.min(lo.z,hi.z),z1=Math.max(lo.z,hi.z),SW=(x1-x0)*(window.SV_TV_FIT?SV_TV_FIT.w:.62),SH=(y1-y0)*(window.SV_TV_FIT?SV_TV_FIT.h:.58),cy=y0+(y1-y0)*(window.SV_TV_FIT?SV_TV_FIT.cy:.55),cx=(x0+x1)/2;
+    const mat=new THREE.MeshBasicMaterial({map:svTv.tex}),mk=(z,ry)=>{const q=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),mat);q.position.set(cx,cy,z);q.rotation.y=ry;q.visible=false;holder.add(q);return q};svTv.m=mk(z1+.004,0);svTv.m2=mk(z0-.004,Math.PI);svTv.m.material=mat}});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
   // framed pictures: roses and an old family photo
   for(const [x,col] of [[-8.8,'#8a8a8a'],[-2.0,'#c98f5a']]){B(x,1.9,10.84,.7,.55,.04,'#3a2a1a',5);B(x,1.9,10.82,.6,.45,.03,col,9)}
   MDL.put(grp,'hanging_picture_frame_02',{x:ox-10.0,y:Y+1.65,z:oz+10.84,ry:Math.PI,w:.75});                  // a real framed painting with glass (Poly Haven, CC0)
@@ -215,7 +218,7 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   svGarland(grp,ox-10.5,Y+2.62,oz+10.7,ox-1.5,Y+2.62,oz+10.7,40,.35,[0xff2a1f,0x1fa8ff,0xffc61a,0x2dff6a]);
   svGarland(grp,ox-10.5,Y+2.62,oz+.3,ox-1.5,Y+2.62,oz+.3,40,.35,[0xff9a1f,0xff2a8a,0x1fe0ff,0xa8ff2a]);
   K.done();
-  INTERACT.push({x:ox-3.4,z:oz+9.2,r:1.9,label:'Watch the TV',fn:()=>toast('«Голубой огонёк»','a New Year concert, 1987')});
+  INTERACT.push({x:ox-3.4,z:oz+9.2,r:1.9,get label(){return svTv.m?TVX.label(svTv):'Watch the TV'},fn:()=>{if(svTv.m){TVX.cycle(svTv);if(window.AUD)AUD.beep()}else toast('«Голубой огонёк»','a New Year concert, 1987')}});
   INTERACT.push({x:ox-3.4,z:oz+2.95,r:1.5,label:'Open the champagne',fn:()=>toast('Советское шампанское','pop! С Новым годом!')});
   INTERACT.push({x:ox-3.9,z:oz+5.3,r:1.4,label:'Pet the cat',fn:()=>toast('Мурр','the cat purrs and does not blink')});
   INTERACT.push({x:ox-9.2,z:oz+8.2,r:1.9,label:'Look at Ded Moroz',fn:()=>toast('Дед Мороз и Снегурочка','cotton-wool figures from the 70s')})}
