@@ -91,7 +91,7 @@ class Yacht{
     p.hidden=!on}
   // ---------- avatars aboard ----------
   npcInit(){if(this.npcs.length)return;
-    const P_=this.plat,mk=()=>{const P=makePlayer(CHAR.opts(CHAR.random()));P.root.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.root.add(P.root);return P};
+    const P_=this.plat,mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.root.add(P.root);return P};
     const nearSeat=(x,y,z)=>{let b=null,bd=1.2;for(const s of P_.seats){if(s.who||s.helm)continue;const d=Math.hypot(s.x-x,s.z-z)+Math.abs(s.y+.45-y)*.5;if(d<bd){bd=d;b=s}}return b};
     const add=(o)=>{const P=mk();const n=Object.assign({P,x:0,y:0,z:0,yaw:0,mode:'stand',t:Math.random()*6,v:0},o);
       if(o.seatAt){const s=nearSeat(...o.seatAt);if(s){s.who='npc';n.x=s.x;n.y=s.y;n.z=s.z;n.yaw=s.yaw;n.mode='sit'}else{n.x=o.seatAt[0];n.z=o.seatAt[2];n.y=o.seatAt[1]-.45}}

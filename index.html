@@ -370,6 +370,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="mp.js"></script>
 <script src="mb.js"></script>
 <script src="trn2.js"></script>
+<script src="heli2.js"></script>
 <script src="planes.js"></script>
 <script src="plane.js"></script>
 <script src="airp.js"></script>
@@ -4930,7 +4931,11 @@ function initRides(){
 function rideStart(t,msg,sub){RIDE.on=true;RIDE.tram=t;player.vx=player.vz=0;player.scoot=false;$('bScoot').classList.remove('on');player.sit=null;cam.init=false;toast(msg,sub);if(window.AUD)AUD.beep()}
 function boardBus(c){if(!c)return;c.dw=Math.max(c.dw||0,3.5);const big=c.type===8;
   rideStart({kind:'bus',car:c,x:c.x,y:c.y+1.2,z:c.z,yaw:c.yaw,v:c.v,camDist:big?15:11,camH:big?3.6:2.8,seat:big?[-1.6,.85,.95]:[-.4,.6,.8]},'You\'re on the bus','at a stop press E to get off')}
-function boardPass(R){if(!R)return;rideStart({kind:'pass',R,x:R.x,y:R.y+1,z:R.z,yaw:R.yaw,v:0,px:R.x,pz:R.z,camDist:9,camH:2.4},'In the car','you\'re the passenger. Press E to get out when it stops')}
+// the free seat of a friend's car that is nearest to where I stand (up to three passengers: front, rear left, rear right)
+function passSeatFor(R){const taken=new Set();for(const P of COOP.peers.values())if(P!==R&&P.st&&P.st.pp===R.peer&&P.st.m==='pass')taken.add(P.st.pi|0);
+  const M=new THREE.Matrix4().compose(new THREE.Vector3(R.x,R.y,R.z),new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),R.yaw),new THREE.Vector3(1,1,1));let best=0,bd=1e9;
+  for(let i=1;i<=3;i++){if(taken.has(i))continue;const p=new THREE.Vector3(...CAR_SEATS[i]).applyMatrix4(M),d=Math.hypot(p.x-player.x,p.z-player.z);if(d<bd){bd=d;best=i}}return best}
+function boardPass(R){if(!R)return;const idx=passSeatFor(R);if(!idx){toast('The car is full','');return}rideStart({kind:'pass',R,idx,x:R.x,y:R.y+1,z:R.z,yaw:R.yaw,v:0,px:R.x,pz:R.z,camDist:9,camH:2.4},'In the car','you\'re the passenger. Press E to get out when it stops')}
 function seatPlayer(t,x,y,z,yaw,dt){player.x=x;player.y=y;player.z=z;player.yaw=yaw;player.vx=player.vz=0;PLR.root.position.set(x,y,z);PLR.root.rotation.y=yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt)}
 function busStep(t,dt){const c=t.car;if(!CARS.includes(c)){RIDE.on=false;RIDE.tram=null;cam.init=false;return}
   t.x=c.x;t.y=c.y+1.2;t.z=c.z;t.yaw=c.yaw;t.v=c.v;const fx=Math.sin(c.yaw),fz=Math.cos(c.yaw),lx=Math.cos(c.yaw),lz=-Math.sin(c.yaw);
@@ -6009,70 +6014,8 @@ const HELI={
     this.velocity=new THREE.Vector3();
     this.modelRoot=new THREE.Group();this.root.add(this.modelRoot);
     this.root.visible=false;world.add(this.root);
-    if(!window.THREE||typeof window.THREE.GLTFLoader!=='function'){
-      this.loadError=new Error('THREE.GLTFLoader is not available');
-      console.error('Apache helicopter model could not be loaded:',this.loadError);
-      return;
-    }
-    // Try the documented path first, then the flatter layouts some deployments use.
-    const modelPaths=location.pathname.endsWith('/src/odesa.html')
-      ?['../assets/models/apache.glb','../assets/apache.glb']
-      :['assets/models/apache.glb','assets/apache.glb','models/apache.glb','apache.glb'];
-    const modelLoaded=gltf=>{
-      const model=gltf.scene;
-      const bounds=new THREE.Box3().setFromObject(model);
-      const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-      const maxDimension=Math.max(size.x,size.y,size.z);
-      if(!Number.isFinite(maxDimension)||maxDimension<=0){
-        this.loadError=new Error('Downloaded helicopter model has empty or invalid geometry');
-        console.error('Apache helicopter model could not be loaded:',this.loadError);
-        return;
-      }
-      const scale=9/maxDimension;
-      model.scale.setScalar(scale);
-      model.position.copy(center).multiplyScalar(-scale);
-      model.traverse(o=>{
-        if(o.isMesh){o.castShadow=true;o.receiveShadow=true}
-        if(!this.mainRotor&&o!==model&&/(main.?rotor|rotor.?main)/i.test(o.name))this.mainRotor=o;
-        if(!this.tailRotor&&o!==model&&/(tail.?rotor|rotor.?propeller)/i.test(o.name))this.tailRotor=o;
-      });
-      this.modelRoot.add(model);
-      const scaledSize=size.multiplyScalar(scale);
-      if(!this.mainRotor){
-        const span=Math.max(scaledSize.x,scaledSize.z)*.78;
-        const rotor=new THREE.Group();rotor.name='ApacheMainRotor';
-        rotor.position.set(0,scaledSize.y*.48+.12,0);this.modelRoot.add(rotor);
-        const bladeMat=new THREE.MeshStandardMaterial({color:0x252a26,roughness:.8,metalness:.12});
-        const blade=new THREE.Mesh(new THREE.BoxGeometry(span,.075,.25),bladeMat);
-        blade.castShadow=true;rotor.add(blade);
-        const crossBlade=blade.clone();crossBlade.rotation.y=Math.PI/2;rotor.add(crossBlade);
-        this.mainRotor=rotor;
-      }
-      if(!this.tailRotor){
-        const tail=new THREE.Group();tail.name='ApacheTailRotor';
-        tail.position.set(0,0,-scaledSize.z*.48);this.modelRoot.add(tail);
-        const bladeMat=new THREE.MeshStandardMaterial({color:0x252a26,roughness:.8,metalness:.12});
-        for(let i=0;i<4;i++){
-          const blade=new THREE.Mesh(new THREE.BoxGeometry(.1,Math.max(.55,scaledSize.y*.28),.12),bladeMat);
-          blade.rotation.z=i*Math.PI/2;blade.castShadow=true;tail.add(blade);
-        }
-        this.tailRotor=tail;
-      }
-      this.loaded=true;
-    };
-    const tryModelPath=i=>{
-      if(i>=modelPaths.length){
-        this.loadError=new Error('apache.glb not found; tried: '+modelPaths.join(', '));
-        console.error('Apache helicopter model failed to load:',this.loadError);
-        return;
-      }
-      const modelUrl=new URL(modelPaths[i],document.baseURI).href;
-      new THREE.GLTFLoader().load(modelUrl,modelLoaded,undefined,error=>{
-        console.warn('Apache model unavailable at '+modelPaths[i]+' — trying the next path');
-        tryModelPath(i+1);
-      });
-    };
-    tryModelPath(0);
+    // procedural war helicopter (heli2.js): ONE main rotor, ONE tail rotor, tandem glass cockpit with seats inside; the old apache.glb is no longer used
+    {const B=WARHELI.build();this.modelRoot.add(B.root);this.mainRotor=B.main;this.tailRotor=B.tail;this.gunTurret=B.turret;this.loaded=true}
   },
   toggle(){
     if(!this.root||DRIVE.on||RIDE.on||PORTAL.cur||player.sit||MARINE.cur||EXT.cur||PASS.host||(typeof MP!=='undefined'&&MP.on)||(typeof PLN!=='undefined'&&PLN.cur))return;
@@ -6085,7 +6028,7 @@ const HELI={
     if(this.on){
       this.yaw=player.yaw;this.pitch=this.roll=0;this.throttle=.62;this.liftInput=0;this.velocity.set(0,0,0);
       this.root.position.set(player.x,player.y+2.2,player.z);this.root.rotation.set(0,this.yaw,0);
-      this.root.visible=true;PLR.root.visible=false;cam.init=false;
+      this.root.visible=true;PLR.root.visible=true;cam.init=false;   // the pilot sits inside the cockpit (placed every frame in update)
       $('heliControls').hidden=false;$('heliAim').hidden=false;
       cam.yaw=this.yaw;this.yawRate=0;toast('Apache helicopter','the nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E or mouse turn');
     }else{
@@ -6095,7 +6038,7 @@ const HELI={
         // high up you really drop (landing squash, streaming keeps pace) instead of being snapped to the ground in one frame
         if(hy-gy>2.5){player.y=hy;player.air=true;player.vy=Math.min(0,this.velocity.y||0)}else{player.y=gy;player.vy=0}}
       player.yaw=this.yaw;player.vx=player.vz=0;cam.init=false;
-      toast('Landed','helicopter controls off');
+      PLR.root.rotation.set(0,this.yaw,0,'XYZ');toast('Landed','helicopter controls off');
     }
   },
   update(dt){
@@ -6124,6 +6067,7 @@ const HELI={
     this.roll+=(Math.max(-.4,Math.min(.4,vS/19*.34-this.yawRate*.07))-this.roll)*tk;
     this.throttle=.62+upIn*.3+Math.min(.12,Math.hypot(this.velocity.x,this.velocity.z)/250);
     this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ');
+    {const w=MP.toWorld({root:this.root},WH_PILOT.x,WH_PILOT.y,WH_PILOT.z,this._pv||(this._pv=new THREE.Vector3()));PLR.root.visible=true;PLR.root.position.copy(w);PLR.root.quaternion.copy(this.root.quaternion);animPlayer(PLR,{spd:0,mode:'sit'},dt)}
     this.mainRotor.rotation.y+=dt*(12+this.throttle*34);
     this.tailRotor.rotation.z+=dt*(22+this.throttle*45);
     const aimDirection=camera.getWorldDirection(new THREE.Vector3());
@@ -7478,7 +7422,7 @@ function loop(t){
   UNI.uTime.value+=dt;
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
-    refreshCarObb();MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(AIRP.ready)AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(AIRP.ready)AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
@@ -7559,6 +7503,8 @@ function bakeAvatar(P){P.root.position.set(0,0,0);P.root.rotation.set(0,0,0);ani
   const G=new THREE.BufferGeometry();G.setAttribute('position',new THREE.BufferAttribute(pos,3));G.setAttribute('normal',new THREE.BufferAttribute(nor,3));G.setAttribute('color',new THREE.BufferAttribute(col,3));
   AV_MAT=AV_MAT||new THREE.MeshStandardMaterial({vertexColors:true,roughness:.7});return new THREE.Mesh(G,AV_MAT)}
 const CP_V=new THREE.Vector3(),CP_S=new THREE.Vector3(),CP_Q=new THREE.Quaternion(),CP_Y=new THREE.Vector3(0,1,0),CP_ONE=new THREE.Vector3(1,1,1);
+// seats of an ordinary car in its own frame (+z nose, +x left): 0 driver, 1 front passenger, 2 rear left, 3 rear right
+const CAR_SEATS=[[.55,.62,.2],[-.55,.62,.2],[.55,.62,-.8],[-.55,.62,-.8]];function carSeat(i){return CAR_SEATS[Math.max(1,Math.min(3,(i|0)||1))]}
 const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:null,ok:false,listOpen:false,
   load(){try{this.me.name=localStorage.getItem('od_name')||'';this.me.outfit=+(localStorage.getItem('od_outfit')||0)||0}catch(e){}},
   save(){try{localStorage.setItem('od_name',this.me.name);localStorage.setItem('od_outfit',String(this.me.outfit))}catch(e){}},
@@ -7615,7 +7561,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
   carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
     R.drw={x:R.x,y:R.y,z:R.z,yaw:R.yaw};   // exactly where this car is drawn this frame: a passenger is seated from this, not from the newer network state
-    out.push({x:R.x,y:R.y,z:R.z,yaw:R.yaw,pitch:0,roll:0,type:4,col:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6]})}return out},
+    const ct=s.ct,okT=Array.isArray(ct)&&CAR_DEFS[ct[0]|0];   // the driver's own car (model and colour), not a stand-in
+    out.push({x:R.x,y:R.y,z:R.z,yaw:R.yaw,pitch:0,roll:0,type:okT?ct[0]|0:4,col:okT&&ct[1]?ct[1]|0:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6]})}return out},
   // ---------- local player outfit + spawn ----------
   onStart(){
     if(!this.onStart.done){this.onStart.done=true;
@@ -7633,12 +7580,12 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const zn=this.zone();const ret=PORTAL.cur?PORTAL.ret:null;const ind=PORTAL.cur&&PORTAL.active;
     const st={v:1,in:started?1:0,n:this.nameOf(),o:this.me.outfit,ch:CHAR.cur,x:r2(player.x),y:r2(player.y),z:r2(player.z),r:r2(player.yaw),m:this.mode(),s:r2(player.spd||0),zn};
     if(ret){st.rx=r2(ret.x);st.rz=r2(ret.z);st.rr=r2(ret.yaw||0);st.zt=(ind&&ind.title)||''}
-    if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0)}
+    if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0);st.ct=[DRIVE.car.type|0,DRIVE.car.col|0]}   // car model + colour: everybody sees the same car
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
     if(HELI.on&&HELI.root){const p=HELI.root.position;st.x=r2(p.x);st.y=r2(p.y);st.z=r2(p.z);st.r=r2(HELI.yaw);st.h=[r2(HELI.pitch),r2(HELI.roll),r2(HELI.throttle)]}
     // on the water: the hull position plus [type, pitch, roll, forward speed]
     if(PASS.host){st.pp=PASS.host;st.pi=PASS.idx}
-    {const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R&&rt.R.peer){st.pp=rt.R.peer;st.pi=1;st.m='pass'}}   // a seat in a friend's ordinary car: everybody seats me from that car, not from my own lagging position
+    {const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R&&rt.R.peer){st.pp=rt.R.peer;st.pi=rt.idx||1;st.m='pass'}}   // a seat in a friend's ordinary car: everybody seats me from that car, not from my own lagging position
     // in a G-Wagon / Lamborghini / bicycle / submarine: its position plus [kind, pitch, roll, speed, steering, colour]
     if(EXT.cur){const c=EXT.cur;st.x=r2(c.x);st.y=r2(c.y);st.z=r2(c.z);st.r=r2(c.yaw);st.xv=[LV_NAMES.indexOf(c.kind),r2(c.pitch),r2(c.roll),r2(c.v),r2(c.steerA),Math.max(0,c.colIdx)]}
     if(MARINE.cur){const c=MARINE.cur;st.x=r2(c.x);st.y=r2(c.y);st.z=r2(c.z);st.r=r2(c.yaw);st.wc=[c.type==='jetski'?1:0,r2(c.pitch),r2(c.roll),r2(c.u)]}
@@ -7658,6 +7605,11 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   bubbleSprite(m){return labelSprite([m],{w:640,h:120,size:Math.min(52,Math.max(30,1100/(m.length+6))),color:'#0b1b22',bg:'rgba(245,241,232,.94)',round:40,depthTest:false,scale:.6})},
   showBubble(R,m){if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose()}R.bub=this.bubbleSprite(m);R.bub.renderOrder=999;R.bub.material.sizeAttenuation=false;R.bub.scale.multiplyScalar(.075);scene.add(R.bub);R.bubT=6},
   // ---------- per frame ----------
+  // friends who DRIVE: their pose comes from the buffered interpolation (the same NetSnaps as helicopters and boats), advanced ONCE per frame before
+  // anything reads it (traffic, the drawn car, passengers, the passenger camera). The old exponential smoothing of ~15 packets/s stuttered when packets came in bursts.
+  advance(dt){for(const R of this.peers.values()){const s=R.st;if(!s||!s.in||typeof s.x!=='number'||s.m!=='car'||(s.zn||'')!==''){R.pok=false;if(R.pnet)R.pnet=null;continue}
+      if(!R.pnet){R.pnet=new NetSnaps();R.pst=null}if(R.pst!==s){R.pst=s;R.pnet.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:0,r:0},s.ts)}
+      const q=R.pnet.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true;R.pok=true}}},
   update(dt){
     if(!this.online())return;
     this.sendT-=dt;if(this.sendT<=0){this.sendT=1/15;this.push(false)}
@@ -7682,7 +7634,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
           R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(p.x,p.y+1.9,p.z);if(R.bub){R.bubT-=dt;R.bub.position.set(p.x,p.y+2.3,p.z);R.bub.visible=R.bubT>0}continue}
         // a passenger in an ordinary car (mine or a friend's): seated from that car's drawn pose
         const car=PASS.hostCar(s);if(car){const p=this._pv||(this._pv=new THREE.Vector3()),q=this._pq||(this._pq=new THREE.Quaternion());
-          CP_S.set(-.55,.62,0).applyMatrix4(PASS._M.compose(CP_V.set(car.x,car.y,car.z),CP_Q.setFromAxisAngle(CP_Y,car.yaw),CP_ONE));p.copy(CP_S);q.setFromAxisAngle(CP_Y,car.yaw);
+          CP_S.set(...carSeat(s.pi)).applyMatrix4(PASS._M.compose(CP_V.set(car.x,car.y,car.z),CP_Q.setFromAxisAngle(CP_Y,car.yaw),CP_ONE));p.copy(CP_S);q.setFromAxisAngle(CP_Y,car.yaw);
           R.x=p.x;R.y=p.y;R.z=p.z;R.yaw=car.yaw;R.has=true;R.wasPass=true;R.P.root.visible=true;R.lo.visible=false;R.P.root.position.copy(p);R.P.root.quaternion.copy(q);animPlayer(R.P,{spd:0,mode:'sit',role:'pass'},dt);
           R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(p.x,p.y+1.9,p.z);if(R.bub){R.bubT-=dt;R.bub.position.set(p.x,p.y+2.3,p.z);R.bub.visible=R.bubT>0}continue}}
       if(R.wasPass){R.wasPass=false;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}
@@ -7690,11 +7642,12 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
         if(!R.heli)R.heli=new PeerHeli();
         if(R.hst!==s){R.hst=s;R.heli.push(s)}
         const q=R.heli.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true}
-        R.P.root.visible=false;R.lo.visible=false;R.heli.root.visible=Math.hypot(R.x-player.x,R.z-player.z)<1500;
+        R.heli.root.visible=Math.hypot(R.x-player.x,R.z-player.z)<1500;R.lo.visible=false;R.P.root.visible=R.heli.root.visible&&Math.hypot(R.x-player.x,R.z-player.z)<320;   // the pilot sits inside the cockpit
+        if(R.P.root.visible){const w=MP.toWorld({root:R.heli.root},WH_PILOT.x,WH_PILOT.y,WH_PILOT.z,this._pv||(this._pv=new THREE.Vector3()));R.P.root.position.copy(w);R.P.root.quaternion.copy(R.heli.root.quaternion);animPlayer(R.P,{spd:0,mode:'sit'},dt)}
         R.tag.visible=R.heli.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+4.2,R.z);
         if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+4.7,R.z);R.bub.visible=R.bubT>0}
         continue}
-      if(R.heli){R.heli.dispose();R.heli=null;R.hst=null;R.has=false}   // landed: snap the walker to where they got out
+      if(R.heli){R.heli.dispose();R.heli=null;R.hst=null;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}   // landed: snap the walker to where they got out
       // friend in a G-Wagon / Lamborghini / bicycle / submarine: their vehicle from the interpolation buffer, the driver in the seat
       if(Array.isArray(s.xv)){const kind=LV_NAMES[s.xv[0]|0]||'lambo';
         if(!R.xveh||R.xveh.kind!==kind){if(R.xveh)R.xveh.dispose();R.xveh=new PeerLite(kind,s.xv[5]|0);R.xst=null}
@@ -7717,7 +7670,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
         if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+3,R.z);R.bub.visible=R.bubT>0}
         continue}
       if(R.boat){R.boat.dispose();R.boat=null;R.bst=null;R.has=false;R.P.root.rotation.set(0,R.yaw,0,'XYZ')}   // ashore: back to walking
-      if(!R.has||Math.hypot(s.x-R.x,s.z-R.z)>30){R.x=s.x;R.y=s.y;R.z=s.z;R.yaw=s.r||0;R.has=true}
+      if(R.pok&&s.m==='car'){R.has=true}   // already placed by COOP.advance
+      else if(!R.has||Math.hypot(s.x-R.x,s.z-R.z)>30){R.x=s.x;R.y=s.y;R.z=s.z;R.yaw=s.r||0;R.has=true}
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
       const P=R.P;const near=far<22,m0=s.m||'walk';P.root.visible=near||m0==='car'||m0==='tram'||m0==='sit'||m0==='scoot';R.lo.visible=!P.root.visible&&far<350;R.lo.position.set(R.x,R.y,R.z);R.lo.rotation.y=R.yaw;R.lo.castShadow=false;const sh=far<35;if(R.sh!==sh){R.sh=sh;P.root.traverse(o=>{if(o.isMesh)o.castShadow=sh})}P.root.position.set(R.x,R.y,R.z);P.root.rotation.y=R.yaw;
@@ -7728,7 +7682,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       if(m==='car'||m==='tram')P.root.position.y+=.35;
       if(m==='car'){ // one global matrix for the drawn car; a passenger copies it (no raw stream offsets -> no jitter)
         const D=R.drw||R,M=R.mat||(R.mat=new THREE.Matrix4());M.compose(CP_V.set(D.x,D.y,D.z),CP_Q.setFromAxisAngle(CP_Y,D.yaw),CP_ONE);
-        const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R===R){CP_S.set(-.55,.62,0).applyMatrix4(M);seatPlayer(rt,CP_S.x,CP_S.y,CP_S.z,D.yaw,dt);rt.x=D.x;rt.y=D.y+1;rt.z=D.z;rt.yaw=D.yaw}}   // the camera follows the very same car pose
+        const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R===R){CP_S.set(...carSeat(rt.idx)).applyMatrix4(M);seatPlayer(rt,CP_S.x,CP_S.y,CP_S.z,D.yaw,dt);rt.x=D.x;rt.y=D.y+1;rt.z=D.z;rt.yaw=D.yaw}}   // the camera follows the very same car pose
       R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+2.15,R.z);
       if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+2.6,R.z);R.bub.visible=R.bubT>0}}
     this.listT=(this.listT||0)-dt;if(this.listT<=0){this.listT=1;this.renderList()}},
@@ -7806,7 +7760,7 @@ const NET={active:false,code:'',cid:'',ws:null,rest:new Uint8Array(0),seen:new M
   create(){this.enter(String(1000+Math.floor(Math.random()*9000)))},
   join(raw){const code=String(raw||'').replace(/\D/g,'').slice(0,4);if(code.length!==4){this.st('Type the 4-digit room code');return}this.enter(code)},
   send(st,force){const now=performance.now();if(!this.ws||this.ws.readyState!==1)return false;if(!force&&now-this.lastSend<110)return false;this.lastSend=now;
-    try{this.ws.send(MQ.pub(this.topic(this.cid),JSON.stringify(st)))}catch(e){return false}return true}
+    try{const j=JSON.stringify(st);this.ws.send(MQ.pub(this.topic(this.cid),'{"ts":'+Math.round(now)+(j.length>2?',':'')+j.slice(1)))}catch(e){return false}return true}
 };
 
 // ===================== Hide & Seek (2–10 players): presence-only, no extra network =====================
@@ -8769,14 +8723,26 @@ const MARINE={crafts:[],cur:null,eng:null,hulls:[],_v:new THREE.Vector3(),
 // Received states are buffered and played back a few packets late, so uneven packet timing (~9 Hz)
 // never shows as jitter: positions follow a Catmull-Rom curve through the surrounding snapshots, angles are lerped.
 class NetSnaps{
-  constructor(){this.buf=[];this.gap=110;this.lastT=0;this.st=null}
-  push(q){const now=performance.now(),L=this.buf[this.buf.length-1];q.t=now;
-    if(L&&q.x===L.x&&q.y===L.y&&q.z===L.z&&q.yaw===L.yaw&&q.p===L.p&&q.r===L.r)return;   // repeated presence, not a new packet
-    if(L&&Math.hypot(q.x-L.x,q.y-L.y,q.z-L.z)>80){this.buf.length=0;this.st=null}        // teleport: snap
-    if(this.lastT)this.gap+=(Math.min(600,now-this.lastT)-this.gap)*.2;this.lastT=now;
-    this.buf.push(q);if(this.buf.length>16)this.buf.shift()}
-  // ~2.6 packet gaps behind: two dropped packets in a row still land inside the buffer (measured 8% step spread vs 19% at 1.7)
-  sample(now){const b=this.buf;if(!b.length)return null;const t=now-Math.max(140,Math.min(450,this.gap*2.6)),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  constructor(){this.buf=[];this.gap=110;this.lastG=0;this.lastTs=0;this.st=null;this.off=null;this.jit=0;this.dl=null}
+  // ts = the SENDER's clock (ms) when the packet left. Stamping with it instead of the arrival time keeps a burst that the
+  // network delivers in one go at its true spacing (arrival stamps would collapse it into one instant = a jolt every burst).
+  // Without ts (old client, Claude room) the arrival time is used as before.
+  push(q,ts){const now=performance.now(),b=this.buf,stamped=typeof ts==='number'&&isFinite(ts);let t=now;
+    if(stamped){const d=now-ts;
+      if(this.off===null||ts<this.lastTs-1500||d-this.off>6000){this.off=d;this.jit=0;b.length=0;this.st=null;this.lastG=0}   // first packet, sender restarted, or a multi-second stall: start a fresh timeline
+      else if(d<this.off)this.off=d;else this.off+=(d-this.off)*.002;   // lower envelope of (arrival - sent) = clock offset + best-case latency
+      this.jit=Math.max(this.jit*.97,d-this.off);t=ts+this.off;this.lastTs=ts}   // how late packets run beyond the best case, peak-held
+    const L=b[b.length-1];
+    if(!stamped&&L)t=Math.min(now+600,Math.max(now,L.t+this.gap*.8));   // no sender clock: packets that land together are spaced a little under one gap apart (a queue that drains), never stacked on one instant
+    q.t=t;const same=(A,B)=>A.x===B.x&&A.y===B.y&&A.z===B.z&&A.yaw===B.yaw&&A.p===B.p&&A.r===B.r;
+    if(L&&same(q,L)){   // repeated presence while standing still: not a new packet, but keep the end of the hold fresh so the next move starts from now
+      const P=b[b.length-2];if(P&&same(P,q))b[b.length-1]=q;else b.push(q);return}
+    if(L&&Math.hypot(q.x-L.x,q.y-L.y,q.z-L.z)>80){b.length=0;this.st=null;this.lastG=0}   // teleport: snap
+    const ref=stamped?ts:now;if(this.lastG)this.gap+=(Math.min(600,Math.max(0,ref-this.lastG))-this.gap)*.2;this.lastG=ref;
+    b.push(q);if(b.length>24)b.shift()}
+  // render time t (ms, local clock). Roughly 2.6 packet gaps behind plus the observed lateness, so two dropped packets in a row,
+  // or a late burst, still land inside the buffer
+  sample(t){const b=this.buf;if(!b.length)return null;const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
     const cr=(a,p,q,d,u)=>{const u2=u*u,u3=u2*u;return .5*(2*p+(q-a)*u+(2*a-5*p+4*q-d)*u2+(3*p-a-3*q+d)*u3)};
     const lin=(A,C,u)=>{const o={};for(const k in C)o[k]=k==='yaw'?A.yaw+wrap(C.yaw-A.yaw)*u:A[k]+(C[k]-A[k])*u;return o};
     if(t<=b[0].t)return b[0];
@@ -8784,8 +8750,10 @@ class NetSnaps{
       for(const k of ['x','y','z'])o[k]=cr(Z[k],A[k],C[k],E[k],u);return o}
     // late packet: carry on along the last segment for at most a quarter second
     if(b.length<2)return b[0];const A=b[b.length-2],C=b[b.length-1];return lin(A,C,1+Math.min(250,t-C.t)/Math.max(1,C.t-A.t))}
-  // light final smoothing over late-packet corrections
-  update(dt){const q=this.sample(performance.now());if(!q)return null;if(!this.st){this.st=Object.assign({},q);return this.st}
+  // the delay follows the target at no more than 10% clock speed, so a change in network conditions never makes the picture jump back
+  update(dt){const tg=Math.max(140,Math.min(700,this.gap*2.6+this.jit*1.1));
+    if(this.dl===null)this.dl=tg;else{const m=dt*100;this.dl+=Math.max(-m,Math.min(m,tg-this.dl))}
+    const q=this.sample(performance.now()-this.dl);if(!q)return null;if(!this.st){this.st=Object.assign({},q);return this.st}
     const k=1-Math.exp(-dt*18),s=this.st;
     for(const key in q){if(key==='t')continue;if(key==='yaw')s.yaw+=Math.atan2(Math.sin(q.yaw-s.yaw),Math.cos(q.yaw-s.yaw))*k;else s[key]=s[key]===undefined?q[key]:s[key]+(q[key]-s[key])*k}
     return s}
@@ -8799,7 +8767,7 @@ class PeerHeli{
   // the node in the clone at the same child-index path as `node` in the original
   static twin(clone,src,node){if(!node)return null;const path=[];for(let o=node;o&&o!==src;o=o.parent){if(!o.parent)return null;path.unshift(o.parent.children.indexOf(o))}
     let o=clone;for(const i of path)o=o&&o.children[i];return o||null}
-  push(s){const h=Array.isArray(s.h)?s.h:[0,0,.62];this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+h[0]||0,r:+h[1]||0,th:h[2]===undefined?.62:+h[2]})}
+  push(s){const h=Array.isArray(s.h)?s.h:[0,0,.62];this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+h[0]||0,r:+h[1]||0,th:h[2]===undefined?.62:+h[2]},s.ts)}
   update(dt){const s=this.net.update(dt);if(!s)return null;this.root.position.set(s.x,s.y,s.z);this.root.rotation.set(s.p,s.yaw,s.r,'YXZ');
     if(this.main)this.main.rotation.y+=dt*(12+s.th*34);if(this.tail)this.tail.rotation.z+=dt*(22+s.th*45);return s}
   dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local Apache
@@ -8807,14 +8775,14 @@ class PeerHeli{
 // a friend's motor boat / jet ski: its own Watercraft model driven from the network, with the friend seated on it
 class PeerBoat{
   constructor(type){this.type=type;this.craft=new Watercraft(type,0,0,0);scene.add(this.craft.root);this.net=new NetSnaps()}
-  push(s){const w=s.wc;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+w[1]||0,r:+w[2]||0,u:+w[3]||0})}
+  push(s){const w=s.wc;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+w[1]||0,r:+w[2]||0,u:+w[3]||0},s.ts)}
   update(dt){const s=this.net.update(dt);if(!s)return null;const c=this.craft;c.x=s.x;c.y=s.y;c.z=s.z;c.yaw=s.yaw;c.pitch=s.p;c.roll=s.r;c.u=s.u;c.sync();return s}
   dispose(){scene.remove(this.craft.root);scene.remove(this.craft.wake)}
 }
 
 // ===================== co-op: ride along in a friend's helicopter (front seat) =====================
 // The passenger publishes m:'pass' and pp = the pilot's co-op id; both sides then seat the passenger in that airframe.
-const HELI_SEAT=new THREE.Vector3(0,.35,1.7);   // front gunner seat, in the Apache's local frame
+const HELI_SEAT=WH_SEAT;   // front seat INSIDE the glass cockpit, in the helicopter's local frame (heli2.js)
 const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quaternion(),_M:new THREE.Matrix4(),
   // the ordinary (non-Lite) car a passenger peer sits in, as a {x,y,z,yaw} pose: mine while I drive, or a friend's as it is drawn this frame
   hostCar(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId)return DRIVE.on&&DRIVE.car?DRIVE.car:null;
@@ -8827,9 +8795,11 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
     if(R.xveh&&Array.isArray(R.st.xv)&&R.xveh.v.seats.length>1)return {root:R.xveh.v.root,kind:R.xveh.kind,lv:R.xveh.v};
     if(R.boat&&Array.isArray(R.st.wc)&&R.boat.craft.seats.length>1)return {root:R.boat.craft.root,kind:R.boat.type,lv:R.boat.craft};return null},
   // first free passenger seat (-1 = full); the helicopter has just the front seat, cars seat 1..n-1 (0 is the driver)
-  freeSeat(R){const o=this.hostObj(R);if(!o)return -1;if(o.kind==='heli')return 0;const n=o.lv.seats.length,taken=new Set();
-    for(const P of COOP.peers.values())if(P!==R&&P.st&&P.st.pp===R.peer)taken.add(P.st.pi|0);
-    for(let i=1;i<n;i++)if(!taken.has(i))return i;return -1},
+  // the free seat nearest to where I stand (seat 0 of a car, bike or boat is the driver's; the helicopter's single passenger seat is the front cockpit)
+  freeSeat(R){const o=this.hostObj(R);if(!o)return -1;const taken=new Set();for(const P of COOP.peers.values())if(P!==R&&P.st&&P.st.pp===R.peer)taken.add(P.st.pi|0);
+    if(o.kind==='heli')return taken.has(0)?-1:0;
+    const n=o.lv.seats.length,v=this._fv||(this._fv=new THREE.Vector3()),q=this._fq||(this._fq=new THREE.Quaternion());let best=-1,bd=1e9;
+    for(let i=1;i<n;i++){if(taken.has(i))continue;o.lv.seatWorld(i,v,q);const d=Math.hypot(v.x-player.x,v.z-player.z);if(d<bd){bd=d;best=i}}return best},
   // a friend's helicopter or car close to me (and with a free seat)
   find(){if(!this.free())return null;let best=null,bd=9;for(const R of COOP.peers.values()){const o=this.hostObj(R);if(!o)continue;const p=o.root.position;
       const d=Math.hypot(p.x-player.x,p.z-player.z),lim=o.kind==='heli'?9:6.5;if(d<Math.min(bd,lim)&&Math.abs(p.y-player.y)<6&&this.freeSeat(R)>=0){bd=d;best=R}}return best},

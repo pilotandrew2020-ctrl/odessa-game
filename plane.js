@@ -214,7 +214,7 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
     // dropped bombs
     for(let i=this.tr.length-1;i>=0;i--){const b=this.tr[i];if(b.custom){if(b.custom(dt))this.tr.splice(i,1);continue}b.t+=dt;b.vy-=9.81*dt;b.m.position.x+=b.vx*dt;b.m.position.y+=b.vy*dt;b.m.position.z+=b.vz*dt;b.m.rotation.x=Math.atan2(-b.vy,Math.hypot(b.vx,b.vz));
       const q=b.m.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,1.5);if(q.y<=gy+.3||hit){scene.remove(b.m);this.tr.splice(i,1);GUN.addBoom(q.x,Math.max(gy,q.y),q.z,hit?22:20,130);GUN.push();FX.shakeT=.4;FX.shakeA=Math.max(FX.shakeA||0,.2)}}},
-  crewInit(p){if(p.crew)return;p.crew=1;const mk=()=>{const P=makePlayer(CHAR.opts(CHAR.random()));P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}p.root.add(P.root);return P};
+  crewInit(p){if(p.crew)return;p.crew=1;const mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}p.root.add(P.root);return P};
     const fa=mk();fa.root.position.set(-.9,-.95,11.2);fa.root.rotation.y=Math.PI;p.fa=fa;
     const fo=mk();fo.root.position.set(p.copilotSeat.x,p.copilotSeat.y,p.copilotSeat.z);p.copilotSeat.who='npc';p.fo=fo;
     const cp=mk();cp.root.position.set(p.pilotSeat.x,p.pilotSeat.y,p.pilotSeat.z);p.cap=cp},

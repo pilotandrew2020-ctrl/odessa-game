@@ -7,7 +7,7 @@
 const BUDDY={on:false,P:null,x:0,y:0,z:0,yaw:0,spd:0,sit:null,seat:null,mpPlat:null,bl:null,t:0,say:0,reset:false,name:'Misha',
   LINES:['This is great!','Where to next?','Look at that view!','I could stay here all day.','Nice ride!','Careful with the animals…','Let\'s take the yacht to the island!','Can we fly the jet?'],
   toggle(){if(this.on)this.remove();else this.spawn()},
-  spawn(){if(this.on||!started)return;const P=this.P=makePlayer(CHAR.opts(CHAR.random()));P.root.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}scene.add(P.root);
+  spawn(){if(this.on||!started)return;const P=this.P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}scene.add(P.root);
     this.on=true;this.reset=true;this.bl=null;this.sit=null;this.seat=null;this.update(.016);toast(this.name+' joins you','he follows you · sits next to you · rides along (More → Friend to send him away)');this.btn(true)},
   remove(){if(!this.on)return;this.release();scene.remove(this.P.root);this.P=null;this.on=false;toast(this.name+' leaves','');this.btn(false)},
   btn(on){const b=document.getElementById('bBuddy');if(b)b.classList.toggle('on',!!on)},

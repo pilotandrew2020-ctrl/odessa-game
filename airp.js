@@ -89,7 +89,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     mb.build(g,M,{static:true});
     for(const [a,b,w,d] of [[u,v+D/2,W,.5],[u-W/2,v,.5,D],[u+W/2,v,.5,D]]){const c=this.P(a,b);addWall(c[0],c[1],w,d,this.ang,this.y0,this.y0+H)}},
   // ---------- boarding queue ----------
-  queueInit(){const mk=()=>{const P=makePlayer(CHAR.opts(CHAR.random()));P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.g.add(P.root);return P};
+  queueInit(){const mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.g.add(P.root);return P};
     // stanchions leading from the gate door to the stairs of the aircraft, people waiting in line
     const mb=new MB(),M=this.M;for(let i=0;i<8;i++){mb.cyl('pole',.03,.03,1.0,6,-24,.5,150+i*5);mb.cyl('pole',.03,.03,1.0,6,-16,.5,150+i*5)}for(let i=0;i<7;i++){mb.rod('rope',.012,[-24,.9,150+i*5],[-24,.9,150+(i+1)*5],4);mb.rod('rope',.012,[-16,.9,150+i*5],[-16,.9,150+(i+1)*5],4)}mb.build(this.g,M,{static:true,noShadow:new Set(['pole','rope'])});
     for(let i=0;i<8;i++){const P=mk();P.root.position.set(-20+(i%2?1.2:-1.2),0,155+i*3.2);P.root.rotation.y=Math.PI+(i%3-1)*.25;this.queue.push(P)}

@@ -93,7 +93,7 @@ const TRN2={
   horn(){if(typeof AUD!=='undefined'&&AUD&&AUD.ok){AUD.tone(392,392,.9,.1,'square');AUD.tone(494,494,.9,.08,'square')}},
   chime(){if(typeof AUD!=='undefined'&&AUD&&AUD.ok){AUD.tone(880,880,.18,.05,'sine');AUD.tone(660,660,.3,.05,'sine',undefined,.2)}},
   driver(T,d,idx,vis){const ds=d.driverSeats[idx];if(!ds)return;let n=d.drivers[idx];
-    if(!n&&vis){const P=makePlayer(CHAR.opts(CHAR.random()));P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}d.g.add(P.root);P.root.position.set(ds.x,ds.y,ds.z);P.root.rotation.y=ds.yaw;n=d.drivers[idx]={P}}
+    if(!n&&vis){const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}d.g.add(P.root);P.root.position.set(ds.x,ds.y,ds.z);P.root.rotation.y=ds.yaw;n=d.drivers[idx]={P}}
     if(n){n.P.root.visible=vis;if(vis)animPlayer(n.P,{spd:0,mode:'sit'},.016)}},
   // where the player is steering in the world (same mixing as stepPlayer)
   intent(){let ix=0,iz=0;const k=inp.k;if(k.KeyW||k.ArrowUp)iz+=1;if(k.KeyS||k.ArrowDown)iz-=1;if(k.KeyA||k.ArrowLeft)ix-=1;if(k.KeyD||k.ArrowRight)ix+=1;ix+=inp.jx;iz+=inp.jy;const m=Math.hypot(ix,iz);if(m>1){ix/=m;iz/=m}

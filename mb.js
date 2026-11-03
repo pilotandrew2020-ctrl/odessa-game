@@ -58,3 +58,6 @@ class MB{
       const me=new THREE.Mesh(g,m);me.name=opt.name?opt.name+':'+k:k;me.castShadow=!(opt.noShadow&&opt.noShadow.has(k))&&!m.transparent;me.receiveShadow=!!(opt.receive&&opt.receive.has(k));me.matrixAutoUpdate=opt.static!==false?false:true;if(!me.matrixAutoUpdate)me.updateMatrix();root.add(me);out[k]=me}
     return out}
 }
+
+// crowd / crew / passengers stay on the light classic body (a real body is a 65-bone skinned mesh)
+function npcOpts(){const o=CHAR.opts(CHAR.random());o.real=false;return o}

@@ -280,7 +280,7 @@ class LiteVehicle{
 // a friend's vehicle: drawn from network snapshots, with the same model and colour as the one they drive
 class PeerLite{
   constructor(kind,col){this.kind=kind;this.v=new LiteVehicle(kind,0,0,0,{col,proxy:true});scene.add(this.v.root);this.net=new NetSnaps()}
-  push(s){const a=s.xv;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+a[1]||0,r:+a[2]||0,u:+a[3]||0,st:+a[4]||0})}
+  push(s){const a=s.xv;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+a[1]||0,r:+a[2]||0,u:+a[3]||0,st:+a[4]||0},s.ts)}
   update(dt){const q=this.net.update(dt);if(!q)return null;const v=this.v;v.x=q.x;v.y=q.y;v.z=q.z;v.yaw=q.yaw;v.pitch=q.p;v.roll=q.r;v.v=q.u;v.steerA=q.st;v.brakeOn=false;v.animate(dt);v.sync();return q}
   dispose(){scene.remove(this.v.root)}
 }
