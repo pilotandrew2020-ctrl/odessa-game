@@ -22,7 +22,7 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `models/props/painted_wooden_nightstand.glb` | Poly Haven | CC0 | `fdet.js` `FD.stand()` — bedside tables of every `hsKit` bedroom (modern / panel / stalin / new-build flats, island houses via `S.standGlb`); 470 tris, 609 KB, diffuse only, `w:.46`, optional `S.standTint` |
 | `models/props/wall_clock.glb` | Poly Haven | CC0 | `fdet.js` `K.clock()` — hall / living-room wall clocks (modern flat, Soviet flat hall); 3.7k tris, 492 KB, diffuse only |
 | `models/avatar/Man.glb` | Quaternius (Universal Base Characters, Standard) | CC0 | `real.js` realistic player/NPC body (itch.io pack; rig kept, hair/clothes/shoes rebuilt in Blender, textures baked, 1.8 MB, lazy loaded after the page `load` event) |
-| `models/apache.glb` | already in the project | unknown | UNUSED since 2026-11-03 (replaced by procedural `heli2.js`); kept as a fallback |
+| `models/cricri.glb` | supplied by the project owner (FBX + textures, `twin-engine-airplane-colomban-cri-cri.zip`) | NOT STATED in the archive (owner to confirm) | `planes.js` `PM.loadLight()/buildLight()` — the light plane (`plane.js` kind `light`, spawn menu). 21.9k tris (over the ~5k guideline; one model, spawned on demand), 903 KB, textures 1024/512 px; lazy loaded when the plane is first spawned |
 | `textures/bark_platanus.jpg` | Poly Haven "Bark Platanus" (1k diffuse, https://polyhaven.com/a/bark_platanus) | CC0 | tree trunk/branch texture (`MATS.bark` in `index.html`, loaded after start, lightened on a canvas) |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.

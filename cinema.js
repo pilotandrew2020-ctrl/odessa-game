@@ -93,7 +93,7 @@ function cnBuild(){
     if(inHall&&!CN.playing)cnPlay(false);if(!inHall&&CN.playing&&!player.sit)cnPause();
     if(CN.fallback)cnFallbackDraw(UNI.uTime.value);
     // the picture lights the room: the screen light follows the average colour of the film
-    if(inHall){lastC-=dt;if(lastC<=0){lastC=.3;try{const v=CN.vid;const c=CN.cx;if(CN.fallback||v.readyState<2){CN.screenLight.color.setRGB(.55,.65,1)}else{CN.sc=CN.sc||document.createElement('canvas');CN.sc.width=CN.sc.height=8;const g=CN.sc.getContext('2d');g.drawImage(v,0,0,8,8);const d=g.getImageData(0,0,8,8).data;let r=0,gg=0,b=0;for(let i=0;i<d.length;i+=4){r+=d[i];gg+=d[i+1];b+=d[i+2]}const n=d.length/4*255;CN.screenLight.color.setRGB(Math.min(1,r/n*1.6+.1),Math.min(1,gg/n*1.6+.1),Math.min(1,b/n*1.6+.1))}}catch(e){}}
+    if(inHall){lastC-=dt;if(lastC<=0){lastC=.3;try{const v=CN.vid;const c=CN.cx;if(CN.fallback||v.readyState<2){CN.screenLight.color.setRGB(.55,.65,1)}else{CN.sc=CN.sc||document.createElement('canvas');CN.sc.width=CN.sc.height=8;const g=CN.sc.getContext('2d',{willReadFrequently:true});g.drawImage(v,0,0,8,8);const d=g.getImageData(0,0,8,8).data;let r=0,gg=0,b=0;for(let i=0;i<d.length;i+=4){r+=d[i];gg+=d[i+1];b+=d[i+2]}const n=d.length/4*255;CN.screenLight.color.setRGB(Math.min(1,r/n*1.6+.1),Math.min(1,gg/n*1.6+.1),Math.min(1,b/n*1.6+.1))}}catch(e){}}
       CN.screenLight.userData.i=1.1}else CN.screenLight.userData.i=0});
   E.fin();const pg=E.P.build();if(pg)grp.add(new THREE.Mesh(pg,MATS.props));
   INDOORS.push({name:'cinema',title:'Odesa Cinema',sub:'',floor:'tile',exp:.8,lights:L,test:(x,z)=>x>ox-W/2-1&&x<ox+W/2+1&&z>oz-1&&z<oz+D+1,ceil:()=>INT_Y+HH-.3});

@@ -373,6 +373,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="heli2.js"></script>
 <script src="hudmenu.js"></script>
 <script src="diag.js"></script>
+<script src="swim.js"></script>
 <script src="planes.js"></script>
 <script src="plane.js"></script>
 <script src="airp.js"></script>
@@ -1815,8 +1816,8 @@ function colPolyPush(cp,x,z,r,y){ // returns [x,z] pushed out (or null if no con
 }
 function colPolyHit(cp,x,z,m,y){if(cp.access&&cp.access(x,z,m,y))return false;if(x<cp.minx-m||x>cp.maxx+m||z<cp.minz-m||z>cp.maxz+m)return false;if(polyInside(cp.rings,x,z))return true;return m>0&&polyNearest(cp.rings,x,z)[0]<m}
 // ---------- fences / walls ----------
-function buildBarriers(id,P,segsOut,colsOut){
-  const [ox,oz]=chunkOrigin(id);const s0=D.stab[id],s1=D.stab[id+1];
+function buildBarriers(id,P,segsOut,colsOut,sA,sB){      // sA..sB = optional sub-range of the chunk's segments (the chunk streamer calls it in small slices)
+  const [ox,oz]=chunkOrigin(id);const s0=sA===undefined?D.stab[id]:sA,s1=sB===undefined?D.stab[id+1]:sB;
   const wallC=sRGB('#cbbd9e'),wallC2=sRGB('#b8a98a'),fenceC=sRGB('#2a3a2c'),hedgeC=sRGB('#3c6a2e');
   for(let s=s0;s<s1;s++){const k=D.sk[s];const x0=ox+D.sv[s*4]*.1,z0=oz+D.sv[s*4+1]*.1,x1=ox+D.sv[s*4+2]*.1,z1=oz+D.sv[s*4+3]*.1;
     const L=Math.hypot(x1-x0,z1-z0);if(L<.3)continue;if(blockedStatic((x0+x1)/2,(z0+z1)/2,0))continue;
@@ -1836,8 +1837,8 @@ function buildBarriers(id,P,segsOut,colsOut){
   }
 }
 // ---------- rails ----------
-function buildRails(id,P,catOut,inBld){
-  const s0=D.rSegStart[id],s1=D.rSegStart[id+1];if(s0===s1)return;const R=D.rnodes,rn=D.rn;const steel=sRGB('#8e9295'),dark=sRGB('#2c2a28'),pole=sRGB('#7a7c7e');const BAL_T=sRGB('#7b756d'),BAL_S=sRGB('#6b665f'),SLEEP=sRGB('#4a3f36'),TRAM_S=sRGB('#8e8a84');
+function buildRails(id,P,catOut,inBld,sA,sB){
+  const s0=sA===undefined?D.rSegStart[id]:sA,s1=sB===undefined?D.rSegStart[id+1]:sB;if(s0===s1)return;const R=D.rnodes,rn=D.rn;const steel=sRGB('#8e9295'),dark=sRGB('#2c2a28'),pole=sRGB('#7a7c7e');const BAL_T=sRGB('#7b756d'),BAL_S=sRGB('#6b665f'),SLEEP=sRGB('#4a3f36'),TRAM_S=sRGB('#8e8a84');
   for(let s=s0;s<s1;s++){const i=D.rSeg[s],k=D.rkind[D.rOf[i]];if(k===2)continue;const a=rn[i]*2,b=rn[i+1]*2;const ax=R[a],az=R[a+1],bx=R[b],bz=R[b+1];const L=Math.hypot(bx-ax,bz-az);if(L<.2)continue;
     if(blockedStatic((ax+bx)/2,(az+bz)/2,0))continue;
     const tx=(bx-ax)/L,tz=(bz-az)/L,nx=-tz,nz=tx;const ry=Math.atan2(tx,tz);const g=k===0?.76:.762;const nSub=Math.max(1,Math.ceil(L/2.5));
@@ -4062,6 +4063,15 @@ function makePlayer(o){o=o||{};
   return P;
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
+// swimming: front crawl while moving, treading water when still (the body itself is tilted and lowered by SWIM.step)
+function swimPose(P,st,dt){
+  P.scooter.visible=false;const sp=st.spd||0,mv=Math.min(1,sp/1.0),still=1-mv;P.phase+=dt*(2.4+sp*1.8);const ph=P.phase;
+  P.hips.rotation.set(0,0,0);P.hips.position.y=P.hipY;P.spine.rotation.set(-.05*mv,Math.sin(ph)*.12*mv,0);P.head.rotation.set(-1.0*mv,Math.sin(ph)*.08*mv,0);   // the head lifts to look ahead
+  for(const A of P.arms){const q=ph+(A.s>0?Math.PI:0),c=Math.cos(q),sn=Math.sin(q);
+    A.sh.rotation.x=-Math.PI*.5+c*1.15*mv-still*(.55+.2*Math.sin(ph*.7+A.s));A.sh.rotation.z=A.s*(-.12-still*.55);A.el.rotation.x=-(.25+.55*Math.max(0,sn))*mv-still*(.9+.2*Math.sin(ph*.9))}
+  for(const g of P.legs){const q=ph*2+(g.s>0?0:Math.PI);
+    g.hp.rotation.x=Math.sin(q)*.32*mv+still*(-.55+.2*Math.sin(ph*.8+g.s));g.kn.rotation.x=.2+Math.max(0,Math.sin(q+1.2))*.45*mv+still*(.8+.15*Math.sin(ph*.8+g.s));g.ft.rotation.x=.2*mv}
+}
 function animPlayerBase(P,st,dt){
   if(st.mode==='drive'||st.mode==='suv'||st.mode==='bike'||st.mode==='bike2'){seatPose(P,st,dt);return}
   const sp=st.spd;const walkF=sp<.05?0:Math.min(1,sp/1.2);const HY=P.hipY;
@@ -4080,6 +4090,7 @@ function animPlayerBase(P,st,dt){
     for(const A of P.arms){A.sh.rotation.x=-1.05;A.sh.rotation.z=A.s*-.15;A.el.rotation.x=-.3}
     P.head.rotation.x=-.08;return;
   }
+  if(st.mode==='swim'){swimPose(P,st,dt);return}
   P.scooter.visible=false;
   const run=sp>2.8;
   P.phase+=dt*sp*Math.PI*(run?.7:1.05)/Math.max(.6,sp*.35+.6);
@@ -4648,6 +4659,7 @@ const PCAR_COL=0xc0262d;
 function carAhead(c,d){return [c.x+Math.sin(c.yaw)*d,c.z+Math.cos(c.yaw)*d]}
 function toggleCar(){
   if(!started)return;
+  if(typeof SWIM!=='undefined'&&SWIM.on){toast('You are swimming','get out of the water first');return}
   if(typeof MP!=='undefined'&&MP.on){toast('Not now','leave the '+(MP.plat.name||'vehicle')+' first');return}
   if(typeof PLN!=='undefined'&&PLN.cur)return;
   if(HELI.on){toast('Land first','leave the helicopter before driving');return}
@@ -6585,6 +6597,8 @@ function buildChunk(id){if(chunks.has(id))return;if(CHUNK_JOB&&CHUNK_JOB.id===id
 // chunk construction is sliced into small steps so walking/driving never hitches
 function* buildChunkGen(id){
   const [x0,z0]=chunkOrigin(id);
+  // the streamer only checks its frame budget BETWEEN yields: yield whenever ~2 ms have passed, so no step can eat a whole frame (a dense chunk used to have single steps of 100-250 ms)
+  let _ts=performance.now();const sl=()=>{const n=performance.now();if(n-_ts>2){_ts=n;return true}return false};
   const gr=buildGround2(id);yield;
   const g=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2}),GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});
   const cols=[],lots=[],benches=[],lampPos=[],segs=[],obb=[],lobb=[],cirs=[],treePts=[],doors=[];
@@ -6600,21 +6614,21 @@ function* buildChunkGen(id){
     let sd=D.bsd[k];if(D.bst[k]===HIST&&Math.hypot(b.cx-LMK.duke.x,b.cz-LMK.duke.y)<150)sd=YELLOW_SD;if(D.blv[k]<=2&&Math.hypot(b.cx-88,b.cz-143)<32)sd=254;
     const res=addPolyBuilding(g,b.rings,D.blv[k],D.bst[k],sd,b.fl,P,Sg,{lots,benches,lamps:lampPos,signs:b.signs,doors});
     cols.push(makeColPoly(b.rings,res.top,res.y0));
-    if(++nb%8===0)yield}
-  for(const [x,z,dx,dz,kind] of gr.lampPts){if(blockedStatic(x,z,.5))continue;let hit=false;for(const c of cols)if(colPolyHit(c,x,z,.6)){hit=true;break}if(hit)continue;const y=groundH(x,z)+.17;propLamp(P,x,y,z,dx,dz,kind);
+    if(++nb%2===0||sl())yield}
+  for(const [x,z,dx,dz,kind] of gr.lampPts){if(sl())yield;if(blockedStatic(x,z,.5))continue;let hit=false;for(const c of cols)if(colPolyHit(c,x,z,.6)){hit=true;break}if(hit)continue;const y=groundH(x,z)+.17;propLamp(P,x,y,z,dx,dz,kind);
     lampPos.push(kind===1?x:x+dx*1.55,kind===1?y+4.3:y+7.85,kind===1?z:z+dz*1.55)}
-  for(const [x,z,fx,fz,type] of gr.signPts||[]){if(blockedStatic(x,z,.4))continue;let hit=false;for(const c of cols)if(colPolyHit(c,x,z,.5)){hit=true;break}if(hit)continue;propSign(P,x,groundH(x,z)+.17,z,fx,fz,type)}
+  for(const [x,z,fx,fz,type] of gr.signPts||[]){if(sl())yield;if(blockedStatic(x,z,.4))continue;let hit=false;for(const c of cols)if(colPolyHit(c,x,z,.5)){hit=true;break}if(hit)continue;propSign(P,x,groundH(x,z)+.17,z,fx,fz,type)}
   let tlPts=[];if(typeof TL!=='undefined')try{tlPts=TL.scatter(id,P,(x,z)=>{if(blockedStatic(x,z,.4))return false;for(const c of cols)if(colPolyHit(c,x,z,.5))return false;return true})}catch(e){if(!TL.err){TL.err=e;console.warn('TL.scatter',e)}}
   yield;
   const solid=(x,z,m)=>{for(const c of cols)if(colPolyHit(c,x,z,m))return true;return insideOBB(obb,x,z,m)};
   if(typeof STREET!=='undefined')try{STREET.scatter(id,P,gr.lampPts,{solid,nearRoad,blockedStatic,cirs,lobb,cols})}catch(e){if(!STREET.err){STREET.err=e;console.warn('STREET.scatter',e)}}
   // parked cars along yard sides
   const r=rng(id*31+5);const parked=[];
-  for(const L of lots){for(let q=-2;q<=2;q++){if(r()<.45)continue;const x=L.x+L.tx*q*2.8,z=L.z+L.tz*q*2.8;
+  for(const L of lots){if(sl())yield;for(let q=-2;q<=2;q++){if(r()<.45)continue;const x=L.x+L.tx*q*2.8,z=L.z+L.tz*q*2.8;
     if(solid(x,z,1.6)||nearRoad(id,x,z,1.2)||blockedStatic(x,z,2))continue;
     const ty=pickCarType(r);parked.push({x,y:groundH(x,z)+.02,z,yaw:Math.atan2(L.nx,L.nz)+(r()<.5?0:Math.PI),type:ty,col:carColor(ty,r),pitch:0,roll:0});lobb.push(x,z,1.0,2.25,L.tx,L.tz)}}
   // OSM point features
-  for(const f of feats){const y=groundH(f.x,f.z);
+  for(const f of feats){if(sl())yield;const y=groundH(f.x,f.z);
     if(f.k===0){if(!solid(f.x,f.z,.8))treePts.push([f.x,f.z,f.a?3:(r()<.5?0:1),.8+r()*.5])}
     else if(f.k===1){if(solid(f.x,f.z,.4))continue;const ry=roadYaw(id,f.x,f.z)+(r()<.5?0:Math.PI);propBench2(P,f.x,y,f.z,ry,benches);lobb.push(f.x,f.z,.95,.32,Math.cos(ry),-Math.sin(ry))}
     else if(f.k===3||f.k===4){let fx=f.x,fz=f.z;
@@ -6625,11 +6639,13 @@ function* buildChunkGen(id){
       if(solid(fx,fz,1.5))continue;const ry=roadYaw(id,fx,fz);busShelter(P,fx,groundH(fx,fz),fz,ry,f.k===4);obb.push(fx,fz,1.9,.75,Math.cos(ry),-Math.sin(ry))}
     else if(f.k===5){if(solid(f.x,f.z,2.6)||nearRoad(id,f.x,f.z,1))continue;fountainProp(P,f.x,y,f.z);cirs.push(f.x,f.z,2.6)}}
   // playgrounds, sports courts
-  for(const A of chunkAreas(id)){if(blockedStatic(A.x,A.z,0))continue;
+  for(const A of chunkAreas(id)){if(sl())yield;if(blockedStatic(A.x,A.z,0))continue;
     if(A.k===0){const kits=playgroundArea(P,GRX,A);for(const p of kits)cirs.push(p[0],p[1],.9)}
     else if(A.k===1&&A.w*A.d<2500)pitchArea(P,GRX,A)}
   yield;
-  buildBarriers(id,P,segs,cols);buildRails(id,P,null,(x,z)=>{for(const c of cols)if(colPolyHit(c,x,z,-.01))return true;return false});
+  {const a0=D.stab[id],a1=D.stab[id+1];for(let a=a0;a<a1;a+=3){buildBarriers(id,P,segs,cols,a,Math.min(a1,a+3));if(sl())yield}}
+  {const inB=(x,z)=>{for(const c of cols)if(colPolyHit(c,x,z,-.01))return true;return false};
+   if(D.rSegStart){const r0=D.rSegStart[id],r1=D.rSegStart[id+1];for(let a=r0;a<r1;a+=2){buildRails(id,P,null,inB,a,Math.min(r1,a+2));if(sl())yield}}}
   yield;
   // road clearance: no low obstacle (bench, prop, play kit...) may keep a collider centred on driving asphalt
   {const onRoad=(x,z)=>nearRoad(id,x,z,-SW[0]);
@@ -6637,7 +6653,9 @@ function* buildChunkGen(id){
    for(let i=lobb.length-6;i>=0;i-=6)if(onRoad(lobb[i],lobb[i+1]))lobb.splice(i,6)}
   const c={id,ground:gr.mesh,bld:null,props:null,signs:null,grx:null,parked,benches,cols,doors:doors.filter(d=>DOOR_KIND[d.code]),segs:new Float32Array(segs),cirs:new Float32Array(cirs),lampPos:new Float32Array(lampPos),tlPts:new Float32Array(tlPts),obb:new Float32Array(obb),lobb:new Float32Array(lobb)};
   if(g.n){c.bld=new THREE.Mesh(g.build(),MATS.bld);c.bld.castShadow=c.bld.receiveShadow=true;c.bld.matrixAutoUpdate=false}
+  yield;
   const pg=P.build();if(pg){c.props=new THREE.Mesh(pg,MATS.props);c.props.castShadow=c.props.receiveShadow=true;c.props.matrixAutoUpdate=false}
+  yield;
   if(Sg.n){c.signs=new THREE.Mesh(Sg.build(),MATS.signs);c.signs.matrixAutoUpdate=false}
   if(GRX.n){c.grx=new THREE.Mesh(GRX.build(),MATS.ground);c.grx.receiveShadow=true;c.grx.matrixAutoUpdate=false}
   for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.frustumCulled=true;
@@ -6679,13 +6697,17 @@ function freezeChunkMeshes(id){
   for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m){m.matrixAutoUpdate=false;m.updateMatrix()}
 }
 function rebuildAllChunks(){for(const c of [...chunks.values()])disposeChunk(c);if(started||renderer)updateChunks(0,260)}
+// ms per frame the streamer may spend: little when the frame rate is already low, more when there is time to spare
+function chunkBudget(dt){const e=chunkBudget.e=(chunkBudget.e||16.7)*.9+Math.min(100,dt*1000)*.1;return e>30?3:(e>23?4.5:(e<18.5?8:6))}
 function updateChunks(budget,sync){
   if(PORTAL.cur)return;
   const q=Qp(),R=renderRadius();const t0=performance.now();
   const ci=Math.floor((player.x-BB[0])/CH),cj=Math.floor((player.z-BB[2])/CH);const n=Math.ceil(R/CH)+1;
+  // direction and speed of travel from the last call (works in a car, on a boat or in the air as well: the player position follows the vehicle)
+  const U=updateChunks;let ux=0,uz=0,sp=0;if(U.px!==undefined){const dx=player.x-U.px,dz=player.z-U.pz,L=Math.hypot(dx,dz);if(L>.05&&L<80){ux=dx/L;uz=dz/L;sp=Math.min(1,L/Math.max(.008,(t0-U.pt)/1000)/14)}}U.px=player.x;U.pz=player.z;U.pt=t0;
   const want=[];
   for(let j=cj-n;j<=cj+n;j++)for(let i=ci-n;i<=ci+n;i++){if(i<0||j<0||i>=NCX||j>=NCZ)continue;
-    const cx=BB[0]+(i+.5)*CH,cz=BB[2]+(j+.5)*CH;const d=Math.hypot(cx-player.x,cz-player.z);if(d<R+CH*.6)want.push([d,j*NCX+i])}
+    const cx=BB[0]+(i+.5)*CH,cz=BB[2]+(j+.5)*CH;const d=Math.hypot(cx-player.x,cz-player.z);if(d<R+CH*.6)want.push([d-(sp>.05?sp*Math.max(0,((cx-player.x)*ux+(cz-player.z)*uz))*.5:0),j*NCX+i])}   // moving fast: chunks AHEAD come first
   want.sort((a,b)=>a[0]-b[0]);
   // drop the chunks that are out of range BEFORE building new ones: after a teleport the old ring and the new one used to be in memory together
   for(const c of [...chunks.values()]){const cx=BB[0]+(c.id%NCX+.5)*CH,cz=BB[2]+(Math.floor(c.id/NCX)+.5)*CH;if(Math.hypot(cx-player.x,cz-player.z)>R+CH*1.6)disposeChunk(c)}
@@ -6737,6 +6759,7 @@ function updateCityLOD(dt){
   for(const t of TRAMS)t.mesh.visible=Math.hypot(t.x-x,t.z-z)<=150||RIDE.tram===t;
 }
 function teleportRaw(x,z,yaw,syncRadius=MOBILE?150:280){      // phones build less in one go; the streamer fills the rest within its per-frame budget
+  if(typeof SWIM!=='undefined')SWIM.reset();
   if(typeof MP!=='undefined'&&MP.on)MP.exit(true);
   if(typeof PLN!=='undefined'&&PLN.cur){PLN.cur.manual=false;PLN.cur=null;PLN.hudShow(false);PLR.root.visible=true}
   if(typeof BUDDY!=='undefined'&&BUDDY.on){BUDDY.reset=true;BUDDY.release()}
@@ -6851,6 +6874,7 @@ function collide(x,z,m,y){
 let stepPhase=0;
 function stepPlayer(dt){
   if(typeof BR!=='undefined'&&BR.ctl){BR.ctlStep(dt);return}     // Battle Royale: on the bus / skydiving
+  if(typeof SWIM!=='undefined'&&SWIM.step(dt))return;            // in deep water: swimming (swim.js)
   if(player.sit){const s=player.sit;player.x=s.x;player.z=s.z;player.y=s.y;player.yaw=s.yaw;PLR.root.position.set(s.x,s.y,s.z);PLR.root.rotation.y=s.yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt);
     if(inp.jx||inp.jy||inp.k.KeyW||inp.k.KeyS||inp.k.KeyA||inp.k.KeyD){player.sit=null;}return}
   // Depenetration: collide() gives up and returns the current point when it cannot find a free
@@ -6880,7 +6904,7 @@ function stepPlayer(dt){
   // kerb height and then froze the player in place with no lift at all — which is why jumping was
   // the only way forward. Accept anything up to STEP_MAX and let the ground-follow below climb it.
   const STEP_MAX=player.scoot?.7:1.2,rise=gN-player.y;
-  const block=(sp&&sp.wall)||(!sp&&!PORTAL.cur&&gN<SL-1.0)||(!player.air&&rise>STEP_MAX);
+  const block=(sp&&sp.wall)||(!sp&&!PORTAL.cur&&gN<SL-1.0&&!(typeof SWIM!=='undefined'&&SWIM.can()))||(!player.air&&rise>STEP_MAX);
   if(block){nx=player.x;nz=player.z;player.vx*=.3;player.vz*=.3}
   const realV=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-4);
   player.x=nx;player.z=nz;player.spd+=(Math.min(realV,vmax)-player.spd)*Math.min(1,dt*8);
@@ -6945,6 +6969,7 @@ function stepCamera(dt){
   const wx=tx+sx+dx*d,wy=ty+dy*d,wz=tz+sz+dz*d;
   if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}   // a NaN in the smoothed position would stick for ever (black screen)
   const k=Math.min(1,dt*12);cam.x+=(wx-cam.x)*k;cam.y+=(wy-cam.y)*k;cam.z+=(wz-cam.z)*k;
+  if(typeof SWIM!=='undefined'&&SWIM.on&&cam.y<SL+.4)cam.y=SL+.4;     // swimmers look over the water, not into it
   camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(tx+sx,ty,tz+sz);
 }
 // below the sea surface: blue fog that thickens and darkens with depth, no sky and no sea sheet; the day's fog and sky come back when you surface
@@ -7045,7 +7070,7 @@ function updateHUD(dt){
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
   if(EXT.cur)best={label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
   best=MP.hudAction(best);
-  if(PLN.cur)best={label:'Get out of the fighter',fn:()=>PLN.leaveFighter()};
+  if(PLN.cur)best={label:PLN.cur.kind==='light'?'Get out of the plane':'Get out of the fighter',fn:()=>PLN.leaveFighter()};
   curAct=best;const ab=$('bAct');if(best){ab.hidden=false;ab.textContent=(TOUCH?'':'E · ')+best.label}else ab.hidden=true;
   if(miniT<=0){miniT=.1;drawMini()}
 }
@@ -7342,7 +7367,7 @@ function setupInput(){
   bm.addEventListener('wheel',e=>{cancelAnimationFrame(_mapFly);mapZoomAt(e.clientX,e.clientY,e.deltaY<0?1.2:1/1.2);drawBigMap();e.preventDefault()},{passive:false});
   $('goHere').onclick=()=>{const p=MAPV.selPlace;if(p){closeMap();teleport(p);return}if(!MAPV.sel)return;const [x,z]=MAPV.sel;closeMap();teleport({x,z,yaw:cam.yaw,name:districtOf(x,z)[0],sub:'from the map'})};
 }
-function toggleScoot(){if(MP.on||(typeof PLN!=='undefined'&&PLN.cur))return;if(EXT.cur){EXT.exit();return}if(player.sit||DRIVE.on||PORTAL.cur||RIDE.on)return;player.scoot=!player.scoot;$('bScoot').classList.toggle('on',player.scoot);if((typeof AUD!=='undefined')&&AUD)AUD.scoot(player.scoot)}
+function toggleScoot(){if(MP.on||(typeof PLN!=='undefined'&&PLN.cur)||(typeof SWIM!=='undefined'&&SWIM.on))return;if(EXT.cur){EXT.exit();return}if(player.sit||DRIVE.on||PORTAL.cur||RIDE.on)return;player.scoot=!player.scoot;$('bScoot').classList.toggle('on',player.scoot);if((typeof AUD!=='undefined')&&AUD)AUD.scoot(player.scoot)}
 function cycleTime(){const o=['day','dusk','night'];S.time=o[(o.indexOf(S.time)+1)%3];saveS();applyTime()}
 // ---------- adaptive resolution ----------
 let ftAcc=0,ftN=0,ftT=0;
@@ -7444,7 +7469,7 @@ function loop(t){
   if(started&&!$('mapUI').hidden){safe('net',syncMultiplayerState);return}
   if(!window.__touchN&&window.__stickTouch&&(inp.jx||inp.jy)&&window.resetStick)resetStick();   // a joystick whose finger is gone must not keep walking
   safe('land',()=>{if(typeof LAND_UPDATE!=='undefined')LAND_UPDATE(dt)});
-  safe('chunks',()=>updateChunks(started?7:4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
+  safe('chunks',()=>updateChunks(started?chunkBudget(dt):4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
   safe('cam',()=>stepCamera(dt));
   safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
