@@ -4063,14 +4063,21 @@ function makePlayer(o){o=o||{};
   return P;
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
-// swimming: front crawl while moving, treading water when still (the body itself is tilted and lowered by SWIM.step)
+// swimming: front crawl while moving, treading water when still; the body itself is tilted and lowered by SWIM.step (st.tilt = how flat it lies, 0..1)
 function swimPose(P,st,dt){
-  P.scooter.visible=false;const sp=st.spd||0,mv=Math.min(1,sp/1.0),still=1-mv;P.phase+=dt*(2.4+sp*1.8);const ph=P.phase;
-  P.hips.rotation.set(0,0,0);P.hips.position.y=P.hipY;P.spine.rotation.set(-.05*mv,Math.sin(ph)*.12*mv,0);P.head.rotation.set(-1.0*mv,Math.sin(ph)*.08*mv,0);   // the head lifts to look ahead
-  for(const A of P.arms){const q=ph+(A.s>0?Math.PI:0),c=Math.cos(q),sn=Math.sin(q);
-    A.sh.rotation.x=-Math.PI*.5+c*1.15*mv-still*(.55+.2*Math.sin(ph*.7+A.s));A.sh.rotation.z=A.s*(-.12-still*.55);A.el.rotation.x=-(.25+.55*Math.max(0,sn))*mv-still*(.9+.2*Math.sin(ph*.9))}
+  P.scooter.visible=false;const sp=st.spd||0,T=st.tilt!==undefined?st.tilt:Math.min(1,sp/1.0),U=1-T,TAU=Math.PI*2;
+  P.phase+=dt*(1.6+T*(2.2+sp*1.2));const ph=P.phase;
+  P.hips.rotation.set(0,0,0);P.hips.position.y=P.hipY;
+  P.spine.rotation.set(-.05*T,Math.sin(ph)*.42*T,0);P.head.rotation.set(-1.1*T,-Math.sin(ph)*.25*T,0);   // the body rolls with every stroke, the head looks ahead
+  for(const A of P.arms){
+    // crawl: a full circle per arm, the two arms half a turn apart: reach (-PI) -> pull through the water to the hip (0) -> recover over the water (+PI)
+    const u=((ph/TAU)+(A.s>0?0:.5))%1,crawl=-Math.PI+TAU*u,e=u<.5?.15+.95*Math.sin(Math.PI*u*2):.15+1.2*Math.sin(Math.PI*(u-.5)*2);
+    // treading water: arms out to the sides just under the surface, sculling in small circles
+    const tw=ph*.9+A.s*1.3;
+    A.sh.rotation.x=crawl*T+(-.35+Math.sin(tw)*.3)*U;A.sh.rotation.z=A.s*(-.16*T-(.95+.1*Math.cos(tw))*U);A.el.rotation.x=-(e*T+(.75+.25*Math.sin(tw+1.2))*U)}
   for(const g of P.legs){const q=ph*2+(g.s>0?0:Math.PI);
-    g.hp.rotation.x=Math.sin(q)*.32*mv+still*(-.55+.2*Math.sin(ph*.8+g.s));g.kn.rotation.x=.2+Math.max(0,Math.sin(q+1.2))*.45*mv+still*(.8+.15*Math.sin(ph*.8+g.s));g.ft.rotation.x=.2*mv}
+    // crawl: flutter kick; treading: a slow eggbeater under the surface
+    g.hp.rotation.x=Math.sin(q)*.34*T+(-.5+.2*Math.sin(ph*.9+g.s*1.6))*U;g.kn.rotation.x=(.2+Math.max(0,Math.sin(q+1.2))*.5)*T+(.9+.15*Math.sin(ph*.9+g.s*1.6))*U;g.ft.rotation.x=.2*T}
 }
 function animPlayerBase(P,st,dt){
   if(st.mode==='drive'||st.mode==='suv'||st.mode==='bike'||st.mode==='bike2'){seatPose(P,st,dt);return}
@@ -7717,13 +7724,13 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       else{R.x+=(s.x-R.x)*k;R.y+=(s.y-R.y)*k;R.z+=(s.z-R.z)*k;let dy=(s.r||0)-R.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));R.yaw+=dy*k}
       const far=Math.hypot(R.x-player.x,R.z-player.z);
       const P=R.P;const near=far<22,m0=s.m||'walk',sw=Array.isArray(s.sw);P.root.visible=near||(sw&&far<160)||m0==='car'||m0==='tram'||m0==='sit'||m0==='scoot';R.lo.visible=!P.root.visible&&far<350;R.lo.position.set(R.x,sw?SL-1.0:R.y,R.z);R.lo.rotation.y=R.yaw;R.lo.castShadow=false;const sh=far<35;if(R.sh!==sh){R.sh=sh;P.root.traverse(o=>{if(o.isMesh)o.castShadow=sh})}P.root.position.set(R.x,R.y,R.z);P.root.rotation.y=R.yaw;
-      if(sw&&P.root.visible){const T=Math.max(0,Math.min(1,+s.sw[0]||0)),sn=Math.sin(R.yaw),cs=Math.cos(R.yaw),back=.82*T;P.root.position.set(R.x-sn*back,SL-1.2+.78*T+Math.sin(performance.now()*.0017)*.03*(1-T),R.z-cs*back);P.root.rotation.set(1.25*T,R.yaw,0,'YXZ');P.swimming=true;
+      if(sw&&P.root.visible){const T=Math.max(0,Math.min(1,+s.sw[0]||0)),sn=Math.sin(R.yaw),cs=Math.cos(R.yaw),back=.82*T;P.root.position.set(R.x-sn*back,SL-1.2+1.0*T+Math.sin(performance.now()*.0017)*.03*(1-T),R.z-cs*back);P.root.rotation.set(1.25*T,R.yaw,0,'YXZ');P.swimming=true;
         if(!R.swRing){const g=new THREE.RingGeometry(.55,.68,28);g.rotateX(-Math.PI/2);R.swRing=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false,fog:false}));R.swRing.renderOrder=3;R.swRing.frustumCulled=false;scene.add(R.swRing)}
         R.swT=((R.swT||0)+dt*(T>.3?1.4:.7))%1;R.swRing.visible=true;R.swRing.position.set(R.x,SL+.04,R.z);R.swRing.scale.setScalar(.7+R.swT*2.6);R.swRing.material.opacity=(1-R.swT)*(T>.3?.32:.2)}
       else{if(P.swimming){P.swimming=false;P.root.rotation.order='XYZ';P.root.rotation.x=0}if(R.swRing)R.swRing.visible=false}
       if(typeof POSE!=='undefined'&&s.em!==R.emCur){R.emCur=s.em;if(s.em)POSE.emote(P,s.em,false);else POSE.stop(P)}
       const m=s.m||'walk';
-      if(P.root.visible){if(m==='car'||m==='tram'||m==='sit')animPlayer(P,{spd:0,mode:'sit'},dt);else animPlayer(P,{spd:s.s||0,mode:sw?'swim':(m==='air'?'air':(m==='scoot'?'scoot':'walk'))},dt)}else{R.lo.position.y+=Math.abs(Math.sin(performance.now()*.008))*.04*Math.min(1,(s.s||0))}
+      if(P.root.visible){if(m==='car'||m==='tram'||m==='sit')animPlayer(P,{spd:0,mode:'sit'},dt);else animPlayer(P,{spd:s.s||0,mode:sw?'swim':(m==='air'?'air':(m==='scoot'?'scoot':'walk')),tilt:sw?(+s.sw[0]||0):undefined},dt)}else{R.lo.position.y+=Math.abs(Math.sin(performance.now()*.008))*.04*Math.min(1,(s.s||0))}
       if(s.br&&typeof BR!=='undefined'&&P.root.visible)BR.peerPose(R,P,s);
       if(m==='car'||m==='tram')P.root.position.y+=.35;
       if(m==='car'){ // one global matrix for the drawn car; a passenger copies it (no raw stream offsets -> no jitter)

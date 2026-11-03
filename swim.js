@@ -50,9 +50,9 @@ const SWIM={_on:false,t:0,tilt:0,ring:null,ringT:0,told:false,
     player.y+=((SL-.85+Math.sin(this.t*1.7)*.04)-player.y)*Math.min(1,dt*6);player.air=false;player.vy=0;
     // pose: treading water when still, flat on the surface when moving
     const mv=Math.min(1,player.spd/1.0);this.tilt+=(mv-this.tilt)*Math.min(1,dt*4);const T=this.tilt,s=Math.sin(player.yaw),c=Math.cos(player.yaw),back=.82*T;
-    PLR.root.position.set(player.x-s*back,SL-1.2+.78*T+Math.sin(this.t*1.7)*.03*(1-T),player.z-c*back);
+    PLR.root.position.set(player.x-s*back,SL-1.2+1.0*T+Math.sin(this.t*1.7)*.03*(1-T),player.z-c*back);
     PLR.root.rotation.set(1.25*T,player.yaw,0,'YXZ');
-    animPlayer(PLR,{spd:player.spd,mode:'swim'},dt);
+    animPlayer(PLR,{spd:player.spd,mode:'swim',tilt:T},dt);
     this.ripple(dt,mv>.3);
     return true}
 };
