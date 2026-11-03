@@ -6,18 +6,18 @@
 // is no more than a step above the water. Hooks (index.html): stepPlayer calls SWIM.step first, the "deep water is a wall" test lets
 // you in while SWIM.can(), the camera never goes below the surface while swimming, and teleportRaw calls SWIM.reset().
 // The pose is a new 'swim' mode of animPlayerBase, so the realistic body (REAL copies the procedural joints) swims as well.
-const SWIM={_on:false,t:0,tilt:0,ring:null,ringT:0,told:false,
+const SWIM={_on:false,t:0,tilt:0,ring:null,ringT:0,told:false,dep:0,o2:1,pv:0,warned:false,
   // `on` ends itself the moment the player is carried by something else (yacht deck, car, helicopter, boat...), because stepPlayer is not called then
   get on(){if(this._on&&(MP.on||DRIVE.on||HELI.on||RIDE.on||PASS.host||MARINE.cur||EXT.cur||PORTAL.cur||(typeof PLN!=='undefined'&&PLN.cur)))this.end();return this._on},
   can(){return !player.scoot&&!PORTAL.cur},
   // is the sea floor under (x,z) more than a metre down, with no deck / pier / ramp in between?
   deepAt(x,z,y){return !specialGround(x,z,y)&&groundH(x,z)<SL-1.0},
-  begin(){this._on=true;this.t=0;this.tilt=0;player.air=false;player.vy=0;player.vx*=.4;player.vz*=.4;player.sit=null;
+  begin(){this._on=true;this.t=0;this.tilt=0;this.dep=0;this.o2=1;this.pv=0;this.warned=false;player.air=false;player.vy=0;player.vx*=.4;player.vz*=.4;player.sit=null;
     PLR.root.rotation.order='YXZ';this.ringT=0;
-    if(!this.told){this.told=true;toast('Swimming','WASD to swim · Shift = faster · swim to the shore, a jetty or the yacht\'s swim platform and get out')}
+    if(!this.told){this.told=true;toast('Swimming','WASD to swim · Shift = faster · ▼ DIVE (or C) goes under, ▲ RISE (Space) comes up · watch your air · climb out at the shore, a jetty or the yacht\'s swim platform')}
     try{if(typeof AUD!=='undefined'&&AUD&&AUD.land)AUD.land()}catch(e){}},
   // back to walking, standing on `y` (the shallows, a low jetty)
-  end(y){this._on=false;PLR.root.rotation.set(0,player.yaw,0,'XYZ');PLR.root.rotation.order='XYZ';if(typeof y==='number'){player.y=y}player.air=false;player.vy=0;if(this.ring)this.ring.visible=false},
+  end(y){this._on=false;this.dep=0;PLR.root.rotation.set(0,player.yaw,0,'XYZ');PLR.root.rotation.order='XYZ';if(typeof y==='number'){player.y=y}player.air=false;player.vy=0;if(this.ring)this.ring.visible=false},
   reset(){if(this._on)this.end();else if(this.ring)this.ring.visible=false},
   ripple(dt,moving){
     if(!this.ring){const g=new THREE.RingGeometry(.55,.68,28);g.rotateX(-Math.PI/2);this.ring=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.0,depthWrite:false,fog:false}));this.ring.renderOrder=3;this.ring.frustumCulled=false;scene.add(this.ring)}
@@ -47,12 +47,18 @@ const SWIM={_on:false,t:0,tilt:0,ring:null,ringT:0,told:false,
     player.x=nx;player.z=nz;player.spd+=(Math.min(rv,vmax)-player.spd)*Math.min(1,dt*6);
     if(Math.hypot(player.vx,player.vz)>.2){const ty=Math.atan2(player.vx,player.vz);let dy=ty-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*6)}
     inp.jump=false;this.t+=dt;
-    player.y+=((SL-.85+Math.sin(this.t*1.7)*.04)-player.y)*Math.min(1,dt*6);player.air=false;player.vy=0;
+    // diving (deep.js): ▼ goes under, ▲ comes up; about 40 s of air, out of air = you float up by yourself
+    const dv=(typeof DEEP!=='undefined')?DEEP.vert():0,flr=Math.max(0,SL-groundH(player.x,player.z)-.7);
+    let want=this.dep+dv*dt*2.4;if(this.o2<=0)want=this.dep-dt*3.4;this.dep=Math.max(0,Math.min(flr,want));
+    if(this.dep>.9)this.o2=Math.max(0,this.o2-dt/40);else this.o2=Math.min(1,this.o2+dt/2.5);
+    if(this.o2<=0&&!this.warned){this.warned=true;toast('Out of air','you float up to breathe')}else if(this.o2>.6)this.warned=false;
+    this.pv+=((this.o2<=0?-1:dv)-this.pv)*Math.min(1,dt*3);
+    player.y+=((SL-.85-this.dep+(this.dep<.3?Math.sin(this.t*1.7)*.04:0))-player.y)*Math.min(1,dt*6);player.air=false;player.vy=0;
     // pose: treading water when still, flat on the surface when moving
     const mv=Math.min(1,player.spd/1.0);this.tilt+=(mv-this.tilt)*Math.min(1,dt*4);const T=this.tilt,s=Math.sin(player.yaw),c=Math.cos(player.yaw),back=.82*T;
-    PLR.root.position.set(player.x-s*back,SL-1.2+1.0*T+Math.sin(this.t*1.7)*.03*(1-T),player.z-c*back);
-    PLR.root.rotation.set(1.25*T,player.yaw,0,'YXZ');
+    PLR.root.position.set(player.x-s*back,SL-1.2-this.dep+1.0*T+Math.sin(this.t*1.7)*.03*(1-T)*(this.dep<.3?1:0),player.z-c*back);
+    PLR.root.rotation.set(1.25*T+.55*this.pv*Math.min(1,this.dep+.5),player.yaw,0,'YXZ');
     animPlayer(PLR,{spd:player.spd,mode:'swim',tilt:T},dt);
-    this.ripple(dt,mv>.3);
+    if(this.dep<.35)this.ripple(dt,mv>.3);else if(this.ring)this.ring.visible=false;
     return true}
 };

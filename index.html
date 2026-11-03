@@ -376,6 +376,8 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="swim.js"></script>
 <script src="tv.js"></script>
 <script src="kitchen.js"></script>
+<script src="deep.js"></script>
+<script src="jobs.js"></script>
 <script src="planes.js"></script>
 <script src="plane.js"></script>
 <script src="airp.js"></script>
@@ -6994,7 +6996,7 @@ function stepCamera(dt){
   const wx=tx+sx+dx*d,wy=ty+dy*d,wz=tz+sz+dz*d;
   if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}   // a NaN in the smoothed position would stick for ever (black screen)
   const k=Math.min(1,dt*12);cam.x+=(wx-cam.x)*k;cam.y+=(wy-cam.y)*k;cam.z+=(wz-cam.z)*k;
-  if(typeof SWIM!=='undefined'&&SWIM.on&&cam.y<SL+.4)cam.y=SL+.4;     // swimmers look over the water, not into it
+  if(typeof SWIM!=='undefined'&&SWIM.on&&SWIM.dep<.6&&cam.y<SL+.4)cam.y=SL+.4;     // swimmers look over the water, not into it
   camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(tx+sx,ty,tz+sz);
 }
 // below the sea surface: blue fog that thickens and darkens with depth, no sky and no sea sheet; the day's fog and sky come back when you surface
@@ -9085,8 +9087,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   },
   enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=v;v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=v.kind!=='sub';LVSND.start(v.kind);
-    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
-    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?'joystick: drive':keys)+' · E to get off'+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':' · a friend can climb in (E / F near the car)'):''))},
+    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift or C dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
+    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+' · E to get off'+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
   leave(v,destroyed){if(this.cur!==v)return;this.cur=null;depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
     if(destroyed)toast('Your '+v.spec.name+' was destroyed','')},
@@ -9098,7 +9100,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   ride(dt){const v=this.cur,k=inp.k;if(!v)return;
     let thr=inp.jy+((k.KeyW||k.ArrowUp)?1:0)-((k.KeyS||k.ArrowDown)?1:0),str=-inp.jx+((k.KeyA||k.ArrowLeft)?1:0)-((k.KeyD||k.ArrowRight)?1:0);
     thr=Math.max(-1,Math.min(1,thr));str=Math.max(-1,Math.min(1,str));
-    const sub=v.kind==='sub',shift=k.ShiftLeft||k.ShiftRight||player.run,brk=!sub&&!!k.Space,up=sub?((k.Space||inp.jump)?1:0)-(shift?1:0):0;
+    const sub=v.kind==='sub',shift=k.ShiftLeft||k.ShiftRight||player.run,brk=!sub&&!!k.Space,up=sub?((k.Space||inp.jump||DEEP.rise||DEEP.kq)?1:0)-((shift||DEEP.dive||DEEP.kd)?1:0):0;
     v.step(dt,thr,str,brk,up,shift&&!sub);
     player.x=v.x;player.z=v.z;player.y=v.y;player.yaw=v.yaw;player.spd=0;player.vx=player.vz=0;
     // the driver sits in the seat (the submarine is closed)
@@ -9190,15 +9192,16 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     for(const [name,id] of [['Arkadia','arkadia'],['Lanzheron','lanz']]){const q=PLACES.find(p=>p.name&&p.name.toLowerCase().indexOf(id==='lanz'?'lanzheron':'arkadia')>=0);if(q)this.makeMooring(name,q.x,q.z)}},
   // ----- tiny offshore island with houses for sale (height comes from a FLAT hook, so boats, feet and cars all respect it) -----
   buildIsland(world){
-    const B=[1567,273],dir=[.990,.139],ISL_R=58;let cx=B[0]+dir[0]*420,cz=B[1]+dir[1]*420;
-    for(let d=220;d<=900;d+=40){const x=B[0]+dir[0]*d,z=B[1]+dir[1]*d;if(sdAt(x,z)<-60&&sdAt(x+70,z)<-60&&sdAt(x-70,z)<-60&&sdAt(x,z+70)<-60&&sdAt(x,z-70)<-60){cx=x;cz=z;break}}
-    const top=SL+1.4,FR=36,ih=d=>top-Math.max(0,d-FR)*.5;
+    // a proper island now (2.7x the old radius: about 300 m across): room for the four houses far apart, gardens, palms and a beach all round
+    const B=[1567,273],dir=[.990,.139],KI=2.7,ISL_R=Math.round(58*KI),CL=ISL_R+30;let cx=B[0]+dir[0]*420,cz=B[1]+dir[1]*420;
+    for(let d=220;d<=2600;d+=40){const x=B[0]+dir[0]*d,z=B[1]+dir[1]*d;if(sdAt(x,z)<-60&&sdAt(x+CL,z)<-60&&sdAt(x-CL,z)<-60&&sdAt(x,z+CL)<-60&&sdAt(x,z-CL)<-60){cx=x;cz=z;break}}
+    const top=SL+1.4,FR=Math.round(36*KI),ih=d=>top-Math.max(0,d-FR)*.5;
     FLAT.push({x:cx,z:cz,R:ISL_R,fn:(x,z,h)=>{const d=Math.hypot(x-cx,z-cz);return d>=ISL_R?h:Math.max(h,ih(d))}});
-    const pts=[[0,0],[FR,0],[FR+4,2],[FR+10,5],[FR+14,10],[ISL_R,22]].map(([r,dy])=>new THREE.Vector2(r,top-dy));
+    const pts=[[0,0],[FR,0],[FR+4,2],[FR+10,5],[FR+14,10],[ISL_R,(ISL_R-FR)*.55+6]].map(([r,dy])=>new THREE.Vector2(r,top-dy));
     const isl=new THREE.Mesh(new THREE.LatheGeometry(pts,36),new THREE.MeshStandardMaterial({color:new THREE.Color(0xe6d3a1).convertSRGBToLinear(),roughness:.95,flatShading:true,side:THREE.DoubleSide}));
     isl.position.set(cx,0,cz);isl.receiveShadow=true;world.add(isl);
-    const grass=new THREE.Mesh(new THREE.CircleGeometry(31,40),new THREE.MeshStandardMaterial({color:new THREE.Color(0x5a8f3c).convertSRGBToLinear(),roughness:1}));grass.rotation.x=-Math.PI/2;grass.position.set(cx,top+.04,cz);grass.receiveShadow=true;world.add(grass);
-    hsInit();hsIsland(this,world,cx,cz,top,new Set(S.houses||[]));     // houses.js: plaza, four houses with real interiors, palms, loungers
+    const grass=new THREE.Mesh(new THREE.CircleGeometry(FR-6,72),new THREE.MeshStandardMaterial({color:new THREE.Color(0x5a8f3c).convertSRGBToLinear(),roughness:1}));grass.rotation.x=-Math.PI/2;grass.position.set(cx,top+.04,cz);grass.receiveShadow=true;world.add(grass);
+    hsInit();hsIsland(this,world,cx,cz,top,new Set(S.houses||[]),KI);     // houses.js: plaza, four houses with real interiors, palms, loungers
     PLACES.push({id:'island',name:'Offshore island',sub:'houses for sale',x:cx,z:cz,yaw:0});
     this.island={x:cx,z:cz,r:ISL_R};
   }

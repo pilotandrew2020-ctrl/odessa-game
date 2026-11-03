@@ -11,10 +11,10 @@
 
 const HSTATE={built:{},ready:false};
 const HOUSE_DEF={
-  house0:{name:'Beach cabin',cls:'Cosy',idx:50,W:13,D:9,H:2.9,style:'log'},
-  house1:{name:'Sea villa',cls:'Middle class',idx:51,W:17,D:12,H:3.1,style:'coast'},
-  house2:{name:'Lagoon house',cls:'Middle class',idx:52,W:16,D:13,H:3.2,style:'lodge'},
-  house3:{name:'Island mansion',cls:'Elite villa',idx:53,W:26,D:16,H:3.9,style:'elite'}};
+  house0:{name:'Beach cabin',cls:'Cosy',idx:50,W:15,D:10.5,H:3.4,style:'log'},
+  house1:{name:'Sea villa',cls:'Middle class',idx:51,W:19.5,D:13.5,H:3.6,style:'coast'},
+  house2:{name:'Lagoon house',cls:'Middle class',idx:52,W:18.5,D:14.5,H:3.7,style:'lodge'},
+  house3:{name:'Island mansion',cls:'Elite villa',idx:53,W:29,D:18,H:4.4,style:'elite'}};
 const HOUSE_STYLE={
   log:{door:'#5a3a20',hw:'#2a2a2c',curt:'#a8553f',standGlb:true,standTint:'#c89060',exp:.62,wood:'#6b4426',wall:'#a9743d',wm:5,floor:'#9a6a3a',fm:5,trim:'#6b4426',ceil:'#8a5a30',cm:5,beams:true,sofa:['#7a3b2e','#a8553f'],accent:'#b5422d',light:0xffd9a0},
   coast:{door:'#ffffff',hw:'#b8bcc0',curt:'#e9eef1',exp:.46,wood:'#b9936a',wall:'#d9e2e6',wm:0,floor:'#b99466',fm:5,trim:'#ffffff',ceil:'#eef0ee',cm:0,beams:false,sofa:['#3d5a80','#98c1d9'],accent:'#3d5a80',light:0xfff1dc},
@@ -76,7 +76,7 @@ function hsKit(E,S,L){
     bx(x,z,ry,0,.68,1.42,w+.06,.12,1.3,c,0);bx(x,z,ry,0,.745,.83,w+.05,.03,.2,'#fbf8f2',0);bx(x,z,ry,0,.78,1.98,w+.1,.04,.34,cd,0);    // duvet, turned-down sheet, a throw over the foot
     for(const s of [-1,1])bx(x,z,ry,s*w*.2,.725,.62,.32,.12,.14,cl,0);                                                                   // two scatter cushions
     bx(x,z,ry,0,.9,.04,w+.2,1.0,.1,wood,5);bx(x,z,ry,0,.5,2.14,w+.14,.5,.08,wood,5);ob(x,z,ry,0,1.05,w/2+.1,1.08);
-    const p=loc(x,z,ry)(w/2+.62,1.5);sit(p[0],p[1],ry-Math.PI/2,'Sit on the bed',.2)};
+    const p=loc(x,z,ry)(w/2+.62,1.5),sy=ry-Math.PI/2;KIT.bed(E,{x:p[0],z:p[1],sit:()=>{if(player.sit)return;player.sit={x:ox+p[0],z:oz+p[1],y:INT_Y+.2,yaw:sy};cam.yaw=sy;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')}})};
   K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
   K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
@@ -86,7 +86,7 @@ function hsKit(E,S,L){
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
         if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
-        if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
+        if(kind==='stove'){{const bp=loc(x,z,ry)(c+.2,.16),sp=loc(x,z,ry)(c,.95);KIT.cook(E,{x:bp[0],z:bp[1],y:INT_Y+.93,sx:sp[0],sz:sp[1]})}for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
         if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.12,.02,.02,.42,'#c8ccd0',6);bx(x,z,ry,c,1.29,.2,.03,.03,.17,'#c8ccd0',6);const t=loc(x,z,ry)(c,.04);K.tap(t[0],t[1],ry,'Run the tap',1.23,true);/* a tall gooseneck: room for a kettle under it */for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
     // an electric kettle on the first free worktop
     if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
@@ -262,14 +262,14 @@ function hsExterior(g,def,id){
   return {h:id==='house3'?H+4.2:id==='house2'?H+3.8:id==='house0'?H+2.6:H+.6,obs,cols}}
 
 // the plaza in the middle, paths, lamps, palms and beach furniture; then the houses with their price tags / doors
-function hsIsland(ex,world,cx,cz,top,owned){
+function hsIsland(ex,world,cx,cz,top,owned,KS){KS=KS||1;
   const stone=hsM(0xc9c2b2,.85),paving=hsM(0xb8ad98,.9),pal=hsM(0x7a5230,.9),leaf=hsM(0x2f8a3a,.8),lampM=hsM(0xfff0c8,.4,0,{emissive:new THREE.Color(0xffe2a0),emissiveIntensity:1.2}),post=hsM(0x2a2a2c,.6,.5),wat=()=>XM(0x66d0ee,.1,0,{emissive:new THREE.Color(0x1a8aa8),emissiveIntensity:.5});
   const put=(m,x,y,z)=>{m.position.set(cx+x,top+y,cz+z);m.castShadow=true;m.receiveShadow=true;world.add(m);return m};
-  put(new THREE.Mesh(new THREE.CylinderGeometry(5.2,5.2,.1,32),paving),0,.05,0);                                                    // plaza and fountain
+  put(new THREE.Mesh(new THREE.CylinderGeometry(5.2*Math.sqrt(KS),5.2*Math.sqrt(KS),.1,48),paving),0,.05,0);                                                    // plaza and fountain
   put(new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.5,.55,24),stone),0,.3,0);put(new THREE.Mesh(new THREE.CylinderGeometry(2.1,2.1,.1,24),wat()),0,.57,0);
   put(new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,1.5,12),stone),0,1.2,0);put(new THREE.Mesh(new THREE.CylinderGeometry(1.1,.6,.35,16),stone),0,2.0,0);put(new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,.08,16),wat()),0,2.2,0);
   STATIC_CIR.push(cx,cz,2.5);
-  const DEFS=[['house0',15000],['house1',38000],['house2',85000],['house3',190000]],RING=[19.5,21.5,21.5,23];
+  const DEFS=[['house0',15000],['house1',38000],['house2',85000],['house3',190000]],RING=[19.5,21.5,21.5,23].map(v=>v*KS);
   DEFS.forEach(([id,price],i)=>{const def=HOUSE_DEF[id],name=def.name,a=Math.PI/4+i*Math.PI/2,R=RING[i],hx=cx+Math.cos(a)*R,hz=cz+Math.sin(a)*R,th=Math.atan2(cx-hx,cz-hz),W=def.W,D=def.D,sn=Math.sin(th),cs=Math.cos(th);
     const g=new THREE.Group();g.position.set(hx,top,hz);g.rotation.y=th;const ext=hsExterior(g,def,id);world.add(g);
     const wp=(lx,lz)=>[hx+lx*cs+lz*sn,hz-lx*sn+lz*cs];
@@ -286,11 +286,14 @@ function hsIsland(ex,world,cx,cz,top,owned){
     INTERACT.push({x:hx+sn*(D/2+2.4),z:hz+cs*(D/2+2.4),r:6.5,get label(){return H.owned?'Enter your '+name.toLowerCase():'Buy the '+name+' · '+WALLET.fmt(price)},cond:()=>!PORTAL.cur&&!player.sit&&!DRIVE.on,
       fn:()=>{if(H.owned){PORTAL.enter('house',{x:hx+sn*(out-.4),z:hz+cs*(out-.4),yaw:th},{id});return}
         if(WALLET.pay(price,name)){H.owned=true;S.houses=(S.houses||[]).concat(id);saveS();retag();toast('You bought the '+name,WALLET.fmt(price)+' paid · '+WALLET.fmt()+' left · walk in through the door')}}})});
-  // palms around the beach (clear of the houses) and loungers with umbrellas between them
-  for(let k=0;k<4;k++)for(const d of [-.2,.2]){const a=k*Math.PI/2+d,R=31.5,g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);
+  // palms all over the island (clear of the houses) and loungers with umbrellas at the beach between them
+  const FRI=Math.round(36*KS),palm=(a,R,sc)=>{const g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.scale.setScalar(sc);g.rotation.y=a*3;
     const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.24,4.6,6),pal);t.position.y=2.3;t.rotation.z=.14;t.castShadow=true;g.add(t);
-    for(let j=0;j<6;j++)xb(g,.5,.08,2.6,Math.cos(j*1.047)*1.3+.3,4.6,Math.sin(j*1.047)*1.3,leaf,.45,-j*1.047+1.571,0);world.add(g)}
-  for(let k=0;k<4;k++){const a=k*Math.PI/2,R=27,g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.rotation.y=-a+Math.PI/2;
+    for(let j=0;j<6;j++)xb(g,.5,.08,2.6,Math.cos(j*1.047)*1.3+.3,4.6,Math.sin(j*1.047)*1.3,leaf,.45,-j*1.047+1.571,0);world.add(g)};
+  const hh=(a,b)=>{let n=(a*374761393+b*668265263)|0;n=(n^(n>>>13))*1274126177|0;return ((n^(n>>>16))>>>0)/4294967295};
+  for(let k=0;k<4;k++)for(const d of [-.2,.2])palm(k*Math.PI/2+d,Math.round(31.5*KS*.97),1);                    // two palms on each side of the four avenues
+  for(let k=0;k<30;k++){const a=k/30*Math.PI*2+hh(k,3)*.12,R=FRI*(.78+.2*hh(k,5));let ok=true;for(let q=0;q<4;q++){let da=Math.abs(((a-(Math.PI/4+q*Math.PI/2))%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI);if(da<.24)ok=false}if(ok)palm(a,R,.85+hh(k,7)*.5)}   // a ring of palms near the beach, none in front of a house
+  for(let k=0;k<4;k++){const a=k*Math.PI/2,R=Math.round(27*KS*1.15),g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.rotation.y=-a+Math.PI/2;
     const umb=hsM([0xd2451d,0x2f7d9b,0xf2c14e,0x3f9a46][k],.8);xb(g,.06,2.4,.06,0,1.2,0,post);xb(g,2.6,.06,2.6,0,2.35,0,umb).rotation.y=.78;
     for(const s of [-1,1]){xb(g,.7,.12,1.8,s*.8,.28,.4,hsM(0xf4efe4,.85));xb(g,.7,.4,.1,s*.8,.55,-.5,hsM(0xf4efe4,.85),-.5)}world.add(g)}
 }
