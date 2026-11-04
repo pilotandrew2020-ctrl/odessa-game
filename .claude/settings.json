@@ -1,4 +1,19 @@
 {
+  "env": {
+    "PONYTAIL_DEFAULT_MODE": "lite"
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail",
+        "ref": "v5.3.3"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "ponytail@ponytail": true
+  },
   "hooks": {
     "PreToolUse": [
       {

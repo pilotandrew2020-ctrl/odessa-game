@@ -9,3 +9,9 @@ Rules:
 - After modifying code, run `tools/graphify_refresh.sh` (AST only, no LLM, no API cost, a few seconds) to keep the graph current. It installs graphify first if it is missing and regenerates `graphify_src/index.game.js`.
 - `graphify-out/` is not committed (see `.gitignore`). The SessionStart hook in `.claude/settings.json` builds it in the background at the start of every session (about a minute the first time, because graphify is installed then; the log is `/tmp/graphify_refresh.log`). If `graphify-out/graph.json` does not exist yet, grep normally.
 - The graph is a snapshot and covers the `*.js` files and `index.html`; `lib/` (vendored three.js etc.), `assets/` and binary data are left out on purpose (`.graphifyignore`). Use grep for exact text (strings, CSS, HTML markup).
+
+## ponytail
+
+The ponytail plugin ("write only what the task needs") is enabled in `.claude/settings.json`, pinned to release `v5.3.3` (its hooks were read before pinning: they only run local scripts, nothing leaves the machine) and set to the light level (`PONYTAIL_DEFAULT_MODE=lite`).
+- It saves tokens by keeping code short. It must never be a reason to leave out a feature the owner asked for: this game is feature-rich on purpose, so build everything that was asked, just without extra abstractions.
+- Levels: `/ponytail lite|full|ultra`, `/ponytail off`, or say "stop ponytail" / "normal mode". To update the plugin, change the `ref` in `.claude/settings.json` only after reading the new hooks.
