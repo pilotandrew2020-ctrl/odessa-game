@@ -15,3 +15,9 @@ Rules:
 The ponytail plugin ("write only what the task needs") is enabled in `.claude/settings.json`, pinned to release `v5.3.3` (its hooks were read before pinning: they only run local scripts, nothing leaves the machine) and set to the light level (`PONYTAIL_DEFAULT_MODE=lite`).
 - It saves tokens by keeping code short. It must never be a reason to leave out a feature the owner asked for: this game is feature-rich on purpose, so build everything that was asked, just without extra abstractions.
 - Levels: `/ponytail lite|full|ultra`, `/ponytail off`, or say "stop ponytail" / "normal mode". To update the plugin, change the `ref` in `.claude/settings.json` only after reading the new hooks.
+
+## Where the game lives
+
+The real game is the Vercel project **`odessa_chick`** (https://odessachick.vercel.app, production = branch `main`, every merge deploys by itself). That is the only place the owner plays (on an iPad). After merging a PR, check its latest production deployment (Vercel connector: `list_deployments`, project `prj_1AHUe5gTv4PihMekPBofy6Q52EAO`, target `production`) and tell the owner to clear the site data in Safari.
+- Not used by the owner, do not report on them: the Vercel project `good_odessa` (a second copy), GitHub Pages, Cloudflare (the owner left it; there is an old Worker `odessa`, leave it alone).
+- Connectors that are worth using here: Vercel (deployments, errors) and MDN (web docs). Sentry has no project yet; Hugging Face ("Pictures") and Higgsfield only when the owner wants generated media.
