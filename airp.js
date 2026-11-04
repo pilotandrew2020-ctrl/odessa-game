@@ -76,7 +76,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     // a second board outside, above the gates, facing the apron
     this.boardGate=TRN2.makeBoard(14,6,'GATE INFORMATION',()=>this.rows());this.boardGate.mesh.position.set(-20,H-3.2,V0-.4);g.add(this.boardGate.mesh);
     // signs
-    this.sign=labelSprite(['ODESA AIRPORT','ОДЕСА · ODS'],{w:1024,h:200,size:80,color:'#fff',bg:'rgba(10,30,70,.7)',round:30,scale:6});this.sign.position.set(0,H+5,V1);g.add(this.sign)},
+    this.sign=labelSprite(['ODESA AIRPORT','ОДЕСА · ODS'],{w:MOBILE?512:1024,h:MOBILE?100:200,size:MOBILE?40:80,color:'#fff',bg:'rgba(10,30,70,.7)',round:MOBILE?15:30,scale:6});this.sign.position.set(0,H+5,V1);g.add(this.sign)},
   buildTower(){const mb=new MB(),M=this.M,g=this.g,u=125,v=225;mb.cyl('tower',3.2,4.2,32,16,u,16,v);mb.cyl('towerD',5.4,5.4,.4,18,u,32.2,v);mb.cyl('towerD',5.8,5.8,.5,18,u,38.6,v);
     for(let i=0;i<12;i++){const a=i/12*6.283;mb.bx('glass',u+Math.cos(a)*5.2-.1,u+Math.cos(a)*5.2+.1,33,38,v+Math.sin(a)*5.2-.9,v+Math.sin(a)*5.2+.9)}
     mb.cyl('tower',.15,.15,6,6,u,41.6,v);mb.sph('redL',.4,u,44.8,v);mb.cyl('orange',3.3,3.3,2,16,u,28,v);
@@ -92,11 +92,14 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
   queueInit(){const mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.g.add(P.root);return P};
     // stanchions leading from the gate door to the stairs of the aircraft, people waiting in line
     const mb=new MB(),M=this.M;for(let i=0;i<8;i++){mb.cyl('pole',.03,.03,1.0,6,-24,.5,150+i*5);mb.cyl('pole',.03,.03,1.0,6,-16,.5,150+i*5)}for(let i=0;i<7;i++){mb.rod('rope',.012,[-24,.9,150+i*5],[-24,.9,150+(i+1)*5],4);mb.rod('rope',.012,[-16,.9,150+i*5],[-16,.9,150+(i+1)*5],4)}mb.build(this.g,M,{static:true,noShadow:new Set(['pole','rope'])});
-    for(let i=0;i<8;i++){const P=mk();P.root.position.set(-20+(i%2?1.2:-1.2),0,155+i*3.2);P.root.rotation.y=Math.PI+(i%3-1)*.25;this.queue.push(P)}
+    const qCount=MOBILE?4:8;
+    for(let i=0;i<qCount;i++){const P=mk();P.root.position.set(-20+(i%2?1.2:-1.2),0,155+i*3.2);P.root.rotation.y=Math.PI+(i%3-1)*.25;this.queue.push(P)}
     // a few people in the hall
-    for(const [u,v,yaw,seat] of [[-61,222,Math.PI,1],[-58.5,222,Math.PI,1],[11,226,Math.PI,1],[37,222,Math.PI,1]]){const P=mk();P.root.position.set(u,.4+(seat?-.05:0),v);P.root.rotation.y=yaw;P.seat=seat;this.queue.push(P)}},
-  queueUpdate(dt){const near=Math.hypot(player.x-this.P(0,170)[0],player.z-this.P(0,170)[1])<230;if(near&&!this.queueMade){this.queueMade=true;this.queueInit()}if(!this.queueMade)return;const A=this.flight,a=A&&A.ai;const show=near&&a&&a.phase==='hold'&&(a.T-a.t>20);
-    this.queue.forEach((P,i)=>{const hall=i>=8;P.root.visible=near&&(hall||show);if(!P.root.visible)return;animPlayer(P,{spd:0,mode:P.seat?'sit':'walk'},dt)})},
+    const hallPeople=MOBILE?[[-61,222,Math.PI,1],[11,226,Math.PI,1]]:[[-61,222,Math.PI,1],[-58.5,222,Math.PI,1],[11,226,Math.PI,1],[37,222,Math.PI,1]];
+    for(const [u,v,yaw,seat] of hallPeople){const P=mk();P.root.position.set(u,.4+(seat?-.05:0),v);P.root.rotation.y=yaw;P.seat=seat;this.queue.push(P)}},
+  queueUpdate(dt){const maxNear=MOBILE?120:230;const near=Math.hypot(player.x-this.P(0,170)[0],player.z-this.P(0,170)[1])<maxNear;if(near&&!this.queueMade){this.queueMade=true;this.queueInit()}if(!this.queueMade)return;const A=this.flight,a=A&&A.ai;const show=near&&a&&a.phase==='hold'&&(a.T-a.t>20);
+    const hallStart=MOBILE?4:8;
+    this.queue.forEach((P,i)=>{const hall=i>=hallStart;P.root.visible=near&&(hall||show);if(!P.root.visible)return;animPlayer(P,{spd:0,mode:P.seat?'sit':'walk'},dt)})},
   // ---------- departures board rows ----------
   rows(){const A=this.flight,a=A&&A.ai,R=[],clk=TRN2.clock.bind(TRN2);let st='ON TIME',t=clk(0),hold=0;
     if(a){if(a.phase==='hold'){hold=Math.max(0,a.T-a.t);t=clk(hold);st=hold<25?'GATE CLOSED':'BOARDING '+Math.floor(hold/60)+':'+String(Math.floor(hold%60)).padStart(2,'0')}else if(a.phase==='push'||(a.phase==='fly'&&a.s<2200)){st='DEPARTING';t=clk(0)}else if(a.phase==='fly'){st='IN THE AIR';t=clk(-60)}}

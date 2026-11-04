@@ -7,7 +7,8 @@
    =================================================================================================== */
 const PM={mats:null,
   m(){if(this.mats)return this.mats;const S=MBM.std;
-    const liv=MBM.tex(1024,1024,(x,w,h)=>{ // u around (0 belly, .25 left side, .5 roof), v along (0 tail … 1 nose); canvas y = (1-v)*h
+    const livDim=MOBILE?512:1024;
+    const liv=MBM.tex(livDim,livDim,(x,w,h)=>{ // u around (0 belly, .25 left side, .5 roof), v along (0 tail … 1 nose); canvas y = (1-v)*h
       x.fillStyle='#f3f5f7';x.fillRect(0,0,w,h);
       // belly and lower fuselage: grey-blue
       let g=x.createLinearGradient(0,0,w,0);g.addColorStop(0,'#2a4a78');g.addColorStop(.17,'#2a4a78');g.addColorStop(.19,'#f3f5f7');g.addColorStop(.81,'#f3f5f7');g.addColorStop(.83,'#2a4a78');g.addColorStop(1,'#2a4a78');x.fillStyle=g;x.fillRect(0,0,w,h);

@@ -107,6 +107,11 @@ class Plane{
     this.strobe+=dt;if(P.lights){P.lights.visible=this.lightsOn&&(Math.sin(this.strobe*7)>-.2||UNI.uNight.value<.3)}
     if(this.cabinMat)this.cabinMat.emissiveIntensity=this.cabinLights?.55+UNI.uNight.value*.9:.03;
     if(this.beltMat)this.beltMat.emissiveIntensity=this.seatbelt?1.6:.05;
+    if(this.cabinGrp&&MOBILE){
+      const inside=MP.on&&MP.plat&&MP.plat.plane===this;
+      const d=Math.hypot(this.x-player.x,this.z-player.z);
+      this.cabinGrp.visible=inside||d<45;
+    }
     if(this.kind==='airliner'){if(!this.onGround||this.v>=2)this.doorOpen=false;if(this.doorBox)this.doorBox.on=!this.doorOpen}
     if(this.stairs)this.stairs.visible=this.stairsOut&&this.onGround&&this.v<2&&(this.kind!=='airliner'||this.doorOpen)}
   // ---------- per-frame ----------
@@ -171,9 +176,10 @@ class Plane{
     // pilot seats: left (x +.62) is the player's, right is the first officer's
     this.pilotSeat={x:.62,y:FL+.52-.45,z:13.5,yaw:0,label:'Take the pilot seat',pose:'sit',who:null,hold:true,keys:true,helm:true,standLabel:'Leave the pilot seat',cockpit:true};seats.push(this.pilotSeat);
     this.copilotSeat={x:-.62,y:FL+.52-.45,z:13.5,yaw:0,label:'Sit in the co-pilot seat',pose:'sit',who:null,cockpit:true};seats.push(this.copilotSeat);
-    mb.build(this.root,mats,{static:true,noShadow:new Set(['carpet','wall','wallD','cab','belt','aisle','seat','seatD','bin','skinA','skinB','skinC','shA','shB','shC','shD','shE','shF','panel','dark','metal','glassF','skin'])});
+    const cabinGrp=this.cabinGrp=new THREE.Group();this.root.add(cabinGrp);
+    mb.build(cabinGrp,mats,{static:true,noShadow:new Set(['carpet','wall','wallD','cab','belt','aisle','seat','seatD','bin','skinA','skinB','skinC','shA','shB','shC','shD','shE','shF','panel','dark','metal','glassF','skin'])});
     // clickable buttons (own meshes, glowing when on)
-    const bt=(id,label,x,y,z,col,sz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sz||.07,.035,.05),MBM.emis(col,.1));m.position.set(x,y,z);m.rotation.x=-.4;m.userData.btn={id,label,plane:this};this.root.add(m);this.btns.push({id,label,mesh:m,col});return m};
+    const bt=(id,label,x,y,z,col,sz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sz||.07,.035,.05),MBM.emis(col,.1));m.position.set(x,y,z);m.rotation.x=-.4;m.userData.btn={id,label,plane:this};cabinGrp.add(m);this.btns.push({id,label,mesh:m,col});return m};
     const y0=1.17,z0=13.25;[['batt','Battery',0x40d060],['fuel','Fuel pumps',0x40d060],['eng1','Engine 1',0x30c0ff],['eng2','Engine 2',0x30c0ff],['apu','APU',0xf0c020],['belts','Seatbelt sign',0x60ff90],['nav','Lights',0xffffff],['cabl','Cabin lights',0xfff0c0]].forEach(([id,l,c],i)=>bt(id,l,-.72+i*.2,y0,z0+(i%2)*.25,c));
     [['gear','Landing gear',0xf0a020,-.45],['flaps','Flaps',0xf0e040,-.28],['ap','Autopilot',0x30d0d0,-.1],['brake','Parking brake',0xff4040,.08],['door','Cabin door',0x80ff80,.26],['pa','Announcement',0xb090ff,.44],['stairs','Boarding stairs',0xc0c0ff,.62]].forEach(([id,l,c,x])=>bt(id,l,x,.17,15.07,c,.1));
     // seats registered for the platform

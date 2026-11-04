@@ -6415,10 +6415,22 @@ function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)*((MOBILE&&t
 // ---------- renderer / post ----------
 function setupRenderer(){
   renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:S.q==='high'&&!MOBILE,powerPreference:'high-performance',stencil:true,depth:true});renderer.info.autoReset=false;
-  // If the GPU drops the context anyway, step the quality down and reload instead of leaving a black screen.
+  // If the GPU drops the context anyway, step the quality down and reload safely without an infinite loop.
   $('c').addEventListener('webglcontextlost',e=>{e.preventDefault();
     const order=['low','mid','high'],i=order.indexOf(S.q);if(i>0){S.q=order[i-1];saveS()}
+    S.polish='lite';saveS();
+    if(typeof pixelScale!=='undefined')pixelScale=Math.min(pixelScale,0.7);
     const b=$('bStart');if(b)b.textContent='Graphics reset — reloading…';
+    if(typeof toast==='function')toast('Graphics reset','GPU memory recovered');
+    const now=Date.now();
+    const lastLost=+(sessionStorage.getItem('webgl_last_lost')||0);
+    const count=+(sessionStorage.getItem('webgl_lost_count')||0);
+    sessionStorage.setItem('webgl_last_lost',now);
+    sessionStorage.setItem('webgl_lost_count',now-lastLost<10000?count+1:1);
+    if(count>=3){
+      console.warn('WebGL context lost repeatedly, stopping reload loop');
+      return;
+    }
     setupRenderer.lostT=setTimeout(()=>location.reload(),1500)},false);
   $('c').addEventListener('webglcontextrestored',()=>{clearTimeout(setupRenderer.lostT);location.reload()},false);
   renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -6785,9 +6797,20 @@ function updateCityLOD(dt){
       if(o.userData.distanceCulled){o.visible=o.userData.distanceWasVisible;delete o.userData.distanceCulled;delete o.userData.distanceWasVisible}
       continue;
     }
-    // Landmarks are merged into a handful of draw calls by bakeStatic(), so distance-culling them
-    // saved almost nothing while making the Opera, the port and the stairs vanish. Only un-cull.
-    if(o.userData.distanceCulled){o.visible=o.userData.distanceWasVisible;delete o.userData.distanceCulled;delete o.userData.distanceWasVisible}
+    // Landmark subgroups (shops, facades, props): distance-cull beyond 750 m on mobile/low quality
+    const maxLmDist = (MOBILE || S.q === 'low') ? 750 : 1800;
+    const lmDist = Math.hypot(ox - x, oz - z);
+    if(lmDist > maxLmDist){
+      if(!o.userData.distanceCulled){
+        o.userData.distanceWasVisible = o.visible;
+        o.userData.distanceCulled = true;
+      }
+      o.visible = false;
+    }else if(o.userData.distanceCulled){
+      o.visible = o.userData.distanceWasVisible;
+      delete o.userData.distanceCulled;
+      delete o.userData.distanceWasVisible;
+    }
     }
   }
   for(const t of TRAMS)t.mesh.visible=Math.hypot(t.x-x,t.z-z)<=150||RIDE.tram===t;
