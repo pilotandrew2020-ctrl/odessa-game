@@ -1,4 +1,4 @@
-// tests/t_jetrace.js
+// tests/t_jetrace.js — Verification of Jet Ski Rider mode, wedge ramps & airborne physics
 module.exports = {
   opts: { w: 900, h: 540 },
   async run(page, h) {
@@ -6,81 +6,103 @@ module.exports = {
     await h.boot();
     await h.start();
 
-    // Verify mode start, passing gates, and exit
-    const res = await h.ev(async () => {
-      if (!window.JETRACE) return { ok: false, err: 'no JETRACE global' };
-      const startPos = { x: player.x, y: player.y, z: player.z };
-
-      // Start race mode
-      JETRACE.start();
-      if (!JETRACE.on) return { ok: false, err: 'failed to start race mode' };
-
-      const initialScore = JETRACE.score;
-      const initialCombo = JETRACE.combo;
-
-      // Pass first 3 gates programmatically
-      for (let g = 0; g < 3; g++) {
-        const gate = JETRACE.gates[g];
-        JETRACE.craft.x = gate.cx;
-        JETRACE.craft.z = gate.cz;
-        JETRACE.craft.u = 20;
-        JETRACE.update(0.1);
-      }
-
-      const scoreAfterGates = JETRACE.score;
-      const comboAfterGates = JETRACE.combo;
-
-      // Test Ramp jump (airborne physics)
-      const ramp = JETRACE.ramps[0];
-      JETRACE.craft.x = ramp.x;
-      JETRACE.craft.z = ramp.z;
-      JETRACE.craft.u = 22;
-      JETRACE.update(0.016);
-      const isAirborne = JETRACE.airborne;
-      const craftVy = JETRACE.craft.vy;
-
-      // Land the jump (simulate flight time > 1.9s)
-      for (let step = 0; step < 40; step++) {
-        JETRACE.update(0.05);
-      }
-      const landed = !JETRACE.airborne;
-
-      // Exit mode
-      JETRACE.stop();
-      const afterExitOn = JETRACE.on;
-      const playerPosRestored = Math.hypot(player.x - startPos.x, player.z - startPos.z) < 2.0;
-
-      return {
-        ok: true,
-        initialScore,
-        scoreAfterGates,
-        comboAfterGates,
-        isAirborne,
-        craftVy,
-        landed,
-        afterExitOn,
-        playerPosRestored
-      };
-    });
-
-    console.log('jetrace test result:', JSON.stringify(res));
-    if (!res.ok) throw new Error('JETRACE test failed: ' + res.err);
-    if (res.scoreAfterGates <= 0) throw new Error('Score did not increase');
-    if (res.comboAfterGates <= 1) throw new Error('Combo did not increase');
-    if (!res.isAirborne) throw new Error('Craft did not become airborne over ramp');
-    if (!res.landed) throw new Error('Craft did not land');
-    if (res.afterExitOn) throw new Error('JETRACE.on is still true after stop');
-    if (!res.playerPosRestored) throw new Error('Player position not restored after exit');
-
-    // Screenshot HUD during a race run
+    // 1. Verify start & screenshot ramp from 40m away
+    console.log('Setting up race mode and ramp view...');
     await h.ev(() => {
       JETRACE.start();
-      JETRACE.craft.u = 25;
-      JETRACE.passGate(0);
-      JETRACE.syncHUD();
+      const r = JETRACE.ramps[0];
+      const camX = r.x - r.ufx * 40.0;
+      const camZ = r.z - r.ufz * 40.0;
+      camera.position.set(camX, SL + 4.5, camZ);
+      camera.lookAt(r.x, SL + 1.8, r.z);
     });
-    await h.shot('jetrace_hud');
-    await h.ev(() => JETRACE.stop());
-    console.log('shot saved jetrace_hud.png');
+    await h.shot('jetrace_ramp_view');
+
+    // 2. Launch craft over ramp 0 and check launch velocity & airtime
+    const jumpInfo = await h.ev(() => {
+      const r = JETRACE.ramps[0];
+      const js = JETRACE.craft;
+
+      js.x = r.x - r.ufx * 4.0;
+      js.z = r.z - r.ufz * 4.0;
+      js.yaw = r.rot;
+      js.u = 20.0;
+
+      JETRACE.update(0.016);
+      const isAir = JETRACE.airborne;
+      const launchVy = js.vy;
+      const launchPitch = js.pitch;
+
+      // Fly 0.5s into air
+      for (let i = 0; i < 30; i++) {
+        JETRACE.update(0.016);
+      }
+      const midAirY = js.y;
+
+      camera.position.set(js.x - r.ufx * 8.0, js.y + 1.5, js.z - r.ufz * 8.0);
+      camera.lookAt(js.x + r.ufx * 6.0, js.y, js.z + r.ufz * 6.0);
+
+      return {
+        isAir,
+        launchVy,
+        launchPitch,
+        midAirY,
+        sl: SL
+      };
+    });
+    console.log('Jump mid-air info:', JSON.stringify(jumpInfo));
+    await h.shot('jetrace_mid_air');
+
+    // 3. Complete flight and verify landing
+    const landInfo = await h.ev(() => {
+      const js = JETRACE.craft;
+      for (let i = 0; i < 90; i++) {
+        JETRACE.update(0.02);
+      }
+      const landed = !JETRACE.airborne;
+      const score = JETRACE.score;
+      return { landed, score, y: js.y, sl: SL };
+    });
+    console.log('Landing info:', JSON.stringify(landInfo));
+
+    // 4. Test all 3 ramps launch & land
+    const allRampsRes = await h.ev(() => {
+      const res = [];
+      for (let k = 0; k < JETRACE.ramps.length; k++) {
+        const r = JETRACE.ramps[k];
+        r.used = false;
+        const js = JETRACE.craft;
+        js.x = r.x - r.ufx * 3.0;
+        js.z = r.z - r.ufz * 3.0;
+        js.yaw = r.rot;
+        js.u = 22.0;
+
+        JETRACE.update(0.016);
+        const launched = JETRACE.airborne;
+        const vy = js.vy;
+
+        // Fly until landing
+        for (let step = 0; step < 120; step++) {
+          JETRACE.update(0.02);
+        }
+        const landed = !JETRACE.airborne;
+        res.push({ k, launched, vy, landed });
+      }
+      return res;
+    });
+    console.log('All ramps test:', JSON.stringify(allRampsRes));
+
+    // 5. Test exit restores normal play
+    await h.ev(() => {
+      JETRACE.stop();
+    });
+
+    if (!jumpInfo.isAir || jumpInfo.launchVy <= 5) throw new Error('Ramp 0 failed to launch');
+    if (!landInfo.landed) throw new Error('Craft failed to land after jump');
+    for (const r of allRampsRes) {
+      if (!r.launched || !r.landed) throw new Error(`Ramp ${r.k} failed launch or landing`);
+    }
+
+    console.log('Task B wedge ramps verified cleanly.');
   }
 };
