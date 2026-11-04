@@ -18,3 +18,7 @@ Everything else in the game (buildings, cars, characters, interiors) is procedur
 - `textures/bark_platanus.jpg` — "Bark Platanus", Poly Haven (polyhaven.com/a/bark_platanus), CC0 public domain; tree bark.
 
 - The yacht, Jungle Island (terrain, vegetation, animals), train interiors and timetable boards, aircraft (airliner, fighter), Odesa Airport and the companion character are procedural geometry written for this game; no third-party model files.
+
+## Icons & mini-games
+- `icons/apple-touch-icon.png`, `icons/icon-192.png`, `icons/icon-512.png` — original procedural SVG/canvas art (stylized golden sun over sea waves) created in code.
+- Mini-games in `games/` (`2048.html`, `snake.html`, `memory.html`, `gull.html`, `quiz.html`) — 100% original procedural canvas and DOM code written for My Odesa; no external assets or copyrighted characters.
