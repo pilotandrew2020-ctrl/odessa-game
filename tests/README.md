@@ -23,5 +23,10 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_kit1`, `t_kit2`, `t_kit4`, `t_kit6`, `t_kit8`, `t_kit9` | hands-on kitchen: fridge, kettle to tea, hand washing (house, bathroom, Soviet flat), omelette, dishes, sleep |
 | `t_tv`, `t_svtv` | TV film and news (island house, Soviet flat) |
 | `t_dive`, `t_sub`, `t_jobs`, `t_island`, `t_interiors`, `t_jump` | diving and the sea floor, submarine, fishing and coins, the big island, all interiors, head bump |
+| `t_pwa` | PWA manifest, original icons (180, 192, 512), viewport-fit & iPad standalone meta tags |
+| `t_spray` | Jet ski & boat water spray/foam particle cap (180 mobile / 450 desktop) and emissions |
+| `t_jetrace` | "Jet Ski Rider" race mode: buoy gates, combo multiplier, ramps, air jump, nitro boost, exit/retry |
+| `t_hub` | Games hub (`games.html`) and 5 mini-games (`2048`, `snake`, `memory`, `gull`, `quiz`) |
+| `t_perf` | Render performance benchmark across 4 camera spots (city street, beach, island, flat) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.

@@ -27,7 +27,7 @@ python3 -m http.server 8765      # then open http://localhost:8765/index.html
 - Changes that touch co-op (the presence packet, `PeerSpeaker`, `PeerPlane`, `COOP`) need the co-op tests (`tests/t_coop*.js`); newer features (kitchen, diving, fishing, coins) are **not** synced to friends yet.
 
 ## Map of the code (not complete)
-`index.html` core · `houses.js` `flats.js` `modern.js` `soviet.js` interiors · `kitchen.js` hands-on kitchen (first-person hands, menus) · `tv.js` TV programmes · `swim.js` + `deep.js` swimming, diving, sea floor · `jobs.js` fishing and coins · `plane.js` `airp.js` aircraft and airport · `vehicles.js` cars, bicycle, submarine · `acts.js` `hands.js` `pose.js` body and hands · `hudmenu.js` top bar · `isle.js` jungle island · `br*.js` Battle Royale.
+`index.html` core · `houses.js` `flats.js` `modern.js` `soviet.js` interiors · `kitchen.js` hands-on kitchen (first-person hands, menus) · `tv.js` TV programmes · `swim.js` + `deep.js` swimming, diving, sea floor · `jobs.js` fishing and coins · `plane.js` `airp.js` aircraft and airport · `vehicles.js` cars, bicycle, submarine · `acts.js` `hands.js` `pose.js` body and hands · `hudmenu.js` top bar · `isle.js` jungle island · `br*.js` Battle Royale · `spray.js` watercraft spray & foam particles · `jetrace.js` Jet Ski Rider race mode · `games.html` mini-games hub · `games/` (`2048.html`, `snake.html`, `memory.html`, `gull.html`, `quiz.html`).
 
 ## Known gaps
 The Potemkin-stairs stall and the iPad crashes/freezes were never reproduced in the sandbox (safety nets were added, not proven fixes). Battle Royale is the heaviest mode on a phone. Nothing was run on a real iPad by the previous agent.
