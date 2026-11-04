@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/root/.local/bin/graphify hook-guard search",
+            "command": "[ -x \"$HOME/.local/bin/graphify\" ] && \"$HOME/.local/bin/graphify\" hook-guard search || true",
             "timeout": 10
           }
         ]
@@ -16,7 +16,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/root/.local/bin/graphify hook-guard read",
+            "command": "[ -x \"$HOME/.local/bin/graphify\" ] && \"$HOME/.local/bin/graphify\" hook-guard read || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "(nohup sh tools/graphify_refresh.sh >/tmp/graphify_refresh.log 2>&1 &) ; exit 0",
             "timeout": 10
           }
         ]
