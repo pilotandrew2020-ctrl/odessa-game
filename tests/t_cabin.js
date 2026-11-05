@@ -4,6 +4,8 @@ exports.run = async (page, h) => {
   await page.evaluate(() => { S.q = 'low'; applyQuality(); });
   await h.start(); await h.noRender();
   const ev = (f, a) => page.evaluate(f, a);
+  await ev(() => { const p = AIRP.P(-20, 140); teleportRaw(p[0], p[1], AIRP.yawOf(0, 1)); });
+  await page.waitForFunction(() => AIRP.ready, null, { timeout: 30000 });
   await ev(() => { const p = AIRP.flight, d = p.doorPos(); teleportRaw(d.x + 2, d.z + 2, 0); });
   await page.waitForTimeout(4000);
   console.log('prompt', await ev(() => { updateHUD(.1); return curAct && curAct.label }));

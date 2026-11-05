@@ -529,7 +529,7 @@ function groundH(x,z){let h=rawH(x,z);
   return h}
 function addFlat(x,z,r,b,h){FLAT.push({x,z,r,b,R:r+b,h:h===undefined?rawH(x,z):h})}
 function addRamp(x0,z0,x1,z1,hw,b,h0,h1,cut){const L=Math.hypot(x1-x0,z1-z0);FLAT.push({ramp:1,x:x0,z:z0,tx:(x1-x0)/L,tz:(z1-z0)/L,L,hw,b,h0,h1,cut:!!cut,R:L+hw+b})}
-function addFlatRect(x,z,a,w,d,b,h){FLAT.push({x,z,u:w/2,v:d/2,ca:Math.cos(a),sa:Math.sin(a),b,R:Math.hypot(w,d)/2+b,h:h===undefined?rawH(x,z):h})}
+function addFlatRect(x,z,a,w,d,b,h){const f={x,z,u:w/2,v:d/2,ca:Math.cos(a),sa:Math.sin(a),b,R:Math.hypot(w,d)/2+b,h:h===undefined?rawH(x,z):h};if(typeof AIRP!=='undefined'&&AIRP.loading)f.owner=AIRP;FLAT.push(f)}
 function groundN(x,z){const e=1.5;const hx=groundH(x+e,z)-groundH(x-e,z),hz=groundH(x,z+e)-groundH(x,z-e);const l=Math.hypot(hx,2*e,hz);return [-hx/l,2*e/l,-hz/l]}
 // ---------- rails network (0 tram, 1 rail, 2 funicular)
 function prepRails(){
@@ -2171,11 +2171,11 @@ const LOW_OBB=[];   // low obstacles (parked cars): block walking, not the camer
          // per-frame callbacks
 let HOME_MARK=null,HOME_C=null,LIGHT_GLOW=null;
 function addOBB(cx,cz,w,d,a){STATIC_OBB.push(cx,cz,w/2,d/2,Math.cos(a),Math.sin(a))}
-function addBlock(cx,cz,w,d,a){STATIC_BLOCK.push(cx,cz,w/2,d/2,Math.cos(a),Math.sin(a))}
-function addWall(cx,cz,w,d,a,y0,y1){STATIC_WALLS.push({cx,cz,hw:w/2,hd:d/2,ca:Math.cos(a),sa:Math.sin(a),y0,y1})}
+function addBlock(cx,cz,w,d,a){const b=[cx,cz,w/2,d/2,Math.cos(a),Math.sin(a)];STATIC_BLOCK.push(...b);if(typeof AIRP!=='undefined'&&AIRP.loading)AIRP._blockEntries.push(b)}
+function addWall(cx,cz,w,d,a,y0,y1){const o={cx,cz,hw:w/2,hd:d/2,ca:Math.cos(a),sa:Math.sin(a),y0,y1};if(typeof AIRP!=='undefined'&&AIRP.loading){o.owner=AIRP;AIRP._wallEntries.push(o)}STATIC_WALLS.push(o)}
 // wall segment between two points (thickness t)
 function wallSeg(x0,z0,x1,z1,t,y0,y1){const L=Math.hypot(x1-x0,z1-z0);addWall((x0+x1)/2,(z0+z1)/2,L,t,Math.atan2(z1-z0,x1-x0),y0,y1)}
-function holdSpecial(f){f.hold=1;SPECIAL.push(f)}
+function holdSpecial(f){f.hold=1;if(typeof AIRP!=='undefined'&&AIRP.loading){f.owner=AIRP;AIRP._specialEntries.push(f)}SPECIAL.push(f)}
 function specialGround(x,z,y){let best=null;for(const f of SPECIAL){const r=f(x,z,y===undefined?99:y);if(r&&(!best||r.pri>best.pri))best=r}return best}
 function LAND_UPDATE(dt){for(const f of ANIM)f(dt)}
 function frame(cx,cz,a){const ca=Math.cos(a),sa=Math.sin(a);return {P:(u,v)=>[cx+u*ca-v*sa,cz+u*sa+v*ca],ca,sa,inv:(x,z)=>{const dx=x-cx,dz=z-cz;return [dx*ca+dz*sa,-dx*sa+dz*ca]}}}
@@ -7509,7 +7509,7 @@ function loop(t){
   UNI.uTime.value+=dt;
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
-    refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(AIRP.ready)AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
