@@ -34,4 +34,19 @@ exports.run = async (page, h) => {
   await ev(() => { MP.lx = 0; MP.lz = 12.9; cam.dist = .5; cam.yaw = MP.plat.root.rotation.y; cam.pitch = .05; });
   await page.waitForTimeout(400);
   console.log('shot cockpit', await h.shot('cockpit_fp', 6000));
+  const turn = await ev(() => {
+    const p = PLN.list.find(q => q.kind === 'airliner');
+    if (!p) return { ok: false, reason: 'airliner missing' };
+    p.ai = null; p.manual = true; p.hold = false; p.onGround = false; p.x = AIRP.C[0]; p.z = AIRP.C[1]; p.y = 1200;
+    p.yaw = 0; p.pitch = p.roll = 0; p.v = 180; p.vy = 0; p.thr = p.thrT = p.eng = 0.9; p.gear = p.gearT = 0;
+    for (let i = 0; i < 480; i++) {
+      inp.k.KeyD = i % 48 < 24; inp.k.KeyA = !inp.k.KeyD;
+      p.fly(0.016); p.sync(); PLN.chase(p, 0.016, true);
+      if (!p.validState() || ![cam.x, cam.y, cam.z, camera.position.x, camera.position.y, camera.position.z].every(Number.isFinite)) return { ok: false, frame: i };
+    }
+    p.manual = false; inp.k.KeyD = inp.k.KeyA = false; p.v = 0; p.onGround = true; p.parking = true; p.y = p.groundY() - p.bottom(); p.fly(0);
+    return { ok: p.validState(), zeroDt: p.validState(), cameraFinite: [cam.x, cam.y, cam.z].every(Number.isFinite) };
+  });
+  console.log('airliner sharp-turn check', JSON.stringify(turn));
+  if (!turn.ok || !turn.zeroDt || !turn.cameraFinite) throw new Error('Airliner turn produced non-finite state');
 };

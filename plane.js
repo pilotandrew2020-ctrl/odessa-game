@@ -24,6 +24,9 @@ class Plane{
   groundY(){const g=groundH(this.x,this.z);return this.kind==='light'?Math.max(g,SL):g}      // the light plane lands on, floats on and takes off from the water: the sea surface is its ground
   bottom(){const g=this.gear;return -(g*(-this.d.gearY)+(1-g)*(this.kind==='airliner'?2.0:.8))}
   sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(-this.pitch,this.yaw,this.roll,'YXZ')}   // pitch > 0 = nose up; yaw > 0 = turning left (+x is left); roll > 0 = right wing down
+  validState(){const d=this.d,c=this.ctl;return !!(this.root&&d&&c&&Number.isFinite(d.len)&&Number.isFinite(d.span)&&Number.isFinite(d.vmax)&&Number.isFinite(d.vs)&&Number.isFinite(d.vr)&&Number.isFinite(d.gearY)&&Number.isFinite(this.x)&&Number.isFinite(this.y)&&Number.isFinite(this.z)&&Number.isFinite(this.yaw)&&Number.isFinite(this.pitch)&&Number.isFinite(this.roll)&&Number.isFinite(this.v)&&Number.isFinite(this.vy)&&Number.isFinite(this.thr)&&Number.isFinite(this.thrT)&&Number.isFinite(this.eng)&&Number.isFinite(this.gear)&&Number.isFinite(this.gearT)&&Number.isFinite(this.flaps)&&Number.isFinite(c.p)&&Number.isFinite(c.r)&&Number.isFinite(c.y))}
+  recoverState(){this.ctl=this.ctl||{p:0,r:0,y:0};const h=this.home||{},x=Number.isFinite(h.x)?h.x:(Number.isFinite(this.x)?this.x:0),z=Number.isFinite(h.z)?h.z:(Number.isFinite(this.z)?this.z:0),yaw=Number.isFinite(h.yaw)?h.yaw:(Number.isFinite(this.yaw)?this.yaw:0),gy=groundH(x,z),gearY=this.d&&Number.isFinite(this.d.gearY)?this.d.gearY:1;
+    this.x=x;this.z=z;this.yaw=yaw;this.y=Number.isFinite(gy)?gy-gearY:0;this.pitch=this.roll=this.v=this.vy=this.thr=this.thrT=this.eng=0;this.gear=this.gearT=1;this.flaps=0;this.ctl.p=this.ctl.r=this.ctl.y=0;this.onGround=true;this.onWater=false;this.crashed=false;this.manual=false;this.hold=false;this.engOn=false;this.parking=true;this.mode='parked';this.sync();if(PLN.cur===this){PLN.cur=null;PLN.hudShow(false)}console.error('[plane] invalid flight state recovered',this.id)}
   // ---------- inputs → controls ----------
   readInput(){const k=inp.k,c=this.ctl;
     // EASY (default): up is up: W / arrow up / joystick up = climb. PILOT style (Menu -> Flight): S / stick back = nose up, W / stick forward = dive.
@@ -34,7 +37,7 @@ class Plane{
     const td=((k.ShiftLeft||k.ShiftRight||k.Equal||k.NumpadAdd)?1:0)-((k.ControlLeft||k.ControlRight||k.Minus||k.NumpadSubtract)?1:0);if(td)this.thrT=Math.max(0,Math.min(1,this.thrT+td*(1/(this.kind==='airliner'?4:2.5))*(this._dt||.016)));
     this.brake=(!!k.Space&&this.kind==='airliner')||this.parking}
   // ---------- flight model ----------
-  fly(dt){const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;this.onWater=lt&&groundH(this.x,this.z)<SL-.05;
+  fly(dt){dt=Number.isFinite(dt)?Math.max(.001,Math.min(.05,dt)):.016;if(!this.validState()){this.recoverState();return}const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;this.onWater=lt&&groundH(this.x,this.z)<SL-.05;
     if(this.manual)this.readInput();else if(!this.hold){c.p=c.r=c.y=0}
     // hold mode: simple autopilot on heading, altitude and speed
     if(this.hold&&!this.onGround){let dh=this.hdgT-this.yaw;while(dh>Math.PI)dh-=6.283;while(dh<-Math.PI)dh+=6.283;const rT=-Math.max(-.42,Math.min(.42,dh*1.4));c.r=Math.max(-1,Math.min(1,(rT-this.roll)*3));
@@ -83,7 +86,8 @@ class Plane{
     if(lt&&this.onGround&&this.v>.3&&this.groundBlocked()){this.x=ox;this.z=oz;if(this.v>4&&this.manual)toast('Blocked','something is in the way: reverse is not possible, turn or brake');this.v=0}
     if(this.onGround&&this.v>.5){const gy=this.groundY();this.y+=(gy-this.bottom()-this.y)*Math.min(1,dt*10)}
     // never below the sea
-    if(this.y+this.bottom()<SL-.2){this.crash('went into the sea');return}}
+    if(this.y+this.bottom()<SL-.2){this.crash('went into the sea');return}
+    if(!this.validState())this.recoverState()}
   // taxiing: nose, tail and wing tips must not be inside a building or a wall (the light plane drives on streets and fields)
   groundBlocked(){const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),lx=Math.cos(this.yaw),lz=-Math.sin(this.yaw),x=this.x,z=this.z,y=this.y;
     return insideAny(x+fx*2.9,z+fz*2.9,.8,y)||insideAny(x-fx*2.8,z-fz*2.8,.8,y)||insideAny(x+lx*3.5,z+lz*3.5,.8,y)||insideAny(x-lx*3.5,z-lz*3.5,.8,y)}
@@ -111,8 +115,8 @@ class Plane{
     if(this.kind==='airliner'){if(!this.onGround||this.v>=2)this.doorOpen=false;if(this.doorBox)this.doorBox.on=!this.doorOpen}
     if(this.stairs)this.stairs.visible=this.stairsOut&&this.onGround&&this.v<2&&(this.kind!=='airliner'||this.doorOpen)}
   // ---------- per-frame ----------
-  update(dt){if(this.crashed){this.dead-=dt;if(this.dead<=0&&this.home){this.park(this.home.x,this.home.z,this.home.yaw);this.engOn=false;this.eng=0;this.parking=true}return}
-    if(this.ai&&!this.manual&&!this.ai.off&&PLN.aiStep)PLN.aiStep(this,dt);else this.fly(dt);
+  update(dt){dt=Number.isFinite(dt)?Math.max(0,Math.min(.05,dt)):.016;if(this.crashed){this.dead-=dt;if(this.dead<=0&&this.home){this.park(this.home.x,this.home.z,this.home.yaw);this.engOn=false;this.eng=0;this.parking=true}return}
+    if(!this.validState()){this.recoverState();return}if(this.ai&&!this.manual&&!this.ai.off&&PLN.aiStep)PLN.aiStep(this,dt);else this.fly(dt);if(!this.validState()){this.recoverState();return}
     this.animate(dt);this.sync();
     if(this.btnDirty)PLN.refreshButtons(this)}
   // ---------- seats, cabin, cockpit ----------
@@ -229,15 +233,16 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
   // the MP platform (airliner cabin) hook: helm seat → the player is the pilot
   platUpdate(p,dt,mp){const s=mp.seat,pilot=!!(s&&s.cockpit&&s.helm);if(pilot!==p.manual){p.manual=pilot;this.hudShow(pilot);if(pilot){if(p.ai)p.ai.off=true;p.parking=false;p.brake=false;cam.pitch=Math.max(cam.pitch,0);toast('Captain','click the overhead buttons: Battery · Fuel · Engine 1 · Engine 2 · then the throttle with Shift/R and the HUD strip')}else{p.hold=true;p.hdgT=p.yaw;p.altT=p.y;p.spdT=Math.max(p.v,p.d.vs*1.6);if(!p.onGround)toast('Autopilot holds the course','sit in the left seat to take over again')}}
 },
-  platCamera(p,dt,mp){const s=mp.seat;if(!(s&&s.cockpit&&s.helm))return false;
+  platCamera(p,dt,mp){if(!p||!p.root||!camera||!mp)return false;const s=mp.seat;if(!(s&&s.cockpit&&s.helm))return false;if(!p.validState()||!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.z)){p.recoverState();return false}
     if(this.camMode==='chase'){return this.chase(p,dt,true)}
-    const e=MP.toWorld(p.plat,s.x,s.y+1.12,s.z+.05,MP._v),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return true},
-  chase(p,dt,mp){const d=Math.max(p.d.len*1.0,cam.dist*(p.kind==='airliner'?8:4)),pit=Math.max(.05,cam.pitch*.6+.08),cp=Math.cos(pit),sp=Math.sin(pit);
+    const e=MP.toWorld(p.plat,s.x,s.y+1.12,s.z+.05,MP._v);if(!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.z))return this.chase(p,dt,true);if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return true},
+  chase(p,dt,mp){if(!p||!p.root||!p.validState()||!camera)return false;if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;if(!Number.isFinite(cam.dist))cam.dist=8;if(!Number.isFinite(cam.x)||!Number.isFinite(cam.y)||!Number.isFinite(cam.z))cam.init=false;
+    const d=Math.max(p.d.len*1.0,cam.dist*(p.kind==='airliner'?8:4)),pit=Math.max(.05,cam.pitch*.6+.08),cp=Math.cos(pit),sp=Math.sin(pit);
     if(!freeLook()){let dy=p.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*1.6)}
     const wx=p.x-Math.sin(cam.yaw)*cp*d,wy=p.y+sp*d+(p.kind==='airliner'?4:2),wz=p.z-Math.cos(cam.yaw)*cp*d;const gy=groundH(wx,wz)+2;if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const k=Math.min(1,dt*5);cam.x+=(wx-cam.x)*k;cam.y+=(Math.max(wy,gy)-cam.y)*k;cam.z+=(wz-cam.z)*k;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x+Math.sin(p.yaw)*4,p.y+1.5,p.z+Math.cos(p.yaw)*4);PLR.root.visible=!mp&&this.camMode!=='cockpit';return true},
-  stepCamera(dt){const p=this.cur;if(!p||!p.root)return;
-    if(this.camMode==='cockpit'){const e=p.root.localToWorld(this._local.copy(p.eyeLocal||this._defaultEye)),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);
+  stepCamera(dt){const p=this.cur;if(!p||!p.root||!camera)return;if(!p.validState()){p.recoverState();return}
+    if(this.camMode==='cockpit'){if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;const eye=p.eyeLocal||this._defaultEye;if(!Number.isFinite(eye.x)||!Number.isFinite(eye.y)||!Number.isFinite(eye.z))return this.chase(p,dt,false);const e=p.root.localToWorld(this._local.copy(eye));if(!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.z))return this.chase(p,dt,false);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);
       // look direction is relative to the aircraft: camera yaw follows it
       camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return}
     this.chase(p,dt,false)},
