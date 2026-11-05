@@ -13,6 +13,8 @@ class Plane{
     this.mode='parked';this.manual=false;this.hold=false;this.hdgT=0;this.altT=0;this.spdT=0;this.ctl={p:0,r:0,y:0};this.lightsOn=true;this.strobe=0;this.doorOpen=true;this.home=null;this.ab=false;this.cabinLights=true;this.seatbelt=false;this.batt=true;this.fuel=true;this.eng1=false;this.eng2=false;this.fireCd=0;this.ammo=400;this.bombs=2;this.msl=2;this.cam='chase';this.steer=0;
     this.stairs=null;this.stairsOut=true;      // (the reset used to run AFTER buildCabin and threw the staircase away: it was never hidden again)
     if(kind==='airliner')this.buildCabin();else if(kind==='light')this.buildLightCockpit();else{this.buildCockpit();this.buildLadder()}
+    this.passengerSeat=kind==='light'?new THREE.Vector3(0,-.25,-.72):(kind==='fighter'?new THREE.Vector3(-.5,-.28,2.55):new THREE.Vector3(this.copilotSeat.x,this.copilotSeat.y,this.copilotSeat.z));
+    if(this.passengerSeat)this.root.userData.passengerSeat=this.passengerSeat;
     this.sync()}
   get label(){return this.kind==='airliner'?'airliner':(this.kind==='light'?'light plane':'fighter jet')}
   // the boarding stairs / ladder can be taken away (and brought back) with the chip, the panel button or the cabin door button
@@ -270,13 +272,13 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
     if(k.KeyV&&!this._vd&&p.msl>0){this._vd=true;p.msl--;this.missile(p)}if(!k.KeyV)this._vd=false},
   dropBomb(p){const m=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,1.2,10),new THREE.MeshStandardMaterial({color:0x4f5a47,roughness:.5,metalness:.4}));const w=p.root.localToWorld(new THREE.Vector3(0,-.9,-1));m.position.copy(w);scene.add(m);
     const f=new THREE.Vector3(Math.sin(p.yaw),0,Math.cos(p.yaw));this.tr.push({m,vx:f.x*p.v,vz:f.z*p.v,vy:p.vy,t:0});toast('Bomb away',p.bombs+' left')},
-  missile(p){const dir=new THREE.Vector3(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch));const o=p.root.localToWorld(new THREE.Vector3(p.msl%2?4.4:-4.4,-.6,-1));
+  missile(p){const owner='plane-'+p.id,dir=new THREE.Vector3(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch));const o=p.root.localToWorld(new THREE.Vector3(p.msl%2?4.4:-4.4,-.6,-1));
     // a fast missile: flies straight (or homes on the nearest aircraft in front) and blows up on contact
     const m=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,2.2,8),new THREE.MeshStandardMaterial({color:0xe8e8e8,roughness:.4}));m.rotation.x=Math.PI/2;const g=new THREE.Group();g.add(m);g.position.copy(o);scene.add(g);
     let tgt=null,bd=2500;for(const t of WAR.targets()){if(t.id==='plane-'+p.id)continue;const v=t.pos.clone().sub(o),d=v.length();if(d<bd&&v.normalize().dot(dir)>.8){bd=d;tgt=t}}
     const vel=dir.clone().multiplyScalar(p.v+260),life=6;const upd=(dt)=>{};const rec={g,vel,tgt,t:0,fn:null};const step=(dt)=>{rec.t+=dt;if(rec.tgt){const want=rec.tgt.pos.clone().sub(g.position).normalize();vel.lerp(want.multiplyScalar(vel.length()),Math.min(1,dt*2.5))}g.position.addScaledVector(vel,dt);g.lookAt(g.position.clone().add(vel));
         FX.puff&&FX.puff({x:g.position.x,y:g.position.y,z:g.position.z,vx:0,vy:0,vz:0,s0:.5,s1:1.8,life:.8,c0:[1,.9,.7],c1:[.6,.6,.6],op:.5,add:false,drag:1,grow:1});
-        const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){scene.remove(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120);GUN.push();return true}return false};
+        const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2,owner);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){scene.remove(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120,owner);GUN.push();return true}return false};
     this.tr.push({m:g,vx:0,vy:0,vz:0,t:0,custom:step});toast('Missile away',p.msl+' left')},
   // ---------- cockpit buttons ----------
   input(){const cvs=()=>renderer&&renderer.domElement;

@@ -54,6 +54,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
       for(const [a,b] of gaps){if(a>cur)run(cur,a);cur=b}if(cur<u1)run(cur,u1)};
     // slab + roof
     mb.bx('floor',U0,U1,0,FL,V0,V1);mb.bx('roof',U0-4,U1+4,H,H+.6,V0-14,V1+3);mb.bx('metal',U0-4,U1+4,H-.3,H,V0-14,V0-13.6);
+    {const c=this.P(0,205.5);addWall(c[0],c[1],198,59,this.ang,this.y0+H,this.y0+H+.6)}
     for(let u=U0+10;u<U1;u+=20)for(const v of [V0-12.5,V0-1]){mb.bx('frame',u-.25,u+.25,FL,H,v-.25,v+.25)}   // canopy columns over the apron side
     // airside wall with 5 gate doors; landside wall with the main entrance; solid ends
     const gates=[-80,-40,0,40,80].map(u=>[u-3,u+3]);glassRun(U0,U1,V0,FL,H-.2,gates);glassRun(U0,U1,V1,FL,H-.2,[[-7,7]]);
@@ -80,6 +81,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
   buildTower(){const mb=new MB(),M=this.M,g=this.g,u=125,v=225;mb.cyl('tower',3.2,4.2,32,16,u,16,v);mb.cyl('towerD',5.4,5.4,.4,18,u,32.2,v);mb.cyl('towerD',5.8,5.8,.5,18,u,38.6,v);
     for(let i=0;i<12;i++){const a=i/12*6.283;mb.bx('glass',u+Math.cos(a)*5.2-.1,u+Math.cos(a)*5.2+.1,33,38,v+Math.sin(a)*5.2-.9,v+Math.sin(a)*5.2+.9)}
     mb.cyl('tower',.15,.15,6,6,u,41.6,v);mb.sph('redL',.4,u,44.8,v);mb.cyl('orange',3.3,3.3,2,16,u,28,v);
+    for(const [r,y0,y1] of [[4.2,0,32.2],[5.8,32,39.1]]){const ring=[];for(let i=0;i<24;i++){const a=i/24*Math.PI*2,p=this.P(u+Math.cos(a)*r,v+Math.sin(a)*r);ring.push(p[0],p[1])}STATIC_POLYS.push(makeColPoly([ring],this.y0+y1,this.y0+y0))}
     mb.build(g,M,{static:true});const c=this.P(u,v);STATIC_CIR.push(c[0],c[1],4.6)},
   buildHangar(){const mb=new MB(),M=this.M,g=this.g,u=-190,v=205,W=56,D=42,H=17;
     mb.bx('conc',u-W/2,u+W/2,0,.2,v-D/2,v+D/2);mb.bx('concD',u-W/2,u+W/2,0,H,v+D/2-.4,v+D/2);                                    // back wall
@@ -87,7 +89,8 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     for(let i=-2;i<=2;i++)mb.bx('frame',u+i*13-.3,u+i*13+.3,0,H,v-D/2,v-D/2+.6);mb.bx('whiteL',u-W/2+4,u+W/2-4,H-.5,H-.3,v-6,v-5);mb.bx('whiteL',u-W/2+4,u+W/2-4,H-.5,H-.3,v+6,v+7);
     for(let i=0;i<3;i++)mb.bx('dark',u-20+i*20-3,u-20+i*20+3,.2,1.4,v-5,v+9);                               // tool carts
     mb.build(g,M,{static:true});
-    for(const [a,b,w,d] of [[u,v+D/2,W,.5],[u-W/2,v,.5,D],[u+W/2,v,.5,D]]){const c=this.P(a,b);addWall(c[0],c[1],w,d,this.ang,this.y0,this.y0+H)}},
+    for(const [a,b,w,d] of [[u,v+D/2,W,.5],[u-W/2,v,.5,D],[u+W/2,v,.5,D]]){const c=this.P(a,b);addWall(c[0],c[1],w,d,this.ang,this.y0,this.y0+H)}
+    {const c=this.P(u,v);addWall(c[0],c[1],W+2,D+2,this.ang,this.y0+H,this.y0+H+.5)}},
   // ---------- boarding queue ----------
   queueInit(){const mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}this.g.add(P.root);return P};
     // stanchions leading from the gate door to the stairs of the aircraft, people waiting in line

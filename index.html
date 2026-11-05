@@ -6098,7 +6098,10 @@ const HELI={
     const tx=sn*fwdIn*VF-cs*sideIn*VS,tz=cs*fwdIn*VF+sn*sideIn*VS,ty=upIn*VU;
     const idle=!fwdIn&&!sideIn,vk=1-Math.exp(-dt*(idle?7.5:5.5)),vy=1-Math.exp(-dt*7);
     this.velocity.x+=(tx-this.velocity.x)*vk;this.velocity.z+=(tz-this.velocity.z)*vk;this.velocity.y+=(ty-this.velocity.y)*vy;
-    this.root.position.addScaledVector(this.velocity,dt);
+    const from=this.root.position.clone(),delta=this.velocity.clone().multiplyScalar(dt),distance=delta.length(),steps=Math.max(1,Math.ceil(distance/.75)),safe=from.clone();
+    const blocked=p=>[-6,0,4.5].some(d=>insideAny(p.x+sn*d,p.z+cs*d,1.2,p.y-1.25));
+    for(let i=1;i<=steps;i++){const q=from.clone().addScaledVector(delta,i/steps);if(blocked(q)){this.velocity.x=0;this.velocity.z=0;break}safe.copy(q)}
+    this.root.position.copy(safe);
     const floor=groundAt(this.root.position.x,this.root.position.z,this.root.position.y)+1.25;
     if(this.root.position.y<floor){this.root.position.y=floor;this.velocity.y=Math.max(0,this.velocity.y)}
     // visual tilt from the velocity in the helicopter's own frame, plus a bank into turns
@@ -8325,7 +8328,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     d.x+=(Math.random()-.5)*W.spread;d.y+=(Math.random()-.5)*W.spread;d.z+=(Math.random()-.5)*W.spread;d.normalize();
     this.last.ax=d.x;this.last.az=d.z;this.last.ay2=d.y;
     const m=this.muzzle();if(W.rocket){FX.init();FX.launch()}else{this.sfx(W.auto?'uzi':this.w===1?'deagle':this.w===2?'magnum':'shot',1);this.muzzleFlash(m.x,m.y,m.z,d.x,d.y,d.z,this.w===1||this.w===2);this.rec=1;if(PLR._gs)PLR._gs.rec=1}
-    if(W.rocket){const nk=!!W.nuke,start=m.clone().addScaledVector(d,1.25),mesh=this.rocketMesh(nk);mesh.position.copy(start);mesh.lookAt(start.clone().add(d));this.rockets.push({p:start,d:d.clone(),t:0,nuke:nk,mesh,tp:0,W});
+    if(W.rocket){const nk=!!W.nuke,start=m.clone().addScaledVector(d,1.25),mesh=this.rocketMesh(nk),host=typeof PASS!=='undefined'&&PASS.host?PASS.hostObj(COOP.peers.get(PASS.host)):null,owner=typeof HELI!=='undefined'&&HELI.on?'heli-me':(host&&host.kind==='heli'?'heli-'+PASS.host:(typeof PLN!=='undefined'&&PLN.cur?'plane-'+PLN.cur.id:null));mesh.position.copy(start);mesh.lookAt(start.clone().add(d));this.rockets.push({p:start,d:d.clone(),t:0,nuke:nk,mesh,tp:0,W,owner});
       for(let q=0;q<5;q++)FX.puff({x:m.x-d.x*(.4+q*.35),y:m.y-d.y*(.4+q*.35),z:m.z-d.z*(.4+q*.35),vx:-d.x*(3+q),vy:.4,vz:-d.z*(3+q),s0:.5,s1:2.4,life:1.1,c0:[.9,.88,.82],c1:[.6,.58,.55],op:.55,add:false,drag:1.8,grow:1});
       FX.shakeT=.3;FX.shakeA=Math.max(FX.shakeA,.1);this.push();return}
     const wall=this.wallDist(o,d,90);const hit=this.raycast(o,d,Math.min(90,wall));
@@ -8340,7 +8343,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   detonate(){
     if(!this.c4.length)return;for(const c of this.c4)this.addBoom(c[0],c[1]+.2,c[2],7,100);this.c4=[];this.push()},
   addHit(to,dmg){this.hits.push([++this.seq,to,dmg]);if(this.hits.length>8)this.hits.shift()},
-  addBoom(x,y,z,r,dmg){if(typeof WAR!=='undefined')WAR.boom(x,y,z,r);const id=++this.seq;this.exs.push([id,Math.round(x*10)/10,Math.round(y*10)/10,Math.round(z*10)/10,r,dmg]);if(this.exs.length>5)this.exs.shift();this.boom(x,y,z,r);this.applyBoom(x,y,z,r,dmg,null,true);this.seen.set('me:'+id,1);if(typeof BR!=='undefined'&&BR.on)BR.boom(x,y,z,r,dmg)},
+  addBoom(x,y,z,r,dmg,ignoreId){if(typeof WAR!=='undefined')WAR.boom(x,y,z,r,ignoreId);const id=++this.seq;this.exs.push([id,Math.round(x*10)/10,Math.round(y*10)/10,Math.round(z*10)/10,r,dmg]);if(this.exs.length>5)this.exs.shift();this.boom(x,y,z,r);this.applyBoom(x,y,z,r,dmg,null,true);this.seen.set('me:'+id,1);if(typeof BR!=='undefined'&&BR.on)BR.boom(x,y,z,r,dmg)},
   // ---------- taking damage ----------
   applyBoom(x,y,z,r,dmg,by,mine){
     if(!this.armed||this.down)return;const d=Math.hypot(x-player.x,y-(player.y+1),z-player.z);if(d>r)return;
@@ -8400,12 +8403,12 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
         r.p.copy(from).addScaledVector(r.d,stride*j);
         if(r.p.y<groundH(r.p.x,r.p.z)+.1)hitT='wall';
         else if(insideAny(r.p.x,r.p.z,.1,r.p.y)){if(r.W&&r.W.drill){if(r.dr===undefined)r.dr=.3}else hitT='wall'}
-        else if(typeof WAR!=='undefined'&&WAR.airHit(r.p,.6))hitT='air';
+        else if(typeof WAR!=='undefined'&&WAR.airHit(r.p,.6,r.owner))hitT='air';
         else if(this.raycast(from.clone().addScaledVector(r.d,stride*(j-1)),r.d,stride+.05))hitT='player';
       }
       if(r.dr!==undefined){r.dr-=dt;if(r.dr<=0)hitT='wall'}
       this.rocketFx(r,dt);
-      if(hitT||r.t>(r.nuke?5:3)){this.rockets.splice(i,1);scene.remove(r.mesh);const W=r.W||WEAPONS[r.nuke?6:4];this.addBoom(r.p.x,r.p.y,r.p.z,r.nuke?24:(W.rad||7),W.dmg);this.push();continue}}
+      if(hitT||r.t>(r.nuke?5:3)){this.rockets.splice(i,1);scene.remove(r.mesh);const W=r.W||WEAPONS[r.nuke?6:4];this.addBoom(r.p.x,r.p.y,r.p.z,r.nuke?24:(W.rad||7),W.dmg,r.owner);this.push();continue}}
     // rockets fired by other players (only drawn)
     for(let i=this.remoteR.length-1;i>=0;i--){const r=this.remoteR[i];r.t+=dt;r.p.addScaledVector(r.d,(r.nuke?30:42)*dt);this.rocketFx(r,dt);
       if(r.t>5||r.p.y<groundH(r.p.x,r.p.z)+.1||insideAny(r.p.x,r.p.z,.1,r.p.y)){this.remoteR.splice(i,1);scene.remove(r.mesh)}}
@@ -8918,7 +8921,7 @@ class PeerHeli{
 }
 // a friend's light plane (parked or flying): the same Cri-Cri model, driven from the network through the interpolation buffer
 class PeerPlane{
-  constructor(){const B=PM.buildLight();this.root=B.root;this.parts=B.parts;this.seat=new THREE.Vector3(0,-.25,.32);this.root.rotation.order='YXZ';this.net=new NetSnaps();this.eng=0;scene.add(this.root)}
+  constructor(){const B=PM.buildLight();this.root=B.root;this.parts=B.parts;this.seat=new THREE.Vector3(0,-.25,.32);this.passengerSeat=new THREE.Vector3(0,-.25,-.72);this.root.userData.passengerSeat=this.passengerSeat;this.root.rotation.order='YXZ';this.net=new NetSnaps();this.eng=0;scene.add(this.root)}
   push(s){const a=s.pl;this.net.push({x:+a[0],y:+a[1],z:+a[2],yaw:+a[3]||0,p:+a[4]||0,r:+a[5]||0,th:+a[6]||0,en:+a[7]||0},s.ts)}
   update(dt){const q=this.net.update(dt);if(!q)return null;this.root.position.set(q.x,q.y,q.z);this.root.rotation.set(-q.p,q.yaw,q.r,'YXZ');   // same convention as Plane.sync: pitch > 0 = nose up
     const P=this.parts;this.eng+=((q.en>.5?1:0)-this.eng)*Math.min(1,dt*.8);
@@ -8961,23 +8964,24 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
   free(){return started&&!PORTAL.cur&&!DRIVE.on&&!HELI.on&&!MARINE.cur&&!EXT.cur&&!RIDE.on&&!player.sit&&!this.host&&!MP.on&&!PLN.cur},
   // what a friend is flying or driving that I could sit in: {root,kind,lv?} or null
   hostObj(R){if(!R||!R.st)return null;if(R.heli&&R.st.m==='heli')return {root:R.heli.root,kind:'heli'};
+    if(R.plane&&R.st.pl&&R.st.pl[8]===1)return {root:R.plane.root,kind:'plane'};
     if(R.xveh&&Array.isArray(R.st.xv)&&R.xveh.v.seats.length>1)return {root:R.xveh.v.root,kind:R.xveh.kind,lv:R.xveh.v};
     if(R.boat&&Array.isArray(R.st.wc)&&R.boat.craft.seats.length>1)return {root:R.boat.craft.root,kind:R.boat.type,lv:R.boat.craft};return null},
   // first free passenger seat (-1 = full); the helicopter has just the front seat, cars seat 1..n-1 (0 is the driver)
   // the free seat nearest to where I stand (seat 0 of a car, bike or boat is the driver's; the helicopter's single passenger seat is the front cockpit)
   freeSeat(R){const o=this.hostObj(R);if(!o)return -1;const taken=new Set();for(const P of COOP.peers.values())if(P!==R&&P.st&&P.st.pp===R.peer)taken.add(P.st.pi|0);
-    if(o.kind==='heli')return taken.has(0)?-1:0;
+    if(o.kind==='heli'||o.kind==='plane')return taken.has(0)?-1:0;
     const n=o.lv.seats.length,v=this._fv||(this._fv=new THREE.Vector3()),q=this._fq||(this._fq=new THREE.Quaternion());let best=-1,bd=1e9;
     for(let i=1;i<n;i++){if(taken.has(i))continue;o.lv.seatWorld(i,v,q);const d=Math.hypot(v.x-player.x,v.z-player.z);if(d<bd){bd=d;best=i}}return best},
   // a friend's helicopter or car close to me (and with a free seat)
   find(){if(!this.free())return null;let best=null,bd=9;for(const R of COOP.peers.values()){const o=this.hostObj(R);if(!o)continue;const p=o.root.position;
-      const d=Math.hypot(p.x-player.x,p.z-player.z),lim=o.kind==='heli'?9:6.5;if(d<Math.min(bd,lim)&&Math.abs(p.y-player.y)<6&&this.freeSeat(R)>=0){bd=d;best=R}}return best},
+      const d=Math.hypot(p.x-player.x,p.z-player.z),lim=o.kind==='heli'||o.kind==='plane'?9:6.5;if(d<Math.min(bd,lim)&&Math.abs(p.y-player.y)<6&&this.freeSeat(R)>=0){bd=d;best=R}}return best},
   // world position + orientation of seat idx in that vehicle
   seatXform(root,idx,p,q){const lv=root.userData&&root.userData.lv;if(lv){lv.seatWorld(idx||1,p,q);return p}
-    root.updateMatrixWorld();p.copy(HELI_SEAT).applyMatrix4(root.matrixWorld);q.copy(root.quaternion);return p},
+    root.updateMatrixWorld();p.copy(root.userData&&root.userData.passengerSeat||HELI_SEAT).applyMatrix4(root.matrixWorld);q.copy(root.quaternion);return p},
   board(R){if(!R||!this.free())return;const idx=this.freeSeat(R);if(idx<0){toast('No free seat','');return}
     this.host=R.peer;this.idx=idx;player.scoot=false;$('bScoot').classList.remove('on');cam.init=false;const o=this.hostObj(R);
-    toast('In '+((R.st&&R.st.n)||'your friend')+"'s "+(o&&o.lv?o.lv.spec.name:'helicopter'),'F to get out · they drive, you enjoy the ride');COOP.push(true)},
+    toast('In '+((R.st&&R.st.n)||'your friend')+"'s "+(o&&o.lv?o.lv.spec.name:o&&o.kind==='plane'?'plane':'helicopter'),'F to get out · they drive, you enjoy the ride');COOP.push(true)},
   // get out: beside the car, or drop next to the airframe (from the air you fall the rest of the way)
   leave(msg,force){if(!this.host)return;const R=COOP.peers.get(this.host),o=R&&this.hostObj(R),wet=!!o&&(o.kind==='boat'||o.kind==='jetski'||o.kind==='sub');
     // from a boat or a submarine you can only step off onto land (no popping out at sea) unless the driver is gone
@@ -8994,17 +8998,17 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
   ride(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o||!R.st.in){this.leave('Your driver stopped',true);return}
     this.seatXform(o.root,this.idx,this._v,this._q);player.x=this._v.x;player.y=this._v.y;player.z=this._v.z;player.yaw=o.root.rotation.y;player.spd=0;inp.jump=false;
     PLR.root.visible=o.kind!=='sub';PLR.root.position.copy(this._v);PLR.root.quaternion.copy(this._q);animPlayer(PLR,{spd:0,mode:o.lv?o.lv.seatPose(this.idx):'sit',role:'pass'},dt)},
-  stepCamera(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o)return;const heli=o.kind==='heli',p=o.root.position,yw=o.root.rotation.y,dist=Math.max(heli?9:6.4,cam.dist*(heli?2:1.2)),pitch=Math.max(.12,cam.pitch);
+  stepCamera(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o)return;const heli=o.kind==='heli'||o.kind==='plane',p=o.root.position,yw=o.root.rotation.y,dist=Math.max(heli?9:6.4,cam.dist*(heli?2:1.2)),pitch=Math.max(.12,cam.pitch);
     if(!freeLook())cam.yaw+=((yw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*1.5);
     const cp=Math.cos(pitch),sp=Math.sin(pitch),wx=p.x-Math.sin(cam.yaw)*cp*dist,wy=p.y+sp*dist+(heli?2:1.4),wz=p.z-Math.cos(cam.yaw)*cp*dist;
     if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*5);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x,p.y+(heli?1.4:1.1),p.z)},
   // the vehicle a passenger peer sits in, as seen here: mine while I fly or drive, or another friend's
-  hostRoot(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId){if(HELI.on)return HELI.root;if(MARINE.cur&&MARINE.cur.seats.length>1)return MARINE.cur.root;return EXT.cur&&EXT.cur.seats.length>1?EXT.cur.root:null}
+  hostRoot(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId){if(HELI.on)return HELI.root;if(PLN.cur&&PLN.cur.kind==='light')return PLN.cur.root;if(MARINE.cur&&MARINE.cur.seats.length>1)return MARINE.cur.root;return EXT.cur&&EXT.cur.seats.length>1?EXT.cur.root:null}
     const H=COOP.peers.get(s.pp),o=H&&this.hostObj(H);return o?o.root:null}
 };
 INTERACT.push({get x(){const o=PASS.cand&&PASS.hostObj(PASS.cand);return o?o.root.position.x:1e9},get z(){const o=PASS.cand&&PASS.hostObj(PASS.cand);return o?o.root.position.z:1e9},r:9,
-  get label(){const R=PASS.cand,o=R&&PASS.hostObj(R);return 'Ride with '+((R&&R.st&&R.st.n)||'your friend')+' ('+(o&&o.lv?o.lv.spec.name:'helicopter')+')'},cond:()=>!!(PASS.cand=PASS.find()),fn:()=>PASS.board(PASS.cand)});
+  get label(){const R=PASS.cand,o=R&&PASS.hostObj(R);return 'Ride with '+((R&&R.st&&R.st.n)||'your friend')+' ('+(o&&o.lv?o.lv.spec.name:o&&o.kind==='plane'?'plane':'helicopter')+')'},cond:()=>!!(PASS.cand=PASS.find()),fn:()=>PASS.board(PASS.cand)});
 
 // ===================== EXPANSION: income, offshore island, extra vehicles, coast spawn, tactical nuke =====================
 WALLET.earn=function(n){S.cash=this.get()+n;saveS()};
