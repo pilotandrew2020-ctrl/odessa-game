@@ -4197,6 +4197,7 @@ function initPeopleMeshes(scene,N){
   BUBBLES.init(scene);
 }
 const _eR=new THREE.Euler();
+function writePlacedNpcPart(mesh,idx,ox,oy,oz,rx,col,rz){_e.set(rx,0,rz||0);_q.setFromEuler(_e);_v.set(ox,oy,oz);_s.set(1,1,1);_m2.compose(_v,_q,_s);_m2.premultiply(_m);mesh.setMatrixAt(idx,_m2);if(col!==undefined)mesh.setColorAt(idx,linHex(col))}
 function placePeople(list){
   const P=NPC_P;let k=0,ks=0,kh=0,kc=0,kl=0;
   const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;const cap=P.torso.instanceMatrix.count;
@@ -4205,24 +4206,23 @@ function placePeople(list){
     if(Math.abs(n.x-cx)<1.0&&Math.abs(n.z-cz)<1.0&&cy-n.y<2.4&&cy-n.y>-.5)continue;   // never let an NPC fill the camera
     const ph=n.phase;const pose=n.pose||'walk';const amp=(pose==='walk'&&n.moving)?.5:0;
     _eR.set(n.tilt||0,n.yaw,0,'YXZ');_q.setFromEuler(_eR);_v.set(n.x,n.y,n.z);_s.set(n.sc,n.sc,n.sc);_m.compose(_v,_q,_s);   // tilt: knocked over (SHOVE)
-    const part=(mesh,idx,ox,oy,oz,rx,col,rz)=>{_e.set(rx,0,rz||0);_q.setFromEuler(_e);_v.set(ox,oy,oz);_s.set(1,1,1);_m2.compose(_v,_q,_s);_m2.premultiply(_m);mesh.setMatrixAt(idx,_m2);if(col!==undefined)mesh.setColorAt(idx,linHex(col))};
     const sit=pose==='sit';const hy=sit?.5:ND.hy;const bob=Math.abs(Math.cos(ph))*.035*amp*2;
-    part(P.hips,k,0,hy+bob,0,0,n.cP);
-    part(P.torso,k,0,hy+.07+bob,0,pose==='talk'?-.03:.03,n.cT);
+    writePlacedNpcPart(P.hips,k,0,hy+bob,0,0,n.cP);
+    writePlacedNpcPart(P.torso,k,0,hy+.07+bob,0,pose==='talk'?-.03:.03,n.cT);
     const hY=hy+.07+ND.torH+.05+bob;
-    part(P.head,k,0,hY,0,pose==='talk'?Math.sin(UNI.uTime.value*2+n.phase)*.08:0,n.cS);
-    if(n.scarf){part(P.scarf,kc,0,hY,0,0,n.cH);kc++}else{part(P.hair,kh,0,hY,0,0,n.cH);kh++;if(n.skirt||n.longH){part(P.hairL,kl,0,hY,0,0,n.cH);kl++}}
-    if(n.skirt){part(P.skirt,ks,0,hy+bob,0,0,n.cP);ks++}
+    writePlacedNpcPart(P.head,k,0,hY,0,pose==='talk'?Math.sin(UNI.uTime.value*2+n.phase)*.08:0,n.cS);
+    if(n.scarf){writePlacedNpcPart(P.scarf,kc,0,hY,0,0,n.cH);kc++}else{writePlacedNpcPart(P.hair,kh,0,hY,0,0,n.cH);kh++;if(n.skirt||n.longH){writePlacedNpcPart(P.hairL,kl,0,hY,0,0,n.cH);kl++}}
+    if(n.skirt){writePlacedNpcPart(P.skirt,ks,0,hy+bob,0,0,n.cP);ks++}
     for(let s=0;s<2;s++){const sg=s?1:-1,q=ph+(s?Math.PI:0);
-      if(sit){part(P.leg,k*2+s,sg*.1,hy,0,-1.5,n.cP);part(P.shoe,k*2+s,sg*.1,hy,0,-1.5,n.cF)}
-      else{part(P.leg,k*2+s,sg*.1,hy-.04+bob,0,-Math.sin(q)*amp,n.skirt?n.cS:n.cP);part(P.shoe,k*2+s,sg*.1,hy-.04+bob,0,-Math.sin(q)*amp,n.cF)}
+      if(sit){writePlacedNpcPart(P.leg,k*2+s,sg*.1,hy,0,-1.5,n.cP);writePlacedNpcPart(P.shoe,k*2+s,sg*.1,hy,0,-1.5,n.cF)}
+      else{writePlacedNpcPart(P.leg,k*2+s,sg*.1,hy-.04+bob,0,-Math.sin(q)*amp,n.skirt?n.cS:n.cP);writePlacedNpcPart(P.shoe,k*2+s,sg*.1,hy-.04+bob,0,-Math.sin(q)*amp,n.cF)}
       let ax=Math.sin(q)*amp*.8,az=sg*-.05;
       if(pose==='talk'&&s===(n.hand||0)){ax=-.6-.4*Math.max(0,Math.sin(UNI.uTime.value*3+n.phase));az=sg*-.2}
       if(sit)ax=-.4;
       if(n.react>0&&!n.fallT){ax=-2.6;az=sg*-.35}   // hands up after a shove
       if(n.basket&&s===1){ax=-.25;az=.05}
-      part(P.arm,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cT,az);
-      part(P.hand,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cS,az);
+      writePlacedNpcPart(P.arm,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cT,az);
+      writePlacedNpcPart(P.hand,k*2+s,sg*.285,hy+.07+ND.shY+bob,0,ax,n.cS,az);
     }
     k++;
   }
@@ -4488,11 +4488,13 @@ function writeCar(t,k,c){
   _cc.setHex(c.col);_cc.convertSRGBToLinear();t.mesh.setColorAt(k,_cc);
   let q=0;for(const sx of [-1,1])for(const wz of t.wz){_ce.set(c.roll||0,0,0);_cq.setFromEuler(_ce);_cv.set(sx*t.wx,t.wr,wz);_cm2.compose(_cv,_cq,_cs);_cm2.premultiply(_cm);t.wheels.setMatrixAt(k*4+q,_cm2);q++}
 }
-function placeCars(list){
-  const cnt=new Array(CAR_T.length).fill(0);
-  const all=PARKED_CACHE.concat(list);
-  for(const c of all){const t=CAR_T[c.type];if(cnt[c.type]>=t.cap)continue;writeCar(t,cnt[c.type],c);cnt[c.type]++}
-  CAR_T.forEach((t,i)=>{t.mesh.count=cnt[i];t.wheels.count=cnt[i]*4;t.mesh.instanceMatrix.needsUpdate=true;t.wheels.instanceMatrix.needsUpdate=true;if(t.mesh.instanceColor)t.mesh.instanceColor.needsUpdate=true});
+let CAR_FRAME_COUNTS=null;
+function queueCarInstance(c,cnt){if(!c)return;const i=c.type,t=CAR_T[i];if(!t||cnt[i]>=t.cap)return;writeCar(t,cnt[i],c);cnt[i]++}
+function queueCarList(list,cnt){if(!list)return;for(const c of list)queueCarInstance(c,cnt)}
+function placeCars(list,peerList,driven){
+  const cnt=CAR_FRAME_COUNTS||(CAR_FRAME_COUNTS=new Uint16Array(CAR_T.length));cnt.fill(0);
+  queueCarList(PARKED_CACHE,cnt);queueCarList(list,cnt);queueCarInstance(driven,cnt);queueCarList(peerList,cnt);
+  for(let i=0;i<CAR_T.length;i++){const t=CAR_T[i];t.mesh.count=cnt[i];t.wheels.count=cnt[i]*4;t.mesh.instanceMatrix.needsUpdate=true;t.wheels.instanceMatrix.needsUpdate=true;if(t.mesh.instanceColor)t.mesh.instanceColor.needsUpdate=true}
 }
 let PARKED_CACHE=[];
 function refreshParked(chunksMap,px,pz){
@@ -4663,8 +4665,9 @@ function updatePeds(dt,player,maxN){
     if((t.speak||0)%2===(t.hand||0)){BUBBLES.show(bi++,t.x,t.y+2.25,t.z,t.line);shownG.add(t.g)}}
   if(window.AUD)AUD.chatter(near.length?Math.hypot(near[0].x-player.x,near[0].z-player.z):99);
 }
+const CROWD_FRAME=[];
 function crowdList(){
-  const L=PEDS.concat(TALKERS);
+  const L=CROWD_FRAME;L.length=0;for(const p of PEDS)L.push(p);for(const t of TALKERS)L.push(t);
   if(CASHIER)L.push(Object.assign(CASHIER_P||(CASHIER_P=Object.assign(randPerson(),{skirt:true,scarf:false,cT:0x1f7a4a})),{x:CASHIER.x,z:CASHIER.z,y:CASHIER.y,yaw:CASHIER.yaw,pose:'stand',moving:false,phase:0}));
   if(curIndoor&&curIndoor.name==='opera'&&OPERA){if(!OPERA.aud){OPERA.aud=[];for(let i=0;i<46;i++){const s=OPERA.seats[Math.floor(Math.random()*OPERA.seats.length)];const p=OPERA.F.P(s[0],s[1]);
     OPERA.aud.push(Object.assign(randPerson(),{x:p[0],z:p[1],y:OPERA.y0+1.25,yaw:Math.atan2(OPERA.F.ca,OPERA.F.sa),pose:'sit',moving:false,phase:Math.random()*6}))}}
@@ -7508,7 +7511,7 @@ function loop(t){
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(AIRP.ready)AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
-    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars((DRIVE.car?CARS.concat([DRIVE.car]):CARS).concat(typeof COOP!=='undefined'?COOP.carList():[]));updateRoutePlates(scene,player);placePeople(crowdList());
+    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
@@ -7643,10 +7646,10 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
   // friends who drive: draw their car (the avatar alone was sitting in the air before)
-  carList(){const out=[];for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
-    R.drw={x:R.x,y:R.y,z:R.z,yaw:R.yaw};   // exactly where this car is drawn this frame: a passenger is seated from this, not from the newer network state
+  carList(){const out=this._carDraws||(this._carDraws=[]);out.length=0;for(const R of this.peers.values()){const s=R.st;if(!R.has||!s||!s.in||s.m!=='car'||(s.zn||'')!=='')continue;let h=0;for(const ch of R.peer)h=(h*31+ch.charCodeAt(0))>>>0;
+    const drw=R.drw||(R.drw={});drw.x=R.x;drw.y=R.y;drw.z=R.z;drw.yaw=R.yaw;   // exactly where this car is drawn this frame: a passenger is seated from this, not from the newer network state
     const ct=s.ct,okT=Array.isArray(ct)&&CAR_DEFS[ct[0]|0];   // the driver's own car (model and colour), not a stand-in
-    out.push({x:R.x,y:R.y,z:R.z,yaw:R.yaw,pitch:0,roll:0,type:okT?ct[0]|0:4,col:okT&&ct[1]?ct[1]|0:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6]})}return out},
+    const car=R._carDraw||(R._carDraw={});car.x=R.x;car.y=R.y;car.z=R.z;car.yaw=R.yaw;car.pitch=0;car.roll=0;car.type=okT?ct[0]|0:4;car.col=okT&&ct[1]?ct[1]|0:[0xc0262d,0x1f3f73,0xf4f4f2,0x2e5a3c,0xe0a526,0x1c1c1e][h%6];out.push(car)}return out},
   // ---------- local player outfit + spawn ----------
   onStart(){
     if(!this.onStart.done){this.onStart.done=true;
