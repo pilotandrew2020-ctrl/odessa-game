@@ -16,9 +16,11 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
   css(){if(document.getElementById('deepCss'))return;const s=document.createElement('style');s.id='deepCss';s.textContent=`
 #deepPad{position:fixed;right:16px;bottom:128px;z-index:34;display:none;flex-direction:row;gap:10px}
 #deepPad.on{display:flex}
-#deepPad.sub{left:50%;right:auto;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);gap:16px}
+#deepPad.sub{left:50%;right:auto;bottom:calc(88px + env(safe-area-inset-bottom));transform:translateX(-50%);gap:16px}
 #deepPad button{width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(10,40,60,.62);color:#fff;font:800 11px/1.1 var(--f-disp,inherit);letter-spacing:.06em;touch-action:none;-webkit-user-select:none;user-select:none}
-#deepPad.sub button{width:76px;height:76px;font-size:13px;background:rgba(10,40,60,.82)}
+#deepPad.touch{bottom:calc(88px + env(safe-area-inset-bottom));gap:14px}
+#deepPad.touch button{width:82px;height:82px;border:3px solid #e8f8ff;font-size:13px;background:rgba(0,42,66,.94);box-shadow:0 3px 14px rgba(0,0,0,.55)}
+#deepPad.sub button{width:88px;height:88px;border:3px solid #e8f8ff;font-size:14px;background:rgba(0,42,66,.94);box-shadow:0 3px 14px rgba(0,0,0,.55)}
 #deepPad button.hold{background:#f2c14e;color:#1b1204}
 #deepAir{position:fixed;right:18px;top:214px;z-index:34;width:140px;display:none;font:800 10px/1 var(--f-disp,inherit);letter-spacing:.12em;color:#cfeaff;text-transform:uppercase}
 #deepAir.on{display:block}
@@ -35,6 +37,7 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
   // what the controls say right now: +1 dive, -1 rise, 0 nothing (used by swim.js and by the submarine)
   vert(){const k=(typeof inp!=='undefined'&&inp.k)||{};const dn=this.dive||this.kd||0,up=this.rise||this.kq||k.Space||(typeof inp!=='undefined'&&inp.jump)?1:0;return (dn?1:0)-(up?1:0)},
   want(){return !!((typeof SWIM!=='undefined'&&SWIM._on)||(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind==='sub'))},
+  syncPadMode(){if(!this.pad)return;this.pad.classList.toggle('on',this.want());this.pad.classList.toggle('sub',!!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind==='sub'));this.pad.classList.toggle('touch',!!(typeof TOUCH!=='undefined'&&TOUCH))},
   // ---------- the sea floor ----------
   build(){if(this.built)return;this.built=true;const g=this.grp=new THREE.Group();g.visible=false;scene.add(g);
     const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r==null?.9:r,flatShading:true}),N=420;
@@ -80,7 +83,7 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
   // ---------- every frame ----------
   update(dt){const uw=typeof UW!=='undefined'&&UW.on;
     // controls and gauge
-    const want=this.want();this.dom();this.pad.classList.toggle('on',want);this.pad.classList.toggle('sub',!!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind==='sub'));
+    const want=this.want();this.dom();this.syncPadMode();
     if(typeof SWIM!=='undefined'&&SWIM._on&&SWIM.o2!==undefined){this.gauge.classList.toggle('on',SWIM.dep>.3||SWIM.o2<.98);const o=Math.max(0,Math.min(1,SWIM.o2));this.bar.style.transform='scaleX('+o+')';this.bar.style.background=o<.25?'linear-gradient(90deg,#ff5252,#ffab91)':''}
     else this.gauge.classList.remove('on');
     const show=uw&&started&&!PORTAL.cur;

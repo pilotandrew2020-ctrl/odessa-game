@@ -17,8 +17,8 @@ const LV_SEATS={
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
-const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
-const SUB_CRUSH=105;
+const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
+const SUB_CRUSH=150;
 const SUB_MODEL_LENGTH=18,SUB_MODEL_SCALE=SUB_MODEL_LENGTH/15;
 const SUB_FORWARD_Q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
 let SUB_MODEL_LOAD=null;
@@ -278,10 +278,16 @@ class LiteVehicle{
     const sa=str*s.steer/(1+Math.abs(this.v)*.07);this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);
     this.yaw+=this.v*Math.tan(this.steerA)/s.wb*dt;
     const fx=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
-    let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
+    const block=Math.abs(this.v)>.05&&(groundH(px,pz)>SL-.3||groundH(nx,nz)>SL-.3);
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
     // vertical motion: ballast tanks and dive planes. Slow to respond, faster when moving; the sea floor stops it, the surface catches it softly
-    const fl=Math.max(groundH(this.x,this.z)+2.5,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
+    const sx=Math.cos(this.yaw),sz=-Math.sin(this.yaw),reach=s.len*.46,side=s.r*.7;
+    let seabed=groundH(this.x,this.z);
+    seabed=Math.max(seabed,groundH(this.x+fx*reach,this.z+fz*reach),groundH(this.x-fx*reach,this.z-fz*reach));
+    seabed=Math.max(seabed,groundH(this.x+sx*side,this.z+sz*side),groundH(this.x-sx*side,this.z-sz*side));
+    seabed=Math.max(seabed,groundH(this.x+fx*reach+sx*side,this.z+fz*reach+sz*side),groundH(this.x+fx*reach-sx*side,this.z+fz*reach-sz*side));
+    seabed=Math.max(seabed,groundH(this.x-fx*reach+sx*side,this.z-fz*reach+sz*side),groundH(this.x-fx*reach-sx*side,this.z-fz*reach-sz*side));
+    const fl=Math.max(seabed+s.r+1,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
     const rate=up*(2.2+2.2*pl);this.vy+=(rate-this.vy)*Math.min(1,dt*(up?1.1:.9));
     if(this.vy>0&&this.y>top-1.4)this.vy*=Math.max(.25,(top-this.y)/1.4+.25);
     this.y+=this.vy*dt;if(this.y<fl){this.y=fl;if(this.vy<0)this.vy*=-.1}if(this.y>top){this.y=top;if(this.vy>0)this.vy=0}

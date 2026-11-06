@@ -510,7 +510,7 @@ function demAt(x,z){
   return .25*((a*(1-fx)+b*fx)*(1-fz)+(c*(1-fx)+d*fx)*fz);
 }
 function coastH(sd){
-  if(sd<0){const a=-sd;return SL+.25-Math.min(130,a*.12+a*a*.0017)}     // the seabed drops away: ~10 m at 50 m out, ~30 m at 100 m, 130 m deep from ~250 m (the shore-distance grid stops there), so a submarine can really dive
+  if(sd<0){const a=-sd;  return SL+.25-Math.min(190,a*.16+a*a*.0024)}     // the offshore basin deepens to about 190 m so the long submarine has room below its pressure limit
   return SL+.25+1.25*Math.min(sd,45)/45;
 }
 let FLAT=[];
@@ -7020,6 +7020,8 @@ function stepCamera(dt){
   if(PASS.host&&started)return PASS.stepCamera(dt);
   if(DRIVE.on&&started)return stepCarCamera(dt);
   if(RIDE.on&&started)return stepTramCamera(dt);
+  if(started&&SWIM.on&&SWIM.firstPerson){const ex=player.x+Math.sin(cam.yaw)*.08,ey=player.y+.72,ez=player.z+Math.cos(cam.yaw)*.08,cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+    PLR.root.visible=false;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;camera.position.set(ex,ey,ez);camera.lookAt(ex+Math.sin(cam.yaw)*cp,ey+sp,ez+Math.cos(cam.yaw)*cp);return}
   const tx=player.x,ty=player.y+(player.scoot?1.5:(player.sit?1.0:1.35)),tz=player.z;
   if(started&&!inp.dragging&&!TOUCH_LOOK.active&&Math.hypot(player.vx,player.vz)>1.2){let dy=player.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(player.scoot?1.6:.7))}
   const indoor=cam.dist;
@@ -7143,7 +7145,8 @@ function updateHUD(dt){
   if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='custom'?RIDE.tram.leaveLabel:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':RIDE.tram&&RIDE.tram.kind==='train'?'Get off the train':'Get off the tram',fn:leaveTram};
   if(PASS.host)best={label:'Get out',fn:()=>PASS.leave('Got out')};
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
-  if(EXT.cur)best=EXT.cur.kind==='sub'?(EXT.cur.cabinWalk?(EXT.aimSubLever()?{label:'Toggle floodlights',fn:()=>EXT.toggleSubLights()}:{label:'Return to pilot seat',fn:()=>EXT.toggleCabin()}):{label:'Walk inside cabin',fn:()=>EXT.toggleCabin()}):{label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
+  if(EXT.cur)best=EXT.cur.kind==='sub'?(EXT.cur.cabinWalk?(EXT.aimSubLever()?{label:'Toggle floodlights',fn:()=>EXT.toggleSubLights()}:{label:'Return to pilot seat',fn:()=>EXT.toggleCabin()}):{label:'Swim outside',fn:()=>EXT.toggleSpectator()}):{label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
+  if(SWIM.on&&!EXT.cur){const sub=EXT.nearestHatch();if(sub)best={label:'Enter submarine hatch',fn:()=>EXT.boardFromSwim(sub)}}
   best=MP.hudAction(best);
   if(PLN.cur)best={label:PLN.cur.kind==='light'?'Get out of the plane':'Get out of the fighter',fn:()=>PLN.leaveFighter()};
   curAct=best;const ab=$('bAct');if(best){ab.hidden=false;const sub=EXT.cur&&EXT.cur.kind==='sub',key=sub?(EXT.cur.cabinWalk?(EXT.aimSubLever()?'E':'B'):'B'):'E';ab.textContent=(TOUCH?'':key+' · ')+best.label}else ab.hidden=true;
@@ -7333,7 +7336,7 @@ function setupInput(){
     if(e.code==='KeyF'&&!HELI.on&&!e.repeat){if(EXT.cur&&EXT.cur.kind==='sub')EXT.exit();else if(!PASS.keyF()&&!MARINE.keyF())toggleScoot()}
     if(e.code==='KeyC')toggleCar();
     if(e.code==='KeyX'&&!e.repeat)SHOVE.act(true);
-    if(e.code==='KeyV'&&!e.repeat)HELI.toggle();
+    if(e.code==='KeyV'&&!e.repeat){if(EXT.cur&&EXT.cur.kind==='sub')EXT.toggleSpectator();else if(SWIM.on)EXT.spectatorAction();else HELI.toggle()}
     if(e.code==='KeyO'&&!e.repeat)CAMV.next();
     if(e.code==='KeyQ'&&!HELI.on&&!(EXT.cur&&EXT.cur.kind==='sub')&&(typeof SPK!=='undefined')&&SPK)SPK.toggleCarry();
     if(e.code==='KeyN'&&(typeof SPK!=='undefined')&&SPK)SPK.next();
@@ -9132,7 +9135,7 @@ function xbar(parent,a,b,th,mat){const A=new THREE.Vector3(...a),B=new THREE.Vec
 
 // ---------- drivable vehicles: G-Wagon, Lamborghini, bicycle, submarine — LiteVehicle / PeerLite live in vehicles.js ----------
 
-const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:null,jetBtn:null,seaT:0,_subNdc:new THREE.Vector2(),_subRay:new THREE.Raycaster(),_subHits:[],_subPlayerPos:new THREE.Vector3(),_subCameraPos:new THREE.Vector3(),
+const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:null,jetBtn:null,seaT:0,_subNdc:new THREE.Vector2(),_subRay:new THREE.Raycaster(),_subHits:[],_subPlayerPos:new THREE.Vector3(),_subCameraPos:new THREE.Vector3(),_subHatch:new THREE.Vector3(),_subExit:new THREE.Vector3(),
   // ----- fragments (crash fracture + exploding craft) -----
   shatter(x,y,z,n,cols,spd,dx,dz){
     if(!this.debris){const g=new THREE.BoxGeometry(1,1,1);this.debris=[];for(let i=0;i<60;i++){const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({roughness:.6,metalness:.4}));m.visible=false;m.castShadow=true;scene.add(m);this.debris.push({m,v:new THREE.Vector3(),w:new THREE.Vector3(),t:0,on:false})}}
@@ -9167,6 +9170,24 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     v.cabinWalk=!v.cabinWalk;v.setCabinView(v.cabinWalk);v.cabinLastYaw=v.yaw;cam.yaw=v.yaw+(v.cabinWalk?Math.PI:0);cam.pitch=-.12;cam.init=false;
     if(v.cabinWalk){v.cabinPos=[0,-.4,-7.75];PLR.root.visible=false;let r=$('subReticle');if(!r){r=document.createElement('i');r.id='subReticle';r.style.cssText='position:fixed;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 4px #001;transform:translate(-50%,-50%);z-index:20;pointer-events:none';document.body.appendChild(r)}toast('Submarine cabin','WASD / joystick to walk · look at the lever and press E · B return to pilot · F exit')}
     else{PLR.root.visible=true;toast('Pilot seat','W/S throttle · A/D steer · Q dive · E rise · B cabin · F exit')}},
+  nearHatch(v,range=3.8){if(!v||v.dead)return false;v.root.updateMatrixWorld(true);const p=this._subHatch.set(0,.5,9.3).applyMatrix4(v.body.matrixWorld);
+    return Math.hypot(player.x-p.x,player.y-p.y,player.z-p.z)<=range},
+  nearestHatch(range=3.8){let best=null,bd=range;for(const v of this.veh){if(v.kind!=='sub'||v.dead||!this.nearHatch(v,bd))continue;
+      const p=this._subHatch.set(0,.5,9.3).applyMatrix4(v.body.matrixWorld),d=Math.hypot(player.x-p.x,player.y-p.y,player.z-p.z);if(d<bd){bd=d;best=v}}return best},
+  boardFromSwim(v){if(!SWIM.on||!this.nearHatch(v)){toast('Find the submarine hatch','swim to the stern access point');return}
+    SWIM.end();this.enter(v);DEEP.syncPadMode()},
+  toggleSpectator(){const v=this.cur;if(!v||v.kind!=='sub')return;
+    v.setCabinView(false);this.leave(v);v.cabinWalk=false;v.root.updateMatrixWorld(true);
+    const hatch=this._subHatch.set(0,.5,9.3).applyMatrix4(v.body.matrixWorld),p=this._subExit.set(0,.5,15).applyMatrix4(v.body.matrixWorld),c=v.body.getWorldPosition(this._subPlayerPos);
+    player.x=p.x;player.z=p.z;player.y=Math.min(SL-1.1,v.y+.4);player.vx=player.vz=0;player.vy=0;player.air=false;player.yaw=Math.atan2(hatch.x-p.x,hatch.z-p.z);cam.yaw=player.yaw;cam.pitch=0;cam.init=false;
+    SWIM.begin();SWIM.dep=Math.max(0,Math.min(SL-groundH(player.x,player.z)-.7,SL-.85-player.y));SWIM.firstPerson=true;PLR.root.visible=false;
+    DEEP.syncPadMode();
+    toast('Free swim','WASD / joystick to inspect the submarine · swim to the stern hatch to board')},
+  hullBlocksSwimmer(x,z,y){for(const v of this.veh){if(v.kind!=='sub'||v.dead||!v.modelLoaded)continue;v.root.updateMatrixWorld(true);
+      const p=v.body.worldToLocal(this._subPlayerPos.set(x,y+.9,z));if(Math.abs(p.x)<5.2&&p.y>-3.1&&p.y<3.1&&Math.abs(p.z)<9.2)return true}return false},
+  spectatorAction(){const v=this.nearestHatch();if(v){this.boardFromSwim(v);return}
+    SWIM.firstPerson=!SWIM.firstPerson;cam.dist=Math.max(cam.dist,5.5);cam.init=false;PLR.root.visible=!SWIM.firstPerson;
+    toast(SWIM.firstPerson?'First-person swim':'Third-person swim','V toggles the swimming view')},
   aimSubLever(){const v=this.cur;if(!v||!v.cabinWalk||!v.subLever)return false;camera.updateMatrixWorld(true);this._subRay.setFromCamera(this._subNdc,camera);
     this._subHits.length=0;this._subRay.intersectObject(v.subLever.root,true,this._subHits);return !!(this._subHits.length&&this._subHits[0].distance<2.8)},
   toggleSubLights(){const v=this.cur;if(!v||!this.aimSubLever())return;v.toggleSubLights();toast('Floodlights '+(v.lightsOn?'on':'off'),'')},
@@ -9211,7 +9232,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(!best){toast('No room here','move to an open street and try again');return}
     v.x=best[0];v.z=best[1];v.yaw=best[2];v.y=lvGround(v.x,v.z);v.halt();v.sync();toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1)+' ready','press E to get in')},
   addVehicle(kind,x,z,yaw){const v=new LiteVehicle(kind,x,z,yaw);v.home=[x,z,yaw];scene.add(v.root);this.veh.push(v);
-    INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot,fn:()=>EXT.enter(v)});return v},
+    INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot&&(kind!=='sub'||!SWIM.on||EXT.nearHatch(v)),fn:()=>kind==='sub'&&SWIM.on?EXT.boardFromSwim(v):EXT.enter(v)});return v},
   init(world){
     const ab=$('qMenu')||$('actBtns'),HI=p=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
     for(const [id,ic,tx,type] of [['bBoat',HI('<path d="M3 15h18l-2.6 4H5.6zM12 4v10M12 5l6 8h-6"/>'),'Boat','boat'],['bJet',HI('<path d="M3 18c3 2 6 2 9 0s6-2 9 0M5 14h9l2.5-3.5H20M16.5 10.5 15.5 7h2.4"/>'),'Jet ski','jetski']]){const b=document.createElement('button');b.id=id;b.innerHTML='<i>'+ic+'</i><b>'+tx+'</b>';b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}

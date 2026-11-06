@@ -22,7 +22,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_stairs`, `t_cabin`, `t_bomb` | aircraft stairs, airliner cabin and cockpit, helicopter bomb |
 | `t_kit1`, `t_kit2`, `t_kit4`, `t_kit6`, `t_kit8`, `t_kit9` | hands-on kitchen: fridge, kettle to tea, hand washing (house, bathroom, Soviet flat), omelette, dishes, sleep |
 | `t_tv`, `t_svtv` | TV film and news (island house, Soviet flat) |
-| `t_dive`, `t_sub`, `t_jobs`, `t_island`, `t_interiors`, `t_jump` | diving and the sea floor, submarine, fishing and coins, the big island, all interiors, head bump |
+| `t_dive`, `t_sub`, `t_jobs`, `t_island`, `t_interiors`, `t_jump` | diving and the sea floor, submarine depth / seabed clearance / swim-out hatch, fishing and coins, the big island, all interiors, head bump |
 | `t_pwa` | PWA manifest, original icons (180, 192, 512), viewport-fit & iPad standalone meta tags |
 | `t_spray` | Jet ski & boat water spray/foam particle cap (180 mobile / 450 desktop) and emissions |
 | `t_jetrace` | "Jet Ski Rider" race mode: buoy gates, combo multiplier, ramps, air jump, nitro boost, exit/retry |

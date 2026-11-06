@@ -30,9 +30,20 @@ exports.run = async (page, h) => {
   if (!lightsOn) throw new Error('E should activate the spotlights from the aimed cabin lever');
   await page.keyboard.press('b'); await h.wait(300);
   if (await ev(() => EXT.cur.cabinWalk || EXT.cur.subCabin.visible)) throw new Error('B should return to the pilot seat');
+  await page.keyboard.press('v'); await h.wait(1000);
+  const spectator = await ev(() => {const v=EXT.veh.find(v=>v.kind==='sub');return {aboard:!!EXT.cur,swimming:SWIM.on,firstPerson:SWIM.firstPerson,cameraUnderwater:camera.position.y<SL,start:Math.hypot(player.x-v.x,player.z-v.z),pad:document.querySelector('#deepPad').className,touchButton:getComputedStyle(document.querySelector('#deepPad button')).width}});
+  console.log('spectator swim', JSON.stringify(spectator));
+  if (spectator.aboard || !spectator.swimming || !spectator.firstPerson || !spectator.cameraUnderwater) throw new Error('V should leave the submarine into first-person swimming');
+  if (process.env.IPAD && (!spectator.pad.includes('touch') || spectator.touchButton!=='82px')) throw new Error('The iPad swim controls should use larger touch buttons');
+  await h.shot('sub_spectator', 500);
+  await page.keyboard.down('w'); await h.wait(5500); await page.keyboard.up('w');
+  const swimMove=await ev(() => {const v=EXT.veh.find(v=>v.kind==='sub'),p=v.body.worldToLocal(new THREE.Vector3(player.x,player.y,player.z));return {distance:Math.hypot(player.x-v.x,player.z-v.z),local:p.toArray(),hatch:EXT.nearHatch(v),swimming:SWIM._on}});
+  if(swimMove.distance>spectator.start-1||!swimMove.hatch)throw new Error('W should let the player swim toward and reach the submarine hatch');
+  await page.keyboard.press('v'); await h.wait(500);
+  if (await ev(() => !EXT.cur || SWIM._on)) throw new Error('V at the submarine stern hatch should board the submarine again');
   await h.wait(500);
   // carry the submarine to open deep water (the shelf next to the quay is shallow)
-  const sea = await ev(() => { const pl = PLACES.find(p => p.id === 'arcadia'); for (let r = 150; r < 3000; r += 40) for (let a = 0; a < 6.283; a += .1) { const x = pl.x + Math.cos(a) * r, z = pl.z + Math.sin(a) * r; if (SL - groundH(x, z) > 115 && [8,15].every(d => SL - groundH(x + d, z) > 115 && SL - groundH(x - d, z) > 115 && SL - groundH(x, z + d) > 115 && SL - groundH(x, z - d) > 115)) return { x, z } } return null });
+  const sea = await ev(() => { const pl = PLACES.find(p => p.id === 'arcadia'); for (let r = 150; r < 3000; r += 40) for (let a = 0; a < 6.283; a += .1) { const x = pl.x + Math.cos(a) * r, z = pl.z + Math.sin(a) * r; if (SL - groundH(x, z) > 175 && [8,15].every(d => SL - groundH(x + d, z) > 175 && SL - groundH(x - d, z) > 175 && SL - groundH(x, z + d) > 175 && SL - groundH(x, z - d) > 175)) return { x, z } } return null });
   if (!sea) throw new Error('No deep-water test location found');
   await ev((s) => { EXT.cur.x = s.x; EXT.cur.z = s.z; EXT.cur.yaw = 0; EXT.cur.sync() }, sea); await h.wait(1500);
   const forward = await ev(() => { const v=EXT.cur,old={x:v.x,z:v.z,yaw:v.yaw,v:v.v,vy:v.vy};v.v=0;v.vy=0;v.yaw=0;v.stepSub(.05,1,0,0);const dz=v.z-old.z;Object.assign(v,old);v.sync();return dz });
@@ -41,8 +52,9 @@ exports.run = async (page, h) => {
   const startDepth = await ev(() => SL - EXT.cur.y);
   await page.keyboard.down('q'); await h.wait(1000);
   await h.wait(8000); await page.keyboard.up('q');
-  console.log('dived', JSON.stringify(await ev((d) => ({ startDepth: +d.toFixed(1), depth: +(SL - EXT.cur.y).toFixed(1), uw: UW.on, deepOn: DEEP.on, rocks: DEEP.rock && DEEP.rock.count, fish: DEEP.fishM && DEEP.fishM.count, pad: document.getElementById('deepPad').className, kelp: DEEP.kelp && DEEP.kelp.count }), startDepth)));
+  console.log('dived', JSON.stringify(await ev((d) => {const pad=document.getElementById('deepPad'),button=pad.querySelector('button');return {startDepth:+d.toFixed(1),depth:+(SL-EXT.cur.y).toFixed(1),uw:UW.on,deepOn:DEEP.on,rocks:DEEP.rock&&DEEP.rock.count,fish:DEEP.fishM&&DEEP.fishM.count,pad:pad.className,padButton:getComputedStyle(button).width,padBottom:getComputedStyle(pad).bottom,kelp:DEEP.kelp&&DEEP.kelp.count}}, startDepth)));
   if (await ev(() => SL - EXT.cur.y) < startDepth + .3) throw new Error('Q should dive the submarine');
+  if (await ev(() => getComputedStyle(document.querySelector('#deepPad.sub button')).width) !== '88px') throw new Error('Submarine dive buttons should be 88px for touch controls');
   await ev(() => { EXT._testCamera = EXT.stepCamera; EXT.stepCamera = function(){ camera.position.set(this.cur.x+25,this.cur.y+8,this.cur.z); camera.lookAt(this.cur.x,this.cur.y+1,this.cur.z) } });
   console.log(await h.shot('sub_dive', 1500));
   await ev(() => { EXT.stepCamera = EXT._testCamera; delete EXT._testCamera });
@@ -50,9 +62,12 @@ exports.run = async (page, h) => {
   const risenDepth = await ev(() => SL - EXT.cur.y);
   console.log('risen', JSON.stringify({ depth: +risenDepth.toFixed(1), hullDamage: await ev(() => EXT.cur.dmg) }));
   if (risenDepth > 2) throw new Error('E should surface the submarine without triggering exit');
-  const pressureDamage = await ev(() => { const v=EXT.cur,scale=v.subModel.scale.y;v.y=SL-110;v.vy=0;for(let i=0;i<120;i++)v.step(.05,0,0,0,-1,false);return {dmg:v.dmg,scale:v.subModel.scale.y,scaleBefore:scale} });
+  const pressureDamage = await ev(() => { const v=EXT.cur,scale=v.subModel.scale.y;v.y=SL-(SUB_CRUSH+5);v.vy=0;for(let i=0;i<120;i++)v.step(.05,0,0,0,-1,false);return {dmg:v.dmg,scale:v.subModel.scale.y,scaleBefore:scale} });
   console.log('pressure damage', JSON.stringify(pressureDamage));
   if (pressureDamage.dmg <= 0 || pressureDamage.scale >= pressureDamage.scaleBefore) throw new Error('Deep pressure should damage and visibly compress the hull');
+  const bottomManeuver = await ev((p) => {const v=EXT.cur;v.repair();v.x=p.x;v.z=p.z;v.yaw=0;const b=SL-groundH(v.x,v.z),floor=groundH(v.x,v.z)+v.spec.r+1;v.y=floor+.1;v.v=0;v.vy=0;const z=v.z;for(let i=0;i<20;i++)v.stepSub(.05,1,0,-1);return {bottomDepth:SL-groundH(v.x,v.z),depth:SL-v.y,clearance:v.y-groundH(v.x,v.z),moved:Math.abs(v.z-z),floor:b}}, sea);
+  console.log('seabed clearance', JSON.stringify(bottomManeuver));
+  if(bottomManeuver.clearance<3.8||bottomManeuver.moved<.1)throw new Error('The Cyclops should move along the deep seabed without hull impacts');
   const repaired = await ev(() => { const v=EXT.cur;v.repair();return {dmg:v.dmg,scale:v.subModel.scale.y,expected:v.subModelScale} });
   if (repaired.dmg !== 0 || Math.abs(repaired.scale-repaired.expected)>1e-6) throw new Error('Repair should restore the submarine hull');
 };
