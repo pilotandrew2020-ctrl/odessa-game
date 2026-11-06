@@ -11,14 +11,14 @@ exports.run = async (page, h) => {
   await page.waitForFunction(() => EXT.cur && EXT.cur.modelLoaded, null, { timeout: 60000 });
   const model = await ev(() => { const v=EXT.cur,b=new THREE.Box3().setFromObject(v.subModel),meshes=[];v.body.updateMatrixWorld(true);let bridgeZ=0;v.subModel.traverse(o=>{if(o.isMesh){meshes.push(o);if(o.material.name==='Cyclops_Bride_C1')bridgeZ=v.body.worldToLocal(new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3())).z}});return { seats:v.seats.length, driverSeat:v.seats[0].p, spots:v.subSpots.length, size:b.getSize(new THREE.Vector3()).toArray(),bridgeZ, shadows:meshes.some(o=>o.castShadow||o.receiveShadow),fish:!!v.school.isInstancedMesh&&v.school.count, lightsOff:v.subSpots.every(o=>!o.visible), legacyHull:v.body.children.some(o=>o.isMesh&&!o.isInstancedMesh) } });
   console.log('model', JSON.stringify(model));
-  if (model.seats !== 2 || model.spots !== 2 || Math.abs(model.size[2] - 15) > .2 || model.bridgeZ > -6 || model.driverSeat[2] > -5.5 || model.shadows || model.fish !== 24 || !model.lightsOff || model.legacyHull) throw new Error('Cyclops orientation, pilot seat, shadows, fish, lights, or legacy hull are incorrect');
+  if (model.seats !== 2 || model.spots !== 2 || Math.abs(model.size[2] - 18) > .2 || model.bridgeZ > -7 || model.driverSeat[2] > -7.5 || model.shadows || model.fish !== 24 || !model.lightsOff || model.legacyHull) throw new Error('Cyclops orientation, pilot seat, shadows, fish, lights, or legacy hull are incorrect');
   const passenger = await ev(() => { const x=new PeerLite('sub'),R={peer:'n:cyclops',st:{xv:[3,0,0,0,0,0]},xveh:x};COOP.peers.set(R.peer,R);const seat=PASS.freeSeat(R),p=new THREE.Vector3();x.v.seatWorld(seat,p);COOP.peers.delete(R.peer);x.dispose();return {seat,position:p.toArray()} });
   console.log('co-op passenger seat', JSON.stringify(passenger));
   if (passenger.seat !== 1) throw new Error('A friend should be assigned the submarine passenger seat');
   await page.keyboard.press('b'); await h.wait(400);
   const walk = await ev(() => {const v=EXT.cur,parts=[];v.subModel.traverse(o=>{if(o.isMesh&&o.visible&&['Floor','Screen','Steering_Wheel'].includes(o.material.name))parts.push(o.material.name)});const f=new THREE.Vector3();camera.getWorldDirection(f);const eye=v.body.worldToLocal(camera.position.clone()),look=v.body.worldToLocal(camera.position.clone().add(f));f.copy(look).sub(eye);return{active:v.cabinWalk,hidden:!PLR.root.visible,interior:v.subCabin.visible&&parts.length>0,reticle:!!document.getElementById('subReticle'),cameraZ:eye.z,looksForward:f.z<-.9,seatZ:v.seats[0].p[2]}});
   console.log('cabin walk', JSON.stringify(walk));
-  if (!walk.active || !walk.hidden || !walk.interior || !walk.reticle || walk.cameraZ > -5.5 || !walk.looksForward) throw new Error('B should place the pilot inside the forward-facing bridge');
+  if (!walk.active || !walk.hidden || !walk.interior || !walk.reticle || walk.cameraZ > -7 || !walk.looksForward) throw new Error('B should place the pilot inside the forward-facing bridge');
   const z0 = await ev(() => EXT.cur.cabinPos[2]);
   await page.keyboard.down('w'); await h.wait(700); await page.keyboard.up('w');
   if (await ev(() => EXT.cur.cabinPos[2]) >= z0) throw new Error('W should move toward the Cyclops windshield');
@@ -35,7 +35,9 @@ exports.run = async (page, h) => {
   const sea = await ev(() => { const pl = PLACES.find(p => p.id === 'arcadia'); for (let r = 150; r < 3000; r += 40) for (let a = 0; a < 6.283; a += .1) { const x = pl.x + Math.cos(a) * r, z = pl.z + Math.sin(a) * r; if (SL - groundH(x, z) > 115 && [8,15].every(d => SL - groundH(x + d, z) > 115 && SL - groundH(x - d, z) > 115 && SL - groundH(x, z + d) > 115 && SL - groundH(x, z - d) > 115)) return { x, z } } return null });
   if (!sea) throw new Error('No deep-water test location found');
   await ev((s) => { EXT.cur.x = s.x; EXT.cur.z = s.z; EXT.cur.yaw = 0; EXT.cur.sync() }, sea); await h.wait(1500);
-  console.log('seabed depth', JSON.stringify(await ev(() => ({ center:SL-groundH(EXT.cur.x,EXT.cur.z), front:SL-groundH(EXT.cur.x,EXT.cur.z+7.5), back:SL-groundH(EXT.cur.x,EXT.cur.z-7.5) }))));
+  const forward = await ev(() => { const v=EXT.cur,old={x:v.x,z:v.z,yaw:v.yaw,v:v.v,vy:v.vy};v.v=0;v.vy=0;v.yaw=0;v.stepSub(.05,1,0,0);const dz=v.z-old.z;Object.assign(v,old);v.sync();return dz });
+  if (forward >= 0) throw new Error('Positive throttle should move the Cyclops windshield-first toward negative Z');
+  console.log('seabed depth', JSON.stringify(await ev(() => ({ center:SL-groundH(EXT.cur.x,EXT.cur.z), front:SL-groundH(EXT.cur.x,EXT.cur.z-9), back:SL-groundH(EXT.cur.x,EXT.cur.z+9) }))));
   const startDepth = await ev(() => SL - EXT.cur.y);
   await page.keyboard.down('q'); await h.wait(1000);
   await h.wait(8000); await page.keyboard.up('q');

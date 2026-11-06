@@ -14,11 +14,13 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  sub:[{p:[0,-.4,-5.9],pose:'sit'},{p:[-.65,-.4,-5.15],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
+  sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
 const SUB_CRUSH=105;
+const SUB_MODEL_LENGTH=18,SUB_MODEL_SCALE=SUB_MODEL_LENGTH/15;
+const SUB_FORWARD_Q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
 let SUB_MODEL_LOAD=null;
 function loadSubModel(){
   if(!SUB_MODEL_LOAD)SUB_MODEL_LOAD=new Promise((resolve,reject)=>new THREE.GLTFLoader().load('assets/models/cyclops_subnautica.glb',resolve,undefined,reject))
@@ -180,18 +182,18 @@ class LiteVehicle{
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
   buildSub(){this.cols=[0xf2c21b,0x23303a,0x66d9ff];
     const spot=(p,t,intensity,angle)=>{const l=new THREE.SpotLight(0xbdeeff,intensity,90,angle,.45,1.5),target=new THREE.Object3D();l.position.set(...p);target.position.set(...t);l.target=target;l.castShadow=false;this.body.add(l,target);return l};
-    this.subSpots=[spot([0,1.8,-6],[0,1.4,-32],3,.48),spot([0,.2,-2],[0,-14,-14],2.2,.62)];
+    this.subSpots=[spot([0,1.8,-6*SUB_MODEL_SCALE],[0,1.4,-32*SUB_MODEL_SCALE],3,.48),spot([0,.2,-2*SUB_MODEL_SCALE],[0,-14,-14*SUB_MODEL_SCALE],2.2,.62)];
     for(const s of this.subSpots)s.visible=false;
     this.lightsOn=false;
     const cabin=new THREE.Group(),wall=XM(0x30383d,.82,.16),floor=XM(0x3c454a,.78,.12);
-    cabin.rotation.y=Math.PI;
+    cabin.rotation.y=Math.PI;cabin.scale.setScalar(SUB_MODEL_SCALE);
     for(const [g,m,p] of [[new THREE.BoxGeometry(1.9,.12,3.2),floor,[0,-.55,5.2]],
       [new THREE.BoxGeometry(.12,1.8,3.2),wall,[-.95,.35,5.2]],
       [new THREE.BoxGeometry(.12,1.8,3.2),wall,[.95,.35,5.2]],
       [new THREE.BoxGeometry(1.9,1.8,.12),wall,[0,.35,3.6]]]){
       const o=new THREE.Mesh(g,m);o.position.set(...p);o.castShadow=false;o.receiveShadow=false;cabin.add(o)}
     cabin.visible=false;this.body.add(cabin);this.subCabin=cabin;
-    const lever=new THREE.Group();lever.position.set(.56,-.1,-5.65);this.body.add(lever);
+    const lever=new THREE.Group();lever.position.set(.56*SUB_MODEL_SCALE,-.1*SUB_MODEL_SCALE,-5.65*SUB_MODEL_SCALE);this.body.add(lever);
     const metal=XM(0x687782,.35,.8),grip=XM(0xe1b947,.32,.5),lamp=XM(0x18251e,.25,.1,{emissive:0x00d875,emissiveIntensity:0});
     const base=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.08,10),metal);base.position.y=-.13;lever.add(base);
     const arm=new THREE.Group();arm.position.y=-.09;lever.add(arm);
@@ -209,7 +211,7 @@ class LiteVehicle{
     loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;
       const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;m.rotation.y=Math.PI;fit.add(m);fit.updateMatrixWorld(true);
       const size=new THREE.Box3().setFromObject(fit).getSize(new THREE.Vector3());
-      this.subModelScale=15/size.z;fit.scale.setScalar(this.subModelScale);fit.updateMatrixWorld(true);
+      this.subModelScale=SUB_MODEL_LENGTH/size.z;fit.scale.setScalar(this.subModelScale);fit.updateMatrixWorld(true);
       const box=new THREE.Box3().setFromObject(fit),center=box.getCenter(new THREE.Vector3());
       fit.position.set(-center.x,-center.y,-center.z);
       m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
@@ -223,7 +225,7 @@ class LiteVehicle{
     if(this.school){const t=UNI.uTime.value,d=this.schoolDummy;for(let i=0;i<this.schoolData.length;i++){const f=this.schoolData[i],a=f.a+t*(.15+f.s*.12);d.position.set(Math.cos(a)*f.r,f.y+Math.sin(t*1.4+f.a)*.22,Math.sin(a)*f.r);d.rotation.set(0,a-Math.PI/2,Math.sin(t*2+f.a)*.08);d.scale.setScalar(f.s);d.updateMatrix();this.school.setMatrixAt(i,d.matrix)}this.school.instanceMatrix.needsUpdate=true}}
   halt(){this.v=0;this.vx=this.vz=0;this.steerA=0;this.brakeOn=false}
   // where seat i is in the world (root origin of the seated avatar) and which way it faces
-  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat){this.susp.getWorldQuaternion(quat);if(this.kind==='sub')quat.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI))}return out}
+  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat){this.susp.getWorldQuaternion(quat);if(this.kind==='sub')quat.multiply(SUB_FORWARD_Q)}return out}
   seatPose(i){return (this.seats[i]||this.seats[0]||{}).pose||'sit'}
 
   // ---------- physics ----------
@@ -263,7 +265,7 @@ class LiteVehicle{
       if(d<min){const ux=dx/(d||1),uz=dz/(d||1),closing=-(this.vx*ux+this.vz*uz);this.x+=ux*(min-d)*.6;this.z+=uz*(min-d)*.6;if(closing>2&&!hit){hit=true;other=o}}}
     if(hit){this.crash(spd,fx*sg,fz*sg);if(other)other.crash(spd*.6,-fx*sg,-fz*sg);this.vx*=-.25;this.vz*=-.25}
     else if(wet){this.vx*=-.2;this.vz*=-.2}
-    this.v=this.vx*Math.sin(this.yaw)+this.vz*Math.cos(this.yaw);
+    this.v=-(this.vx*Math.sin(this.yaw)+this.vz*Math.cos(this.yaw));
     // ride height and slope
     const hf=groundAt(this.x+fx*s.len*.4,this.z+fz*s.len*.4,this.y+.6),hb=groundAt(this.x-fx*s.len*.4,this.z-fz*s.len*.4,this.y+.6);
     this.y+=((hf+hb)/2-this.y)*Math.min(1,dt*14);this.pitch+=(-Math.atan((hf-hb)/(s.len*.8))-this.pitch)*Math.min(1,dt*8);
@@ -275,7 +277,7 @@ class LiteVehicle{
     this.v=Math.max(-s.max*.3,Math.min(s.max,this.v));
     const sa=str*s.steer/(1+Math.abs(this.v)*.07);this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);
     this.yaw+=this.v*Math.tan(this.steerA)/s.wb*dt;
-    const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
+    const fx=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
     let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
     // vertical motion: ballast tanks and dive planes. Slow to respond, faster when moving; the sea floor stops it, the surface catches it softly

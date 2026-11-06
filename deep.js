@@ -16,7 +16,9 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
   css(){if(document.getElementById('deepCss'))return;const s=document.createElement('style');s.id='deepCss';s.textContent=`
 #deepPad{position:fixed;right:16px;bottom:128px;z-index:34;display:none;flex-direction:row;gap:10px}
 #deepPad.on{display:flex}
+#deepPad.sub{left:50%;right:auto;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);gap:16px}
 #deepPad button{width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(10,40,60,.62);color:#fff;font:800 11px/1.1 var(--f-disp,inherit);letter-spacing:.06em;touch-action:none;-webkit-user-select:none;user-select:none}
+#deepPad.sub button{width:76px;height:76px;font-size:13px;background:rgba(10,40,60,.82)}
 #deepPad button.hold{background:#f2c14e;color:#1b1204}
 #deepAir{position:fixed;right:18px;top:214px;z-index:34;width:140px;display:none;font:800 10px/1 var(--f-disp,inherit);letter-spacing:.12em;color:#cfeaff;text-transform:uppercase}
 #deepAir.on{display:block}
@@ -78,7 +80,7 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
   // ---------- every frame ----------
   update(dt){const uw=typeof UW!=='undefined'&&UW.on;
     // controls and gauge
-    const want=this.want();this.dom();this.pad.classList.toggle('on',want);
+    const want=this.want();this.dom();this.pad.classList.toggle('on',want);this.pad.classList.toggle('sub',!!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind==='sub'));
     if(typeof SWIM!=='undefined'&&SWIM._on&&SWIM.o2!==undefined){this.gauge.classList.toggle('on',SWIM.dep>.3||SWIM.o2<.98);const o=Math.max(0,Math.min(1,SWIM.o2));this.bar.style.transform='scaleX('+o+')';this.bar.style.background=o<.25?'linear-gradient(90deg,#ff5252,#ffab91)':''}
     else this.gauge.classList.remove('on');
     const show=uw&&started&&!PORTAL.cur;
