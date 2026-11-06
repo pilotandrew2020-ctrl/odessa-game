@@ -46,9 +46,11 @@ if (require.main === module) {
   (async () => {
     const script = require(path.resolve(process.argv[2]));
     const h = await launch(script.opts || {});
-    try { await script.run(h.page, h); } catch (e) { console.log('SCRIPT ERROR', e && e.stack || e); }
+    let failed = false;
+    try { await script.run(h.page, h); } catch (e) { failed = true; console.log('SCRIPT ERROR', e && e.stack || e); }
     console.log('--- console errors (' + h.errs.length + ') ---');
     [...new Set(h.errs)].slice(0, 40).forEach(e => console.log(e));
+    if (failed || h.errs.some(e => e.startsWith('PAGEERR '))) process.exitCode = 1;
     await h.browser.close();
   })();
 }

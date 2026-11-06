@@ -26,6 +26,9 @@ class Plane{
   groundY(){const g=groundH(this.x,this.z);return this.kind==='light'?Math.max(g,SL):g}      // the light plane lands on, floats on and takes off from the water: the sea surface is its ground
   bottom(){const g=this.gear;return -(g*(-this.d.gearY)+(1-g)*(this.kind==='airliner'?2.0:.8))}
   sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(-this.pitch,this.yaw,this.roll,'YXZ')}   // pitch > 0 = nose up; yaw > 0 = turning left (+x is left); roll > 0 = right wing down
+  validState(){const d=this.d,c=this.ctl;return !!(this.root&&d&&c&&Number.isFinite(d.len)&&Number.isFinite(d.span)&&Number.isFinite(d.vmax)&&Number.isFinite(d.vs)&&Number.isFinite(d.vr)&&Number.isFinite(d.gearY)&&Number.isFinite(this.x)&&Number.isFinite(this.y)&&Number.isFinite(this.z)&&Number.isFinite(this.yaw)&&Number.isFinite(this.pitch)&&Number.isFinite(this.roll)&&Number.isFinite(this.v)&&Number.isFinite(this.vy)&&Number.isFinite(this.thr)&&Number.isFinite(this.thrT)&&Number.isFinite(this.eng)&&Number.isFinite(this.gear)&&Number.isFinite(this.gearT)&&Number.isFinite(this.flaps)&&Number.isFinite(c.p)&&Number.isFinite(c.r)&&Number.isFinite(c.y))}
+  recoverState(){this.ctl=this.ctl||{p:0,r:0,y:0};const h=this.home||{},x=Number.isFinite(h.x)?h.x:(Number.isFinite(this.x)?this.x:0),z=Number.isFinite(h.z)?h.z:(Number.isFinite(this.z)?this.z:0),yaw=Number.isFinite(h.yaw)?h.yaw:(Number.isFinite(this.yaw)?this.yaw:0),gy=groundH(x,z),gearY=this.d&&Number.isFinite(this.d.gearY)?this.d.gearY:1;
+    this.x=x;this.z=z;this.yaw=yaw;this.y=Number.isFinite(gy)?gy-gearY:0;this.pitch=this.roll=this.v=this.vy=this.thr=this.thrT=this.eng=0;this.gear=this.gearT=1;this.flaps=0;this.ctl.p=this.ctl.r=this.ctl.y=0;this.onGround=true;this.onWater=false;this.crashed=false;this.manual=false;this.hold=false;this.engOn=false;this.parking=true;this.mode='parked';this.sync();if(PLN.cur===this){PLN.cur=null;PLN.hudShow(false)}console.error('[plane] invalid flight state recovered',this.id)}
   // ---------- inputs → controls ----------
   readInput(){const k=inp.k,c=this.ctl;
     // EASY (default): up is up: W / arrow up / joystick up = climb. PILOT style (Menu -> Flight): S / stick back = nose up, W / stick forward = dive.
@@ -36,7 +39,7 @@ class Plane{
     const td=((k.ShiftLeft||k.ShiftRight||k.Equal||k.NumpadAdd)?1:0)-((k.ControlLeft||k.ControlRight||k.Minus||k.NumpadSubtract)?1:0);if(td)this.thrT=Math.max(0,Math.min(1,this.thrT+td*(1/(this.kind==='airliner'?4:2.5))*(this._dt||.016)));
     this.brake=(!!k.Space&&this.kind==='airliner')||this.parking}
   // ---------- flight model ----------
-  fly(dt){const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;this.onWater=lt&&groundH(this.x,this.z)<SL-.05;
+  fly(dt){dt=Number.isFinite(dt)?Math.max(.001,Math.min(.05,dt)):.016;if(!this.validState()){this.recoverState();return}const D=this.d,fl=this.kind==='airliner',lt=this.kind==='light',c=this.ctl;this._dt=dt;this.onWater=lt&&groundH(this.x,this.z)<SL-.05;
     if(this.manual)this.readInput();else if(!this.hold){c.p=c.r=c.y=0}
     // hold mode: simple autopilot on heading, altitude and speed
     if(this.hold&&!this.onGround){let dh=this.hdgT-this.yaw;while(dh>Math.PI)dh-=6.283;while(dh<-Math.PI)dh+=6.283;const rT=-Math.max(-.42,Math.min(.42,dh*1.4));c.r=Math.max(-1,Math.min(1,(rT-this.roll)*3));
@@ -85,11 +88,13 @@ class Plane{
     if(lt&&this.onGround&&this.v>.3&&this.groundBlocked()){this.x=ox;this.z=oz;if(this.v>4&&this.manual)toast('Blocked','something is in the way: reverse is not possible, turn or brake');this.v=0}
     if(this.onGround&&this.v>.5){const gy=this.groundY();this.y+=(gy-this.bottom()-this.y)*Math.min(1,dt*10)}
     // never below the sea
-    if(this.y+this.bottom()<SL-.2){this.crash('went into the sea');return}}
+    if(this.y+this.bottom()<SL-.2){this.crash('went into the sea');return}
+    if(!this.validState())this.recoverState()}
   // taxiing: nose, tail and wing tips must not be inside a building or a wall (the light plane drives on streets and fields)
-  groundBlocked(){const f=[Math.sin(this.yaw),Math.cos(this.yaw)],l=[Math.cos(this.yaw),-Math.sin(this.yaw)];for(const [a,b] of [[2.9,0],[-2.8,0],[0,3.5],[0,-3.5]]){if(insideAny(this.x+f[0]*a+l[0]*b,this.z+f[1]*a+l[1]*b,.8,this.y))return true}return false}
-  hits(){const L=this.d.len*.45,W=this.d.span*.45,f=[Math.sin(this.yaw),Math.cos(this.yaw)],l=[Math.cos(this.yaw),-Math.sin(this.yaw)];
-    for(const [a,b] of [[L,0],[-L,0],[0,W],[0,-W],[0,0]]){const px=this.x+f[0]*a+l[0]*b,pz=this.z+f[1]*a+l[1]*b;if(insideAny(px,pz,1.5,this.y))return true}return false}
+  groundBlocked(){const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),lx=Math.cos(this.yaw),lz=-Math.sin(this.yaw),x=this.x,z=this.z,y=this.y;
+    return insideAny(x+fx*2.9,z+fz*2.9,.8,y)||insideAny(x-fx*2.8,z-fz*2.8,.8,y)||insideAny(x+lx*3.5,z+lz*3.5,.8,y)||insideAny(x-lx*3.5,z-lz*3.5,.8,y)}
+  hits(){const L=this.d.len*.45,W=this.d.span*.45,fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),lx=Math.cos(this.yaw),lz=-Math.sin(this.yaw),x=this.x,z=this.z,y=this.y;
+    return insideAny(x+fx*L,z+fz*L,1.5,y)||insideAny(x-fx*L,z-fz*L,1.5,y)||insideAny(x+lx*W,z+lz*W,1.5,y)||insideAny(x-lx*W,z-lz*W,1.5,y)||insideAny(x,z,1.5,y)}
   crash(why){if(this.crashed)return;this.crashed=true;this.dead=14;const p=this.root.position.clone();WAR.blowUp(p,80,[0xdddddd,0x2a4a78,0x555a60,0xe8b923],this.kind==='airliner'?14:9);
     this.root.visible=false;this.v=0;this.manual=false;PLN.onCrash(this,why)}
   // ---------- gears / surfaces / lights ----------
@@ -117,8 +122,8 @@ class Plane{
     if(this.kind==='airliner'){if(!this.onGround||this.v>=2)this.doorOpen=false;if(this.doorBox)this.doorBox.on=!this.doorOpen}
     if(this.stairs)this.stairs.visible=this.stairsOut&&this.onGround&&this.v<2&&(this.kind!=='airliner'||this.doorOpen)}
   // ---------- per-frame ----------
-  update(dt){if(this.crashed){this.dead-=dt;if(this.dead<=0&&this.home){this.park(this.home.x,this.home.z,this.home.yaw);this.engOn=false;this.eng=0;this.parking=true}return}
-    if(this.ai&&!this.manual&&!this.ai.off&&PLN.aiStep)PLN.aiStep(this,dt);else this.fly(dt);
+  update(dt){dt=Number.isFinite(dt)?Math.max(0,Math.min(.05,dt)):.016;if(this.crashed){this.dead-=dt;if(this.dead<=0&&this.home){this.park(this.home.x,this.home.z,this.home.yaw);this.engOn=false;this.eng=0;this.parking=true}return}
+    if(!this.validState()){this.recoverState();return}if(this.ai&&!this.manual&&!this.ai.off&&PLN.aiStep)PLN.aiStep(this,dt);else this.fly(dt);if(!this.validState()){this.recoverState();return}
     this.animate(dt);this.sync();
     if(this.btnDirty)PLN.refreshButtons(this)}
   // ---------- seats, cabin, cockpit ----------
@@ -199,6 +204,9 @@ class Plane{
 
 // ===================================================================================================
 const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:new THREE.Vector2(),down:null,camMode:'chase',tr:[],
+  _local:new THREE.Vector3(),_rayPoint:new THREE.Vector3(),_rayDir:new THREE.Vector3(),_shotEnd:new THREE.Vector3(),_targetDir:new THREE.Vector3(),_missileWant:new THREE.Vector3(),_missileLook:new THREE.Vector3(),_defaultEye:new THREE.Vector3(0,.62,2.75),_sitPose:{spd:0,mode:'sit'},
+  _missilePuff:{x:0,y:0,z:0,vx:0,vy:0,vz:0,s0:.5,s1:1.8,life:.8,c0:[1,.9,.7],c1:[.6,.6,.6],op:.5,add:false,drag:1,grow:1},
+  disposeProjectile(object){if(!object)return;if(object.parent)object.parent.remove(object);object.traverse(node=>{if(node.geometry)node.geometry.dispose();if(node.material){if(Array.isArray(node.material)){for(const m of node.material)m.dispose()}else node.material.dispose()}})},
   init(world){this.world=world;WAR.reg(()=>this.targets());this.hud();this.input();this.chipInit()},
   // a small button that appears beside a parked aircraft (or inside the airliner): take the boarding stairs / ladder away and bring them back
   chipInit(){const b=document.createElement('button');b.id='stairChip';b.hidden=true;b.style.cssText='position:absolute;left:50%;top:calc(132px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:8;padding:9px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.4);background:rgba(10,22,30,.84);color:#fff;font:800 12px system-ui;letter-spacing:.04em;touch-action:manipulation';
@@ -224,8 +232,8 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
     else{this.cur=p;p.manual=true;p.parking=false;p.brake=false;cam.init=false;PLR.root.visible=true;this.hudShow(true);
       if(p.kind==='light')toast('Light plane','⚙ Engines on the strip · THR + · hold '+((typeof S!=='undefined'&&S.flyPilot)?'S':'W / stick up')+' at about 90 km/h to lift off · lands on any flat ground · B = parking brake · E to get out')
       else toast('Fighter jet','click the glowing buttons (or the strip below) to start the engine · Space cannon · X bomb · V missile')}},
-  leaveFighter(){const p=this.cur;if(!p)return;if(!p.onGround||p.v>3){toast('Not now','land and stop first');return}
-    this.cur=null;p.manual=false;p.parking=true;p.thrT=0;const w=MP.toWorld({root:p.root},0,0,0,new THREE.Vector3());{const lo=p.kind==='light'?1.7:3.2,fo=p.kind==='light'?1.5:0;player.x=p.x+Math.cos(p.yaw)*lo+Math.sin(p.yaw)*fo;player.z=p.z-Math.sin(p.yaw)*lo+Math.cos(p.yaw)*fo}{const g=groundAt(player.x,player.z,p.y);player.y=(g<SL-1&&!specialGround(player.x,player.z,g+1))?SL-.2:g}player.vx=player.vz=0;player.yaw=p.yaw;PLR.root.visible=true;PLR.root.rotation.set(0,p.yaw,0,'XYZ');cam.init=false;this.hudShow(false)},
+  leaveFighter(){const p=this.cur;if(!p||!p.root||!PLR||!PLR.root)return;if(!p.onGround||p.v>3){toast('Not now','land and stop first');return}
+    this.cur=null;p.manual=false;p.parking=true;p.thrT=0;{const lo=p.kind==='light'?1.7:3.2,fo=p.kind==='light'?1.5:0;player.x=p.x+Math.cos(p.yaw)*lo+Math.sin(p.yaw)*fo;player.z=p.z-Math.sin(p.yaw)*lo+Math.cos(p.yaw)*fo}{const g=groundAt(player.x,player.z,p.y);player.y=(g<SL-1&&!specialGround(player.x,player.z,g+1))?SL-.2:g}player.vx=player.vz=0;player.yaw=p.yaw;PLR.root.visible=true;PLR.root.rotation.set(0,p.yaw,0,'XYZ');cam.init=false;this.hudShow(false)},
   onCrash(p,why){toast(p.kind==='airliner'?'The airliner crashed':(p.kind==='light'?'The plane crashed':'The fighter crashed'),'you '+why);
     if(this.cur===p){this.cur=null;this.hudShow(false)}
     if(MP.on&&MP.plat===p.plat){MP.exit(true,{x:p.x,z:p.z,y:Math.max(groundH(p.x,p.z),p.y)});player.air=true}
@@ -233,29 +241,30 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
   // the MP platform (airliner cabin) hook: helm seat → the player is the pilot
   platUpdate(p,dt,mp){const s=mp.seat,pilot=!!(s&&s.cockpit&&s.helm);if(pilot!==p.manual){p.manual=pilot;this.hudShow(pilot);if(pilot){if(p.ai)p.ai.off=true;p.parking=false;p.brake=false;cam.pitch=Math.max(cam.pitch,0);toast('Captain','click the overhead buttons: Battery · Fuel · Engine 1 · Engine 2 · then the throttle with Shift/R and the HUD strip')}else{p.hold=true;p.hdgT=p.yaw;p.altT=p.y;p.spdT=Math.max(p.v,p.d.vs*1.6);if(!p.onGround)toast('Autopilot holds the course','sit in the left seat to take over again')}}
 },
-  platCamera(p,dt,mp){const s=mp.seat;if(!(s&&s.cockpit&&s.helm))return false;
+  platCamera(p,dt,mp){if(!p||!p.root||!camera||!mp)return false;const s=mp.seat;if(!(s&&s.cockpit&&s.helm))return false;if(!p.validState()||!Number.isFinite(s.x)||!Number.isFinite(s.y)||!Number.isFinite(s.z)){p.recoverState();return false}
     if(this.camMode==='chase'){return this.chase(p,dt,true)}
-    const e=MP.toWorld(p.plat,s.x,s.y+1.12,s.z+.05,MP._v),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return true},
-  chase(p,dt,mp){const d=Math.max(p.d.len*1.0,cam.dist*(p.kind==='airliner'?8:4)),pit=Math.max(.05,cam.pitch*.6+.08),cp=Math.cos(pit),sp=Math.sin(pit);
+    const e=MP.toWorld(p.plat,s.x,s.y+1.12,s.z+.05,MP._v);if(!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.z))return this.chase(p,dt,true);if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return true},
+  chase(p,dt,mp){if(!p||!p.root||!p.validState()||!camera)return false;if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;if(!Number.isFinite(cam.dist))cam.dist=8;if(!Number.isFinite(cam.x)||!Number.isFinite(cam.y)||!Number.isFinite(cam.z))cam.init=false;
+    const d=Math.max(p.d.len*1.0,cam.dist*(p.kind==='airliner'?8:4)),pit=Math.max(.05,cam.pitch*.6+.08),cp=Math.cos(pit),sp=Math.sin(pit);
     if(!freeLook()){let dy=p.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*1.6)}
     const wx=p.x-Math.sin(cam.yaw)*cp*d,wy=p.y+sp*d+(p.kind==='airliner'?4:2),wz=p.z-Math.cos(cam.yaw)*cp*d;const gy=groundH(wx,wz)+2;if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const k=Math.min(1,dt*5);cam.x+=(wx-cam.x)*k;cam.y+=(Math.max(wy,gy)-cam.y)*k;cam.z+=(wz-cam.z)*k;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x+Math.sin(p.yaw)*4,p.y+1.5,p.z+Math.cos(p.yaw)*4);PLR.root.visible=!mp&&this.camMode!=='cockpit';return true},
-  stepCamera(dt){const p=this.cur;if(!p)return;
-    if(this.camMode==='cockpit'){const e=p.root.localToWorld((p.eyeLocal||new THREE.Vector3(0,.62,2.75)).clone()),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);
+  stepCamera(dt){const p=this.cur;if(!p||!p.root||!camera)return;if(!p.validState()){p.recoverState();return}
+    if(this.camMode==='cockpit'){if(!Number.isFinite(cam.yaw))cam.yaw=p.yaw;if(!Number.isFinite(cam.pitch))cam.pitch=0;const eye=p.eyeLocal||this._defaultEye;if(!Number.isFinite(eye.x)||!Number.isFinite(eye.y)||!Number.isFinite(eye.z))return this.chase(p,dt,false);const e=p.root.localToWorld(this._local.copy(eye));if(!Number.isFinite(e.x)||!Number.isFinite(e.y)||!Number.isFinite(e.z))return this.chase(p,dt,false);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);PLR.root.visible=false;cam.x=e.x;cam.y=e.y;cam.z=e.z;cam.init=true;camera.position.copy(e);
       // look direction is relative to the aircraft: camera yaw follows it
       camera.lookAt(e.x+Math.sin(cam.yaw)*cp,e.y+sp,e.z+Math.cos(cam.yaw)*cp);return}
     this.chase(p,dt,false)},
   // the fighter pilot rides in the cockpit; the avatar is placed every frame
-  ridePilot(p,dt){const sp=p.seatLocal,w=p.root.localToWorld(sp.clone());player.x=w.x;player.y=w.y;player.z=w.z;player.yaw=p.yaw;player.vx=player.vz=0;player.spd=0;
-    PLR.root.position.copy(w);PLR.root.quaternion.copy(p.root.quaternion);animPlayer(PLR,{spd:0,mode:'sit'},dt)},
+  ridePilot(p,dt){if(!p||!p.root||!p.seatLocal||!PLR||!PLR.root)return;const w=p.root.localToWorld(this._local.copy(p.seatLocal));player.x=w.x;player.y=w.y;player.z=w.z;player.yaw=p.yaw;player.vx=player.vz=0;player.spd=0;
+    PLR.root.position.copy(w);PLR.root.quaternion.copy(p.root.quaternion);animPlayer(PLR,this._sitPose,dt)},
   update(dt){
-    for(const p of this.list){const d=Math.hypot(p.x-player.x,p.z-player.z);p.root.visible=!p.crashed&&(d<6000||p===this.cur||(MP.on&&MP.plat===p.plat));if(!p.root.visible&&!p.crashed&&p.mode!=='ai'&&!p.manual)continue;p.update(dt)}
+    for(const p of this.list){if(!p||!p.root)continue;const d=Math.hypot(p.x-player.x,p.z-player.z),airportParked=typeof AIRP!=='undefined'&&!AIRP.ready&&(p===AIRP.fighter||(p===AIRP.flight&&p.onGround));p.root.visible=!p.crashed&&!airportParked&&(d<6000||p===this.cur||(MP.on&&MP.plat===p.plat));if(!p.root.visible&&!p.crashed&&p.mode!=='ai'&&!p.manual)continue;p.update(dt)}
     const p=this.cur;if(p){this.ridePilot(p,dt);if(p.kind==='fighter')this.fighterFire(p,dt);this.hudUpdate(p)}
     else if(MP.on&&MP.plat&&MP.plat.plane&&MP.plat.plane.manual)this.hudUpdate(MP.plat.plane);
     // dropped bombs
-    for(let i=this.tr.length-1;i>=0;i--){const b=this.tr[i];if(b.custom){if(b.custom(dt))this.tr.splice(i,1);continue}b.t+=dt;b.vy-=9.81*dt;b.m.position.x+=b.vx*dt;b.m.position.y+=b.vy*dt;b.m.position.z+=b.vz*dt;b.m.rotation.x=Math.atan2(-b.vy,Math.hypot(b.vx,b.vz));
-      const q=b.m.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,1.5);if(q.y<=gy+.3||hit){scene.remove(b.m);this.tr.splice(i,1);GUN.addBoom(q.x,Math.max(gy,q.y),q.z,hit?22:20,130);GUN.push();FX.shakeT=.4;FX.shakeA=Math.max(FX.shakeA||0,.2)}}},
-  crewInit(p){if(p.crew)return;p.crew=1;const mk=()=>{const P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}p.root.add(P.root);return P};
+    for(let i=this.tr.length-1;i>=0;i--){const b=this.tr[i];if(!b){this.tr.splice(i,1);continue}if(b.custom){if(b.custom(dt))this.tr.splice(i,1);continue}if(!b.m){this.tr.splice(i,1);continue}b.t+=dt;b.vy-=9.81*dt;b.m.position.x+=b.vx*dt;b.m.position.y+=b.vy*dt;b.m.position.z+=b.vz*dt;b.m.rotation.x=Math.atan2(-b.vy,Math.hypot(b.vx,b.vz));
+      const q=b.m.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,1.5);if(q.y<=gy+.3||hit){this.disposeProjectile(b.m);this.tr.splice(i,1);GUN.addBoom(q.x,Math.max(gy,q.y),q.z,hit?22:20,130);GUN.push();FX.shakeT=.4;FX.shakeA=Math.max(FX.shakeA||0,.2)}}},
+  crewInit(p){if(p.crew)return;p.crew=1;const mk=()=>{const P=makePlayer(npcOpts());P.root.userData.airportCrew=true;P.root.traverse(m=>{if(m.isMesh){m.castShadow=false;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}p.root.add(P.root);return P};
     const fa=mk();fa.root.position.set(-.9,-.95,11.2);fa.root.rotation.y=Math.PI;p.fa=fa;
     const fo=mk();fo.root.position.set(p.copilotSeat.x,p.copilotSeat.y,p.copilotSeat.z);p.copilotSeat.who='npc';p.fo=fo;
     const cp=mk();cp.root.position.set(p.pilotSeat.x,p.pilotSeat.y,p.pilotSeat.z);p.cap=cp},
@@ -263,22 +272,22 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
       // while the captain's chair is free (nobody in it) the captain keeps the seat
     }},
   // ---------- fighter weapons ----------
-  fighterFire(p,dt){if(p.crashed)return;const k=inp.k;
-    if(k.Space&&p.fireCd<=0&&p.ammo>0&&p.eng>.3){p.fireCd=.045;p.ammo--;const o=p.root.localToWorld(new THREE.Vector3(0,.2,8)),d=new THREE.Vector3(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch));d.x+=(Math.random()-.5)*.012;d.y+=(Math.random()-.5)*.012;
-      let hit=null,T=0;for(let t=20;t<900;t+=12){const q=o.clone().addScaledVector(d,t);const gy=Math.max(groundH(q.x,q.z),SL);if(q.y<gy){hit=q;T=t;break}if(WAR.airHit(q,2.5)){hit=q;T=t;break}if(t<250&&insideAny(q.x,q.z,.5,q.y)){hit=q;T=t;break}}
-      const end=hit||o.clone().addScaledVector(d,900);GUN.tracer(o,end);if(hit){FX.init();FX.explode(hit.x,hit.y,hit.z,2.5);if(typeof FAUNA!=='undefined')FAUNA.boom(hit.x,hit.y,hit.z,4);const t=WAR.airHit(hit,2.5);if(t&&t.kill)t.kill(hit)}
+  fighterFire(p,dt){if(!p||p.crashed||!p.root||!inp||!inp.k)return;const k=inp.k;
+    if(k.Space&&p.fireCd<=0&&p.ammo>0&&p.eng>.3){p.fireCd=.045;p.ammo--;const o=p.root.localToWorld(this._local.set(0,.2,8)),d=this._rayDir.set(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch));d.x+=(Math.random()-.5)*.012;d.y+=(Math.random()-.5)*.012;
+      let hit=false;for(let t=20;t<900;t+=12){const q=this._rayPoint.copy(o).addScaledVector(d,t),gy=Math.max(groundH(q.x,q.z),SL);if(q.y<gy||WAR.airHit(q,2.5)||(t<250&&insideAny(q.x,q.z,.5,q.y))){hit=true;break}}
+      const end=hit?this._rayPoint:this._shotEnd.copy(o).addScaledVector(d,900);GUN.tracer(o,end);if(hit){FX.init();FX.explode(end.x,end.y,end.z,2.5);if(typeof FAUNA!=='undefined')FAUNA.boom(end.x,end.y,end.z,4);const t=WAR.airHit(end,2.5);if(t&&t.kill)t.kill(end)}
       if(GUN.sfx)GUN.sfx('uzi',.6)}
     if(k.KeyX&&!this._xd&&p.bombs>0){this._xd=true;p.bombs--;this.dropBomb(p)}if(!k.KeyX)this._xd=false;
     if(k.KeyV&&!this._vd&&p.msl>0){this._vd=true;p.msl--;this.missile(p)}if(!k.KeyV)this._vd=false},
-  dropBomb(p){const m=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,1.2,10),new THREE.MeshStandardMaterial({color:0x4f5a47,roughness:.5,metalness:.4}));const w=p.root.localToWorld(new THREE.Vector3(0,-.9,-1));m.position.copy(w);scene.add(m);
-    const f=new THREE.Vector3(Math.sin(p.yaw),0,Math.cos(p.yaw));this.tr.push({m,vx:f.x*p.v,vz:f.z*p.v,vy:p.vy,t:0});toast('Bomb away',p.bombs+' left')},
-  missile(p){const owner='plane-'+p.id,dir=new THREE.Vector3(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch));const o=p.root.localToWorld(new THREE.Vector3(p.msl%2?4.4:-4.4,-.6,-1));
+  dropBomb(p){if(!p||!p.root||p.crashed)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,1.2,10),new THREE.MeshStandardMaterial({color:0x4f5a47,roughness:.5,metalness:.4}));const w=p.root.localToWorld(this._local.set(0,-.9,-1));m.position.copy(w);scene.add(m);
+    const fx=Math.sin(p.yaw),fz=Math.cos(p.yaw);this.tr.push({m,vx:fx*p.v,vz:fz*p.v,vy:p.vy,t:0});toast('Bomb away',p.bombs+' left')},
+  missile(p){if(!p||!p.root||p.crashed)return;const owner='plane-'+p.id,dir=this._rayDir.set(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch)),o=p.root.localToWorld(this._local.set(p.msl%2?4.4:-4.4,-.6,-1));
     // a fast missile: flies straight (or homes on the nearest aircraft in front) and blows up on contact
     const m=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,2.2,8),new THREE.MeshStandardMaterial({color:0xe8e8e8,roughness:.4}));m.rotation.x=Math.PI/2;const g=new THREE.Group();g.add(m);g.position.copy(o);scene.add(g);
-    let tgt=null,bd=2500;for(const t of WAR.targets()){if(t.id==='plane-'+p.id)continue;const v=t.pos.clone().sub(o),d=v.length();if(d<bd&&v.normalize().dot(dir)>.8){bd=d;tgt=t}}
-    const vel=dir.clone().multiplyScalar(p.v+260),life=6;const upd=(dt)=>{};const rec={g,vel,tgt,t:0,fn:null};const step=(dt)=>{rec.t+=dt;if(rec.tgt){const want=rec.tgt.pos.clone().sub(g.position).normalize();vel.lerp(want.multiplyScalar(vel.length()),Math.min(1,dt*2.5))}g.position.addScaledVector(vel,dt);g.lookAt(g.position.clone().add(vel));
-        FX.puff&&FX.puff({x:g.position.x,y:g.position.y,z:g.position.z,vx:0,vy:0,vz:0,s0:.5,s1:1.8,life:.8,c0:[1,.9,.7],c1:[.6,.6,.6],op:.5,add:false,drag:1,grow:1});
-        const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2,owner);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){scene.remove(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120,owner);GUN.push();return true}return false};
+    let tgt=null,bd=2500;for(const t of WAR.targets()){if(!t||!t.pos||t.id==='plane-'+p.id)continue;const v=this._targetDir.copy(t.pos).sub(o),d=v.length();if(d<bd&&v.normalize().dot(dir)>.8){bd=d;tgt=t}}
+    const vel=dir.clone().multiplyScalar(p.v+260),life=6,rec={g,vel,tgt,t:0,fn:null};const step=(dt)=>{rec.t+=dt;if(rec.tgt&&rec.tgt.pos){const want=this._missileWant.copy(rec.tgt.pos).sub(g.position).normalize().multiplyScalar(vel.length());vel.lerp(want,Math.min(1,dt*2.5))}g.position.addScaledVector(vel,dt);g.lookAt(this._missileLook.copy(g.position).add(vel));
+      if(FX.puff){const puff=this._missilePuff;puff.x=g.position.x;puff.y=g.position.y;puff.z=g.position.z;FX.puff(puff)}
+      const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2,owner);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){this.disposeProjectile(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120,owner);GUN.push();return true}return false};
     this.tr.push({m:g,vx:0,vy:0,vz:0,t:0,custom:step});toast('Missile away',p.msl+' left')},
   // ---------- cockpit buttons ----------
   input(){const cvs=()=>renderer&&renderer.domElement;

@@ -6,24 +6,41 @@
    • the scheduled airliner flies itself: pushback → taxi → take-off → a lap over the city (passes over the home area) → landing → taxi → boarding
    • spawn menu (More → Aircraft): airliner / fighter at the airport, call the yacht
    =================================================================================================== */
-const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],boards:[],flight:null,
+const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,world:null,ready:false,loading:false,loadStage:0,loadFns:null,forceLoad:false,farT:0,ai:null,queue:[],boards:[],flight:null,fighter:null,ownTextures:[],ownMaterials:[],
   get ca(){return Math.cos(this.ang)},get sa(){return Math.sin(this.ang)},
   P(u,v){return [this.C[0]+u*this.ca-v*this.sa,this.C[1]+u*this.sa+v*this.ca]},
   inv(x,z){const dx=x-this.C[0],dz=z-this.C[1];return [dx*this.ca+dz*this.sa,-dx*this.sa+dz*this.ca]},
   yawOf(du,dv){const x=du*this.ca-dv*this.sa,z=du*this.sa+dv*this.ca;return Math.atan2(x,z)},
   init(world){
-    const ang=this.ang,C=this.C,mid=this.P(0,90);
-    // level the ground (49 m everywhere already) and keep trees / generated buildings off the whole site
-    const h0=rawH(C[0],C[1]);addFlatRect(mid[0],mid[1],ang,1900,460,160,h0);addBlock(mid[0],mid[1],1900,440,ang);this.y0=h0;
-    const g=this.g=new THREE.Group();g.position.set(C[0],h0,C[1]);g.rotation.y=-ang;world.add(g);
-    this.mats();this.buildGround();this.buildTerminal();this.buildTower();this.buildHangar();this.buildLights();
-    PLACES.push({id:'airport',name:'Odesa Airport',sub:'terminal · runway · airliner · fighter jet',x:this.P(-20,215)[0],z:this.P(-20,215)[1],yaw:this.yawOf(0,-1)});try{MAP_MAJOR.add('airport')}catch(e){}
-    // aircraft: the scheduled airliner at stand A (nose to the terminal), a fighter on the apron
-    const sA=this.P(-20,140),yawA=this.yawOf(0,1);const A=PLN.add('airliner',sA[0],sA[1],yawA);A.mode='parked';A.ai={phase:'hold',t:0,T:75,s:0,path:null};A.parking=true;this.flight=A;
-    const sF=this.P(110,128);PLN.add('fighter',sF[0],sF[1],this.yawOf(0,1));
-    PLN.aiStep=(p,dt)=>this.aiStep(p,dt);
-    this.ready=true},
-  mats(){const S=MBM.std,po={polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2};const stripe=MBM.tex(64,64,(x,w,h)=>{x.fillStyle='#fff';x.fillRect(0,0,w,h)});
+    this.world=world;
+    if(!this.placeRegistered){const p=this.P(-20,215);PLACES.push({id:'airport',name:'Odesa Airport',sub:'terminal · runway · airliner · fighter jet',x:p[0],z:p[1],yaw:this.yawOf(0,-1)});try{MAP_MAJOR.add('airport')}catch(e){}this.placeRegistered=true}
+    PLN.aiStep=(p,dt)=>this.aiStep(p,dt)},
+  beginLoad(force){if(this.ready||this.loading||!this.world)return;this.loading=true;this.forceLoad=!!force;this.farT=0;this.loadStage=0;this.ownTextures=[];this.ownMaterials=[];this._blockEntries=[];this._wallEntries=[];this._specialEntries=[];this._circleEntries=[];
+    const ang=this.ang,C=this.C,mid=this.P(0,90),h0=rawH(C[0],C[1]);this.y0=h0;
+    addFlatRect(mid[0],mid[1],ang,1900,460,160,h0);addBlock(mid[0],mid[1],1900,440,ang);
+    const g=this.g=new THREE.Group();g.position.set(C[0],h0,C[1]);g.rotation.y=-ang;g.visible=true;this.world.add(g);
+    this.loadFns=[()=>{this.mats();this.buildGround()},()=>this.buildTerminal(),()=>this.buildTower(),()=>this.buildHangar(),()=>this.buildLights(),()=>this.buildPlanes()]},
+  loadStep(){if(!this.loading||!this.loadFns)return;try{const fn=this.loadFns[this.loadStage];if(fn)fn();this.loadStage++;
+      if(this.loadStage>=this.loadFns.length){this.loading=false;this.ready=true;this.forceLoad=false;this.loadFns=null;this.g.visible=true;if(this.flight)this.flight._gpuReleased=false;if(this.fighter)this.fighter._gpuReleased=false;
+        if(this.fighter&&this.fighter.root)this.fighter.root.visible=true;
+        if(this.pendingSpawn){const k=this.pendingSpawn;this.pendingSpawn=null;this.busy=false;this.spawn(k)}}
+    }catch(e){console.error('[airport] load stage '+this.loadStage,e);this.unload();this.busy=false;this.pendingSpawn=null;toast('Airport unavailable','the damaged area was skipped')}} ,
+  buildPlanes(){if(!this.flight){const sA=this.P(-20,140),yawA=this.yawOf(0,1),A=PLN.add('airliner',sA[0],sA[1],yawA);A.mode='parked';A.ai={phase:'hold',t:0,T:75,s:0,path:null};A.parking=true;this.flight=A}
+    if(!this.fighter){const sF=this.P(110,128);this.fighter=PLN.add('fighter',sF[0],sF[1],this.yawOf(0,1))}},
+  releasePlaneGPU(p){if(!p||!p.root||p._gpuReleased)return;const gs=new Set(),ms=new Set(),ts=new Set();const walk=o=>{if(o.userData&&o.userData.airportCrew)return;if(o.geometry&&!o.isSprite)gs.add(o.geometry);const list=Array.isArray(o.material)?o.material:o.material?[o.material]:[];for(const m of list){ms.add(m);for(const k of Object.keys(m)){const t=m[k];if(t&&t.isTexture)ts.add(t)}}for(const c of o.children)walk(c)};walk(p.root);for(const g of gs)g.dispose();for(const t of ts)t.dispose();for(const m of ms)m.dispose();p._gpuReleased=true},
+  unload(){const flightAtAirport=this.flight&&this.flight.onGround&&(PLN.cur===this.flight||(MP.on&&MP.plat===this.flight.plat)),fighterAtAirport=this.fighter&&this.fighter.onGround&&PLN.cur===this.fighter;if(flightAtAirport||fighterAtAirport)return false;
+    if(this.flight&&this.flight.onGround)this.releasePlaneGPU(this.flight);if(this.fighter)this.releasePlaneGPU(this.fighter);
+    const root=this.g,geometries=new Set();if(root){root.traverse(o=>{if(o.geometry&&!o.isSprite)geometries.add(o.geometry)});if(root.parent)root.parent.remove(root)}
+    for(const g of geometries)g.dispose();const materials=new Set(this.ownMaterials),textures=new Set(this.ownTextures);
+    for(const m of Object.values(this.M||{}))if(m&&m.isMaterial)materials.add(m);
+    for(const m of materials){for(const key of Object.keys(m)){const t=m[key];if(t&&t.isTexture)textures.add(t)}m.dispose()}
+    for(const t of textures)t.dispose();
+    FLAT=FLAT.filter(f=>f.owner!==this);for(let i=SPECIAL.length-1;i>=0;i--)if(SPECIAL[i].owner===this)SPECIAL.splice(i,1);for(let i=STATIC_WALLS.length-1;i>=0;i--)if(STATIC_WALLS[i].owner===this)STATIC_WALLS.splice(i,1);
+    for(let i=STATIC_BLOCK.length-6;i>=0;i-=6){for(const b of this._blockEntries||[])if(STATIC_BLOCK[i]===b[0]&&STATIC_BLOCK[i+1]===b[1]&&STATIC_BLOCK[i+2]===b[2]&&STATIC_BLOCK[i+3]===b[3]&&STATIC_BLOCK[i+4]===b[4]&&STATIC_BLOCK[i+5]===b[5]){STATIC_BLOCK.splice(i,6);break}}
+    for(let i=STATIC_CIR.length-3;i>=0;i-=3){for(const c of this._circleEntries||[])if(STATIC_CIR[i]===c[0]&&STATIC_CIR[i+1]===c[1]&&STATIC_CIR[i+2]===c[2]){STATIC_CIR.splice(i,3);break}}
+    this.ready=false;this.loading=false;this.forceLoad=false;this.loadFns=null;this.loadStage=0;this.g=null;this.M=null;this.boardMain=this.boardGate=this.sign=null;this.boards=[];this.ownTextures=[];this.ownMaterials=[];this._blockEntries=this._wallEntries=this._specialEntries=this._circleEntries=[];this.queue=[];this.queueMade=false;
+    if(this.fighter&&this.fighter.root)this.fighter.root.visible=false;return true},
+  mats(){const S=MBM.std,po={polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2};
     this.M={asphalt:S(0x3a3d41,.95,0,po),taxi:S(0x44474b,.95,0,po),apron:S(0x9a9c9e,.9,0,po),white:S(0xffffff,.8,0,po),yellow:S(0xe8c21a,.8,0,po),grass:S(0x4a6a38,1,0),conc:S(0xb8b6b0,.85,0),concD:S(0x8c8a84,.9,0),glass:MBM.glass(0x8fb8d0,.28),frame:S(0x2a2d31,.5,.5),roof:S(0xdfe3e6,.5,.3),wood:S(0x8a6a48,.8,0),
       desk:S(0x3a4a5a,.6,.2),deskT:S(0xe8e6e0,.6,0),blueL:MBM.emis(0x3060ff,1.2),greenL:MBM.emis(0x20e060,1.4),redL:MBM.emis(0xff3020,1.4),whiteL:MBM.emis(0xfff4dc,1.3),lamp:MBM.emis(0xfff0d0,.8),rope:S(0xc03030,.7),pole:S(0xc8ccd0,.3,.9),seat:S(0x2a4a78,.8),seatD:S(0x1b2f4f,.8),floor:S(0xc9c6bc,.35,.1),floorD:S(0x6b6e72,.5),tile:S(0xffffff,.35,.05,{map:MBM.tile('#d8d5cc','#c3c0b6')}),metal:S(0x8a9096,.4,.7),dark:S(0x18191c,.6,.3),plant:S(0x3f7a3a,.9),pot:S(0x8a5a3a,.8),sign:MBM.emis(0x2a7fd0,.9),tower:S(0xd8d6d0,.8),towerD:S(0x2a3038,.6,.3),orange:S(0xe85a1a,.7),wing:S(0xcfd2d4,.8)}},
   buildGround(){const mb=new MB(),y=.05,Y=y+.01;
@@ -40,7 +57,7 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     for(const u of [-80,-20,40,110,170])mb.bx('yellow',u-8,u+8,Y,Y+.01,150,150.4);
     mb.build(this.g,this.M,{static:true,noShadow:new Set(['grass','asphalt','taxi','apron','white','yellow'])});
     // runway numbers (canvas, flat)
-    const num=(t,u,rot)=>{const cv=document.createElement('canvas');cv.width=128;cv.height=256;const x=cv.getContext('2d');x.fillStyle='#fff';x.font='700 150px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(t,64,128);const tx=new THREE.CanvasTexture(cv);const m=new THREE.Mesh(new THREE.PlaneGeometry(10,20),new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,toneMapped:false}));m.rotation.x=-Math.PI/2;m.rotation.z=rot;m.position.set(u,.09,0);this.g.add(m)};
+    const num=(t,u,rot)=>{const cv=document.createElement('canvas');cv.width=128;cv.height=256;const x=cv.getContext('2d');x.fillStyle='#fff';x.font='700 150px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(t,64,128);const tx=new THREE.CanvasTexture(cv),mat=new THREE.MeshBasicMaterial({map:tx,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3,toneMapped:false}),m=new THREE.Mesh(new THREE.PlaneGeometry(10,20),mat);this.ownTextures.push(tx);this.ownMaterials.push(mat);m.rotation.x=-Math.PI/2;m.rotation.z=rot;m.position.set(u,.09,0);this.g.add(m)};
     num('16',-690,Math.PI/2*0+Math.PI/2);num('34',690,-Math.PI/2)},
   // runway / taxiway lights as instanced emissive points; they glow at night
   buildLights(){const mb=new MB();for(let u=-750;u<=750;u+=60)for(const v of [-24,24]){mb.sph('whiteL',.28,u,.3,v)}for(const v of [-18,-12,-6,0,6,12,18]){mb.sph('greenL',.3,-752,.3,v);mb.sph('redL',.3,752,.3,v)}
@@ -76,13 +93,13 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     this.boardMain=TRN2.makeBoard(30,12.4,'ODESA INTERNATIONAL · DEPARTURES',()=>this.rows());this.boardMain.mesh.position.set(0,FL+6.1,231.3);this.boardMain.mesh.rotation.y=Math.PI;g.add(this.boardMain.mesh);
     // a second board outside, above the gates, facing the apron
     this.boardGate=TRN2.makeBoard(14,6,'GATE INFORMATION',()=>this.rows());this.boardGate.mesh.position.set(-20,H-3.2,V0-.4);g.add(this.boardGate.mesh);
+    this.boards=[this.boardMain,this.boardGate];for(const b of this.boards){this.ownTextures.push(b.tex);b.mesh.traverse(o=>{if(o.material)this.ownMaterials.push(...(Array.isArray(o.material)?o.material:[o.material]))})}
     // signs
-    this.sign=labelSprite(['ODESA AIRPORT','ОДЕСА · ODS'],{w:MOBILE?512:1024,h:MOBILE?100:200,size:MOBILE?40:80,color:'#fff',bg:'rgba(10,30,70,.7)',round:MOBILE?15:30,scale:6});this.sign.position.set(0,H+5,V1);g.add(this.sign)},
+    this.sign=labelSprite(['ODESA AIRPORT','ОДЕСА · ODS'],{w:MOBILE?512:1024,h:MOBILE?100:200,size:MOBILE?40:80,color:'#fff',bg:'rgba(10,30,70,.7)',round:MOBILE?15:30,scale:6});this.sign.position.set(0,H+5,V1);g.add(this.sign);if(this.sign.material){this.ownMaterials.push(this.sign.material);if(this.sign.material.map)this.ownTextures.push(this.sign.material.map)}},
   buildTower(){const mb=new MB(),M=this.M,g=this.g,u=125,v=225;mb.cyl('tower',3.2,4.2,32,16,u,16,v);mb.cyl('towerD',5.4,5.4,.4,18,u,32.2,v);mb.cyl('towerD',5.8,5.8,.5,18,u,38.6,v);
     for(let i=0;i<12;i++){const a=i/12*6.283;mb.bx('glass',u+Math.cos(a)*5.2-.1,u+Math.cos(a)*5.2+.1,33,38,v+Math.sin(a)*5.2-.9,v+Math.sin(a)*5.2+.9)}
     mb.cyl('tower',.15,.15,6,6,u,41.6,v);mb.sph('redL',.4,u,44.8,v);mb.cyl('orange',3.3,3.3,2,16,u,28,v);
-    for(const [r,y0,y1] of [[4.2,0,32.2],[5.8,32,39.1]]){const ring=[];for(let i=0;i<24;i++){const a=i/24*Math.PI*2,p=this.P(u+Math.cos(a)*r,v+Math.sin(a)*r);ring.push(p[0],p[1])}STATIC_POLYS.push(makeColPoly([ring],this.y0+y1,this.y0+y0))}
-    mb.build(g,M,{static:true});const c=this.P(u,v);STATIC_CIR.push(c[0],c[1],4.6)},
+    mb.build(g,M,{static:true});const c=this.P(u,v),circle=[c[0],c[1],4.6];STATIC_CIR.push(...circle);this._circleEntries.push(circle)},
   buildHangar(){const mb=new MB(),M=this.M,g=this.g,u=-190,v=205,W=56,D=42,H=17;
     mb.bx('conc',u-W/2,u+W/2,0,.2,v-D/2,v+D/2);mb.bx('concD',u-W/2,u+W/2,0,H,v+D/2-.4,v+D/2);                                    // back wall
     mb.bx('concD',u-W/2,u-W/2+.4,0,H,v-D/2,v+D/2);mb.bx('concD',u+W/2-.4,u+W/2,0,H,v-D/2,v+D/2);mb.bx('metal',u-W/2-1,u+W/2+1,H,H+.5,v-D/2-1,v+D/2+1);   // side walls + roof
@@ -141,14 +158,18 @@ const AIRP={C:[-4200,-4320],ang:1.309,y0:0,g:null,ready:false,ai:null,queue:[],b
     if(!p.onGround&&sm2.h>50&&a.s<8000){p.gearT=0;p.flaps=0}if(sm2.h<420&&a.s>20000){p.gearT=1;p.flaps=Math.min(1,p.flaps+dt*.1)}if(p.onGround&&a.s>25000){p.flaps=Math.max(0,p.flaps-dt*.15)}
     p.ctl.p=0;p.ctl.r=Math.max(-1,Math.min(1,p.roll*2));p.ctl.y=0;p.steer=0;
     if(a.s>=path.L-.5){a.phase='hold';a.t=0;a.T=95;a.path=null;p.park(...this.P(-20,140),this.yawOf(0,1));p.mode='parked';p.ai=a;p.engOn=false;p.doorOpen=true;p.parking=true;toast('Odesa Air 301','arrived · welcome to Odesa')}},
-  update(dt){if(!this.ready)return;const b1=this.boardMain,b2=this.boardGate;this._bt=(this._bt||0)-dt;if(this._bt<=0){this._bt=1;const near=Math.hypot(player.x-this.P(0,200)[0],player.z-this.P(0,200)[1])<320;if(near){for(const b of [b1,b2]){TRN2.drawBoard(b.cv,b.title,b.rowsFn());b.tex.needsUpdate=true}}}
-    this.queueUpdate(dt);
-    // the sign and ground are always cheap; hide the whole airport far away
-    this.g.visible=Math.hypot(player.x-this.C[0],player.z-this.C[1])<5200||this.flight&&!this.flight.onGround},
+  update(dt){const dist=Math.hypot(player.x-this.C[0],player.z-this.C[1]);
+    if(!this.ready&&!this.loading){if(this.flight&&this.flight.onGround)this.releasePlaneGPU(this.flight);if(this.fighter)this.releasePlaneGPU(this.fighter);if(!started||dist>5200)return;this.beginLoad(false)}
+    if(this.loading){if(!this.forceLoad&&dist>6400){this.unload();return}this.loadStep();return}
+    if(!this.ready||!this.g)return;const b1=this.boardMain,b2=this.boardGate;this._bt=(this._bt||0)-dt;if(this._bt<=0){this._bt=1;const near=dist<320;if(near){for(const b of [b1,b2]){if(!b)continue;TRN2.drawBoard(b.cv,b.title,b.rowsFn());b.tex.needsUpdate=true}}}
+    this.queueUpdate(dt);this.g.visible=dist<5200;
+    const occupied=(this.flight&&this.flight.onGround&&(PLN.cur===this.flight||(MP.on&&MP.plat===this.flight.plat)))||(this.fighter&&this.fighter.onGround&&PLN.cur===this.fighter);
+    if(dist>7000&&!occupied&&!this.busy){this.farT+=dt;if(this.farT>=3.5)this.unload()}else this.farT=0},
   // ---------- spawn menu ----------
   // Spawn is done in steps behind the fade (teleport -> aircraft -> crew) instead of in one burst: on a phone the
   // aircraft meshes, textures and three avatars used to be built in the same moment as the 4 km teleport.
   spawn(kind){if(this.busy)return;if(typeof DIAG!=='undefined')DIAG.note('spawn '+kind);
+    if(!this.ready){this.pendingSpawn=kind;this.busy=true;this.forceLoad=true;if(!this.loading)this.beginLoad(true);if(!this.loading){this.pendingSpawn=null;this.busy=false;toast('Airport unavailable','please try again later');return}toast('Preparing airport','building the airport in small steps');return}
     const near=Math.hypot(player.x-this.P(0,150)[0],player.z-this.P(0,150)[1])<500;let a=this.mine&&this.mine[kind];
     const spots={airliner:this.P(-110,125),fighter:this.P(60,125)};const sp=spots[kind],yaw=this.yawOf(0,1);
     const place=()=>{if(!a){a=PLN.add(kind,sp[0],sp[1],yaw);this.mine=this.mine||{};this.mine[kind]=a}

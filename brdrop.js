@@ -17,10 +17,12 @@ function crateTex(){if(tex)return tex;const cv=document.createElement('canvas');
   tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;return tex}
 function model(){const g=new THREE.Group();
   const crate=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.2,1.5),new THREE.MeshStandardMaterial({map:crateTex(),roughness:.6,metalness:.25}));crate.position.y=.6;crate.castShadow=true;g.add(crate);
-  const bal=new THREE.Group(),b=new THREE.Mesh(new THREE.SphereGeometry(2.5,20,14),new THREE.MeshStandardMaterial({map:BRM.stripeTex('#2a7bff','#f4f1ea'),roughness:.55}));b.scale.y=1.25;b.position.y=7.6;bal.add(b);
+  const bal=new THREE.Group(),b=new THREE.Mesh(new THREE.SphereGeometry(2.5,20,14),new THREE.MeshStandardMaterial({map:BRM.stripeTex('#2a7bff','#f4f1ea'),roughness:.55}));b.userData.ownedTexture=b.material.map;b.scale.y=1.25;b.position.y=7.6;bal.add(b);
   const pts=[];for(let i=0;i<8;i++){const a=i/8*6.283;pts.push(new THREE.Vector3(Math.cos(a)*.7,1.2,Math.sin(a)*.7),new THREE.Vector3(Math.cos(a)*1.55,5.2,Math.sin(a)*1.55))}
   const ln=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0xe9e6dc}));bal.add(ln);g.add(bal);
   const beam=BRM.beam('#4aa3ff',150,.9);g.add(beam);g.userData={crate,bal,beam};return g}
+function disposeDrop(root){if(!root)return;if(root.parent)root.parent.remove(root);root.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material)){for(const m of o.material)m.dispose()}else o.material.dispose()}
+  const t=o.userData&&o.userData.ownedTexture;if(t){t.dispose();o.userData.ownedTexture=null}})}
 // a free spot: the middle of a car road of the chunk (or its neighbours) nearest the wanted point, picked from the match seed
 function openSpot(x,z,rad,r){let id0=-1;try{id0=chunkIdAt(x,z)}catch(e){}if(id0<0)return [x,z];
   const i0=id0%NCX,j0=Math.floor(id0/NCX),P=D.nodes,wn=D.wn;const cand=[];
@@ -34,7 +36,7 @@ function spawn(i){const pl=BR.plan[i];if(!pl||DR.some(d=>d.i===i))return;const r
   const d={i,x,z,g,top:g+TOP,y:g+TOP,m,t0:BR.t0+(BR.STORM_T0+pl.t0+6)*1000,st:'fall',it:null,opened:false,ph:r()*6.28,loose:null};DR.push(d);
   const late=(Date.now()-d.t0)/1000;if(late<8){BR.banner('SUPPLY DROP','A crate is on its way — follow the blue light',3.2);BR.snd('glide')}
   d.y=Math.max(g+.01,d.top-SPEED*Math.max(0,late));m.position.set(x,d.y,z)}
-function land(d){d.st='down';d.y=d.g;d.m.position.set(d.x,d.g,d.z);d.m.userData.crate.visible=false;d.m.remove(d.m.userData.beam);
+function land(d){d.st='down';d.y=d.g;d.m.position.set(d.x,d.g,d.z);d.m.userData.crate.visible=false;d.m.userData.beam.visible=false;
   // the balloon lets go and floats away
   const bal=d.m.userData.bal;d.m.remove(bal);bal.position.set(d.x,d.g,d.z);scene.add(bal);d.loose={m:bal,t:0};
   FX.init();for(let k=0;k<14;k++){const a=k/14*6.283;FX.puff({x:d.x+Math.cos(a)*.8,y:d.g+.3,z:d.z+Math.sin(a)*.8,vx:Math.cos(a)*2.4,vy:.8,vz:Math.sin(a)*2.4,s0:.3,s1:1.6,life:1,c0:[.8,.78,.7],c1:[.6,.6,.6],op:.45,add:false,drag:2,grow:1})}
@@ -44,18 +46,18 @@ function land(d){d.st='down';d.y=d.g;d.m.position.set(d.x,d.g,d.z);d.m.userData.
 function tick(dt){if(!BR.on||!BR.plan)return;const now=Date.now();
   for(let i=0;i<BR.plan.length-1;i++)if(now>=BR.t0+(BR.STORM_T0+BR.plan[i].t0+6)*1000&&!DR.some(d=>d.i===i)&&BR.phase!=='dead'&&BR.phase!=='won')spawn(i);
   for(const d of DR){
-    if(d.loose){d.loose.t+=dt;const m=d.loose.m;m.position.y+=dt*(4+d.loose.t*2);m.position.x+=dt*1.2;m.rotation.y+=dt*.4;if(d.loose.t>5){scene.remove(m);d.loose=null}}
+    if(d.loose){d.loose.t+=dt;const m=d.loose.m;m.position.y+=dt*(4+d.loose.t*2);m.position.x+=dt*1.2;m.rotation.y+=dt*.4;if(d.loose.t>5){disposeDrop(m);d.loose=null}}
     if(d.st==='fall'){d.ph+=dt;d.y-=SPEED*dt;const sw=Math.sin(d.ph*1.1)*1.4;d.m.position.set(d.x+sw,Math.max(d.g,d.y),d.z+Math.cos(d.ph*.8)*1.1);d.m.rotation.z=Math.sin(d.ph*1.1)*.08;
       if(d.y<=d.g+.05)land(d)}
     else if(d.it){d.opened=!!(d.it.open||d.it.taken)}}}
 function list(){return DR}
 function start(){end();BR.__sup=true}
-function end(){for(const d of DR){scene.remove(d.m);if(d.loose)scene.remove(d.loose.m)}DR.length=0}
+function end(){for(const d of DR){disposeDrop(d.m);if(d.loose)disposeDrop(d.loose.m)}DR.length=0}
 
 // ---- the crate: a blue box with a bright beam, and loot that is better than any ordinary chest
 const mesh0=BR.mesh;
 BR.mesh=function(it){const g=mesh0.call(this,it);if(it.k==='x'&&it.sup){const ch=g.userData.ch;if(ch&&ch.userData.mats){ch.userData.mats[0].m.color.setHex(0x2f6fb5);ch.userData.mats[1].m.color.setHex(0xe9eef5);ch.userData.mats[1].m.emissive.setHex(0x1a3a6a)}
-    if(g.userData.beam){g.remove(g.userData.beam);const bm=BRM.beam('#4aa3ff',90,.7);g.add(bm);g.userData.beam=bm}}
+  if(g.userData.beam){const old=g.userData.beam;g.remove(old);old.geometry.dispose();old.material.dispose();const bm=BRM.beam('#4aa3ff',90,.7);g.add(bm);g.userData.beam=bm}}
   return g};
 const spill0=BR.spill;
 BR.spill=function(ch){if(!ch.sup)return spill0.call(this,ch);if(ch.spilled)return;ch.spilled=true;ch.open=true;
