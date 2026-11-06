@@ -14,10 +14,16 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  sub:[{p:[0,-.35,.55],pose:'sit'},{p:[0,-.35,-.75],pose:'sit'}]};   // closed cabin: both are hidden inside, the second is a co-op passenger
+  sub:[{p:[0,-.4,-5.9],pose:'sit'},{p:[-.65,-.4,-5.15],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
+const SUB_CRUSH=105;
+let SUB_MODEL_LOAD=null;
+function loadSubModel(){
+  if(!SUB_MODEL_LOAD)SUB_MODEL_LOAD=new Promise((resolve,reject)=>new THREE.GLTFLoader().load('assets/models/cyclops_subnautica.glb',resolve,undefined,reject))
+    .catch(e=>{SUB_MODEL_LOAD=null;throw e});
+  return SUB_MODEL_LOAD.then(g=>g.scene.clone(true))}
 function lvGround(x,z){const g=groundH(x,z);return typeof groundAt==='function'?groundAt(x,z,g+1.5):g}
 const LAMBO_COLS=[0xf2c200,0x7ec40a,0xff6a13,0xc4161c,0x1b4bd1];   // Giallo Orion, Verde Mantis, Arancio Argos, Rosso Mars, Blu Cepheus
 
@@ -172,28 +178,52 @@ class LiteVehicle{
     this.crank=new THREE.Group();this.crank.position.set(0,.29,-.04);this.root.add(this.crank);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.02,16),ch);ring.rotation.z=Math.PI/2;ring.position.x=.05;this.crank.add(ring);
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
-  buildSub(){const B=this.body,hull=XM(0xf2c21b,.38,.3),dk=XM(0x23303a,.5,.4),win=XM(0x66d9ff,.1,.2,{emissive:0x33b8e8,emissiveIntensity:1}),red=XM(0xc8372d,.5,.25);this.cols=[0xf2c21b,0x23303a,0x66d9ff];
-    const R=1.0,N=30,pr=[];                       // streamlined hull: tapering tail, parallel body, rounded nose (lathe profile along the boat, y becomes z)
-    for(let i=0;i<=N;i++){const y=-3.6+i/N*7.2;let r;
-      if(y<-1.6){const k=Math.max(0,(y+3.6)/2);r=R*Math.pow(k,.7)}else if(y>2.3){const k=(y-2.3)/1.3;r=R*Math.sqrt(Math.max(0,1-k*k))}else r=R;
-      pr.push(new THREE.Vector2(Math.max(.05,r),y))}
-    const hg=new THREE.LatheGeometry(pr,32);hg.rotateX(Math.PI/2);hull.side=THREE.DoubleSide;const hm=new THREE.Mesh(hg,hull);hm.castShadow=true;B.add(hm);
-    const band=new THREE.Mesh(new THREE.CylinderGeometry(R+.012,R+.012,.34,32,1,true),red);band.rotation.x=Math.PI/2;band.position.z=-.9;B.add(band);                 // painted ring round the middle
-    const sail=new THREE.Mesh(new THREE.CylinderGeometry(.33,.4,.95,22),hull);sail.scale.z=2.2;sail.position.set(0,R+.3,.3);sail.castShadow=true;B.add(sail);     // oval conning tower
-    const cap=new THREE.Mesh(new THREE.SphereGeometry(.34,18,10,0,Math.PI*2,0,Math.PI/2),hull);cap.scale.z=2.2;cap.position.set(0,R+.775,.3);B.add(cap);
-    for(const s of [-1,1]){const p=new THREE.Mesh(new THREE.BoxGeometry(.62,.04,.4),dk);p.position.set(s*.62,R+.2,.82);p.rotation.z=s*.12;B.add(p)}      // sail dive planes
-    for(const s of [-1,1])for(const z of [1.5,.7,-.1]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.1,18),win);w.rotation.z=Math.PI/2;w.position.set(s*.965,.16,z);B.add(w)}   // viewing ports
-    const dome=new THREE.Mesh(new THREE.SphereGeometry(.5,18,12,0,Math.PI*2,0,Math.PI/2),win);dome.rotation.x=Math.PI/2.4;dome.position.set(0,.18,2.75);dome.scale.set(1,1,.9);B.add(dome);   // bow viewing bubble
-    const per=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,8),dk);per.position.set(0,R+1.45,.55);B.add(per);const pt=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.16),dk);pt.position.set(0,R+1.8,.6);B.add(pt);
-    for(const rz of [0,Math.PI/2]){const f=new THREE.Mesh(new THREE.BoxGeometry(.05,1.9,.65),dk);f.rotation.z=rz;f.position.set(0,0,-3.0);B.add(f)}                  // stern cross fins
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.05,8,24),dk);ring.position.set(0,0,-3.78);B.add(ring);
-    this.prop=new THREE.Group();this.prop.position.set(0,0,-3.62);B.add(this.prop);
-    for(let i=0;i<4;i++){const b=xb(this.prop,.14,.46,.04,0,0,0,dk);b.geometry.translate(0,.23,0);b.position.set(0,0,0);b.rotation.z=i*Math.PI/2+.2}}
+  buildSub(){this.cols=[0xf2c21b,0x23303a,0x66d9ff];
+    const spot=(p,t,intensity,angle)=>{const l=new THREE.SpotLight(0xbdeeff,intensity,90,angle,.45,1.5),target=new THREE.Object3D();l.position.set(...p);target.position.set(...t);l.target=target;l.castShadow=false;this.body.add(l,target);return l};
+    this.subSpots=[spot([0,1.8,-6],[0,1.4,-32],3,.48),spot([0,.2,-2],[0,-14,-14],2.2,.62)];
+    for(const s of this.subSpots)s.visible=false;
+    this.lightsOn=false;
+    const cabin=new THREE.Group(),wall=XM(0x30383d,.82,.16),floor=XM(0x3c454a,.78,.12);
+    cabin.rotation.y=Math.PI;
+    for(const [g,m,p] of [[new THREE.BoxGeometry(1.9,.12,3.2),floor,[0,-.55,5.2]],
+      [new THREE.BoxGeometry(.12,1.8,3.2),wall,[-.95,.35,5.2]],
+      [new THREE.BoxGeometry(.12,1.8,3.2),wall,[.95,.35,5.2]],
+      [new THREE.BoxGeometry(1.9,1.8,.12),wall,[0,.35,3.6]]]){
+      const o=new THREE.Mesh(g,m);o.position.set(...p);o.castShadow=false;o.receiveShadow=false;cabin.add(o)}
+    cabin.visible=false;this.body.add(cabin);this.subCabin=cabin;
+    const lever=new THREE.Group();lever.position.set(.56,-.1,-5.65);this.body.add(lever);
+    const metal=XM(0x687782,.35,.8),grip=XM(0xe1b947,.32,.5),lamp=XM(0x18251e,.25,.1,{emissive:0x00d875,emissiveIntensity:0});
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.08,10),metal);base.position.y=-.13;lever.add(base);
+    const arm=new THREE.Group();arm.position.y=-.09;lever.add(arm);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.27,8),metal);shaft.position.y=.12;arm.add(shaft);
+    const knob=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),grip);knob.position.set(0,.28,0);arm.add(knob);
+    const led=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),lamp);led.position.set(0,-.13,.14);lever.add(led);
+    lever.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+    this.subLever={root:lever,arm,led};
+    this.schoolData=Array.from({length:24},()=>({a:Math.random()*Math.PI*2,r:8+Math.random()*5,y:-1.3+Math.random()*2.6,s:.75+Math.random()*.55}));
+    const fishGeo=new THREE.ConeGeometry(.11,.38,5);fishGeo.rotateX(Math.PI/2);
+    this.school=new THREE.InstancedMesh(fishGeo,XM(0x8dd9df,.55,.08,{emissive:0x15353a}),this.schoolData.length);
+    this.school.castShadow=false;this.school.receiveShadow=false;this.body.add(this.school);this.schoolDummy=new THREE.Object3D();
+    this.modelLoaded=false;this.modelLoading=false}
+  loadModel(){if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
+    loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;
+      const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;m.rotation.y=Math.PI;fit.add(m);fit.updateMatrixWorld(true);
+      const size=new THREE.Box3().setFromObject(fit).getSize(new THREE.Vector3());
+      this.subModelScale=15/size.z;fit.scale.setScalar(this.subModelScale);fit.updateMatrixWorld(true);
+      const box=new THREE.Box3().setFromObject(fit),center=box.getCenter(new THREE.Vector3());
+      fit.position.set(-center.x,-center.y,-center.z);
+      m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+      this.body.add(fit);this.subModel=fit;this.modelLoaded=true;
+    }).catch(e=>{this.modelLoading=false;console.error('[submarine] GLB load failed: assets/models/cyclops_subnautica.glb',e)})}
+  toggleSubLights(){if(this.kind!=='sub')return;this.lightsOn=!this.lightsOn;for(const l of this.subSpots)l.visible=this.lightsOn;
+    this.subLever.arm.rotation.x=this.lightsOn?-.55:.55;this.subLever.led.material.emissiveIntensity=this.lightsOn?2:0}
+  setCabinView(on){if(this.subCabin)this.subCabin.visible=on;if(!this.subModel)return;this.subModel.traverse(o=>{if(o.isMesh&&['Cyclops_Body','Stripe','Dark'].includes(o.material.name))o.visible=!on})}
 
-  sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ')}
+  sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ');
+    if(this.school){const t=UNI.uTime.value,d=this.schoolDummy;for(let i=0;i<this.schoolData.length;i++){const f=this.schoolData[i],a=f.a+t*(.15+f.s*.12);d.position.set(Math.cos(a)*f.r,f.y+Math.sin(t*1.4+f.a)*.22,Math.sin(a)*f.r);d.rotation.set(0,a-Math.PI/2,Math.sin(t*2+f.a)*.08);d.scale.setScalar(f.s);d.updateMatrix();this.school.setMatrixAt(i,d.matrix)}this.school.instanceMatrix.needsUpdate=true}}
   halt(){this.v=0;this.vx=this.vz=0;this.steerA=0;this.brakeOn=false}
   // where seat i is in the world (root origin of the seated avatar) and which way it faces
-  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat)this.susp.getWorldQuaternion(quat);return out}
+  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat){this.susp.getWorldQuaternion(quat);if(this.kind==='sub')quat.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI))}return out}
   seatPose(i){return (this.seats[i]||this.seats[0]||{}).pose||'sit'}
 
   // ---------- physics ----------
@@ -249,13 +279,16 @@ class LiteVehicle{
     let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
     // vertical motion: ballast tanks and dive planes. Slow to respond, faster when moving; the sea floor stops it, the surface catches it softly
-    const fl=Math.max(groundH(this.x,this.z)+1.8,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
+    const fl=Math.max(groundH(this.x,this.z)+2.5,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
     const rate=up*(2.2+2.2*pl);this.vy+=(rate-this.vy)*Math.min(1,dt*(up?1.1:.9));
     if(this.vy>0&&this.y>top-1.4)this.vy*=Math.max(.25,(top-this.y)/1.4+.25);
     this.y+=this.vy*dt;if(this.y<fl){this.y=fl;if(this.vy<0)this.vy*=-.1}if(this.y>top){this.y=top;if(this.vy>0)this.vy=0}
     const wantP=Math.max(-.5,Math.min(.5,-this.vy*.11));this.pitch+=(wantP-this.pitch)*Math.min(1,dt*2.2);this.roll+=(-this.steerA*this.v*.03-this.roll)*Math.min(1,dt*3);
-    this.depth=SL-this.y;if(this.y>=top-.02)this.y=top+Math.sin(UNI.uTime.value*1.3)*.05+Math.sin(UNI.uTime.value*.7+this.x*.1)*.03;
-    this.prop.rotation.z+=dt*(2+Math.abs(this.v)*3);this.sync()}
+    this.depth=SL-this.y;if(this.depth>SUB_CRUSH)this.dmg=Math.min(1,this.dmg+Math.min(1,(this.depth-SUB_CRUSH)/(SUB_MAXD-SUB_CRUSH))*.1*dt);
+    if(this.subModel)this.subModel.scale.y=this.subModelScale*(1-this.dmg*.12);
+    if(this.dmg>=1){this.kill();return}
+    if(this.y>=top-.02)this.y=top+Math.sin(UNI.uTime.value*1.3)*.05+Math.sin(UNI.uTime.value*.7+this.x*.1)*.03;
+    this.sync()}
   // wheels, suspension (nose dives under braking, rolls out of corners), brake lights and headlights
   animate(dt){
     if(this.kind==='bike'){this.pedal+=this.v*dt/(.36*2.2);if(this.crank)this.crank.rotation.x=this.pedal;for(const w of this.wheels){w.spin.rotation.x=this.pedal*2.2;if(w.front)w.piv.rotation.y=this.steerA*1.6}this.lights();return}
@@ -271,16 +304,16 @@ class LiteVehicle{
     const cx=this.x+dx*s.len/2,cz=this.z+dz*s.len/2;EXT.shatter(cx,this.y+.8,cz,Math.round(6+k*16),this.cols,3+imp*.45,dx,dz);
     FX.init();FX.puff({x:cx,y:this.y+.9,z:cz,vx:-dx,vy:1.2,vz:-dz,s0:.6,s1:2.4+k*2,life:1.4,c0:[.8,.78,.72],c1:[.5,.5,.5],op:.55,add:false,drag:1.2,grow:1});
     if(this===EXT.cur){FX.shakeT=.35;FX.shakeA=Math.max(FX.shakeA,k*.25)}}
-  repair(){this.dmg=0;this.body.scale.set(1,1,1);this.body.rotation.set(0,0,0);this.body.position.y=0}
+  repair(){this.dmg=0;this.body.scale.set(1,1,1);if(this.subModel)this.subModel.scale.y=this.subModelScale;this.body.rotation.set(0,0,0);this.body.position.y=0}
   kill(){if(this.dead)return;this.dead=true;this.respawnAt=performance.now()+30000;FX.init();FX.explode(this.x,this.y+.8,this.z,7);EXT.fireball(this.x,this.y+.8,this.z,5);EXT.shatter(this.x,this.y+.8,this.z,28,this.cols,10,0,0);
     this.root.visible=false;this.halt();if(EXT.cur===this)EXT.leave(this,true)}
-  revive(){this.dead=false;this.repair();this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL+SUB_SURF:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
+  revive(){this.dead=false;this.repair();this.cabinWalk=false;this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL+SUB_SURF:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
 }
 
 // a friend's vehicle: drawn from network snapshots, with the same model and colour as the one they drive
 class PeerLite{
   constructor(kind,col){this.kind=kind;this.v=new LiteVehicle(kind,0,0,0,{col,proxy:true});scene.add(this.v.root);this.net=new NetSnaps()}
   push(s){const a=s.xv;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+a[1]||0,r:+a[2]||0,u:+a[3]||0,st:+a[4]||0},s.ts)}
-  update(dt){const q=this.net.update(dt);if(!q)return null;const v=this.v;v.x=q.x;v.y=q.y;v.z=q.z;v.yaw=q.yaw;v.pitch=q.p;v.roll=q.r;v.v=q.u;v.steerA=q.st;v.brakeOn=false;v.animate(dt);v.sync();return q}
+  update(dt){const q=this.net.update(dt);if(!q)return null;const v=this.v;v.x=q.x;v.y=q.y;v.z=q.z;v.yaw=q.yaw;v.pitch=q.p;v.roll=q.r;v.v=q.u;v.steerA=q.st;v.brakeOn=false;if(v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<900)v.loadModel();v.animate(dt);v.sync();return q}
   dispose(){scene.remove(this.v.root)}
 }

@@ -13,6 +13,8 @@ class Plane{
     this.mode='parked';this.manual=false;this.hold=false;this.hdgT=0;this.altT=0;this.spdT=0;this.ctl={p:0,r:0,y:0};this.lightsOn=true;this.strobe=0;this.doorOpen=true;this.home=null;this.ab=false;this.cabinLights=true;this.seatbelt=false;this.batt=true;this.fuel=true;this.eng1=false;this.eng2=false;this.fireCd=0;this.ammo=400;this.bombs=2;this.msl=2;this.cam='chase';this.steer=0;
     this.stairs=null;this.stairsOut=true;      // (the reset used to run AFTER buildCabin and threw the staircase away: it was never hidden again)
     if(kind==='airliner')this.buildCabin();else if(kind==='light')this.buildLightCockpit();else{this.buildCockpit();this.buildLadder()}
+    this.passengerSeat=kind==='light'?new THREE.Vector3(0,-.25,-.72):(kind==='fighter'?new THREE.Vector3(-.5,-.28,2.55):new THREE.Vector3(this.copilotSeat.x,this.copilotSeat.y,this.copilotSeat.z));
+    if(this.passengerSeat)this.root.userData.passengerSeat=this.passengerSeat;
     this.sync()}
   get label(){return this.kind==='airliner'?'airliner':(this.kind==='light'?'light plane':'fighter jet')}
   // the boarding stairs / ladder can be taken away (and brought back) with the chip, the panel button or the cabin door button
@@ -112,6 +114,11 @@ class Plane{
     this.strobe+=dt;if(P.lights){P.lights.visible=this.lightsOn&&(Math.sin(this.strobe*7)>-.2||UNI.uNight.value<.3)}
     if(this.cabinMat)this.cabinMat.emissiveIntensity=this.cabinLights?.55+UNI.uNight.value*.9:.03;
     if(this.beltMat)this.beltMat.emissiveIntensity=this.seatbelt?1.6:.05;
+    if(this.cabinGrp&&MOBILE){
+      const inside=MP.on&&MP.plat&&MP.plat.plane===this;
+      const d=Math.hypot(this.x-player.x,this.z-player.z);
+      this.cabinGrp.visible=inside||d<45;
+    }
     if(this.kind==='airliner'){if(!this.onGround||this.v>=2)this.doorOpen=false;if(this.doorBox)this.doorBox.on=!this.doorOpen}
     if(this.stairs)this.stairs.visible=this.stairsOut&&this.onGround&&this.v<2&&(this.kind!=='airliner'||this.doorOpen)}
   // ---------- per-frame ----------
@@ -176,9 +183,10 @@ class Plane{
     // pilot seats: left (x +.62) is the player's, right is the first officer's
     this.pilotSeat={x:.62,y:FL+.52-.45,z:13.5,yaw:0,label:'Take the pilot seat',pose:'sit',who:null,hold:true,keys:true,helm:true,standLabel:'Leave the pilot seat',cockpit:true};seats.push(this.pilotSeat);
     this.copilotSeat={x:-.62,y:FL+.52-.45,z:13.5,yaw:0,label:'Sit in the co-pilot seat',pose:'sit',who:null,cockpit:true};seats.push(this.copilotSeat);
-    mb.build(this.root,mats,{static:true,noShadow:new Set(['carpet','wall','wallD','cab','belt','aisle','seat','seatD','bin','skinA','skinB','skinC','shA','shB','shC','shD','shE','shF','panel','dark','metal','glassF','skin'])});
+    const cabinGrp=this.cabinGrp=new THREE.Group();this.root.add(cabinGrp);
+    mb.build(cabinGrp,mats,{static:true,noShadow:new Set(['carpet','wall','wallD','cab','belt','aisle','seat','seatD','bin','skinA','skinB','skinC','shA','shB','shC','shD','shE','shF','panel','dark','metal','glassF','skin'])});
     // clickable buttons (own meshes, glowing when on)
-    const bt=(id,label,x,y,z,col,sz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sz||.07,.035,.05),MBM.emis(col,.1));m.position.set(x,y,z);m.rotation.x=-.4;m.userData.btn={id,label,plane:this};this.root.add(m);this.btns.push({id,label,mesh:m,col});return m};
+    const bt=(id,label,x,y,z,col,sz)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(sz||.07,.035,.05),MBM.emis(col,.1));m.position.set(x,y,z);m.rotation.x=-.4;m.userData.btn={id,label,plane:this};cabinGrp.add(m);this.btns.push({id,label,mesh:m,col});return m};
     const y0=1.17,z0=13.25;[['batt','Battery',0x40d060],['fuel','Fuel pumps',0x40d060],['eng1','Engine 1',0x30c0ff],['eng2','Engine 2',0x30c0ff],['apu','APU',0xf0c020],['belts','Seatbelt sign',0x60ff90],['nav','Lights',0xffffff],['cabl','Cabin lights',0xfff0c0]].forEach(([id,l,c],i)=>bt(id,l,-.72+i*.2,y0,z0+(i%2)*.25,c));
     [['gear','Landing gear',0xf0a020,-.45],['flaps','Flaps',0xf0e040,-.28],['ap','Autopilot',0x30d0d0,-.1],['brake','Parking brake',0xff4040,.08],['door','Cabin door',0x80ff80,.26],['pa','Announcement',0xb090ff,.44],['stairs','Boarding stairs',0xc0c0ff,.62]].forEach(([id,l,c,x])=>bt(id,l,x,.17,15.07,c,.1));
     // seats registered for the platform
@@ -273,13 +281,13 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
     if(k.KeyV&&!this._vd&&p.msl>0){this._vd=true;p.msl--;this.missile(p)}if(!k.KeyV)this._vd=false},
   dropBomb(p){if(!p||!p.root||p.crashed)return;const m=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,1.2,10),new THREE.MeshStandardMaterial({color:0x4f5a47,roughness:.5,metalness:.4}));const w=p.root.localToWorld(this._local.set(0,-.9,-1));m.position.copy(w);scene.add(m);
     const fx=Math.sin(p.yaw),fz=Math.cos(p.yaw);this.tr.push({m,vx:fx*p.v,vz:fz*p.v,vy:p.vy,t:0});toast('Bomb away',p.bombs+' left')},
-  missile(p){if(!p||!p.root||p.crashed)return;const dir=this._rayDir.set(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch)),o=p.root.localToWorld(this._local.set(p.msl%2?4.4:-4.4,-.6,-1));
+  missile(p){if(!p||!p.root||p.crashed)return;const owner='plane-'+p.id,dir=this._rayDir.set(Math.sin(p.yaw)*Math.cos(p.pitch),Math.sin(p.pitch),Math.cos(p.yaw)*Math.cos(p.pitch)),o=p.root.localToWorld(this._local.set(p.msl%2?4.4:-4.4,-.6,-1));
     // a fast missile: flies straight (or homes on the nearest aircraft in front) and blows up on contact
     const m=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,2.2,8),new THREE.MeshStandardMaterial({color:0xe8e8e8,roughness:.4}));m.rotation.x=Math.PI/2;const g=new THREE.Group();g.add(m);g.position.copy(o);scene.add(g);
     let tgt=null,bd=2500;for(const t of WAR.targets()){if(!t||!t.pos||t.id==='plane-'+p.id)continue;const v=this._targetDir.copy(t.pos).sub(o),d=v.length();if(d<bd&&v.normalize().dot(dir)>.8){bd=d;tgt=t}}
     const vel=dir.clone().multiplyScalar(p.v+260),life=6,rec={g,vel,tgt,t:0,fn:null};const step=(dt)=>{rec.t+=dt;if(rec.tgt&&rec.tgt.pos){const want=this._missileWant.copy(rec.tgt.pos).sub(g.position).normalize().multiplyScalar(vel.length());vel.lerp(want,Math.min(1,dt*2.5))}g.position.addScaledVector(vel,dt);g.lookAt(this._missileLook.copy(g.position).add(vel));
       if(FX.puff){const puff=this._missilePuff;puff.x=g.position.x;puff.y=g.position.y;puff.z=g.position.z;FX.puff(puff)}
-      const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){this.disposeProjectile(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120);GUN.push();return true}return false};
+      const q=g.position,gy=Math.max(groundH(q.x,q.z),SL);const hit=WAR.airHit(q,2,owner);if(q.y<=gy+.3||hit||rec.t>life||insideAny(q.x,q.z,.3,q.y)){this.disposeProjectile(g);GUN.addBoom(q.x,q.y,q.z,hit?25:16,120,owner);GUN.push();return true}return false};
     this.tr.push({m:g,vx:0,vy:0,vz:0,t:0,custom:step});toast('Missile away',p.msl+' left')},
   // ---------- cockpit buttons ----------
   input(){const cvs=()=>renderer&&renderer.domElement;
