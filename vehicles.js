@@ -14,7 +14,7 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  sub:[{p:[0,-.4,5.6],pose:'sit'},{p:[-.65,-.4,5.1],pose:'sit'}]};   // bridge pilot and co-op passenger
+  sub:[{p:[0,-.4,-5.9],pose:'sit'},{p:[-.65,-.4,-5.15],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
@@ -180,17 +180,18 @@ class LiteVehicle{
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
   buildSub(){this.cols=[0xf2c21b,0x23303a,0x66d9ff];
     const spot=(p,t,intensity,angle)=>{const l=new THREE.SpotLight(0xbdeeff,intensity,90,angle,.45,1.5),target=new THREE.Object3D();l.position.set(...p);target.position.set(...t);l.target=target;l.castShadow=false;this.body.add(l,target);return l};
-    this.subSpots=[spot([0,1.8,6],[0,1.4,32],3,.48),spot([0,.2,2],[0,-14,14],2.2,.62)];
+    this.subSpots=[spot([0,1.8,-6],[0,1.4,-32],3,.48),spot([0,.2,-2],[0,-14,-14],2.2,.62)];
     for(const s of this.subSpots)s.visible=false;
     this.lightsOn=false;
     const cabin=new THREE.Group(),wall=XM(0x30383d,.82,.16),floor=XM(0x3c454a,.78,.12);
+    cabin.rotation.y=Math.PI;
     for(const [g,m,p] of [[new THREE.BoxGeometry(1.9,.12,3.2),floor,[0,-.55,5.2]],
       [new THREE.BoxGeometry(.12,1.8,3.2),wall,[-.95,.35,5.2]],
       [new THREE.BoxGeometry(.12,1.8,3.2),wall,[.95,.35,5.2]],
       [new THREE.BoxGeometry(1.9,1.8,.12),wall,[0,.35,3.6]]]){
       const o=new THREE.Mesh(g,m);o.position.set(...p);o.castShadow=false;o.receiveShadow=false;cabin.add(o)}
     cabin.visible=false;this.body.add(cabin);this.subCabin=cabin;
-    const lever=new THREE.Group();lever.position.set(.56,-.1,5.65);this.body.add(lever);
+    const lever=new THREE.Group();lever.position.set(.56,-.1,-5.65);this.body.add(lever);
     const metal=XM(0x687782,.35,.8),grip=XM(0xe1b947,.32,.5),lamp=XM(0x18251e,.25,.1,{emissive:0x00d875,emissiveIntensity:0});
     const base=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.08,10),metal);base.position.y=-.13;lever.add(base);
     const arm=new THREE.Group();arm.position.y=-.09;lever.add(arm);
@@ -206,7 +207,7 @@ class LiteVehicle{
     this.modelLoaded=false;this.modelLoading=false}
   loadModel(){if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
     loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;
-      const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;fit.add(m);fit.updateMatrixWorld(true);
+      const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;m.rotation.y=Math.PI;fit.add(m);fit.updateMatrixWorld(true);
       const size=new THREE.Box3().setFromObject(fit).getSize(new THREE.Vector3());
       this.subModelScale=15/size.z;fit.scale.setScalar(this.subModelScale);fit.updateMatrixWorld(true);
       const box=new THREE.Box3().setFromObject(fit),center=box.getCenter(new THREE.Vector3());
@@ -222,7 +223,7 @@ class LiteVehicle{
     if(this.school){const t=UNI.uTime.value,d=this.schoolDummy;for(let i=0;i<this.schoolData.length;i++){const f=this.schoolData[i],a=f.a+t*(.15+f.s*.12);d.position.set(Math.cos(a)*f.r,f.y+Math.sin(t*1.4+f.a)*.22,Math.sin(a)*f.r);d.rotation.set(0,a-Math.PI/2,Math.sin(t*2+f.a)*.08);d.scale.setScalar(f.s);d.updateMatrix();this.school.setMatrixAt(i,d.matrix)}this.school.instanceMatrix.needsUpdate=true}}
   halt(){this.v=0;this.vx=this.vz=0;this.steerA=0;this.brakeOn=false}
   // where seat i is in the world (root origin of the seated avatar) and which way it faces
-  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat)this.susp.getWorldQuaternion(quat);return out}
+  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat){this.susp.getWorldQuaternion(quat);if(this.kind==='sub')quat.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI))}return out}
   seatPose(i){return (this.seats[i]||this.seats[0]||{}).pose||'sit'}
 
   // ---------- physics ----------

@@ -9161,8 +9161,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     this.leave(v);
     player.x=spot[0];player.z=spot[1];player.y=groundAt(spot[0],spot[1],v.y+1);player.vx=player.vz=player.vy=0;player.air=false;player.yaw=v.yaw},
   toggleCabin(){const v=this.cur;if(!v||v.kind!=='sub'||!v.modelLoaded){toast('Cabin loading','');return}
-    v.cabinWalk=!v.cabinWalk;v.setCabinView(v.cabinWalk);v.cabinLastYaw=v.yaw;cam.yaw=v.yaw;cam.pitch=-.65;cam.init=false;
-    if(v.cabinWalk){v.cabinPos=[0,-.42,4.8];PLR.root.visible=false;let r=$('subReticle');if(!r){r=document.createElement('i');r.id='subReticle';r.style.cssText='position:fixed;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 4px #001;transform:translate(-50%,-50%);z-index:20;pointer-events:none';document.body.appendChild(r)}toast('Submarine cabin','WASD / joystick to walk · look at the lever and press E · B return to pilot · F exit')}
+    v.cabinWalk=!v.cabinWalk;v.setCabinView(v.cabinWalk);v.cabinLastYaw=v.yaw;cam.yaw=v.yaw+(v.cabinWalk?Math.PI:0);cam.pitch=-.12;cam.init=false;
+    if(v.cabinWalk){v.cabinPos=[0,-.42,-5.9];PLR.root.visible=false;let r=$('subReticle');if(!r){r=document.createElement('i');r.id='subReticle';r.style.cssText='position:fixed;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 4px #001;transform:translate(-50%,-50%);z-index:20;pointer-events:none';document.body.appendChild(r)}toast('Submarine cabin','WASD / joystick to walk · look at the lever and press E · B return to pilot · F exit')}
     else{PLR.root.visible=true;toast('Pilot seat','W/S throttle · A/D steer · Q dive · E rise · B cabin · F exit')}},
   aimSubLever(){const v=this.cur;if(!v||!v.cabinWalk||!v.subLever)return false;this._subRay=this._subRay||new THREE.Raycaster();camera.updateMatrixWorld(true);this._subRay.setFromCamera(new THREE.Vector2(0,0),camera);
     const hits=this._subRay.intersectObject(v.subLever.root,true);return !!(hits.length&&hits[0].distance<2.8)},
@@ -9173,7 +9173,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     const sub=v.kind==='sub',shift=k.ShiftLeft||k.ShiftRight||player.run,brk=!sub&&!!k.Space,up=sub?((k.KeyE||k.Space||inp.jump||DEEP.rise||DEEP.kq)?1:0)-((k.KeyQ||shift||DEEP.dive||DEEP.kd)?1:0):0;
     if(sub&&v.cabinWalk){const walk=Math.max(-1,Math.min(1,inp.jy+((k.KeyW||k.ArrowUp)?1:0)-((k.KeyS||k.ArrowDown)?1:0))),side=Math.max(-1,Math.min(1,-inp.jx+((k.KeyA||k.ArrowLeft)?1:0)-((k.KeyD||k.ArrowRight)?1:0)));
       const dx=(Math.sin(cam.yaw)*walk-Math.cos(cam.yaw)*side)*2*dt,dz=(Math.cos(cam.yaw)*walk+Math.sin(cam.yaw)*side)*2*dt,c=Math.cos(v.yaw),s=Math.sin(v.yaw);
-      v.cabinPos[0]=Math.max(-.72,Math.min(.72,v.cabinPos[0]+c*dx-s*dz));v.cabinPos[2]=Math.max(3.85,Math.min(5.5,v.cabinPos[2]+s*dx+c*dz));
+      v.cabinPos[0]=Math.max(-.72,Math.min(.72,v.cabinPos[0]+c*dx-s*dz));v.cabinPos[2]=Math.max(-6.7,Math.min(-4.05,v.cabinPos[2]+s*dx+c*dz));
       v.step(dt,0,0,false,(k.KeyQ||DEEP.dive||DEEP.kd)?-1:(k.Space||DEEP.rise||DEEP.kq)?1:0,false);if(v.dead)return;
       v.root.updateMatrixWorld(true);const p=new THREE.Vector3(v.cabinPos[0],v.cabinPos[1],v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
       player.x=p.x;player.y=p.y;player.z=p.z;player.yaw=cam.yaw;player.vx=player.vz=0;PLR.root.visible=false;LVSND.update(v,0);depthHud(SL-v.y,true,v.dmg);return}
@@ -9185,7 +9185,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     $('spdN').textContent=Math.round(Math.abs(v.v)*3.6);depthHud(sub?SL-v.y:0,sub,sub?v.dmg:0)},
   stepCamera(dt){const v=this.cur,sub=v.kind==='sub';
     if(sub&&v.cabinWalk){let dy=v.yaw-v.cabinLastYaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));cam.yaw+=dy;v.cabinLastYaw=v.yaw;
-      v.root.updateMatrixWorld(true);const p=new THREE.Vector3(v.cabinPos[0],v.cabinPos[1]+1.12,v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
+      v.root.updateMatrixWorld(true);const p=new THREE.Vector3(v.cabinPos[0],v.cabinPos[1]+.45,v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
       camera.position.copy(p);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);camera.lookAt(p.x+Math.sin(cam.yaw)*cp,p.y+sp,p.z+Math.cos(cam.yaw)*cp);
       cam.x=p.x;cam.y=p.y;cam.z=p.z;cam.init=true;PLR.root.visible=false;return}
     if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?2.6:.8))}
