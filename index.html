@@ -308,7 +308,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
         <div id="netStatus">No account needed: one of you presses Create room, the other types the code and presses Join.</div>
         <div id="coStatus">Co-op: …</div>
       </div>
-      <div class="mp" id="pKeys" hidden><h2>Controls</h2><div class="keys" id="keysTxt"><b>WASD</b> walk · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> action (enter, sit, tram) · <b>F</b> scooter · <b>C</b> call / leave your car (H — horn) · <b>U</b> or the Garage button: a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — pick one and it is brought to you (a friend can ride along — press E / F beside the car) · <b>O</b> or the View button: camera view (third person · first person · over the shoulder · far · top-down; in a car: chase · cockpit · bonnet) · <b>V</b> helicopter (nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E turn) · <b>B</b> boat / <b>J</b> jet ski at the shore · <b>Q</b> speaker · <b>M</b> map · <b>R</b> rain on/off · <b>T</b> chat · <b>G</b> go to friend · mouse turns the camera<br><br><b>Yacht «Odesa Pearl»</b> (jetty at Velykyi Fontan beach, or More → Spawn → Call the yacht, then E for the tender): walk about, E sits · stairs up to the bridge and the sun deck · the left chair on the bridge is the helm: W/S throttle, A/D rudder, the panel has Autopilot → Jungle Island, Anchor, Horn, Camera · leave the helm and the yacht keeps sailing · E on the swim platform or a side door = ashore · <b>Jungle Island</b> (map → Jungle Island, ~25 km out to sea): tigers, panthers, gorillas, boars, hyenas, crocodiles, pythons — the beach camp fire keeps them away · <b>Trains</b>: just walk into an open door, walk through all cars, sit two to a bench, walk out at the next stop · timetable boards in the station · <b>Airport</b> (map → Odesa Airport): E boards the airliner, E on a seat sits (the left cockpit seat is the pilot's — click the glowing buttons, or use the strip below) · fighter jet: E to climb in · More → Spawn creates an airliner or a fighter · flying: S/W pitch · A/D roll · Z/C rudder · Shift/Ctrl throttle · G gear · L lights · P autopilot · Space brake (airliner) / cannon (fighter) · X bomb · V missile · O cockpit view · <b>Y</b> or More → Friend: a friend who walks with you, sits next to you and rides pillion</div></div>
+      <div class="mp" id="pKeys" hidden><h2>Controls</h2><div class="keys" id="keysTxt"><b>WASD</b> walk · <b>Shift</b> run · <b>Space</b> jump · <b>E</b> action (enter, sit, tram) · <b>F</b> scooter · <b>C</b> call / leave your car (H — horn) · <b>U</b> or the Garage button: a turntable with every car, the Lamborghini, G-Wagon, bicycle and submarine — pick one and it is brought to you (a friend can ride along — press E / F beside the car) · submarine: <b>W/S</b> throttle · <b>A/D</b> steer · <b>Q</b> dive · <b>E</b> rise · <b>F</b> exit · <b>O</b> or the View button: camera view (third person · first person · over the shoulder · far · top-down; in a car: chase · cockpit · bonnet) · <b>V</b> helicopter (nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E turn) · <b>B</b> boat / <b>J</b> jet ski at the shore · <b>Q</b> speaker (outside vehicles) · <b>M</b> map · <b>R</b> rain on/off · <b>T</b> chat · <b>G</b> go to friend · mouse turns the camera<br><br><b>Yacht «Odesa Pearl»</b> (jetty at Velykyi Fontan beach, or More → Spawn → Call the yacht, then E for the tender): walk about, E sits · stairs up to the bridge and the sun deck · the left chair on the bridge is the helm: W/S throttle, A/D rudder, the panel has Autopilot → Jungle Island, Anchor, Horn, Camera · leave the helm and the yacht keeps sailing · E on the swim platform or a side door = ashore · <b>Jungle Island</b> (map → Jungle Island, ~25 km out to sea): tigers, panthers, gorillas, boars, hyenas, crocodiles, pythons — the beach camp fire keeps them away · <b>Trains</b>: just walk into an open door, walk through all cars, sit two to a bench, walk out at the next stop · timetable boards in the station · <b>Airport</b> (map → Odesa Airport): E boards the airliner, E on a seat sits (the left cockpit seat is the pilot's — click the glowing buttons, or use the strip below) · fighter jet: E to climb in · More → Spawn creates an airliner or a fighter · flying: S/W pitch · A/D roll · Z/C rudder · Shift/Ctrl throttle · G gear · L lights · P autopilot · Space brake (airliner) / cannon (fighter) · X bomb · V missile · O cockpit view · <b>Y</b> or More → Friend: a friend who walks with you, sits next to you and rides pillion</div></div>
     </section>
     <small id="mCredit">Map: © OpenStreetMap contributors (ODbL). Terrain: SRTM (NASA). The yard, station, opera, sea terminal, stairs and parks were hand-built from photos.</small>
   </div>
@@ -7140,10 +7140,10 @@ function updateHUD(dt){
   if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='custom'?RIDE.tram.leaveLabel:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':RIDE.tram&&RIDE.tram.kind==='train'?'Get off the train':'Get off the tram',fn:leaveTram};
   if(PASS.host)best={label:'Get out',fn:()=>PASS.leave('Got out')};
   if(MARINE.cur)best={label:'Get off the '+MARINE.cur.spec.name,fn:()=>MARINE.exit()};
-  if(EXT.cur)best={label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
+  if(EXT.cur)best=EXT.cur.kind==='sub'?(EXT.cur.cabinWalk?(EXT.aimSubLever()?{label:'Toggle floodlights',fn:()=>EXT.toggleSubLights()}:{label:'Return to pilot seat',fn:()=>EXT.toggleCabin()}):{label:'Walk inside cabin',fn:()=>EXT.toggleCabin()}):{label:'Get off the '+EXT.cur.spec.name,fn:()=>EXT.exit()};
   best=MP.hudAction(best);
   if(PLN.cur)best={label:PLN.cur.kind==='light'?'Get out of the plane':'Get out of the fighter',fn:()=>PLN.leaveFighter()};
-  curAct=best;const ab=$('bAct');if(best){ab.hidden=false;ab.textContent=(TOUCH?'':'E · ')+best.label}else ab.hidden=true;
+  curAct=best;const ab=$('bAct');if(best){ab.hidden=false;const sub=EXT.cur&&EXT.cur.kind==='sub',key=sub?(EXT.cur.cabinWalk?(EXT.aimSubLever()?'E':'B'):'B'):'E';ab.textContent=(TOUCH?'':key+' · ')+best.label}else ab.hidden=true;
   if(miniT<=0){miniT=.1;drawMini()}
 }
 let curAct=null;
@@ -7325,13 +7325,14 @@ const TOUCH_LOOK={active:false,id:null,x:0,y:0};
 function setupInput(){
   addEventListener('keydown',e=>{if(!started)return;{const tg=e.target&&e.target.tagName;if(tg==='INPUT'||tg==='TEXTAREA')return}inp.k[e.code]=true;
     if(e.code==='Space'){inp.jump=true;e.preventDefault()}
-    if(e.code==='KeyE'&&!HELI.on)doAction();
-    if(e.code==='KeyF'&&!HELI.on&&!e.repeat&&!PASS.keyF()&&!MARINE.keyF())toggleScoot();
+    if(e.code==='KeyE'&&!HELI.on){if(EXT.cur&&EXT.cur.kind==='sub'){if(EXT.cur.cabinWalk&&EXT.aimSubLever())EXT.toggleSubLights()}else doAction()}
+    if(e.code==='KeyB'&&!e.repeat&&EXT.cur&&EXT.cur.kind==='sub')EXT.toggleCabin();
+    if(e.code==='KeyF'&&!HELI.on&&!e.repeat){if(EXT.cur&&EXT.cur.kind==='sub')EXT.exit();else if(!PASS.keyF()&&!MARINE.keyF())toggleScoot()}
     if(e.code==='KeyC')toggleCar();
     if(e.code==='KeyX'&&!e.repeat)SHOVE.act(true);
     if(e.code==='KeyV'&&!e.repeat)HELI.toggle();
     if(e.code==='KeyO'&&!e.repeat)CAMV.next();
-    if(e.code==='KeyQ'&&!HELI.on&&(typeof SPK!=='undefined')&&SPK)SPK.toggleCarry();
+    if(e.code==='KeyQ'&&!HELI.on&&!(EXT.cur&&EXT.cur.kind==='sub')&&(typeof SPK!=='undefined')&&SPK)SPK.toggleCarry();
     if(e.code==='KeyN'&&(typeof SPK!=='undefined')&&SPK)SPK.next();
     if(e.code==='KeyP'&&(typeof SPK!=='undefined')&&SPK)SPK.togglePlay();
     if(e.code==='KeyM'){$('mapUI').hidden?openMap():closeMap()}
@@ -7757,7 +7758,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       // flying friend: hide the walker, draw their Apache from the interpolation buffer
       // a friend riding as a passenger: seat them in that helicopter (mine, or another friend's)
       if(s.m==='pass'){const root=PASS.hostRoot(s);if(root){const lv=root.userData&&root.userData.lv,idx=s.pi|0,p=this._pv||(this._pv=new THREE.Vector3()),q=this._pq||(this._pq=new THREE.Quaternion());PASS.seatXform(root,idx,p,q);R.x=p.x;R.y=p.y;R.z=p.z;R.yaw=root.rotation.y;R.has=true;R.wasPass=true;
-          R.P.root.visible=!(lv&&lv.kind==='sub');R.lo.visible=false;R.P.root.position.copy(p);R.P.root.quaternion.copy(q);animPlayer(R.P,{spd:0,mode:lv?lv.seatPose(idx):'sit',role:'pass'},dt);
+          R.P.root.visible=true;R.lo.visible=false;R.P.root.position.copy(p);R.P.root.quaternion.copy(q);animPlayer(R.P,{spd:0,mode:lv?lv.seatPose(idx):'sit',role:'pass'},dt);
           R.tag.visible=!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(p.x,p.y+1.9,p.z);if(R.bub){R.bubT-=dt;R.bub.position.set(p.x,p.y+2.3,p.z);R.bub.visible=R.bubT>0}continue}
         // a passenger in an ordinary car (mine or a friend's): seated from that car's drawn pose
         const car=PASS.hostCar(s);if(car){const p=this._pv||(this._pv=new THREE.Vector3()),q=this._pq||(this._pq=new THREE.Quaternion());
@@ -7780,7 +7781,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
         if(!R.xveh||R.xveh.kind!==kind){if(R.xveh)R.xveh.dispose();R.xveh=new PeerLite(kind,s.xv[5]|0);R.xst=null}
         if(R.xst!==s){R.xst=s;R.xveh.push(s)}
         const q=R.xveh.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true}
-        const far=Math.hypot(R.x-player.x,R.z-player.z),lv=R.xveh.v;lv.root.visible=far<900;R.lo.visible=false;R.P.root.visible=kind!=='sub'&&far<220;
+        const far=Math.hypot(R.x-player.x,R.z-player.z),lv=R.xveh.v;lv.root.visible=far<900;R.lo.visible=false;R.P.root.visible=far<220;
         if(R.P.root.visible){const sp=this._sv||(this._sv=new THREE.Vector3()),sq=this._sq||(this._sq=new THREE.Quaternion());lv.seatWorld(0,sp,sq);R.P.root.position.copy(sp);R.P.root.quaternion.copy(sq);animPlayer(R.P,{spd:0,mode:lv.seatPose(0),role:'driver',steer:lv.steerA,crank:lv.pedal},dt)}
         R.tag.visible=lv.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(R.x,R.y+2.7,R.z);
         if(R.bub){R.bubT-=dt;R.bub.position.set(R.x,R.y+3.2,R.z);R.bub.visible=R.bubT>0}
@@ -8997,7 +8998,7 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
   keyF(){if(this.host){this.leave('Got out');return true}const R=this.find();if(!R)return false;this.board(R);return true},
   ride(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o||!R.st.in){this.leave('Your driver stopped',true);return}
     this.seatXform(o.root,this.idx,this._v,this._q);player.x=this._v.x;player.y=this._v.y;player.z=this._v.z;player.yaw=o.root.rotation.y;player.spd=0;inp.jump=false;
-    PLR.root.visible=o.kind!=='sub';PLR.root.position.copy(this._v);PLR.root.quaternion.copy(this._q);animPlayer(PLR,{spd:0,mode:o.lv?o.lv.seatPose(this.idx):'sit',role:'pass'},dt)},
+    PLR.root.visible=true;PLR.root.position.copy(this._v);PLR.root.quaternion.copy(this._q);animPlayer(PLR,{spd:0,mode:o.lv?o.lv.seatPose(this.idx):'sit',role:'pass'},dt)},
   stepCamera(dt){const R=COOP.peers.get(this.host),o=this.hostObj(R);if(!o)return;const heli=o.kind==='heli'||o.kind==='plane',p=o.root.position,yw=o.root.rotation.y,dist=Math.max(heli?9:6.4,cam.dist*(heli?2:1.2)),pitch=Math.max(.12,cam.pitch);
     if(!freeLook())cam.yaw+=((yw-cam.yaw+Math.PI*3)%(Math.PI*2)-Math.PI)*Math.min(1,dt*1.5);
     const cp=Math.cos(pitch),sp=Math.sin(pitch),wx=p.x-Math.sin(cam.yaw)*cp*dist,wy=p.y+sp*dist+(heli?2:1.4),wz=p.z-Math.cos(cam.yaw)*cp*dist;
@@ -9018,11 +9019,11 @@ const LV_SPECS={
   gwagon:{name:'G-Wagon',len:4.6,wb:2.85,max:34,acc:9,brake:22,steer:.52,lat:10.5,grip:6,hgrip:2.8,r:1.25},
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
   bike:{name:'bicycle',len:1.8,wb:1.05,max:28,acc:9,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45},
-  sub:{name:'submarine',len:7.2,wb:4,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:1.9}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
+  sub:{name:'submarine',len:15,wb:8,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:2.5}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 // depth gauge while piloting the submarine
-function depthHud(d,on){let e=document.getElementById('depthHud');if(!e){if(!on)return;e=document.createElement('div');e.id='depthHud';e.style.cssText='position:fixed;left:50%;top:13%;transform:translateX(-50%);padding:7px 16px;border-radius:10px;background:rgba(8,28,40,.66);color:#9fe7ff;font:700 15px/1 system-ui,sans-serif;letter-spacing:.1em;z-index:5;pointer-events:none;white-space:nowrap';document.body.appendChild(e)}
-  e.hidden=!on;if(on)e.textContent=(d<.7?'SURFACED':'DEPTH '+Math.round(d)+' m')+(d>100?' · deep':'')}
+function depthHud(d,on,damage){let e=document.getElementById('depthHud');if(!e){if(!on)return;e=document.createElement('div');e.id='depthHud';e.style.cssText='position:fixed;left:50%;top:13%;transform:translateX(-50%);padding:7px 16px;border-radius:10px;background:rgba(8,28,40,.66);color:#9fe7ff;font:700 15px/1 system-ui,sans-serif;letter-spacing:.1em;z-index:5;pointer-events:none;white-space:nowrap';document.body.appendChild(e)}
+  e.hidden=!on;if(on){e.textContent=(d<.7?'SURFACED':'DEPTH '+Math.round(d)+' m')+(d>100?' · deep':'')+(damage>0?' · HULL '+Math.max(0,100-Math.round(damage*100))+'%':'');e.style.color=damage>.5?'#ff8b79':'#9fe7ff'}}
 function xb(parent,w,h,d,x,y,z,mat,rx,ry,rz){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);if(rx||ry||rz)m.rotation.set(rx||0,ry||0,rz||0);m.castShadow=true;parent.add(m);return m}
 // smooth body from sections [z,halfWidth,yBottom,yTop,cornerRadius] (front to back), capped at both ends
 function xloft(parent,secs,mat,open){const N=4,pos=[],idx=[],ring=s=>{const [z,hw,y0,y1,r]=s,out=[];
@@ -9141,37 +9142,52 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       const gy=Math.max(groundH(d.m.position.x,d.m.position.z),SL);if(d.m.position.y<gy+.05){d.m.position.y=gy+.05;d.v.y*=-.35;d.v.x*=.6;d.v.z*=.6;d.w.multiplyScalar(.6)}
       if(d.t>2.4)d.m.scale.multiplyScalar(Math.max(0,1-dt*2.5));if(d.t>3.2){d.on=false;d.m.visible=false}}
     for(let i=this.fires.length-1;i>=0;i--){const f=this.fires[i];f.t+=dt;const k=f.t/.7;f.m.scale.setScalar(f.r*(.4+k*1.6));f.m.material.opacity=Math.max(0,.9*(1-k));if(k>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();this.fires.splice(i,1)}}
-    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();
+    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(v.kind==='sub'&&!v.dead&&Math.hypot(v.x-player.x,v.z-player.z)<1000)v.loadModel();
       if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL+SUB_SURF+Math.sin(UNI.uTime.value*1.1+v.x)*.05;v.sync()}
       else if(v!==this.cur&&!v.dead&&v.lights)v.lights()}
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
     this.seaT-=dt;if(this.seaT<=0){this.seaT=.6;const show=started&&MARINE.free()&&!player.scoot&&!!MARINE.waterNear(40);this.boatBtn.hidden=!show;this.jetBtn.hidden=!show}
   },
   enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
-    this.cur=v;v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=v.kind!=='sub';LVSND.start(v.kind);
-    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Space rise · Shift or C dive':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
-    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+' · E to get off'+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':' · a friend can climb in (E / F near the car)'):''))},
+    this.cur=v;v.loadModel();v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=true;LVSND.start(v.kind);
+    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Q dive · E rise · B walk inside · F exit':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
+    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+(v.kind==='sub'?'':' · E to get off')+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':v.kind==='sub'?' · pilot + co-op passenger seats':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
-  leave(v,destroyed){if(this.cur!==v)return;this.cur=null;depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
+  leave(v,destroyed){if(this.cur!==v)return;this.cur=null;v.setCabinView(false);v.cabinWalk=false;const reticle=$('subReticle');if(reticle)reticle.remove();depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
     if(destroyed)toast('Your '+v.spec.name+' was destroyed','')},
   exit(){const v=this.cur;if(!v)return;let spot;
-    if(v.kind==='sub'){spot=MARINE.landSpot(v);if(!spot||v.y<SL-1.5){toast('Surface near land to get out','Space = rise · steer up to the shore or the island');return}}
+    if(v.kind==='sub'){spot=MARINE.landSpot(v);if(!spot||v.y<SL-1.5){toast('Surface near land to get out','E = rise · steer up to the shore or the island');return}}
     else{if(Math.abs(v.v)>6){toast('Slow down first','');return}spot=rideExitSpot(v.x,v.z,v.yaw,v.y,[-1,1])}
     this.leave(v);
     player.x=spot[0];player.z=spot[1];player.y=groundAt(spot[0],spot[1],v.y+1);player.vx=player.vz=player.vy=0;player.air=false;player.yaw=v.yaw},
+  toggleCabin(){const v=this.cur;if(!v||v.kind!=='sub'||!v.modelLoaded){toast('Cabin loading','');return}
+    v.cabinWalk=!v.cabinWalk;v.setCabinView(v.cabinWalk);v.cabinLastYaw=v.yaw;cam.yaw=v.yaw;cam.pitch=-.65;cam.init=false;
+    if(v.cabinWalk){v.cabinPos=[0,-.42,4.8];PLR.root.visible=false;let r=$('subReticle');if(!r){r=document.createElement('i');r.id='subReticle';r.style.cssText='position:fixed;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 4px #001;transform:translate(-50%,-50%);z-index:20;pointer-events:none';document.body.appendChild(r)}toast('Submarine cabin','WASD / joystick to walk · look at the lever and press E · B return to pilot · F exit')}
+    else{PLR.root.visible=true;toast('Pilot seat','W/S throttle · A/D steer · Q dive · E rise · B cabin · F exit')}},
+  aimSubLever(){const v=this.cur;if(!v||!v.cabinWalk||!v.subLever)return false;this._subRay=this._subRay||new THREE.Raycaster();camera.updateMatrixWorld(true);this._subRay.setFromCamera(new THREE.Vector2(0,0),camera);
+    const hits=this._subRay.intersectObject(v.subLever.root,true);return !!(hits.length&&hits[0].distance<2.8)},
+  toggleSubLights(){const v=this.cur;if(!v||!this.aimSubLever())return;v.toggleSubLights();toast('Floodlights '+(v.lightsOn?'on':'off'),'')},
   ride(dt){const v=this.cur,k=inp.k;if(!v)return;
     let thr=inp.jy+((k.KeyW||k.ArrowUp)?1:0)-((k.KeyS||k.ArrowDown)?1:0),str=-inp.jx+((k.KeyA||k.ArrowLeft)?1:0)-((k.KeyD||k.ArrowRight)?1:0);
     thr=Math.max(-1,Math.min(1,thr));str=Math.max(-1,Math.min(1,str));
-    const sub=v.kind==='sub',shift=k.ShiftLeft||k.ShiftRight||player.run,brk=!sub&&!!k.Space,up=sub?((k.Space||inp.jump||DEEP.rise||DEEP.kq)?1:0)-((shift||DEEP.dive||DEEP.kd)?1:0):0;
-    v.step(dt,thr,str,brk,up,shift&&!sub);
+    const sub=v.kind==='sub',shift=k.ShiftLeft||k.ShiftRight||player.run,brk=!sub&&!!k.Space,up=sub?((k.KeyE||k.Space||inp.jump||DEEP.rise||DEEP.kq)?1:0)-((k.KeyQ||shift||DEEP.dive||DEEP.kd)?1:0):0;
+    if(sub&&v.cabinWalk){const walk=Math.max(-1,Math.min(1,inp.jy+((k.KeyW||k.ArrowUp)?1:0)-((k.KeyS||k.ArrowDown)?1:0))),side=Math.max(-1,Math.min(1,-inp.jx+((k.KeyA||k.ArrowLeft)?1:0)-((k.KeyD||k.ArrowRight)?1:0)));
+      const dx=(Math.sin(cam.yaw)*walk-Math.cos(cam.yaw)*side)*2*dt,dz=(Math.cos(cam.yaw)*walk+Math.sin(cam.yaw)*side)*2*dt,c=Math.cos(v.yaw),s=Math.sin(v.yaw);
+      v.cabinPos[0]=Math.max(-.72,Math.min(.72,v.cabinPos[0]+c*dx-s*dz));v.cabinPos[2]=Math.max(3.85,Math.min(5.5,v.cabinPos[2]+s*dx+c*dz));
+      v.step(dt,0,0,false,(k.KeyQ||DEEP.dive||DEEP.kd)?-1:(k.Space||DEEP.rise||DEEP.kq)?1:0,false);if(v.dead)return;
+      v.root.updateMatrixWorld(true);const p=new THREE.Vector3(v.cabinPos[0],v.cabinPos[1],v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
+      player.x=p.x;player.y=p.y;player.z=p.z;player.yaw=cam.yaw;player.vx=player.vz=0;PLR.root.visible=false;LVSND.update(v,0);depthHud(SL-v.y,true,v.dmg);return}
+    v.step(dt,thr,str,brk,up,shift&&!sub);if(v.dead)return;
     player.x=v.x;player.z=v.z;player.y=v.y;player.yaw=v.yaw;player.spd=0;player.vx=player.vz=0;
-    // the driver sits in the seat (the submarine is closed)
-    if(sub)PLR.root.visible=false;
-    else{PLR.root.visible=true;const q=this._q||(this._q=new THREE.Quaternion()),p=this._p||(this._p=new THREE.Vector3());v.seatWorld(0,p,q);PLR.root.position.copy(p);PLR.root.quaternion.copy(q);
-      animPlayer(PLR,{spd:0,mode:v.seatPose(0),role:'driver',steer:v.steerA,crank:v.pedal},dt)}
+    PLR.root.visible=true;const q=this._q||(this._q=new THREE.Quaternion()),p=this._p||(this._p=new THREE.Vector3());v.seatWorld(0,p,q);PLR.root.position.copy(p);PLR.root.quaternion.copy(q);
+    animPlayer(PLR,{spd:0,mode:v.seatPose(0),role:'driver',steer:v.steerA,crank:v.pedal},dt);
     LVSND.update(v,thr);
-    $('spdN').textContent=Math.round(Math.abs(v.v)*3.6);depthHud(sub?SL-v.y:0,sub)},
+    $('spdN').textContent=Math.round(Math.abs(v.v)*3.6);depthHud(sub?SL-v.y:0,sub,sub?v.dmg:0)},
   stepCamera(dt){const v=this.cur,sub=v.kind==='sub';
+    if(sub&&v.cabinWalk){let dy=v.yaw-v.cabinLastYaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));cam.yaw+=dy;v.cabinLastYaw=v.yaw;
+      v.root.updateMatrixWorld(true);const p=new THREE.Vector3(v.cabinPos[0],v.cabinPos[1]+1.12,v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
+      camera.position.copy(p);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);camera.lookAt(p.x+Math.sin(cam.yaw)*cp,p.y+sp,p.z+Math.cos(cam.yaw)*cp);
+      cam.x=p.x;cam.y=p.y;cam.z=p.z;cam.init=true;PLR.root.visible=false;return}
     if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?2.6:.8))}
     const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(1+Math.min(.3,Math.abs(v.v)*.008)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
     const ty=v.y+(sub?.6:v.kind==='bike'?1.3:1.45);let d=dist;
