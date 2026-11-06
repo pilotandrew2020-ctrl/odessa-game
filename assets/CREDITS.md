@@ -13,6 +13,7 @@
 - `assets/models/cricri.glb` — **Colomban Cri-Cri** twin-engine light aircraft (the "light plane"). Supplied by the project owner as an FBX model with textures (archive `twin-engine-airplane-colomban-cri-cri.zip`). The archive does not name the author or the licence; on 2026-11-03 the project owner stated that they have permission to use this model in the game. The licence terms themselves are NOT recorded: if they require an author credit (e.g. CC BY), add it here. Converted for the game with three.js r128 (FBXLoader + GLTFExporter): units/axes fixed, duplicate glass shells removed, vertices welded, parts split with their own pivots (propellers, wheels, ailerons, elevator), textures reduced to 1024 px (exterior) and 512 px (interior) JPEG, scaled 1.5x. No other change to the design.
 
 - `sfx.js` — three interface sounds (a whoosh, a "tching" ping, a tick) cut from a recording supplied by the project owner (`videoplayback.m4b`), re-encoded to 22 kHz mono WAV and embedded as base64; no separate audio files.
+- `assets/audio/manifest.json` — replacement slots only. No recorded engine, propeller, turbine, rotor, reactor, or sonar assets are shipped or loaded yet; the current vehicle loops are generated with the Web Audio API. Add a source and verified CC0/public-domain attribution here before adding any recording.
 
 Everything else in the game (buildings, cars, characters, interiors) is procedural geometry generated in code, with no model files.
 

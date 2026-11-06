@@ -55,19 +55,10 @@ function seatPose(P,st,dt){
 }
 
 // ---------- engine sound ----------
-const LVSND={g:null,kind:null,
-  start(kind){if(typeof AUD==='undefined'||!AUD||!AUD.ok||kind==='bike'||kind==='sub')return;const a=AUD.ctx;
-    if(!this.g){const o1=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o1.type='sawtooth';o2.type='square';f.type='lowpass';f.Q.value=3;g.gain.value=0;
-      o1.connect(f);o2.connect(f);f.connect(g);g.connect(AUD.sfx);o1.start();o2.start();Object.assign(this,{o1,o2,f,g})}
-    this.kind=kind;this.g.gain.setTargetAtTime(.04,a.currentTime,.2)},
-  stop(){if(this.g&&AUD.ctx)this.g.gain.setTargetAtTime(0,AUD.ctx.currentTime,.15)},
-  // a virtual gearbox: revs climb through each gear and drop on the shift
-  update(v,thr){if(!this.g||!AUD.ctx||this.kind!==v.kind)return;const T=AUD.ctx.currentTime,lambo=v.kind==='lambo',gears=lambo?7:5,sp=Math.min(1,Math.abs(v.v)/v.spec.max);
-    const gp=Math.min(gears-1e-3,sp*gears*1.1),rpm=.2+.8*(gp-Math.floor(gp)),load=Math.max(0,thr);
-    const f=(lambo?58:36)+((lambo?340:170)-(lambo?58:36))*rpm*(.85+.15*load);
-    this.o1.frequency.setTargetAtTime(f,T,.04);this.o2.frequency.setTargetAtTime(f*.5,T,.04);
-    this.f.frequency.setTargetAtTime(260+rpm*(lambo?2600:1300)+load*700,T,.05);
-    this.g.gain.setTargetAtTime((.03+load*.05+sp*.02)*(lambo?1.1:1),T,.06)}};
+const LVSND={voice:null,kind:null,
+  start(kind){this.stop();if(typeof AUD==='undefined'||!AUD||!AUD.ok||kind==='bike')return;this.kind=kind;this.voice=AUD.machine(kind==='sub'?'sub':'car')},
+  stop(){if(this.voice)this.voice.dispose();this.voice=null;this.kind=null},
+  update(v,thr){if(!this.voice||!AUD.ctx||this.kind!==v.kind)return;this.voice.update(v.x,v.y,v.z,Math.hypot(v.vx||0,v.vz||0),thr,true,v.kind==='sub'?Math.max(0,SL-v.y):0,v.kind==='sub'?.7:.55)}};
 
 // ===================================================================================================
 class LiteVehicle{

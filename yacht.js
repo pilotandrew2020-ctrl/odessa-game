@@ -125,9 +125,9 @@ class Yacht{
     x.font='600 15px monospace';x.fillStyle='#f2c14e';x.fillText('THR '+Math.round(this.thr*100)+'%',12,98);x.fillStyle='#8fd';x.fillText(this.auto?'AUTO → '+this.auto.name:'MANUAL',12,122);
     x.save();x.translate(W-60,H-50);x.rotate(this.yaw);x.fillStyle='#fff';x.beginPath();x.moveTo(0,-26);x.lineTo(10,16);x.lineTo(0,10);x.lineTo(-10,16);x.closePath();x.fill();x.restore();this.dyn.live.tex.needsUpdate=true}
   lights(){const n=UNI.uNight.value,I=this.lightsOn?.7+n*2.2:.15;this.M.lamp.emissiveIntensity=I;this.M.screen.emissiveIntensity=.7+n*.6}
-  sound(dt){if(typeof AUD==='undefined'||!AUD||!AUD.ok)return;const a=AUD.ctx,d=Math.hypot(this.x-player.x,this.z-player.z),sp=Math.min(1,Math.abs(this.u)/46),vol=(d<120||(MP.on&&MP.plat===this.plat))?Math.max(0,1-d/120)*.5+(MP.on&&MP.plat===this.plat?.5:0):0;
-    if(!this.eng){if(vol<=.01)return;const o=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.Q.value=2;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AUD.sfx);o.start();o2.start();this.eng={o,o2,f,g}}
-    const T=a.currentTime;this.eng.o.frequency.setTargetAtTime(30+sp*34+Math.abs(this.thr)*10,T,.3);this.eng.o2.frequency.setTargetAtTime(15+sp*17,T,.3);this.eng.f.frequency.setTargetAtTime(120+sp*420,T,.3);this.eng.g.gain.setTargetAtTime(vol*(.018+.05*(.35+sp)),T,.25)}
+  sound(dt){if(typeof AUD==='undefined'||!AUD||!AUD.ok)return;
+    const aboard=MP.on&&MP.plat===this.plat,d=Math.hypot(this.x-player.x,this.z-player.z),level=aboard ? .7 : Math.max(0,1-d/160);
+    if(!this.eng&&level<=.01)return;if(!this.eng)this.eng=AUD.machine('boat');if(this.eng)this.eng.update(this.x,this.y,this.z,this.u,this.thr,level>.01,0,level*.8)}
   update(dt){
     const d=Math.hypot(this.x-player.x,this.z-player.z),aboard=MP.on&&MP.plat===this.plat;
     this.root.visible=d<3200||aboard;if(this.root.visible||aboard)this.step(Math.min(dt,.05));else if(this.auto||Math.abs(this.u)>.1)this.step(Math.min(dt,.05));

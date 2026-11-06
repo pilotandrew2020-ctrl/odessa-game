@@ -1,0 +1,12 @@
+{
+  "requiredLicense": "CC0",
+  "status": "placeholders-not-loaded",
+  "assets": {
+    "carEngine": "assets/audio/car-engine-loop.ogg",
+    "propeller": "assets/audio/aircraft-propeller-loop.ogg",
+    "turbine": "assets/audio/jet-turbine-loop.ogg",
+    "helicopterRotor": "assets/audio/helicopter-rotor-loop.ogg",
+    "submarineReactor": "assets/audio/submarine-reactor-loop.ogg",
+    "submarineSonar": "assets/audio/submarine-sonar.wav"
+  }
+}

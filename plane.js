@@ -341,9 +341,10 @@ const PLN={list:[],cur:null,crew:false,hudEl:null,rc:new THREE.Raycaster(),ndc:n
     const r=document.getElementById('pRd');if(r)r.textContent=kn+' kt · '+Math.round(p.y-SL)+' m · '+agl+' AGL · VS '+Math.round(p.vy*196.85/100)*100/100+' · HDG '+String(hd).padStart(3,'0')+(p.hold?' · AUTO':'')+(p.onGround?' · GROUND':'');
     const t=document.getElementById('pThr');if(t)t.style.width=Math.round(p.thr*100)+'%'},
   tick(dt){this.update(dt);this.crewUpdate(dt);this.sound(dt);this.chipTick()},
-  // one shared engine voice: the loudest aircraft near you (or the one you are aboard) sets it
+  // The loudest nearby aircraft drives one filtered, positional engine voice.
   sound(dt){if(typeof AUD==='undefined'||!AUD||!AUD.ok)return;let best=null,bv=0;const aboard=MP.on&&MP.plat&&MP.plat.plane;
     for(const p of this.list){if(p.crashed||p.eng<.05)continue;const d=Math.hypot(p.x-player.x,p.z-player.z);let v=Math.max(0,1-d/700)*p.eng*(.25+p.thr*.75);if(aboard===p)v*=.55;if(this.cur===p)v*=.7;if(v>bv){bv=v;best=p}}
-    const a=AUD.ctx,T=a.currentTime;if(!this.eng){if(bv<.01)return;const o=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.Q.value=1.2;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(AUD.sfx);o.start();o2.start();this.eng={o,o2,f,g}}
-    const fi=best&&best.kind==='fighter'?1:0,li=best&&best.kind==='light'?1:0,th=best?best.thr:0;this.eng.o.frequency.setTargetAtTime(li?(105+th*230):((fi?90:70)+th*(fi?260:150)),T,.2);this.eng.o2.frequency.setTargetAtTime((fi?45:35)+th*(fi?130:75),T,.2);this.eng.f.frequency.setTargetAtTime(220+th*(fi?1800:900),T,.2);this.eng.g.gain.setTargetAtTime(bv*(fi?.12:.09),T,.2)}
+    const type=best&&best.kind==='fighter'?'jet':'plane';
+    if(best&&(!this.eng||this.eng.kind!==type)){if(this.eng)this.eng.dispose();this.eng=AUD.machine(type)}
+    if(this.eng)this.eng.update(best?best.x:player.x,best?best.y:player.y,best?best.z:player.z,best?best.v:0,best?best.thr:0,!!best,0,bv*1.6)}
 };
