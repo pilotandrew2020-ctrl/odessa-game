@@ -1,5 +1,0 @@
-# vendored libraries and generated/binary data are noise in the code graph
-lib/
-dev/
-assets/
-*.min.js
