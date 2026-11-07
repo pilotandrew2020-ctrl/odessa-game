@@ -111,11 +111,12 @@ function shMarket(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,cols=['#d8372a'
     if(!U.glb)U.box(0,1.95,v,len,.14,.5,b.bg,0)});
   // fruit and veg crates along the side walls
   for(const s of [-1,1])for(let k=0;k<3;k++){const u=s*(W/2-1.2),v=1.2+k*1.3;if(U.glb)U.m('sh_produce',u,v,0);else U.box(u,.4,v,1,.8,1.1,'#b98a4a',5);U.obb(u,v,.55,.6);for(let r=-1;r<=1;r++)U.row('fresh',u-.4,.8,v+r*.32,1,0,.8,0,-1,k*9+r*3+(s>0?5:0),{gap:.04})}
-  // checkouts: belt, till desk and a cashier at each manned lane (the middle of the opening stays free)
-  const lanes=[-W/2+3.2,-W/2+6.2,W/2-3.2,W/2-6.2];lanes.forEach((u,i)=>{if(U.glb)U.m('sh_checkout',u,1.575,0,{tints:{tint_a:b.bg}});else{U.box(u,.5,1.2,.9,1,1.8,'#34363b',1);U.box(u,1.02,1.2,.96,.05,1.86,'#1c1d20',1);U.box(u,.5,2.4,1.1,1,.9,'#e4e4de',1);U.box(u,1.02,2.4,1.16,.05,.96,'#9aa0a6',1);
-    U.box(u,1.27,2.5,.46,.32,.06,'#1f1f22',0);U.box(u,1.07,2.1,.32,.03,.2,'#222',1);U.box(u,1.9,.2,.1,.5,.1,b.bg,3)}U.obb(u,1.5,.6,1.25);
-    if(i<3)U.cash(u,3.1,true,key,i+1)});
-  U.act(-W/2+4.7,.2,1.7,'Pay at the checkout',shPayBasket);U.act(W/2-4.7,.2,1.7,'Pay at the checkout',shPayBasket);
+  // checkouts: belt, till desk and a cashier at each manned lane — DEEP inside the hall (like Lidl / Tavria V):
+  // the middle of the opening stays free, the desks sit past the last aisle row, at the back wall end of the shop
+  const lanes=[-W/2+3.2,-W/2+6.2,W/2-6.2,W/2-3.2];lanes.forEach((u,i)=>{if(U.glb)U.m('sh_checkout',u,1.575,0,{tints:{tint_a:b.bg}});else{U.box(u,.5,D-1.4,.9,1,1.8,'#34363b',1);U.box(u,1.02,D-1.4,.96,.05,1.86,'#1c1d20',1);U.box(u,.5,D-.2,1.1,1,.9,'#e4e4de',1);U.box(u,1.02,D-.2,1.16,.05,.96,'#9aa0a6',1);
+    U.box(u,1.27,D-.1,.46,.32,.06,'#1f1f22',0);U.box(u,1.07,D-.5,.32,.03,.2,'#222',1);U.box(u,1.9,D-.4,.1,.5,.1,b.bg,3)}U.obb(u,D-1.1,.6,1.25);
+    if(i<3)U.cash(u,D-.3,true,key,i+1)});
+  U.act(-W/2+4.7,.2,D-2.2,'Pay at the checkout',shPayBasket);U.act(W/2-4.7,.2,D-2.2,'Pay at the checkout',shPayBasket);
   // things to take
   const goods=opt.goods||['milk','bread','juice','apples','crisps','cheese','chocolate','cola','water','sausage'];
   goods.forEach((g,i)=>{const r=rows[i%rows.length],u=-((W-9)/2)+1.6+Math.floor(i/rows.length)*((W-9)/Math.max(1,Math.ceil(goods.length/rows.length))),v=r-1.35;
