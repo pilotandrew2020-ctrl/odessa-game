@@ -40,9 +40,12 @@ const PHONE={
     if(!this.root)return;
     if(this.open&&this.t<1){this.t=Math.min(1,this.t+dt*3);this.draw()}
     if(!this.open&&this.t>0)this.t=Math.max(0,this.t-dt*3);
-    this.root.position.set(.08+.06*this.t,-.08-.06*this.t,-.62);
-    this.root.scale.setScalar(1.25);
-    this.root.rotation.set(-.12*this.t,.06*this.t,.08*this.t);
-    this.root.visible=this.open||this.t>0
+    // realistic raise: starts low at the hip, rises to eye level in front of the screen, tilts back a little, right hand brings it up
+    const t=this.t,e=1-Math.pow(1-t,3);   // ease-out cubic
+    this.root.position.set(.34-.245*e,-.62+.42*e,-.5+.16*e);
+    this.root.scale.setScalar(1.15+.1*e);
+    this.root.rotation.set(-.55+.4*e,.18-.1*e,.5-.45*e);
+    this.root.visible=this.open||this.t>0;
+    if(this.open){const d=new Date();if(d.getSeconds()!==this._sec){this._sec=d.getSeconds();this.draw()}}
   }
 };

@@ -229,11 +229,14 @@ function buildWheel(){
 }
 
 const POSE={EM,IDS,CLS,layer,
+  // sip from the Pepsi can in the left hand, randomly (cooldown 5-10 min). Same rig as the jar drink.
+  canT:0,canNext:0,canCur:0,canCool(){return 300+Math.random()*300},canSip(P,dt){this.canT-=dt||0;if(this.canT<=0&&!this.canCur&&P&&P===PLR&&P.can&&P.can.visible&&!P.emo&&!P.drk&&!P.rch&&!(typeof GUN!=='undefined'&&GUN.held)&&!(typeof BR!=='undefined'&&BR.on)){this.canCur=1.6;this.canT=0;POSE.startDrink(P,1.6,P.can)}
+    if(this.canCur>0){this.canCur-=dt||0;if(this.canCur<=0&&!P.drk){this.canCur=0;this.canT=this.canCool()}}},
   emote(P,id,mine){if(!P||!EM[id])return;if(P.sky)return;P.emo={id,t:0};P.drk=null;P.rch=null;if(mine&&P===PLR){beat(true);POSE.cur=id;try{COOP.push(true)}catch(e){}}},
   stop(P){if(!P||!P.emo)return;P.emo=null;free(P);if(P.can&&P===PLR)P.can.visible=true;if(P===PLR){beat(false);POSE.cur=null;try{COOP.push(true)}catch(e){}}},
   startDrink(P,dur,jar,liq,liq0){P.emo=null;P.rch=null;P.drk={t:0,dur,jar,liq,liq0};if(P.can)P.can.visible=false},
   endDrink(P){if(!P.drk)return;const d=P.drk;P.drk=null;if(d.jar&&d.jar.parent)d.jar.parent.remove(d.jar);free(P);if(P._gw)P._gw.visible=true},
   reachDown(P,dur){if(P.emo)return;P.rch={t:0,dur:dur||.6}},
   wheel(on){if(!wheel)buildWheel();wOpen=on===undefined?!wOpen:!!on;wheel.hidden=!wOpen},
-  tick(dt){beatTick(dt)},cur:null};
+  tick(dt){beatTick(dt);this.canSip(PLR,dt)},cur:null};
 return POSE})();

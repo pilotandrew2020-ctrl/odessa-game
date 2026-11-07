@@ -273,6 +273,10 @@ const SH_EAT={item:null,t:0,dur:3.2};
 function shEdible(n){return /milk|water|juice|bread|bun|croissant|apple|crisps|cheese|yogurt|chocolate|cola|sausage|pizza|ice cream|hematogen|candy|fish|chips|mussel|grill|burger|fries|wrap|kebab|gelato|milkshake|smoothie|latte|cappuccino|muffin|baguette/i.test(n)}
 function shEat(name){
   if(!shEdible(name)||!(BAG[name]>0)){toast('Not ready to eat','buy and pay for a food or drink first');return}
+  // first, the proper eat/drink animation (acts.js): bring it to the mouth, bite / sip, chew, swallow — then consume
+  const drinking=/milk|water|juice|cola|yogurt|milkshake|smoothie|latte|cappuccino/i.test(name);
+  if(typeof ACT!=='undefined'&&ACT.start&&!player.sit&&(typeof DRIVE==='undefined'||!DRIVE.on)&&(typeof RIDE==='undefined'||!RIDE.on)&&cam.dist<=.76){
+    cam.dist=2.3;cam.init=false;if(ACT.start('eat',{item:drinking?'cola':(name.match(/bread|bun|loaf|apple/i)?'bread':'milk'),bite:1.0,onEnd(ok){if(!ok)return;BAG[name]=Math.max(0,(BAG[name]||0)-1);if(!BAG[name])delete BAG[name];shHold(null);toast(drinking?'Glug':'Nom nom',name);const p=document.getElementById('bagPanel');if(p&&!p.hidden)shBagPanel()}}))return}
   shHold(name);SH_EAT.item=name;SH_EAT.t=0;toast('Enjoy your snack',name)
 }
 function shHeldTick(dt){const g=HELD.g;if(!g||typeof PLR==='undefined'||!PLR)return;
@@ -575,7 +579,10 @@ function installShops(grp,G,P,Sg,GR){
     {brand:'shaw',key:'shop_shaw',idx:19,title:'Shawarma bar',sub:'shawarma and kebab · Slobidka',at:geo(46.481,30.69),size:[24,20],W:10,Dp:8,H:4.2,poi:['Ш','#2e6b2e'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'shaw')},room:{w:10,d:8,h:3.2,floor:0xd9d2c4}},
     {brand:'pub',key:'shop_sea_pub',idx:20,title:'Sea Pub',sub:'seafood and local drinks · coastal district',at:geo(46.428,30.74),size:[30,24],W:18,Dp:12,H:5,poi:['P','#18384a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'pub');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
     {brand:'bar',key:'shop_river_bar',idx:21,title:'River Bar',sub:'grill and late-night food · Peresyp',at:geo(46.505,30.72),size:[30,24],W:18,Dp:12,H:5,poi:['B','#442627'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'bar');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
-    {brand:'bowling',key:'shop_bowling',idx:22,title:'Bowling Club',sub:'four lanes and a lounge · Odesa',at:geo(46.466,30.765),size:[44,34],W:32,Dp:24,H:6,poi:['B','#213d66'],fill:(U,E)=>shBowling(U),room:{w:32,d:26,h:4.8}}
+    {brand:'bowling',key:'shop_bowling',idx:22,title:'Bowling Club',sub:'four lanes and a lounge · Odesa',at:geo(46.466,30.765),size:[44,34],W:32,Dp:24,H:6,poi:['B','#213d66'],fill:(U,E)=>shBowling(U),room:{w:32,d:26,h:4.8}},
+    // two more bars on free lots (user request: fill the empty zones with real infrastructure)
+    {brand:'bar',key:'shop_old_port_bar',idx:23,title:'Old Port Bar',sub:'brandy, mussels and sea stories · Old Port',at:geo(46.487,30.735),size:[30,24],W:16,Dp:11,H:4.6,poi:['B','#2b3d54'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'bar')},room:{w:16,d:12,h:3.6}},
+    {brand:'pub',key:'shop_mold_pub',idx:24,title:'Moldavanka Pub',sub:'kvass, shashlik and chess · Moldavanka',at:geo(46.473,30.702),size:[30,24],W:16,Dp:11,H:4.6,poi:['P','#3d2a1a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'pub')},room:{w:16,d:12,h:3.6}}
   ];
   const lotFor=(s,fallbacks)=>shFindLot(s.at[0],s.at[1],s.size[0],s.size[1],900);
   for(const s of spots){const at=lotFor(s);if(at)shBuildShop(grp,P,GR,s,at);else console.warn('no lot found for',s.key)}

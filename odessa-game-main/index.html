@@ -4015,9 +4015,16 @@ function faceTex(o){if(typeof bdFaceTex==='function')return bdFaceTex(o);const W
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;return t}
 function stripeTex(c1,c2,n){const cv=document.createElement('canvas');cv.width=16;cv.height=256;const x=cv.getContext('2d');x.fillStyle=c1;x.fillRect(0,0,16,256);x.fillStyle=c2;for(let i=0;i<n;i++)x.fillRect(0,i*256/n,16,256/n*.42);
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t}
-function canTex(){const cv=document.createElement('canvas');cv.width=256;cv.height=128;const x=cv.getContext('2d');const g=x.createLinearGradient(0,0,0,128);g.addColorStop(0,'#1fb5a8');g.addColorStop(1,'#0d7f8c');x.fillStyle=g;x.fillRect(0,0,256,128);
-  x.fillStyle='#ffd23f';x.beginPath();x.moveTo(0,90);for(let i=0;i<=16;i++)x.lineTo(i*16,90+Math.sin(i*1.2)*8);x.lineTo(256,128);x.lineTo(0,128);x.fill();
-  x.fillStyle='#fff';x.font='800 34px "Golos Text",Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('НАПІЙ',128,52);
+function canTex(){const cv=document.createElement('canvas');cv.width=256;cv.height=128;const x=cv.getContext('2d');
+  // PEPSI can: dark blue body, red band, white wave and the round pepsi mark — drawn, not a photo (CC0-safe)
+  const g=x.createLinearGradient(0,0,0,128);g.addColorStop(0,'#1258b8');g.addColorStop(.5,'#0a3f92');g.addColorStop(1,'#0d4da8');x.fillStyle=g;x.fillRect(0,0,256,128);
+  x.fillStyle='#e01c2c';x.beginPath();x.moveTo(0,86);x.bezierCurveTo(64,70,150,102,256,78);x.lineTo(256,128);x.lineTo(0,128);x.fill();
+  x.strokeStyle='rgba(255,255,255,.85)';x.lineWidth=7;x.beginPath();x.moveTo(0,66);x.bezierCurveTo(70,44,160,84,256,56);x.stroke();
+  // roundel: red top, white wave, blue bottom
+  const cx=128,cy=56,R=34;x.fillStyle='#e01c2c';x.beginPath();x.arc(cx,cy,R,Math.PI,2*Math.PI);x.fill();x.fillStyle='#fff';x.beginPath();x.arc(cx,cy,R,0,Math.PI);x.fill();
+  x.fillStyle='#1258b8';x.beginPath();x.ellipse(cx,cy+R*.28,R*.92,R*.62,0,0,7);x.fill();
+  x.fillStyle='#e01c2c';x.beginPath();x.ellipse(cx,cy+R*.36,R*.66,R*.4,0,0,7);x.fill();
+  x.fillStyle='#fff';x.font='800 30px "Golos Text",Arial,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('PEPSI',128,106);
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;return t}
 function makePlayer(o){o=o||{};
   const SK=o.skin||'#f2c9a6';const std=(h,r,m)=>{const M=new THREE.MeshStandardMaterial({color:h,roughness:r===undefined?.8:r,metalness:m||0});M.color.convertSRGBToLinear();return M};
@@ -4051,6 +4058,7 @@ function makePlayer(o){o=o||{};
   }
   const neck=new THREE.Mesh(new THREE.CylinderGeometry(.048,.056,.1,12),M.skin);neck.position.y=.49;spine.add(neck);
   const head=new THREE.Group();head.position.y=.535;spine.add(head);
+  o.head=head;   // exposed so stepCamera can hide only MY head in first person (friends still see it)
   const HR=.104,HH=.245;   // a real head is ~0.16 m wide and ~0.23 m tall (the old 0.30 m wide one made everyone look like a toy)
   const hm=new THREE.Mesh(headGeo(HR,HH),M.head);head.add(hm);bdFace(head,M,HR,HH);bdEyes(head,HR,HH);
   CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);const nH=head.children.length;CHP.glasses(head,o,M,HR,HH);CHP.hat(head,o,HR,HH);const accH=head.children.slice(nH);
@@ -4078,9 +4086,12 @@ function makePlayer(o){o=o||{};
     if(SS==='boot')ft.add(new THREE.Mesh(bdBoot(),M.shoe));
     legs.push({hp,kn,ft,s});
   }
-  // can of lemonade in the left hand
+  // PEPSI can in the left hand (labels redrawn as Pepsi), a small ring-pull top, attached to the WRIST bone offset
+  // up the forearm so the can no longer cuts through the finger meshes of hdHand (old offset sat inside the knuckles).
   const can=new THREE.Group();const cb=new THREE.Mesh(new THREE.CylinderGeometry(.033,.033,.115,16),[new THREE.MeshStandardMaterial({map:canTex(),roughness:.35,metalness:.5}),std(0xc9cdd2,.3,.8),std(0xc9cdd2,.3,.8)]);can.add(cb);
-  can.position.set(.0,-.245,.045);can.rotation.y=Math.PI/2;arms[0].el.add(can);can.visible=o.cn!==false;
+  {const ring=new THREE.Mesh(new THREE.TorusGeometry(.012,.003,6,12),std(0xc9cdd2,.3,.8));ring.rotation.x=Math.PI/2;ring.position.set(0,.062,0);can.add(ring)}
+  can.scale.setScalar(.92);
+  can.position.set(.0,-.155,.078);can.rotation.x=.22;can.rotation.y=Math.PI/2;arms[0].hand.add(can);can.visible=o.cn!==false;
   // scooter
   const sc=new THREE.Group();const mS=std(0x222428,.5,.4),mA=std(0x9fd8d6,.5),mW=std(0x111111,.9);
   const deck=new THREE.Mesh(new THREE.BoxGeometry(.16,.05,.78),mS);deck.position.set(0,.1,0);sc.add(deck);
@@ -5246,6 +5257,8 @@ function intPed(x,z,yaw,route){const p=Object.assign(randPerson(),{x,z,y:INT_Y,y
 function stepIntPeds(dt){for(const p of PORTAL.peds){if(!p.route)continue;if(p.wait>0){p.wait-=dt;p.moving=false;continue}const t=p.route[p.ri];const dx=t[0]-p.x,dz=t[1]-p.z,d=Math.hypot(dx,dz);
   if(d<.3){p.ri=(p.ri+1)%p.route.length;p.wait=Math.random()<.4?1+Math.random()*3:0;continue}p.moving=true;const sp=1.1;p.x+=dx/d*sp*dt;p.z+=dz/d*sp*dt;p.phase+=sp*dt*3.3;
   let dy=Math.atan2(dx,dz)-p.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;p.yaw+=dy*Math.min(1,dt*6)}}
+// the random Pepsi sip (5-10 min cooldown) rides on the same ANIM tick as the cashiers
+if(typeof POSE!=='undefined')ANIM.push(dt=>POSE.tick(dt));
 const INTERIORS={
   market(){const grp=new THREE.Group();scene.add(grp);const ox=INT_X,oz=INT_Z;
     const floorT=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');x.fillStyle='#a7a6a2';x.fillRect(0,0,256,256);for(let i=0;i<4000;i++){x.fillStyle=`rgba(${Math.random()<.5?255:0},${Math.random()<.5?255:0},255,.03)`;x.fillRect(Math.random()*256,Math.random()*256,2,2)}x.strokeStyle='#8d8c88';x.lineWidth=3;x.strokeRect(0,0,256,256);const t=new THREE.CanvasTexture(cv);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(30,22);t.encoding=THREE.sRGBEncoding;return t})();
@@ -6181,7 +6194,24 @@ const AUD={
     this.pad=c.createGain();this.pad.gain.value=0;this.pad.connect(this.master);this.pad.connect(this.rev);this.padT=0;
     this.birdT=0;this.gullT=0;this.crickT=0;this.chatLvl=0;
     this.setScene(this.time,this.season);
+    this.menuTheme();
   },
+  // ---------- main menu: the original synth theme, plain oscillators, NO autotune / pitch-correction anywhere ----------
+  menuOn:false,
+  menuTheme(){if(this.menuOn||!this.ok)return;this.menuOn=true;   // called once from start(); plays while #menu is visible
+    const c=this.ctx,T=c.currentTime;
+    this.musG=c.createGain();this.musG.gain.value=0;this.musG.connect(this.master);
+    this.musG.gain.setTargetAtTime(.34,T,1.2);
+    // bass line (Halli-theme-like: minor, plain saw through a lowpass, no pitch correction)
+    const bass=c.createOscillator(),bg=c.createGain(),bf=c.createBiquadFilter();bass.type='sawtooth';bf.type='lowpass';bf.frequency.value=420;bass.frequency.value=55;bg.gain.value=.16;
+    const bl=[0,0,3,0,5,0,3,-2],bt=c.currentTime;bl.forEach((s,i)=>{const seq=c.createOscillator(),sq=c.createGain();seq.type='sawtooth';const f=110*Math.pow(2,bl[i%8]/12);seq.frequency.setValueAtTime(f,bt+i*.5);sq.gain.setValueAtTime(.14,bt+i*.5);sq.gain.setTargetAtTime(0,bt+i*.5+.4,.05);seq.connect(bf);sq.connect(bf);seq.start(bt+i*.5);seq.stop(bt+i*.5+.5)});
+    bf.connect(bg);bg.connect(this.musG);bass.frequency.setValueAtTime(55,T);bg.gain.setValueAtTime(.14,T);bass.connect(bg);bass.start(T);
+    // slow airy pad on fifths
+    [220,330.0].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(this.musG);o.start(T);(this.menuOsc=this.menuOsc||[]).push(o,bass)})},
+  menuUi(k){if(!this.ok)return;   // hover / click blips for the menu buttons (original square-wave blips)
+    if(k==='hov')this.tone(760,760,.05,.05,'square',this.master);
+    else if(k==='clk')this.tone(420,180,.12,.12,'square',this.master)},
+  menuStop(){if(!this.menuOn)return;this.menuOn=false;const T=this.ctx.currentTime;this.musG.gain.setTargetAtTime(0,T,.6);(this.menuOsc||[]).forEach(o=>{try{o.stop(T+2)}catch(e){}});this.menuOsc=[]},
   panner(dest){
     const p=this.ctx.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=3;p.maxDistance=220;p.rolloffFactor=1.15;p.connect(dest||this.sfx);return p},
   position(p,x,y,z){const T=this.ctx.currentTime;if(p.positionX){p.positionX.setTargetAtTime(x,T,.04);p.positionY.setTargetAtTime(y,T,.04);p.positionZ.setTargetAtTime(z,T,.04)}else p.setPosition(x,y,z)},
@@ -7246,7 +7276,7 @@ function stepCamera(dt){
   if(DRIVE.on&&started)return stepCarCamera(dt);
   if(RIDE.on&&started)return stepTramCamera(dt);
   if(started&&SWIM.on&&SWIM.firstPerson){const ex=player.x+Math.sin(cam.yaw)*.08,ey=player.y+.72,ez=player.z+Math.cos(cam.yaw)*.08,cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
-    PLR.root.visible=false;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;camera.position.set(ex,ey,ez);camera.lookAt(ex+Math.sin(cam.yaw)*cp,ey+sp,ez+Math.cos(cam.yaw)*cp);return}
+    PLR.root.visible=false;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;if(PLR.head)PLR.head.visible=false;camera.position.set(ex,ey,ez);camera.lookAt(ex+Math.sin(cam.yaw)*cp,ey+sp,ez+Math.cos(cam.yaw)*cp);return}
   const tx=player.x,ty=player.y+(player.scoot?1.5:(player.sit?1.0:1.35)),tz=player.z;
   if(started&&!inp.dragging&&!TOUCH_LOOK.active&&Math.hypot(player.vx,player.vz)>1.2){let dy=player.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(player.scoot?1.6:.7))}
   const indoor=cam.dist;
@@ -7256,6 +7286,10 @@ function stepCamera(dt){
   if(started&&dist<=.75){
     const ex=tx+Math.sin(cam.yaw)*.12,ey=player.y+1.58,ez=tz+Math.cos(cam.yaw)*.12;
     PLR.root.visible=false;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;
+    // first-person clipping fix: the head (eyes, hair, glasses) pokes through the near plane when the camera sits
+    // at eye height. Hidden for ME only — friends still see the full head; restored the moment I step back out.
+    if(PLR.headNode===undefined){PLR.headNode=PLR.head||null;PLR.headVis=PLR.headNode?PLR.headNode.visible:true}
+    if(PLR.headNode)PLR.headNode.visible=false;
     camera.position.set(ex,ey,ez);
     camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(pitch),ey+Math.sin(pitch),ez+Math.cos(cam.yaw)*Math.cos(pitch));
     return;
@@ -7267,6 +7301,7 @@ function stepCamera(dt){
     cam.x=ex;cam.y=ey;cam.z=ez;camera.position.set(ex,ey,ez);const lp=-cam.pitch*.6;
     camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(lp),ey+Math.sin(lp),ez+Math.cos(cam.yaw)*Math.cos(lp));PLR.root.visible=false;return}
   PLR.root.visible=true;
+  if(PLR.headNode&&PLR.headNode.visible!==PLR.headVis)PLR.headNode.visible=PLR.headVis;
   const sd=started?CAMV.side*Math.max(0,Math.min(1,(d-.9)/1.2)):0,sx=-Math.cos(cam.yaw)*sd,sz=Math.sin(cam.yaw)*sd;     // over the shoulder: camera and target slide to the right so the avatar stands left of centre
   const wx=tx+sx+dx*d,wy=ty+dy*d,wz=tz+sz+dz*d;
   if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}   // a NaN in the smoothed position would stick for ever (black screen)
@@ -7793,7 +7828,8 @@ function loop(t){
   safe('chunks',()=>updateChunks(started?chunkBudget(dt):4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
   safe('cam',()=>stepCamera(dt));
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const target=aim?45:75
-    ;const step=dt*92;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<45||camera.fov>75)camera.fov=Math.min(75,Math.max(45,camera.fov));camera.updateProjectionMatrix()}});
+    ;const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<45||camera.fov>75)camera.fov=Math.min(75,Math.max(45,camera.fov));camera.updateProjectionMatrix()}
+    if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
   safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
   sky.position.copy(camera.position);nightSky.position.copy(camera.position);
@@ -7818,11 +7854,15 @@ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{S.season=b.datas
 document.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{if(window.GFX)GFX.setWeather(b.dataset.w)});
 document.querySelectorAll('[data-g]').forEach(b=>{b.classList.toggle('on',b.dataset.g===S.q);b.onclick=()=>{S.q=b.dataset.g;saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));if(renderer){const wantAA=S.q==='high'&&!MOBILE;if(renderer.getContext().getContextAttributes().antialias!==wantAA){location.reload();return}pixelScale=1;applyQuality();applyTime()}}});
 if(TOUCH)$('keysTxt').textContent='Left half of the screen — walk, right half — turn the camera. The yellow button enters buildings and shops, sits on benches or boards the tram. In the car, “Jump” is the handbrake.';
-$('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');return}started=true;$('menu').hidden=true;$('hud').hidden=false;
+$('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');AUD.menuUi('clk');return}AUD.menuStop();started=true;$('menu').hidden=true;$('hud').hidden=false;
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
   if(!boot.greeted){boot.greeted=true;cam.yaw=player.yaw;toast('Chykalenka St, 59k','formerly Williams St · Tairove')}
   COOP.onStart();if(typeof BR!=='undefined'&&BR.want){BR.want=false;setTimeout(()=>BR.start(),900)}};
-$('bBRm').onclick=()=>{if(typeof BR==='undefined')return;BR.want=true;$('bStart').click()};      // main menu: Battle Royale (goes through the character screen the first time)
+$('bBRm').onclick=()=>{if(typeof BR==='undefined')return;AUD.menuUi('clk');BR.want=true;$('bStart').click()};      // main menu: Battle Royale (goes through the character screen the first time)
+// original menu sounds: hover/click blips + the menu theme keeps playing until Play (installed once AUDIO can start)
+function menuSounds(){if(AUD.ok)return;const nav=document.getElementById('mNav');if(!nav)return;AUD.start();AUD.menuTheme();
+  nav.querySelectorAll('button').forEach(b=>{b.addEventListener('mouseenter',()=>AUD.menuUi('hov'));b.addEventListener('click',()=>AUD.menuUi('clk'))})}
+if(document.readyState==='complete')setTimeout(menuSounds,300);else addEventListener('load',()=>setTimeout(menuSounds,300));
 
 // ===================== CO-OP: friends in the same Odesa (artifact `room` capability) =====================
 // Each open copy of the game shares its player state as room presence (~15 Hz). Others are drawn as
@@ -7930,6 +7970,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const zn=this.zone();const ret=PORTAL.cur?PORTAL.ret:null;const ind=PORTAL.cur&&PORTAL.active;
     const st={v:1,in:started?1:0,n:this.nameOf(),o:this.me.outfit,ch:CHAR.cur,x:r2(player.x),y:r2(player.y),z:r2(player.z),r:r2(player.yaw),m:this.mode(),s:r2(player.spd||0),zn,vc:VOICE.enabled?1:0};
     {const hi=typeof PHONE!=='undefined'&&PHONE.open?'smartphone':(typeof HELD!=='undefined'&&HELD.name);if(hi)st.hi=String(hi).slice(0,40)}
+    // drinking / eating animation: friends see the same can at the mouth through the shared POSE drink state
+    if(typeof POSE!=='undefined'&&POSE.cur===undefined&&PLR&&PLR.drk&&PLR.drk.t<PLR.drk.dur){st.drk=[1,Math.round(PLR.drk.t*100)]}
     const md=SPK.mediaState();if(md){if(SPK.playing&&Date.now()-SPK.mediaStamp>800)SPK.mediaStamp=Date.now();st.md=md;st.ts=SPK.mediaStamp||Date.now()}
     if(ret){st.rx=r2(ret.x);st.rz=r2(ret.z);st.rr=r2(ret.yaw||0);st.zt=(ind&&ind.title)||''}
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0);st.ct=[DRIVE.car.type|0,DRIVE.car.col|0];st.cv=[r2(DRIVE.v),r2(DRIVE.thr||0)]}   // car model + colour: everybody sees the same car
@@ -7959,11 +8001,12 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   openChat(){if(!started)return;$('chatBox').hidden=false;const ci=$('chatIn');ci.value='';setTimeout(()=>ci.focus(),30)},
   closeChat(){$('chatBox').hidden=true;$('chatIn').blur()},
   sendChat(m){m=(m||'').replace(/[\u0000-\u001f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g,'').trim().slice(0,80);if(!m)return;this.say={m,t:Date.now()};this.showBubble(this,m);this.push(true)},
-  bubbleSprite(m){return labelSprite([m],{w:640,h:120,size:Math.min(52,Math.max(30,1100/(m.length+6))),color:'#0b1b22',bg:'rgba(245,241,232,.94)',round:40,depthTest:false,scale:.6})},
-  showBubble(R,m){if(R.bub){scene.remove(R.bub);if(R.bub.material.map)R.bub.material.map.dispose();R.bub.material.dispose()}R.bub=this.bubbleSprite(m);R.bub.renderOrder=999;R.bub.material.sizeAttenuation=false;R.bub.material.transparent=true;R.bub.scale.multiplyScalar(.075);scene.add(R.bub);R.bubT=5;R.bubAge=0;R.bubBase=null},
-  tickBubble(R,dt){if(!R.bub)return;R.bubT-=dt;R.bubAge=(R.bubAge||0)+dt;R.bub.material.opacity=Math.max(0,Math.min(1,R.bubT/.65));
+  bubbleSprite(m){return labelSprite([m],{w:640,h:140,size:Math.min(52,Math.max(30,1100/(m.length+6))),color:'#0b1b22',bg:'rgba(255,255,255,.95)',round:34,depthTest:false,scale:.6})},
+  showBubble(R,m){if(R.bub){scene.remove(R.bub);if(R.bub.material.map)R.bub.material.map.dispose();R.bub.material.dispose()}R.bub=this.bubbleSprite(m);R.bub.renderOrder=999;R.bub.material.sizeAttenuation=false;R.bub.material.transparent=true;R.bub.scale.multiplyScalar(.075);scene.add(R.bub);R.bubT=5;R.bubAge=0;R.bubBase=null},   // Roblox: 5 s, rises then fades
+  tickBubble(R,dt){if(!R.bub)return;R.bubT-=dt;R.bubAge=(R.bubAge||0)+dt;R.bub.material.opacity=Math.max(0,Math.min(1,R.bubT/.9));   // smooth fade in the last ~0.9 s
     if(R.bubT<=0){scene.remove(R.bub);if(R.bub.material.map)R.bub.material.map.dispose();R.bub.material.dispose();R.bub=null;R.bubBase=null}},
-  placeBubble(R,x,y,z){if(!R.bub)return;R.bubBase={x,y,z};R.bub.position.set(x,y+Math.min(.6,(R.bubAge||0)*.12),z);R.bub.visible=R.bubT>0},
+  placeBubble(R,x,y,z){if(!R.bub)return;R.bubBase={x,y,z};const t=Math.min(1,(R.bubAge||0)*.8);   // float up for the first ~1.2 s, then hold
+    R.bub.position.set(x,y+.35+Math.min(.45,t*.4)+Math.sin((R.bubAge||0)*2)*.02,z);R.bub.visible=R.bubT>0},
   // ---------- per frame ----------
   // friends who DRIVE: their pose comes from the buffered interpolation (the same NetSnaps as helicopters and boats), advanced ONCE per frame before
   // anything reads it (traffic, the drawn car, passengers, the passenger camera). The old exponential smoothing of ~15 packets/s stuttered when packets came in bursts.
@@ -8417,11 +8460,14 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     if(P._gi!==w){if(P._gw)A.el.remove(P._gw);const m=this.model(w);P._gw=m.clone();P._gw.userData.base=m.scale.x;A.el.add(P._gw);P._gi=w}
     const W=WEAPONS[w]||WEAPONS[0],me=P===PLR;
     P._gp={w,cls:W.cls||(W.melee?'melee':(w===4||w===6)?'tube':w===3?'smg':'pistol'),aim:me?(this.isAiming()?1:.15):.6,ap:me?this.aimPitch():(P._ap||0),slash:me?this.slash:0,draw:W.draw}},
+  // ---------- ADS: holding Fire (or F) smoothly zooms the camera (75 -> 45 FOV) and centres the reticle ----------
   aimPitch(){return Math.max(-.5,Math.min(.8,-(cam.pitch-.2)*.9))},
+  adsShow(on){const r=document.getElementById('gunReticle');if(r){r.hidden=!on;r.classList.toggle('aim',on)}},
+  ads(){return this.isAiming()},
   isAiming(){
-    if(!started||!this.armed||this.down||this.noHold||PORTAL.cur)return false;
+    if(!started||this.down||this.noHold||PORTAL.cur)return false;
     if(DRIVE.on||RIDE.on||EXT.cur||MARINE.cur||HELI.on||PASS.host||PLN.cur)return false;
-    if(this.held||this.aimT>0)return true;
+    if(this.armed&&(this.held||this.aimT>0))return true;   // holding Fire while armed = ADS (Fortnite-style, 75→45 FOV)
     return !!(this.ui&&this.ui.ret&&!this.ui.ret.hidden&&this.ui.ret.classList.contains('aim'));
   },
   // ---------- audio ----------
