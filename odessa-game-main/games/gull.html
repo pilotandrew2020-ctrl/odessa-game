@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1b22">
+  <title>Полет Чайки — Моя Одесса</title>
+  <style>
+    :root {
+      --ink: #0b1b22; --sea: #0e4a5c; --sun: #f2c14e; --chalk: #f5f1e8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+    body {
+      background: #0b1b22; color: var(--chalk); font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .top {
+      width: 320px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    a.back { color: var(--sun); text-decoration: none; font-weight: 700; font-size: 14px; }
+    .scores { display: flex; gap: 8px; }
+    .sbox { background: rgba(255,255,255,.08); padding: 4px 10px; border-radius: 8px; text-align: center; }
+    .sbox span { display: block; font-size: 10px; color: #a9bcc2; text-transform: uppercase; }
+    .sbox strong { font-size: 16px; font-weight: 800; color: #fff; }
+    #c {
+      background: linear-gradient(180deg, #13708a 0%, #0e4a5c 60%, #07242e 100%);
+      border: 2px solid rgba(242, 193, 78, 0.4); border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5); display: block;
+    }
+    .hint { margin-top: 14px; font-size: 12px; color: #a9bcc2; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a href="../games.html" class="back">← В Центр</a>
+    <div class="scores">
+      <div class="sbox"><span>Счет</span><strong id="sc">0</strong></div>
+      <div class="sbox"><span>Лучший</span><strong id="best">0</strong></div>
+    </div>
+  </div>
+  <canvas id="c" width="320" height="420"></canvas>
+  <div class="hint">Тапайте по экрану или Пробел для взмаха крыльев</div>
+
+  <script>
+    const cv = document.getElementById('c');
+    const ctx = cv.getContext('2d');
+    const W = 320, H = 420;
+
+    let birdY = 200, birdVy = 0;
+    let pipes = [];
+    let score = 0;
+    let best = parseInt(localStorage.getItem('odesa_gull_best') || '0', 10);
+    document.getElementById('best').textContent = best;
+    let dead = false;
+    let frame = 0;
+
+    function reset(){
+      birdY = 200; birdVy = 0;
+      pipes = [
+        {x: 340, top: 120, gap: 115, passed: false},
+        {x: 520, top: 160, gap: 115, passed: false}
+      ];
+      score = 0;
+      document.getElementById('sc').textContent = score;
+      dead = false;
+    }
+
+    function flap(){
+      if(dead){ reset(); return; }
+      birdVy = -5.8;
+    }
+
+    window.gullFlap = flap;
+
+    window.addEventListener('keydown', e => { if(e.code === 'Space') flap(); });
+    cv.addEventListener('pointerdown', flap);
+
+    function drawGull(x, y, vy){
+      ctx.save();
+      ctx.translate(x, y);
+      const angle = Math.max(-0.4, Math.min(0.5, vy * 0.08));
+      ctx.rotate(angle);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 8, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      const wingFlap = Math.sin(frame * 0.3) * 6;
+      ctx.fillStyle = '#dcdde1';
+      ctx.beginPath();
+      ctx.moveTo(-4, 0);
+      ctx.lineTo(2, -14 + wingFlap);
+      ctx.lineTo(10, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#2f3640';
+      ctx.beginPath();
+      ctx.moveTo(0, -9 + wingFlap);
+      ctx.lineTo(2, -14 + wingFlap);
+      ctx.lineTo(6, -6 + wingFlap);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(12, -2, 6, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = '#f2c14e';
+      ctx.beginPath();
+      ctx.moveTo(17, -3);
+      ctx.lineTo(23, -1);
+      ctx.lineTo(17, 1);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(14, -3, 1.2, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function loop(){
+      frame++;
+      if(!dead){
+        birdVy += 0.32;
+        birdY += birdVy;
+
+        if(birdY > H - 15 || birdY < 10) dead = true;
+
+        for(const p of pipes){
+          p.x -= 2.2;
+          if(!p.passed && p.x + 36 < 60){
+            p.passed = true;
+            score++;
+            document.getElementById('sc').textContent = score;
+            if(score > best){
+              best = score;
+              document.getElementById('best').textContent = best;
+              localStorage.setItem('odesa_gull_best', String(best));
+            }
+          }
+
+          if(p.x < 76 && p.x + 40 > 44){
+            if(birdY - 6 < p.top || birdY + 6 > p.top + p.gap){
+              dead = true;
+            }
+          }
+        }
+
+        if(pipes[0].x < -50){
+          pipes.shift();
+          const lastX = pipes[pipes.length-1].x;
+          const newTop = 60 + Math.random() * (H - 220);
+          pipes.push({x: lastX + 180, top: newTop, gap: 115, passed: false});
+        }
+      }
+
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#13708a');
+      bg.addColorStop(0.65, '#0e4a5c');
+      bg.addColorStop(1, '#07242e');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      for(let i=0; i<3; i++){
+        ctx.beginPath();
+        const wy = H - 35 + i * 12;
+        ctx.moveTo(0, wy);
+        for(let x=0; x<=W; x+=10){
+          ctx.lineTo(x, wy + Math.sin((x + frame * 1.5 + i * 40) * 0.04) * 4);
+        }
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+      }
+
+      for(const p of pipes){
+        ctx.fillStyle = '#6e543c';
+        ctx.fillRect(p.x, 0, 40, p.top);
+        ctx.fillStyle = '#533f2d';
+        ctx.fillRect(p.x - 3, p.top - 12, 46, 12);
+
+        ctx.fillStyle = '#6e543c';
+        const botY = p.top + p.gap;
+        ctx.fillRect(p.x, botY, 40, H - botY);
+        ctx.fillStyle = '#533f2d';
+        ctx.fillRect(p.x - 3, botY, 46, 12);
+      }
+
+      drawGull(60, birdY, birdVy);
+
+      if(dead){
+        ctx.fillStyle = 'rgba(11,27,34,0.7)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#f2c14e';
+        ctx.font = '800 20px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('ВПЕРЕД, ЧАЙКА!', W/2, H/2 - 10);
+        ctx.fillStyle = '#fff';
+        ctx.font = '500 13px system-ui';
+        ctx.fillText('Нажмите для повтора', W/2, H/2 + 18);
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    reset();
+    loop();
+  </script>
+</body>
+</html>

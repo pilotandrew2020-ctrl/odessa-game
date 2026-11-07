@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1b22">
+  <title>Одесская Память — Моя Одесса</title>
+  <style>
+    :root {
+      --ink: #0b1b22; --sea: #0e4a5c; --sun: #f2c14e; --chalk: #f5f1e8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+    body {
+      background: #0b1b22; color: var(--chalk); font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .top {
+      width: 320px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+    }
+    a.back { color: var(--sun); text-decoration: none; font-weight: 700; font-size: 14px; }
+    .scores { display: flex; gap: 8px; }
+    .sbox { background: rgba(255,255,255,.08); padding: 4px 10px; border-radius: 8px; text-align: center; }
+    .sbox span { display: block; font-size: 10px; color: #a9bcc2; text-transform: uppercase; }
+    .sbox strong { font-size: 16px; font-weight: 800; color: #fff; }
+    #grid {
+      width: 320px; height: 320px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .card {
+      background: #07151b; border: 1.5px solid rgba(255,255,255,.15); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+      cursor: pointer; user-select: none; -webkit-user-select: none;
+      transition: transform .15s, background .15s;
+    }
+    .card.open {
+      background: #0e4a5c; border-color: var(--sun); transform: scale(0.96);
+    }
+    .card.matched {
+      background: #13708a; border-color: #76d7ea; opacity: 0.75; cursor: default;
+    }
+    .hint { margin-top: 16px; font-size: 12px; color: #a9bcc2; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a href="../games.html" class="back">← В Центр</a>
+    <div class="scores">
+      <div class="sbox"><span>Пары</span><strong id="sc">0/8</strong></div>
+      <div class="sbox"><span>Ходы</span><strong id="moves">0</strong></div>
+    </div>
+  </div>
+  <div id="grid"></div>
+  <div class="hint">Открывайте карточки и находите совпадающие пары</div>
+
+  <script>
+    const ICONS = ['⚓', '🕊️', '⛵', '🌊', '☀️', '🏛️', '🐬', '🍉'];
+    let deck = [...ICONS, ...ICONS].sort(() => Math.random() - 0.5);
+    let openCards = [];
+    let matchedCount = 0;
+    let moves = 0;
+
+    function render(){
+      const g = document.getElementById('grid');
+      g.innerHTML = '';
+      deck.forEach((icon, idx) => {
+        const c = document.createElement('div');
+        c.className = 'card';
+        c.dataset.idx = idx;
+        c.onclick = () => flip(idx, c);
+        g.appendChild(c);
+      });
+    }
+
+    function flip(idx, el){
+      if(el.classList.contains('open') || el.classList.contains('matched') || openCards.length >= 2) return;
+      el.classList.add('open');
+      el.textContent = deck[idx];
+      openCards.push({idx, el});
+
+      if(openCards.length === 2){
+        moves++;
+        document.getElementById('moves').textContent = moves;
+        const [c1, c2] = openCards;
+        if(deck[c1.idx] === deck[c2.idx]){
+          c1.el.classList.add('matched');
+          c2.el.classList.add('matched');
+          openCards = [];
+          matchedCount++;
+          document.getElementById('sc').textContent = matchedCount + '/8';
+          if(matchedCount === 8){
+            const best = parseInt(localStorage.getItem('odesa_memory_best') || '999', 10);
+            if(moves < best) localStorage.setItem('odesa_memory_best', String(moves));
+          }
+        } else {
+          setTimeout(() => {
+            c1.el.classList.remove('open'); c1.el.textContent = '';
+            c2.el.classList.remove('open'); c2.el.textContent = '';
+            openCards = [];
+          }, 600);
+        }
+      }
+    }
+
+    window.memoryDeck = deck;
+    window.flipCard = flip;
+
+    render();
+  </script>
+</body>
+</html>
