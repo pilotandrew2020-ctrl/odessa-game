@@ -13,11 +13,19 @@
 const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
-  bike:[{p:[0,.67,-.34],pose:'bike'}],
-  sub:[{p:[0,-.35,.55],pose:'sit'},{p:[0,-.35,-.75],pose:'sit'}]};   // closed cabin: both are hidden inside, the second is a co-op passenger
+  bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
+  sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
-const SUB_MAXD=150;     // metres of depth, the sea floor stops it earlier
+const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
+const SUB_CRUSH=150;
+const SUB_MODEL_LENGTH=18,SUB_MODEL_SCALE=SUB_MODEL_LENGTH/15;
+const SUB_FORWARD_Q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI);
+let SUB_MODEL_LOAD=null;
+function loadSubModel(){
+  if(!SUB_MODEL_LOAD)SUB_MODEL_LOAD=new Promise((resolve,reject)=>new THREE.GLTFLoader().load('assets/models/cyclops_subnautica.glb',resolve,undefined,reject))
+    .catch(e=>{SUB_MODEL_LOAD=null;throw e});
+  return SUB_MODEL_LOAD.then(g=>g.scene.clone(true))}
 function lvGround(x,z){const g=groundH(x,z);return typeof groundAt==='function'?groundAt(x,z,g+1.5):g}
 const LAMBO_COLS=[0xf2c200,0x7ec40a,0xff6a13,0xc4161c,0x1b4bd1];   // Giallo Orion, Verde Mantis, Arancio Argos, Rosso Mars, Blu Cepheus
 
@@ -34,6 +42,11 @@ function seatPose(P,st,dt){
     for(const g of P.legs){g.hp.rotation.x=-1.5;g.kn.rotation.x=1.45;g.ft.rotation.x=0}
     for(const A of P.arms){if(st.role==='driver'){A.sh.rotation.x=-1.0;A.sh.rotation.z=A.s*-.12+steer*.25;A.el.rotation.x=-.45}else{A.sh.rotation.x=-.35;A.sh.rotation.z=A.s*-.08;A.el.rotation.x=-.9}}
     P.idle+=dt;return}
+  if(st.mode==='bike2'){            // pillion: sitting on the rack, hands round the rider's waist, feet on the pegs
+    P.hips.position.y=.16;P.spine.rotation.x=.32;P.head.rotation.x=-.28;
+    for(const g of P.legs){g.hp.rotation.x=-.98;g.kn.rotation.x=1.0;g.ft.rotation.x=.35}
+    for(const A of P.arms){A.sh.rotation.x=-.9;A.sh.rotation.z=A.s*-.28;A.el.rotation.x=-.6}
+    P.idle=0;return}
   if(st.mode==='bike'){             // leaning on the bars, legs follow the cranks
     const c=st.crank||0;P.hips.position.y=.16;P.spine.rotation.x=.52;P.head.rotation.x=-.42;
     for(const g of P.legs){const k=Math.cos(c+(g.s>0?0:Math.PI));g.hp.rotation.x=-1.12-.42*k;g.kn.rotation.x=1.12+.78*k;g.ft.rotation.x=-.25*k}
@@ -42,21 +55,10 @@ function seatPose(P,st,dt){
 }
 
 // ---------- engine sound ----------
-const LVSND={g:null,kind:null,
-  start(kind){if(typeof AUD==='undefined'||!AUD||!AUD.ok||kind==='bike'||kind==='sub')return;const a=AUD.ctx;
-    if(!this.g){const o1=a.createOscillator(),o2=a.createOscillator(),f=a.createBiquadFilter(),g=a.createGain();o1.type='sawtooth';o2.type='square';f.type='lowpass';f.Q.value=3;g.gain.value=0;
-      o1.connect(f);o2.connect(f);f.connect(g);g.connect(AUD.sfx);o1.start();o2.start();Object.assign(this,{o1,o2,f,g})}
-    this.kind=kind;ENG.load();this.sample=ENG.on({type:kind==='lambo'?14:13});this.g.gain.setTargetAtTime(this.sample?0:.04,a.currentTime,.2)},
-  stop(){ENG.off();this.sample=false;if(this.g&&AUD.ctx)this.g.gain.setTargetAtTime(0,AUD.ctx.currentTime,.15)},
-  // a virtual gearbox: revs climb through each gear and drop on the shift
-  update(v,thr){if(!this.g||!AUD.ctx||this.kind!==v.kind)return;const T=AUD.ctx.currentTime,lambo=v.kind==='lambo',gears=lambo?7:5,sp=Math.min(1,Math.abs(v.v)/v.spec.max);
-    const gp=Math.min(gears-1e-3,sp*gears*1.1),rpm=.2+.8*(gp-Math.floor(gp)),load=Math.max(0,thr);
-    const f=(lambo?58:36)+((lambo?340:170)-(lambo?58:36))*rpm*(.85+.15*load);
-    this.o1.frequency.setTargetAtTime(f,T,.04);this.o2.frequency.setTargetAtTime(f*.5,T,.04);
-    this.f.frequency.setTargetAtTime(260+rpm*(lambo?2600:1300)+load*700,T,.05);
-    if(!this.sample&&ENG.buf.sport&&!ENG.src)this.sample=ENG.on({type:lambo?14:13});
-    if(this.sample)ENG.update(load,rpm);   // the owner's recordings, not the synth
-    this.g.gain.setTargetAtTime(this.sample?0:(.03+load*.05+sp*.02)*(lambo?1.1:1),T,.06)}};
+const LVSND={voice:null,kind:null,
+  start(kind){this.stop();if(typeof AUD==='undefined'||!AUD||!AUD.ok||kind==='bike')return;this.kind=kind;this.voice=AUD.machine(kind==='sub'?'sub':'car')},
+  stop(){if(this.voice)this.voice.dispose();this.voice=null;this.kind=null},
+  update(v,thr){if(!this.voice||!AUD.ctx||this.kind!==v.kind)return;this.voice.update(v.x,v.y,v.z,Math.hypot(v.vx||0,v.vz||0),thr,true,v.kind==='sub'?Math.max(0,SL-v.y):0,v.kind==='sub'?.7:.55)}};
 
 // ===================================================================================================
 class LiteVehicle{
@@ -165,32 +167,56 @@ class LiteVehicle{
     xb(fk,.13,.1,.1,0,.07,.14,lamp);xb(fk,.02,.1,.02,.26,.19,.0,ch);                                                 // headlamp, bell
     const fw=mk();fw.piv.position.set(0,R-.8,.06);fk.add(fw.piv);this.wheels.push({piv:fk,spin:fw.spin,r:R,front:true,bike:true});
     xb(B,.1,.02,.55,0,R*2+.03,-.52,fr);                                                                                // rear mudguard
-    xb(B,.2,.03,.34,0,.62,-.68,dk);xb(B,.05,.05,.07,0,.64,-.86,red);                                                  // rear rack, tail light
+    xb(B,.2,.03,.34,0,.62,-.68,dk);xb(B,.16,.05,.3,0,.655,-.72,lea);xb(B,.05,.05,.07,0,.64,-.86,red);for(const s of [-1,1])xb(B,.08,.02,.07,s*.1,.33,-.52,ch);   // rear rack with a cushion for a passenger, footpegs                                                  // rear rack, tail light
     this.crank=new THREE.Group();this.crank.position.set(0,.29,-.04);this.root.add(this.crank);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.02,16),ch);ring.rotation.z=Math.PI/2;ring.position.x=.05;this.crank.add(ring);
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
-  buildSub(){const B=this.body,hull=XM(0xf2c21b,.38,.3),dk=XM(0x23303a,.5,.4),win=XM(0x66d9ff,.1,.2,{emissive:0x33b8e8,emissiveIntensity:1}),red=XM(0xc8372d,.5,.25);this.cols=[0xf2c21b,0x23303a,0x66d9ff];
-    const R=1.0,N=30,pr=[];                       // streamlined hull: tapering tail, parallel body, rounded nose (lathe profile along the boat, y becomes z)
-    for(let i=0;i<=N;i++){const y=-3.6+i/N*7.2;let r;
-      if(y<-1.6){const k=Math.max(0,(y+3.6)/2);r=R*Math.pow(k,.7)}else if(y>2.3){const k=(y-2.3)/1.3;r=R*Math.sqrt(Math.max(0,1-k*k))}else r=R;
-      pr.push(new THREE.Vector2(Math.max(.05,r),y))}
-    const hg=new THREE.LatheGeometry(pr,32);hg.rotateX(Math.PI/2);hull.side=THREE.DoubleSide;const hm=new THREE.Mesh(hg,hull);hm.castShadow=true;B.add(hm);
-    const band=new THREE.Mesh(new THREE.CylinderGeometry(R+.012,R+.012,.34,32,1,true),red);band.rotation.x=Math.PI/2;band.position.z=-.9;B.add(band);                 // painted ring round the middle
-    const sail=new THREE.Mesh(new THREE.CylinderGeometry(.33,.4,.95,22),hull);sail.scale.z=2.2;sail.position.set(0,R+.3,.3);sail.castShadow=true;B.add(sail);     // oval conning tower
-    const cap=new THREE.Mesh(new THREE.SphereGeometry(.34,18,10,0,Math.PI*2,0,Math.PI/2),hull);cap.scale.z=2.2;cap.position.set(0,R+.775,.3);B.add(cap);
-    for(const s of [-1,1]){const p=new THREE.Mesh(new THREE.BoxGeometry(.62,.04,.4),dk);p.position.set(s*.62,R+.2,.82);p.rotation.z=s*.12;B.add(p)}      // sail dive planes
-    for(const s of [-1,1])for(const z of [1.5,.7,-.1]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.1,18),win);w.rotation.z=Math.PI/2;w.position.set(s*.965,.16,z);B.add(w)}   // viewing ports
-    const dome=new THREE.Mesh(new THREE.SphereGeometry(.5,18,12,0,Math.PI*2,0,Math.PI/2),win);dome.rotation.x=Math.PI/2.4;dome.position.set(0,.18,2.75);dome.scale.set(1,1,.9);B.add(dome);   // bow viewing bubble
-    const per=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.7,8),dk);per.position.set(0,R+1.45,.55);B.add(per);const pt=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,.16),dk);pt.position.set(0,R+1.8,.6);B.add(pt);
-    for(const rz of [0,Math.PI/2]){const f=new THREE.Mesh(new THREE.BoxGeometry(.05,1.9,.65),dk);f.rotation.z=rz;f.position.set(0,0,-3.0);B.add(f)}                  // stern cross fins
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(.5,.05,8,24),dk);ring.position.set(0,0,-3.78);B.add(ring);
-    this.prop=new THREE.Group();this.prop.position.set(0,0,-3.62);B.add(this.prop);
-    for(let i=0;i<4;i++){const b=xb(this.prop,.14,.46,.04,0,0,0,dk);b.geometry.translate(0,.23,0);b.position.set(0,0,0);b.rotation.z=i*Math.PI/2+.2}}
+  buildSub(){this.cols=[0xf2c21b,0x23303a,0x66d9ff];
+    const spot=(p,t,intensity,angle)=>{const l=new THREE.SpotLight(0xbdeeff,intensity,90,angle,.45,1.5),target=new THREE.Object3D();l.position.set(...p);target.position.set(...t);l.target=target;l.castShadow=false;this.body.add(l,target);return l};
+    this.subSpots=[spot([0,1.8,-6*SUB_MODEL_SCALE],[0,1.4,-32*SUB_MODEL_SCALE],3,.48),spot([0,.2,-2*SUB_MODEL_SCALE],[0,-14,-14*SUB_MODEL_SCALE],2.2,.62)];
+    for(const s of this.subSpots)s.visible=false;
+    this.lightsOn=false;
+    const cabin=new THREE.Group(),wall=XM(0x30383d,.82,.16),floor=XM(0x3c454a,.78,.12);
+    cabin.rotation.y=Math.PI;cabin.scale.setScalar(SUB_MODEL_SCALE);
+    for(const [g,m,p] of [[new THREE.BoxGeometry(1.9,.12,3.2),floor,[0,-.55,5.2]],
+      [new THREE.BoxGeometry(.12,1.8,3.2),wall,[-.95,.35,5.2]],
+      [new THREE.BoxGeometry(.12,1.8,3.2),wall,[.95,.35,5.2]],
+      [new THREE.BoxGeometry(1.9,1.8,.12),wall,[0,.35,3.6]]]){
+      const o=new THREE.Mesh(g,m);o.position.set(...p);o.castShadow=false;o.receiveShadow=false;cabin.add(o)}
+    cabin.visible=false;this.body.add(cabin);this.subCabin=cabin;
+    const lever=new THREE.Group();lever.position.set(.56*SUB_MODEL_SCALE,-.1*SUB_MODEL_SCALE,-5.65*SUB_MODEL_SCALE);this.body.add(lever);
+    const metal=XM(0x687782,.35,.8),grip=XM(0xe1b947,.32,.5),lamp=XM(0x18251e,.25,.1,{emissive:0x00d875,emissiveIntensity:0});
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,.08,10),metal);base.position.y=-.13;lever.add(base);
+    const arm=new THREE.Group();arm.position.y=-.09;lever.add(arm);
+    const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.27,8),metal);shaft.position.y=.12;arm.add(shaft);
+    const knob=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),grip);knob.position.set(0,.28,0);arm.add(knob);
+    const led=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),lamp);led.position.set(0,-.13,.14);lever.add(led);
+    lever.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+    this.subLever={root:lever,arm,led};
+    this.schoolData=Array.from({length:24},()=>({a:Math.random()*Math.PI*2,r:8+Math.random()*5,y:-1.3+Math.random()*2.6,s:.75+Math.random()*.55}));
+    const fishGeo=new THREE.ConeGeometry(.11,.38,5);fishGeo.rotateX(Math.PI/2);
+    this.school=new THREE.InstancedMesh(fishGeo,XM(0x8dd9df,.55,.08,{emissive:0x15353a}),this.schoolData.length);
+    this.school.castShadow=false;this.school.receiveShadow=false;this.body.add(this.school);this.schoolDummy=new THREE.Object3D();
+    this.modelLoaded=false;this.modelLoading=false}
+  loadModel(){if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
+    loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;
+      const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;m.rotation.y=Math.PI;fit.add(m);fit.updateMatrixWorld(true);
+      const size=new THREE.Box3().setFromObject(fit).getSize(new THREE.Vector3());
+      this.subModelScale=SUB_MODEL_LENGTH/size.z;fit.scale.setScalar(this.subModelScale);fit.updateMatrixWorld(true);
+      const box=new THREE.Box3().setFromObject(fit),center=box.getCenter(new THREE.Vector3());
+      fit.position.set(-center.x,-center.y,-center.z);
+      m.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false}});
+      this.body.add(fit);this.subModel=fit;this.modelLoaded=true;
+    }).catch(e=>{this.modelLoading=false;console.error('[submarine] GLB load failed: assets/models/cyclops_subnautica.glb',e)})}
+  toggleSubLights(){if(this.kind!=='sub')return;this.lightsOn=!this.lightsOn;for(const l of this.subSpots)l.visible=this.lightsOn;
+    this.subLever.arm.rotation.x=this.lightsOn?-.55:.55;this.subLever.led.material.emissiveIntensity=this.lightsOn?2:0}
+  setCabinView(on){if(this.subCabin)this.subCabin.visible=on;if(!this.subModel)return;this.subModel.traverse(o=>{if(o.isMesh&&['Cyclops_Body','Stripe','Dark'].includes(o.material.name))o.visible=!on})}
 
-  sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ')}
+  sync(){this.root.position.set(this.x,this.y,this.z);this.root.rotation.set(this.pitch,this.yaw,this.roll,'YXZ');
+    if(this.school){const t=UNI.uTime.value,d=this.schoolDummy;for(let i=0;i<this.schoolData.length;i++){const f=this.schoolData[i],a=f.a+t*(.15+f.s*.12);d.position.set(Math.cos(a)*f.r,f.y+Math.sin(t*1.4+f.a)*.22,Math.sin(a)*f.r);d.rotation.set(0,a-Math.PI/2,Math.sin(t*2+f.a)*.08);d.scale.setScalar(f.s);d.updateMatrix();this.school.setMatrixAt(i,d.matrix)}this.school.instanceMatrix.needsUpdate=true}}
   halt(){this.v=0;this.vx=this.vz=0;this.steerA=0;this.brakeOn=false}
   // where seat i is in the world (root origin of the seated avatar) and which way it faces
-  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat)this.susp.getWorldQuaternion(quat);return out}
+  seatWorld(i,out,quat){const s=this.seats[i]||this.seats[0];this.root.updateMatrixWorld(true);out.set(s.p[0],s.p[1],s.p[2]).applyMatrix4(this.susp.matrixWorld);if(quat){this.susp.getWorldQuaternion(quat);if(this.kind==='sub')quat.multiply(SUB_FORWARD_Q)}return out}
   seatPose(i){return (this.seats[i]||this.seats[0]||{}).pose||'sit'}
 
   // ---------- physics ----------
@@ -230,7 +256,7 @@ class LiteVehicle{
       if(d<min){const ux=dx/(d||1),uz=dz/(d||1),closing=-(this.vx*ux+this.vz*uz);this.x+=ux*(min-d)*.6;this.z+=uz*(min-d)*.6;if(closing>2&&!hit){hit=true;other=o}}}
     if(hit){this.crash(spd,fx*sg,fz*sg);if(other)other.crash(spd*.6,-fx*sg,-fz*sg);this.vx*=-.25;this.vz*=-.25}
     else if(wet){this.vx*=-.2;this.vz*=-.2}
-    this.v=this.vx*Math.sin(this.yaw)+this.vz*Math.cos(this.yaw);
+    this.v=-(this.vx*Math.sin(this.yaw)+this.vz*Math.cos(this.yaw));
     // ride height and slope
     const hf=groundAt(this.x+fx*s.len*.4,this.z+fz*s.len*.4,this.y+.6),hb=groundAt(this.x-fx*s.len*.4,this.z-fz*s.len*.4,this.y+.6);
     this.y+=((hf+hb)/2-this.y)*Math.min(1,dt*14);this.pitch+=(-Math.atan((hf-hb)/(s.len*.8))-this.pitch)*Math.min(1,dt*8);
@@ -242,17 +268,26 @@ class LiteVehicle{
     this.v=Math.max(-s.max*.3,Math.min(s.max,this.v));
     const sa=str*s.steer/(1+Math.abs(this.v)*.07);this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);
     this.yaw+=this.v*Math.tan(this.steerA)/s.wb*dt;
-    const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
-    let block=false;if(Math.abs(this.v)>.05&&(groundH(px,pz)>this.y-1.0||groundH(nx,nz)>this.y-1.0))block=true;
+    const fx=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
+    const block=Math.abs(this.v)>.05&&(groundH(px,pz)>SL-.3||groundH(nx,nz)>SL-.3);
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
     // vertical motion: ballast tanks and dive planes. Slow to respond, faster when moving; the sea floor stops it, the surface catches it softly
-    const fl=Math.max(groundH(this.x,this.z)+1.8,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
+    const sx=Math.cos(this.yaw),sz=-Math.sin(this.yaw),reach=s.len*.46,side=s.r*.7;
+    let seabed=groundH(this.x,this.z);
+    seabed=Math.max(seabed,groundH(this.x+fx*reach,this.z+fz*reach),groundH(this.x-fx*reach,this.z-fz*reach));
+    seabed=Math.max(seabed,groundH(this.x+sx*side,this.z+sz*side),groundH(this.x-sx*side,this.z-sz*side));
+    seabed=Math.max(seabed,groundH(this.x+fx*reach+sx*side,this.z+fz*reach+sz*side),groundH(this.x+fx*reach-sx*side,this.z+fz*reach-sz*side));
+    seabed=Math.max(seabed,groundH(this.x-fx*reach+sx*side,this.z-fz*reach+sz*side),groundH(this.x-fx*reach-sx*side,this.z-fz*reach-sz*side));
+    const fl=Math.max(seabed+s.r+1,SL-SUB_MAXD),top=SL+SUB_SURF,pl=Math.min(1,Math.abs(this.v)/10);
     const rate=up*(2.2+2.2*pl);this.vy+=(rate-this.vy)*Math.min(1,dt*(up?1.1:.9));
     if(this.vy>0&&this.y>top-1.4)this.vy*=Math.max(.25,(top-this.y)/1.4+.25);
     this.y+=this.vy*dt;if(this.y<fl){this.y=fl;if(this.vy<0)this.vy*=-.1}if(this.y>top){this.y=top;if(this.vy>0)this.vy=0}
     const wantP=Math.max(-.5,Math.min(.5,-this.vy*.11));this.pitch+=(wantP-this.pitch)*Math.min(1,dt*2.2);this.roll+=(-this.steerA*this.v*.03-this.roll)*Math.min(1,dt*3);
-    this.depth=SL-this.y;if(this.y>=top-.02)this.y=top+Math.sin(UNI.uTime.value*1.3)*.05+Math.sin(UNI.uTime.value*.7+this.x*.1)*.03;
-    this.prop.rotation.z+=dt*(2+Math.abs(this.v)*3);this.sync()}
+    this.depth=SL-this.y;if(this.depth>SUB_CRUSH)this.dmg=Math.min(1,this.dmg+Math.min(1,(this.depth-SUB_CRUSH)/(SUB_MAXD-SUB_CRUSH))*.1*dt);
+    if(this.subModel)this.subModel.scale.y=this.subModelScale*(1-this.dmg*.12);
+    if(this.dmg>=1){this.kill();return}
+    if(this.y>=top-.02)this.y=top+Math.sin(UNI.uTime.value*1.3)*.05+Math.sin(UNI.uTime.value*.7+this.x*.1)*.03;
+    this.sync()}
   // wheels, suspension (nose dives under braking, rolls out of corners), brake lights and headlights
   animate(dt){
     if(this.kind==='bike'){this.pedal+=this.v*dt/(.36*2.2);if(this.crank)this.crank.rotation.x=this.pedal;for(const w of this.wheels){w.spin.rotation.x=this.pedal*2.2;if(w.front)w.piv.rotation.y=this.steerA*1.6}this.lights();return}
@@ -268,16 +303,16 @@ class LiteVehicle{
     const cx=this.x+dx*s.len/2,cz=this.z+dz*s.len/2;EXT.shatter(cx,this.y+.8,cz,Math.round(6+k*16),this.cols,3+imp*.45,dx,dz);
     FX.init();FX.puff({x:cx,y:this.y+.9,z:cz,vx:-dx,vy:1.2,vz:-dz,s0:.6,s1:2.4+k*2,life:1.4,c0:[.8,.78,.72],c1:[.5,.5,.5],op:.55,add:false,drag:1.2,grow:1});
     if(this===EXT.cur){FX.shakeT=.35;FX.shakeA=Math.max(FX.shakeA,k*.25)}}
-  repair(){this.dmg=0;this.body.scale.set(1,1,1);this.body.rotation.set(0,0,0);this.body.position.y=0}
+  repair(){this.dmg=0;this.body.scale.set(1,1,1);if(this.subModel)this.subModel.scale.y=this.subModelScale;this.body.rotation.set(0,0,0);this.body.position.y=0}
   kill(){if(this.dead)return;this.dead=true;this.respawnAt=performance.now()+30000;FX.init();FX.explode(this.x,this.y+.8,this.z,7);EXT.fireball(this.x,this.y+.8,this.z,5);EXT.shatter(this.x,this.y+.8,this.z,28,this.cols,10,0,0);
     this.root.visible=false;this.halt();if(EXT.cur===this)EXT.leave(this,true)}
-  revive(){this.dead=false;this.repair();this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL+SUB_SURF:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
+  revive(){this.dead=false;this.repair();this.cabinWalk=false;this.x=this.home[0];this.z=this.home[1];this.yaw=this.home[2];this.y=this.kind==='sub'?SL+SUB_SURF:lvGround(this.x,this.z);this.halt();this.root.visible=true;this.sync()}
 }
 
 // a friend's vehicle: drawn from network snapshots, with the same model and colour as the one they drive
 class PeerLite{
   constructor(kind,col){this.kind=kind;this.v=new LiteVehicle(kind,0,0,0,{col,proxy:true});scene.add(this.v.root);this.net=new NetSnaps()}
-  push(s){const a=s.xv;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+a[1]||0,r:+a[2]||0,u:+a[3]||0,st:+a[4]||0})}
-  update(dt){const q=this.net.update(dt);if(!q)return null;const v=this.v;v.x=q.x;v.y=q.y;v.z=q.z;v.yaw=q.yaw;v.pitch=q.p;v.roll=q.r;v.v=q.u;v.steerA=q.st;v.brakeOn=false;v.animate(dt);v.sync();return q}
+  push(s){const a=s.xv;this.net.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:+a[1]||0,r:+a[2]||0,u:+a[3]||0,st:+a[4]||0},s.ts)}
+  update(dt){const q=this.net.update(dt);if(!q)return null;const v=this.v;v.x=q.x;v.y=q.y;v.z=q.z;v.yaw=q.yaw;v.pitch=q.p;v.roll=q.r;v.v=q.u;v.steerA=q.st;v.brakeOn=false;if(v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<900)v.loadModel();v.animate(dt);v.sync();return q}
   dispose(){scene.remove(this.v.root)}
 }

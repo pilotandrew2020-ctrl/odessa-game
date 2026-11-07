@@ -11,10 +11,10 @@
 
 const HSTATE={built:{},ready:false};
 const HOUSE_DEF={
-  house0:{name:'Beach cabin',cls:'Cosy',idx:50,W:13,D:9,H:2.9,style:'log'},
-  house1:{name:'Sea villa',cls:'Middle class',idx:51,W:17,D:12,H:3.1,style:'coast'},
-  house2:{name:'Lagoon house',cls:'Middle class',idx:52,W:16,D:13,H:3.2,style:'lodge'},
-  house3:{name:'Island mansion',cls:'Elite villa',idx:53,W:26,D:16,H:3.9,style:'elite'}};
+  house0:{name:'Beach cabin',cls:'Cosy',idx:50,W:15,D:10.5,H:3.4,style:'log'},
+  house1:{name:'Sea villa',cls:'Middle class',idx:51,W:19.5,D:13.5,H:3.6,style:'coast'},
+  house2:{name:'Lagoon house',cls:'Middle class',idx:52,W:18.5,D:14.5,H:3.7,style:'lodge'},
+  house3:{name:'Island mansion',cls:'Elite villa',idx:53,W:29,D:18,H:4.4,style:'elite'}};
 const HOUSE_STYLE={
   log:{door:'#5a3a20',hw:'#2a2a2c',curt:'#a8553f',standGlb:true,standTint:'#c89060',exp:.62,wood:'#6b4426',wall:'#a9743d',wm:5,floor:'#9a6a3a',fm:5,trim:'#6b4426',ceil:'#8a5a30',cm:5,beams:true,sofa:['#7a3b2e','#a8553f'],accent:'#b5422d',light:0xffd9a0},
   coast:{door:'#ffffff',hw:'#b8bcc0',curt:'#e9eef1',exp:.46,wood:'#b9936a',wall:'#d9e2e6',wm:0,floor:'#b99466',fm:5,trim:'#ffffff',ceil:'#eef0ee',cm:0,beams:false,sofa:['#3d5a80','#98c1d9'],accent:'#3d5a80',light:0xfff1dc},
@@ -39,21 +39,15 @@ function hsKit(E,S,L){
   // sofa / armchair: back edge at (x,z), facing ry
   K.sofa=(x,z,ry,len,c1,c2)=>{
     if(S.sofaGlb&&len>1.5){const s=Math.min(1.35,len/1.57),p=loc(x,z,ry)(0,.33*s+.02);   // a real Poly Haven sofa (CC0) in styles that ask for it; the sit act and collision stay the kit's
-      MDL.put(E.grp,S.sofaGlb,{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
-    c1=c1||S.sofa[0];c2=c2||S.sofa[1];
-    if(typeof MDL!=='undefined'&&!S.boxSofa){   // own Blender model (dev/blender/homekit.py): rounded arms, a back with leaning cushions, three seat cushions; the kit's sit act and collision stay
-      const arm=len<=1.5,p=loc(x,z,ry)(0,.47);MDL.put(E.grp,arm?'armchair':'sofa',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[len/(arm?.92:2.0),1,1],tints:{tint_sofa:c1,tint_cushion:c2}});
-      ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair');return}
-    const n=Math.max(1,Math.round(len/.75)),w=len/n;
+      MDL.put(E.grp,S.sofaGlb,{x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,s});ob(x,z,ry,0,.46,len/2,.48);const q=loc(x,z,ry)(0,.6);sit(q[0],q[1],ry,'Sit on the sofa');return}
+    c1=c1||S.sofa[0];c2=c2||S.sofa[1];const n=Math.max(1,Math.round(len/.75)),w=len/n;
     bx(x,z,ry,0,.2,.47,len,.4,.92,c1);bx(x,z,ry,0,.68,.1,len,.62,.2,c1);for(const s of [-1,1])bx(x,z,ry,s*(len/2-.1),.5,.47,.2,.56,.92,c1);
     for(let i=0;i<n;i++){const u=-len/2+w*(i+.5);bx(x,z,ry,u,.47,.56,w-.2*(n>1?.15:.5)-.05,.15,.68,c2);bx(x,z,ry,u,.72,.24,w-.28,.36,.16,c2)}
     bx(x,z,ry,0,.02,.47,len-.2,.04,.8,'#2a2a2c');ob(x,z,ry,0,.46,len/2,.48);const p=loc(x,z,ry)(0,.6);sit(p[0],p[1],ry,len>1.3?'Sit on the sofa':'Sit in the armchair')};
   K.cornerSofa=(x,z,ry,a,b)=>{K.sofa(x,z,ry,a);const p=loc(x,z,ry)(a/2+.55,.9);K.sofa(p[0],p[1],ry+Math.PI/2,b-.9)};
-  K.table=(x,z,ry,w,d,h,c)=>{
-    if(typeof MDL!=='undefined'&&!S.boxTable){MDL.put(E.grp,'table',{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,sc:[w/1.2,h/.75,d/.7],tints:{tint_wood:c||wood}});ob(x,z,ry,0,0,w/2,d/2);return}   // own Blender table: rounded top, apron, tapered legs
-    bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2)};
-  K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
-    if(typeof MDL!=='undefined'&&!S.boxChair){MDL.put(E.grp,'chair',{bake:1,x:ox+x,y:INT_Y,z:oz+z,ry:ry,tints:{tint_wood:c||wood,tint_cushion:'#e8e0d0'}});return}   // own Blender chair: ladder back, tapered legs, a pad on the seat
+  K.table=(x,z,ry,w,d,h,c)=>{bx(x,z,ry,0,h,0,w,.06,d,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*(w/2-.08),h/2,b*(d/2-.08),.07,h,.07,c||wood,5);ob(x,z,ry,0,0,w/2,d/2);
+    if(h>.3&&w>.6)KIT.spot(E,{x,z,y:INT_Y+h+.03,ry,name:h>.6?'Table':'Coffee table',r:Math.hypot(w,d)/2+.95,w})};   // somewhere to put the kettle, a cup, the milk
+  K.chair=(x,z,ry,c)=>{if(S.chairGlb){MDL.put(E.grp,S.chairGlb,{x:ox+x,y:INT_Y,z:oz+z,ry:ry,h:.9,tint:c||S.chairTint});return}   // real painted chair (Poly Haven, CC0), recoloured by the style
     bx(x,z,ry,0,.45,0,.42,.05,.42,c||wood,5);bx(x,z,ry,0,.72,-.19,.42,.5,.05,c||wood,5);for(const a of [-1,1])for(const b of [-1,1])bx(x,z,ry,a*.18,.22,b*.18,.04,.44,.04,c||wood,5)};
   K.rug=(x,z,ry,w,d,c)=>bx(x,z,ry,0,.015,0,w,.03,d,c,0);
   K.lamp=(x,z,h,c)=>{E.P.cyl(ox+x,INT_Y,oz+z,.14,.14,.03,10,sRGB('#2a2a2c'),1);E.P.cyl(ox+x,INT_Y+.03,oz+z,.02,.02,h||1.5,6,sRGB('#2a2a2c'),1);E.box(x,(h||1.5)+.1,z,.38,.3,.38,c||'#ffe9bd',3);E.obb(x,z,.18,.18,0)};
@@ -75,66 +69,39 @@ function hsKit(E,S,L){
     const cv=document.createElement('canvas');cv.width=160;cv.height=90;const g=cv.getContext('2d');g.fillStyle='#08090b';g.fillRect(0,0,160,90);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w-.08,w*.58-.08),new THREE.MeshBasicMaterial({map:tex}));const p=loc(x,z,ry)(0,.235);m.position.set(ox+p[0],INT_Y+1.0,oz+p[1]);m.rotation.y=ry;E.grp.add(m);
     const t={m,tex,cv,g,on:false,t:0,light:light(...(()=>{const a=loc(x,z,ry)(0,1.2);return [a[0],1.3,a[1]]})(),0x9ac0ff,0,7)};t.light.userData.tv=1;t.light.userData.i=0;HSTATE.cur.tvs.push(t);ob(x,z,ry,0,.26,w/2+.1,.28);
-    const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return t.on?'Turn the TV off':'Turn the TV on'},fn:()=>{t.on=!t.on;if(window.AUD)AUD.beep();if(!t.on){t.g.fillStyle='#08090b';t.g.fillRect(0,0,160,90);t.tex.needsUpdate=true}}});return t};
-  K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBed){   // own Blender model (dev/blender/bedkit.py): padded headboard, mattress, draped duvet, pillows, throw; the kit's collision and sit act stay
-      const p=loc(x,z,ry)(0,1.1);MDL.put(E.grp,'bed_double',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[(w+.2)/1.8,1,1],tints:{tint_wood:wood,tint_duvet:c,tint_throw:FD.shade(c,.72),tint_cushion:FD.shade(c,1.3),tint_head:S.sofa?S.sofa[1]:c}});
-      ob(x,z,ry,0,1.05,w/2+.1,1.08);const q=loc(x,z,ry)(w/2+.62,1.5);sit(q[0],q[1],ry-Math.PI/2,'Sit on the bed',.2);return}
-    bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
+    // E at the set: off → the film → Odesa News 24 → off (tv.js)
+    const q=loc(x,z,ry)(0,1.9);INTERACT.push({x:ox+q[0],z:oz+q[1],r:2.4,get label(){return TVX.label(t)},fn:()=>{TVX.cycle(t);if(window.AUD)AUD.beep()}});return t};
+  K.bed=(x,z,ry,w,c)=>{w=w||1.6;c=c||S.accent;bx(x,z,ry,0,.28,1.05,w+.14,.38,2.12,wood,5);bx(x,z,ry,0,.55,1.05,w,.2,2.0,'#f4efe6',0);for(const s of [-1,1])bx(x,z,ry,s*w*.26,.7,.3,w*.4,.14,.36,'#ffffff',0);
     const cl=window.FD?FD.shade(c,1.35):c,cd=window.FD?FD.shade(c,.72):c;
     bx(x,z,ry,0,.68,1.42,w+.06,.12,1.3,c,0);bx(x,z,ry,0,.745,.83,w+.05,.03,.2,'#fbf8f2',0);bx(x,z,ry,0,.78,1.98,w+.1,.04,.34,cd,0);    // duvet, turned-down sheet, a throw over the foot
     for(const s of [-1,1])bx(x,z,ry,s*w*.2,.725,.62,.32,.12,.14,cl,0);                                                                   // two scatter cushions
     bx(x,z,ry,0,.9,.04,w+.2,1.0,.1,wood,5);bx(x,z,ry,0,.5,2.14,w+.14,.5,.08,wood,5);ob(x,z,ry,0,1.05,w/2+.1,1.08);
-    const p=loc(x,z,ry)(w/2+.62,1.5);sit(p[0],p[1],ry-Math.PI/2,'Sit on the bed',.2)};
+    const p=loc(x,z,ry)(w/2+.62,1.5),sy=ry-Math.PI/2;KIT.bed(E,{x:p[0],z:p[1],sit:()=>{if(player.sit)return;player.sit={x:ox+p[0],z:oz+p[1],y:INT_Y+.2,yaw:sy};cam.yaw=sy;cam.pitch=.18;player.vx=player.vz=0;toast('Sit back and relax','move to stand up')}})};
   K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
-  K.wardrobe=(x,z,ry,w)=>{w=w||2;
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxWardrobe){   // panelled two-door modules from dev/blender/bedkit.py, one per metre
-      const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++){const p=loc(x,z,ry)(-w/2+(i+.5)*w/n,.33);MDL.put(E.grp,'wardrobe',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w/n,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}})}
-      ob(x,z,ry,0,.3,w/2,.3);return}
-    bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
+  K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
   K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
-    // own Blender modules (dev/blender/wetkit.py): 1 m wide, the back flush with the wall; (c,vc) is the middle of the module's footprint, sc stretches it to the unit's width
-    const glb=typeof MDL!=='undefined'&&window.FD&&!S.boxKitchen;
-    const mod=(name,c,w,vc,y)=>{const p=loc(x,z,ry)(c,vc);MDL.put(E.grp,name,{bake:1,x:ox+p[0],y:INT_Y+(y||0),z:oz+p[1],ry:ry,sc:[w-.01,1,1],tints:{tint_cab:cab}})};
-    const run=(name,c,w,vc,y)=>{const n=Math.max(1,Math.round(w/1.0));for(let i=0;i<n;i++)mod(name,c-w/2+(i+.5)*w/n,w/n,vc,y)};
     for(const [kind,w] of items){const c=u+w/2;u+=w;
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
-      else if(glb){ob(x,z,ry,c,.32,w/2,.33);
-        if(kind==='cab'){if(kc===null)kc=c;run('kit_base',c,w,.336);run('kit_wall',c,w,.199,1.4)}
-        else if(kind==='sink'){const ws=Math.min(w,1.1),cs=c+(w-ws)/2;mod('kit_sink',cs,ws,.336);if(w-ws>.2)mod('kit_base',c-w/2+(w-ws)/2,w-ws,.336);run('kit_wall',c,w,.199,1.4);
-          const t=loc(x,z,ry)(cs,.25);K.tap(t[0],t[1],ry,'Run the tap',1.035,true)}
-        else if(kind==='stove'){mod('kit_stove',c,w,.352);mod('kit_hood',c,w*.9,.26,1.85);bx(x,z,ry,c,(1.93+H)/2,.17,.26,H-1.93,.2,'#9aa0a6',6)}}
       else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
         if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
-        if(kind==='stove'){for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
-        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.58,.02,.02,.3,'#c8ccd0',6);const t=loc(x,z,ry)(c,.5);K.tap(t[0],t[1],ry,'Run the tap',1.12,true);for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
+        if(kind==='stove'){{const bp=loc(x,z,ry)(c+.2,.16),sp=loc(x,z,ry)(c,.95);KIT.cook(E,{x:bp[0],z:bp[1],y:INT_Y+.93,sx:sp[0],sz:sp[1]})}for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
+        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.12,.02,.02,.42,'#c8ccd0',6);bx(x,z,ry,c,1.29,.2,.03,.03,.17,'#c8ccd0',6);const t=loc(x,z,ry)(c,.04);K.tap(t[0],t[1],ry,'Run the tap',1.23,true);/* a tall gooseneck: room for a kettle under it */for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
     // an electric kettle on the first free worktop
-    if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.5})}};
+    if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
   // a tap with a thin jet of water that runs for a few seconds when used
-  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.012,.014,.26,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));const p=loc(x,z,ry)(0,.08);
-    m.position.set(ox+p[0],INT_Y+(y||.95)-.15,oz+p[1]);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
+  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,drink?.4:.26,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));const p=loc(x,z,ry)(0,.08),jf=drink?.17:0;
+    m.position.set(ox+p[0]+Math.sin(ry)*jf,INT_Y+(y||.95)-.15,oz+p[1]+Math.cos(ry)*jf);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
     if(label==='Run the bath'){E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast('You run the bath','');if(window.AUD)AUD.beep()});return t}
     // basins: really wash your hands (and at the kitchen sink pour a glass of water) — see acts.js
-    const wx=ox+p[0],wz=oz+p[1],jet=()=>{t.until=HSTATE.t+.4},L=loc(x,z,ry),a=L(drink?-.32:0,.75),b=L(.32,.75);
-    E.act(a[0],a[1],drink?.9:1.5,'Wash your hands',()=>{if(ACT.start('wash',{tx:wx,tz:wz,reach:.5,jet,onEnd:cx=>{if(!cx)toast('Clean hands','cold water and a good scrub')}}))toast('Wash your hands','')});
-    if(drink)E.act(b[0],b[1],.9,'Pour a glass of water',()=>{if(ACT.start('pour',{tx:wx,tz:wz,reach:.5,jet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','a glass of cold water')}}))toast('Water','you hold a glass under the tap')});
+    // you turn the tap on yourself, wash your hands in front of you, and turn it off again (kitchen.js)
+    const L=loc(x,z,ry),a=L(0,.75);KIT.sink(E,{t,wx:ox+p[0],wz:oz+p[1],y:INT_Y+(y||.95),cy:INT_Y+(drink?.905:.91),ry,drink,stand:[ox+a[0],oz+a[1]]});
     return t};
-  K.vanity=(x,z,ry,w)=>{w=w||1.0;
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // cabinet, porcelain top with an inset basin, faucet and framed mirror (dev/blender/wetkit.py)
-      const p=loc(x,z,ry)(0,.2875);MDL.put(E.grp,'vanity',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[w,1,1],tints:{tint_wood:wood,tint_panel:FD.shade(wood,1.12)}});
-      ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.195);K.tap(t[0],t[1],ry,'Wash your hands',1.02);return}
-    bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
+  K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
-  K.toilet=(x,z,ry)=>{
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){const p=loc(x,z,ry)(0,.32);MDL.put(E.grp,'toilet',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry,sc:[1,1,.92]});ob(x,z,ry,0,.35,.25,.4);return}
-    bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
-  K.tub=(x,z,ry,len)=>{len=len||1.7;
-    if(typeof MDL!=='undefined'&&window.FD&&!S.boxBath){   // a real recessed tub; the model's tap end is at -x, turned round it sits at the +u end like the box one
-      const p=loc(x,z,ry)(0,.4);MDL.put(E.grp,'tub',{bake:1,x:ox+p[0],y:INT_Y,z:oz+p[1],ry:ry+Math.PI,sc:[len/1.7,1,1]});ob(x,z,ry,0,.4,len/2,.42);
-      const a=loc(x,z,ry)(len/2-.2,.32);K.tap(a[0],a[1],ry,'Run the bath',.66);return}
-    bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};
+  K.toilet=(x,z,ry)=>{bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
+  K.tub=(x,z,ry,len)=>{len=len||1.7;bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};
   K.shower=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.04,w/2,w,.08,w,'#e2e6e9',1);for(const s of [-1,1])bx(x,z,ry,s*w/2,1.05,w/2,.03,2.1,w,'#dce8ee',1);bx(x,z,ry,0,1.05,w,w,2.1,.03,'#dce8ee',1);bx(x,z,ry,w*.38,1.05,w+.02,.05,2.1,.03,'#9aa0a6',6);cy(x,z,ry,0,1.9,.1,.02,.02,.5,'#c8ccd0',6);cy(x,z,ry,0,2.38,.18,.1,.12,.04,'#c8ccd0',6);ob(x,z,ry,0,w/2,w/2,w/2)};
   K.hang=(x,z,ry,n)=>{for(let i=0;i<(n||3);i++)bx(x,z,ry,(i-1)*.35,1.4,.05,.26,.5,.03,['#2f6db0','#e8e4da','#c8372d'][i%3],0);bx(x,z,ry,0,1.7,.04,1.1,.03,.03,'#9aa0a6',6)};
   K.piano=(x,z,ry)=>{bx(x,z,ry,0,.75,.6,1.5,.15,1.3,'#111113',1);bx(x,z,ry,0,.4,.6,1.4,.8,1.1,'#111113',1);bx(x,z,ry,0,.8,.12,1.4,.05,.25,'#f4f1ea',0);for(const a of [-1,1])bx(x,z,ry,a*.62,.3,.0,.06,.6,.06,'#111113',1);K.chair(...(()=>{const p=loc(x,z,ry)(0,-.55);return [p[0],p[1],ry]})(),'#111113');ob(x,z,ry,0,.6,.8,.7)};
@@ -215,7 +182,7 @@ function hsTick(dt){HSTATE.t=(HSTATE.t||0)+dt;const B=typeof PORTAL!=='undefined
   if(player.z<B.oz+.2&&Math.abs(player.x-B.ox)<.8&&!player.sit&&!HSTATE.leaving){HSTATE.leaving=1;PORTAL.exit();setTimeout(()=>{HSTATE.leaving=0},1800)}      // walk out through the front door
   for(const f of h.fires){for(const m of f.flames){const i=m.userData.i;m.visible=f.on;m.scale.set(1+Math.sin(t*9+i*2)*.12,1+Math.sin(t*13+i)*.22,1+Math.cos(t*8+i)*.12)}
     if(f.light)f.light.intensity=f.on?(1.5+Math.sin(t*11)*.25+Math.sin(t*17.3)*.15)*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
-  for(const v of h.tvs){v.t+=dt;if(v.on&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
+  for(const v of h.tvs){v.t+=dt;if(v.on&&!v.ch&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
       for(let i=0;i<7;i++){g.fillStyle=cols[(s+i+2)%6];g.globalAlpha=.55;g.fillRect(((i*23+t*40)%190)-20,8+(i*13)%60,34,16+(i*7)%20);g.globalAlpha=1}g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,160,6);v.tex.needsUpdate=true}
     if(v.light)v.light.intensity=v.on?.9*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
   for(const w of h.taps)w.m.visible=HSTATE.t<w.until}
@@ -295,14 +262,14 @@ function hsExterior(g,def,id){
   return {h:id==='house3'?H+4.2:id==='house2'?H+3.8:id==='house0'?H+2.6:H+.6,obs,cols}}
 
 // the plaza in the middle, paths, lamps, palms and beach furniture; then the houses with their price tags / doors
-function hsIsland(ex,world,cx,cz,top,owned){
+function hsIsland(ex,world,cx,cz,top,owned,KS){KS=KS||1;
   const stone=hsM(0xc9c2b2,.85),paving=hsM(0xb8ad98,.9),pal=hsM(0x7a5230,.9),leaf=hsM(0x2f8a3a,.8),lampM=hsM(0xfff0c8,.4,0,{emissive:new THREE.Color(0xffe2a0),emissiveIntensity:1.2}),post=hsM(0x2a2a2c,.6,.5),wat=()=>XM(0x66d0ee,.1,0,{emissive:new THREE.Color(0x1a8aa8),emissiveIntensity:.5});
   const put=(m,x,y,z)=>{m.position.set(cx+x,top+y,cz+z);m.castShadow=true;m.receiveShadow=true;world.add(m);return m};
-  put(new THREE.Mesh(new THREE.CylinderGeometry(5.2,5.2,.1,32),paving),0,.05,0);                                                    // plaza and fountain
+  put(new THREE.Mesh(new THREE.CylinderGeometry(5.2*Math.sqrt(KS),5.2*Math.sqrt(KS),.1,48),paving),0,.05,0);                                                    // plaza and fountain
   put(new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.5,.55,24),stone),0,.3,0);put(new THREE.Mesh(new THREE.CylinderGeometry(2.1,2.1,.1,24),wat()),0,.57,0);
   put(new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,1.5,12),stone),0,1.2,0);put(new THREE.Mesh(new THREE.CylinderGeometry(1.1,.6,.35,16),stone),0,2.0,0);put(new THREE.Mesh(new THREE.CylinderGeometry(.9,.9,.08,16),wat()),0,2.2,0);
   STATIC_CIR.push(cx,cz,2.5);
-  const DEFS=[['house0',15000],['house1',38000],['house2',85000],['house3',190000]],RING=[19.5,21.5,21.5,23];
+  const DEFS=[['house0',15000],['house1',38000],['house2',85000],['house3',190000]],RING=[19.5,21.5,21.5,23].map(v=>v*KS);
   DEFS.forEach(([id,price],i)=>{const def=HOUSE_DEF[id],name=def.name,a=Math.PI/4+i*Math.PI/2,R=RING[i],hx=cx+Math.cos(a)*R,hz=cz+Math.sin(a)*R,th=Math.atan2(cx-hx,cz-hz),W=def.W,D=def.D,sn=Math.sin(th),cs=Math.cos(th);
     const g=new THREE.Group();g.position.set(hx,top,hz);g.rotation.y=th;const ext=hsExterior(g,def,id);world.add(g);
     const wp=(lx,lz)=>[hx+lx*cs+lz*sn,hz-lx*sn+lz*cs];
@@ -319,11 +286,14 @@ function hsIsland(ex,world,cx,cz,top,owned){
     INTERACT.push({x:hx+sn*(D/2+2.4),z:hz+cs*(D/2+2.4),r:6.5,get label(){return H.owned?'Enter your '+name.toLowerCase():'Buy the '+name+' · '+WALLET.fmt(price)},cond:()=>!PORTAL.cur&&!player.sit&&!DRIVE.on,
       fn:()=>{if(H.owned){PORTAL.enter('house',{x:hx+sn*(out-.4),z:hz+cs*(out-.4),yaw:th},{id});return}
         if(WALLET.pay(price,name)){H.owned=true;S.houses=(S.houses||[]).concat(id);saveS();retag();toast('You bought the '+name,WALLET.fmt(price)+' paid · '+WALLET.fmt()+' left · walk in through the door')}}})});
-  // palms around the beach (clear of the houses) and loungers with umbrellas between them
-  for(let k=0;k<4;k++)for(const d of [-.2,.2]){const a=k*Math.PI/2+d,R=31.5,g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);
+  // palms all over the island (clear of the houses) and loungers with umbrellas at the beach between them
+  const FRI=Math.round(36*KS),palm=(a,R,sc)=>{const g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.scale.setScalar(sc);g.rotation.y=a*3;
     const t=new THREE.Mesh(new THREE.CylinderGeometry(.16,.24,4.6,6),pal);t.position.y=2.3;t.rotation.z=.14;t.castShadow=true;g.add(t);
-    for(let j=0;j<6;j++)xb(g,.5,.08,2.6,Math.cos(j*1.047)*1.3+.3,4.6,Math.sin(j*1.047)*1.3,leaf,.45,-j*1.047+1.571,0);world.add(g)}
-  for(let k=0;k<4;k++){const a=k*Math.PI/2,R=27,g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.rotation.y=-a+Math.PI/2;
+    for(let j=0;j<6;j++)xb(g,.5,.08,2.6,Math.cos(j*1.047)*1.3+.3,4.6,Math.sin(j*1.047)*1.3,leaf,.45,-j*1.047+1.571,0);world.add(g)};
+  const hh=(a,b)=>{let n=(a*374761393+b*668265263)|0;n=(n^(n>>>13))*1274126177|0;return ((n^(n>>>16))>>>0)/4294967295};
+  for(let k=0;k<4;k++)for(const d of [-.2,.2])palm(k*Math.PI/2+d,Math.round(31.5*KS*.97),1);                    // two palms on each side of the four avenues
+  for(let k=0;k<30;k++){const a=k/30*Math.PI*2+hh(k,3)*.12,R=FRI*(.78+.2*hh(k,5));let ok=true;for(let q=0;q<4;q++){let da=Math.abs(((a-(Math.PI/4+q*Math.PI/2))%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI);if(da<.24)ok=false}if(ok)palm(a,R,.85+hh(k,7)*.5)}   // a ring of palms near the beach, none in front of a house
+  for(let k=0;k<4;k++){const a=k*Math.PI/2,R=Math.round(27*KS*1.15),g=new THREE.Group();g.position.set(cx+Math.cos(a)*R,top,cz+Math.sin(a)*R);g.rotation.y=-a+Math.PI/2;
     const umb=hsM([0xd2451d,0x2f7d9b,0xf2c14e,0x3f9a46][k],.8);xb(g,.06,2.4,.06,0,1.2,0,post);xb(g,2.6,.06,2.6,0,2.35,0,umb).rotation.y=.78;
     for(const s of [-1,1]){xb(g,.7,.12,1.8,s*.8,.28,.4,hsM(0xf4efe4,.85));xb(g,.7,.4,.1,s*.8,.55,-.5,hsM(0xf4efe4,.85),-.5)}world.add(g)}
 }

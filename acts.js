@@ -9,7 +9,7 @@
    =================================================================================================== */
 
 const ACT={cur:null,hooked:false,props:{},em:null,pts:null,pp:[],snd:0};
-const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4,door:2.5,key:5.2};
+const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4,door:2.5,key:5.2,eat:4.4};
 const actEase=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
 const actWin=(t,a,b)=>actEase((t-a)/(b-a));
 
@@ -43,19 +43,8 @@ function actSteamTick(dt){const P=ACT.pts;if(!P)return;const now=performance.now
   ACT.pp.forEach((p,i)=>{if(p.a<1){p.a+=dt/1.7;p.x+=p.vx*dt;p.z+=p.vz*dt;p.y+=dt*(.38+.12*Math.sin(i));live++}const f=p.a<1?Math.sin(Math.min(1,p.a)*Math.PI)*.35:0;pos[i*3]=p.x;pos[i*3+1]=p.y;pos[i*3+2]=p.z;col[i*3]=col[i*3+1]=col[i*3+2]=f});
   P.geometry.attributes.position.needsUpdate=P.geometry.attributes.color.needsUpdate=true;P.visible=live>0}
 
-// the owner's own key recordings (assets/audio/keys_*.mp3), cut into short pieces: key out of the pocket, into the lock, the bolt, the latch.
-// The synth below only plays until they are decoded.
-const KEYSND={buf:{},st:0,n:0,G:{bunch:1.7,jingle:1,items:1.2},
-  P:{keyout:[['bunch',.1,.55]],keyin:[['jingle',.05,.4],['bunch',2.25,.5],['jingle',1.75,.42]],
-     bolt:[['items',.45,.15],['items',1.3,.25],['items',2.55,.25],['items',8,.15]],latch:[['items',7,.15],['items',9.45,.15],['items',5.15,.1]]},
-  load(){if(this.st||!window.AUD||!AUD.ctx)return;this.st=1;
-    for(const k of ['bunch','jingle','items'])fetch('assets/audio/keys_'+k+'.mp3').then(r=>r.arrayBuffer()).then(b=>new Promise((ok,no)=>AUD.ctx.decodeAudioData(b,ok,no))).then(d=>{this.buf[k]=d}).catch(e=>{this.st=0;console.warn('[keys]',k,e&&e.message||e)})},
-  play(k){const L=this.P[k];if(!L||!window.AUD||!AUD.ok)return false;this.load();const q=L[this.n++%L.length],b=this.buf[q[0]];if(!b)return false;
-    const c=AUD.ctx,s=c.createBufferSource(),g=c.createGain(),T=c.currentTime,d=q[2];s.buffer=b;
-    g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(this.G[q[0]],T+.008);g.gain.setValueAtTime(this.G[q[0]],T+d-.05);g.gain.linearRampToValueAtTime(0,T+d);
-    s.connect(g);g.connect(AUD.sfx);s.start(T,q[1],d);return true}};
 // ---------- sounds (AUD is the game's synth) ----------
-function actSfx(k){if(!window.AUD||!AUD.ok)return;if(KEYSND.play(k))return;
+function actSfx(k){if(!window.AUD||!AUD.ok)return;
   if(k==='water')AUD.burst(4200,2600,.18,.05,'bandpass',.6);
   else if(k==='click')AUD.tone(900,520,.05,.12,'square');
   else if(k==='thunk')AUD.tone(130,70,.14,.22,'sine');
@@ -77,7 +66,7 @@ function actWaterStream(on){const A=window.AUD;if(!A||!A.ok)return;const c=A.ctx
 
 // ---------- start / end ----------
 function actInstall(){if(ACT.hooked)return;ACT.hooked=true;
-  const base=window.animPlayer;window.animPlayer=function(P,st,dt){base(P,st,dt);if(ACT.cur&&P===PLR){actApply(P,dt);if(P.real&&typeof REAL!=='undefined')REAL.tick(P,st,dt)}};      // the act pose is written AFTER the base animPlayer already copied the procedural joints onto the GLB skeleton: copy again, or the real body keeps its arms down while the invisible classic rig washes its hands
+  const base=window.animPlayer;window.animPlayer=function(P,st,dt){base(P,st,dt);if(ACT.cur&&P===PLR)actApply(P,dt)};
   ANIM.push(actTick)}
 ACT.start=function(kind,o){
   if(ACT.cur||player.sit||(typeof DRIVE!=='undefined'&&DRIVE.on)||(typeof RIDE!=='undefined'&&RIDE.on)||!PLR)return false;
@@ -93,10 +82,11 @@ ACT.start=function(kind,o){
   if(kind==='fridge'&&o.F){const gx=a.gx!==undefined?a.gx:player.x,gz=a.gz!==undefined?a.gz:player.z;
     a.hand=((o.tx-gx)*Math.cos(a.yaw)-(o.tz-gz)*Math.sin(a.yaw))>0?1:0}
   const pr=actProp(a.item),HH=PLR.arms[a.hand].hand;if(pr.parent!==HH)HH.add(pr);a.prop=pr;a.canWas=PLR.can.visible;PLR.can.visible=false;a.bx=player.x;a.bz=player.z;a.adv=0;a.lp=0;
+  if(a.o.bite!==undefined)a.bites=a.o.bite;
   ACT.cur=a;return true};
 function actEnd(cancel){const a=ACT.cur;if(!a)return;ACT.cur=null;
   if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false);PLR.hdHold=null;for(const A of PLR.arms){A.ikp=null;A.hand.rotation.set(0,0,0)}}
-  if(PLR)PLR._leanW=0;if(a.o.leaf)setTimeout(()=>a.o.leaf(0),cancel?0:900);   // a door that opened closes again once you are through (or at once if you walked away)
+  if(a.o.leaf)setTimeout(()=>a.o.leaf(0),cancel?0:900);   // a door that opened closes again once you are through (or at once if you walked away)
   if(a.wOn)actWaterStream(false);if(a.o.F)a.o.F.set(0);if(a.o.lamp)a.o.lamp.material.color.setHex(0x223344);if(a.o.jetMesh)a.o.jetMesh.visible=false;
   if(a.cam0<=.75&&cam.dist>.75){cam.dist=a.cam0;cam.init=false}
   if(a.o.onEnd)a.o.onEnd(!!cancel)}
@@ -106,7 +96,7 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
   if((a.t>.5&&Math.hypot(player.vx||0,player.vz||0)>.7)||PORTAL.cur!==a.portal||player.sit||DRIVE.on){actEnd(true);return}
   // step up to the fixture and turn towards it, camera a little off to the side so the hands show
   let dy=a.yaw-player.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;player.yaw+=dy*Math.min(1,dt*7);
-  if(a.gx!==undefined&&a.t<.6){const k=Math.min(1,dt*5),nx=player.x+(a.gx-player.x)*k,nz=player.z+(a.gz-player.z)*k;if(!insideAny(nx,nz,.2,player.y+.5)){a.spd=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-3);player.x=nx;player.z=nz}}   // the feet shuffle while you step up to it (the body leans over the worktop, so the clearance is smaller than for walking)
+  if(a.gx!==undefined&&a.t<.6){const k=Math.min(1,dt*5),nx=player.x+(a.gx-player.x)*k,nz=player.z+(a.gz-player.z)*k;if(!insideAny(nx,nz,.3,player.y+.5)){a.spd=Math.hypot(nx-player.x,nz-player.z)/Math.max(dt,1e-3);player.x=nx;player.z=nz}}   // the feet shuffle while you step up to it
   else if(!a.sp0){a.sp0=1;a.spd=0}
   if(cam.dist>.75){let cy=player.yaw+a.side*.85-cam.yaw;while(cy>Math.PI)cy-=6.283;while(cy<-Math.PI)cy+=6.283;cam.yaw+=cy*Math.min(1,dt*3)}
   const t=a.t,o=a.o,at=(x,y)=>t>=x&&t-dt<x;
@@ -124,8 +114,9 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
     if(at(5.0)){actSfx('click');actSfx('ding');if(o.lamp)o.lamp.material.color.setHex(0x223344);if(o.whistle)AUD.tone(2300,2100,.7,.07,'sine')}
     a.prop.visible=t>5.6&&t<9.6;for(const s of [7.3,8.3,9.1])if(at(s))actSfx('gulp')}
   else if(a.kind==='door'){if(at(.5))actSfx('latch');if(at(.9))actSfx('creak');if(o.leaf)o.leaf(actWin(t,.9,2.0))}
+  else if(a.kind==='eat'){if(o.bite!==undefined&&at(o.bite))actSfx('thunk')}
   else if(a.kind==='key'){
-    a.prop.visible=t>.25&&t<3.0;if(at(.2))actSfx('keyout');if(at(.7))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
+    a.prop.visible=t>.25&&t<3.0;if(at(.3))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
     if(o.leaf)o.leaf(actWin(t,3.6,4.7));
     // the leaf swings out over where you stand, so step back as you pull it open
     if(o.back&&a.gx!==undefined){const adv=actWin(t,3.4,4.2),nx=a.gx+(o.back[0]-a.gx)*adv,nz=a.gz+(o.back[1]-a.gz)*adv;
@@ -162,17 +153,25 @@ const ACT_REST=A=>new THREE.Vector3(A.s*.285,-.1,.05),ACT_CARRY=A=>new THREE.Vec
 
 function actApply(P,dt){
   const a=ACT.cur,t=a.t,o=a.o,kind=a.kind,Wd=P.arms[a.hand],Od=P.arms[1-a.hand],w=actWin(t,0,.35)*(1-actWin(t,a.dur-.45,a.dur));
-  P.hdHold=[1,1];P._leanW=w;
+  P.hdHold=[1,1];
   // feet shuffle while the body steps in / back (a.spd = metres per second along the way)
   {const sp=a.spd||0,mv=Math.min(1,Math.abs(sp)/.4);if(mv>.03){a.lp+=dt*sp*4.2;for(const g of P.legs){const q=a.lp+(g.s>0?0:Math.PI);g.hp.rotation.x=-Math.sin(q)*.45*mv;g.kn.rotation.x=Math.max(0,Math.sin(q+1.3))*.7*mv+.04}}}
   const body=(lean,head)=>{P.spine.rotation.x+=(lean-P.spine.rotation.x)*w;P.head.rotation.x+=(head-P.head.rotation.x)*w};
   const fr=actFrame(),V=(x,y,z)=>new THREE.Vector3(x,y,z),D=o.tx===undefined?.8:Math.hypot(o.tx-player.x,o.tz-player.z);
   const grip=(A,list)=>{A.hand.userData.rig.tgt=actCurl(list)};
-  const up=kind==='pour'?actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0)):kind==='fridge'?actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9)):kind==='kettle'?actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9)):0;
+  const up=kind==='pour'?actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0)):kind==='fridge'?actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9)):kind==='kettle'?actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9)):kind==='eat'?
+    actWin(t,.8,1.5)*(1-actWin(t,3.6,4.2)):0;
   const itemPose=a.item==='cola'||a.item==='glass'||a.item==='cup'?'glass':'carton';
+  // ---------------- eat: bring it to the mouth, bite, chew, swallow (food in hand, other hand relaxed) ----------------
+  if(kind==='eat'){const b1=actWin(t,.8,1.5),b2=actWin(t,2.0,2.7),b3=actWin(t,3.2,3.8),
+      chew=k=>k?Math.abs(Math.sin(t*11))*(.06-.04*k):0,bite=Math.max(b1,b2*.7,b3*.5);
+    body(-.1*up,-.22*up);grip(Wd,[['flat',1]]);grip(Od,[['relax',1]]);
+    actHand(P,Wd,actMean([[actMouth(P,Wd),up],[ACT_CARRY(Wd),1-up]]),V(-Wd.s,0,0),w,dt);actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);
+    actHold(a,Wd,.85*up);a.prop.rotation.x+=bite*.5+chew(bite)*.3;a.prop.position.y-=bite*.006;   // the tip dips in as you bite
+    if(P.head)P.head.rotation.x+=-(bite*.45+chew(bite)*.3)*w}
   // ---------------- wash: both palms meet under the tap and rub, fingers lace, then a rinse with cupped hands ----------------
-  if(kind==='wash'){const dh=Math.max(.3,Math.min(.85,D-.04));body(.5+.3*Math.max(0,Math.min(1,(dh-.5)/.3)),.3);      // the hands go to the tap itself; the further it is, the more you lean over the sink
-    const C=actSp(P,fr(0,o.ty||.97,dh));
+  if(kind==='wash'){body(.5,.3);
+    const dh=Math.max(.3,Math.min(.6,D-.08)),C=actSp(P,fr(0,o.ty||.97,dh));
     const wet=actWin(t,.4,.8)*(1-actWin(t,1.0,1.3)),rub=actWin(t,1.0,1.4)*(1-actWin(t,2.8,3.1)),lace=actWin(t,2.8,3.2)*(1-actWin(t,3.8,4.1)),rinse=actWin(t,3.9,4.3)*(1-actWin(t,4.7,5.0));
     const ph=t*9.4,pl=t*5.2;
     P.arms.forEach((A,i)=>{const s=A.s,T=C.clone();
@@ -183,8 +182,8 @@ function actApply(P,dt){
       grip(A,[['flat',Math.max(.0001,1-lace-rinse)],['lace',lace],['cup',rinse]])});
     const f=actFoam(P),fv=t>1.5&&t<3.7,osc=Math.sin(ph)*rub;f.forEach(m=>{m.visible=fv;m.scale.set(1+.15*osc,.7,1)})}
   // ---------------- pour: a glass under the tap, then up to the lips ----------------
-  else if(kind==='pour'){const under=actWin(t,.15,.6)*(1-actWin(t,2.4,2.9)),dh=Math.max(.3,Math.min(.85,D-.04));body((.3+.5*Math.max(0,Math.min(1,(dh-.5)/.3)))*under,.14*under-.3*up);
-    const Tu=actSp(P,fr(0,(o.ty||.97)-.02,dh));Tu.x+=Wd.s*.034;
+  else if(kind==='pour'){const under=actWin(t,.15,.6)*(1-actWin(t,2.4,2.9));body(.3*under,.14*under-.3*up);
+    const dh=Math.max(.3,Math.min(.6,D-.08)),Tu=actSp(P,fr(0,(o.ty||.97)-.02,dh));Tu.x+=Wd.s*.034;
     actHand(P,Wd,actMean([[Tu,under],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-under-up)+.0001]]),V(-Wd.s,0,0),w,dt);grip(Wd,[[itemPose,1]]);
     actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
   // ---------------- fridge: take hold of the handle, pull, reach in, take something out, push the door shut with the other hand, drink ----------------
@@ -205,12 +204,11 @@ function actApply(P,dt){
     else{actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]])}
     actHold(a,Wd,.8*up)}
   // ---------------- kettle: one finger presses the button, wait, take the cup, drink ----------------
-  else if(kind==='kettle'){const press=actWin(t,0,.6)*(1-actWin(t,1.0,1.6));body((o.knob?.2:.55)*press+.05,.1*press+.18*actWin(t,1.4,2.0)*(1-actWin(t,5.0,5.6))-.3*up);      // the electric button is on the worktop (lean over it), the gas knob on the front of the hob
-    let Tb;if(o.knob){const kk=new THREE.Vector3(o.knob[0],o.knob[1],o.knob[2]);kk.x-=Math.sin(a.yaw)*.07;kk.z-=Math.cos(a.yaw)*.07;Tb=actSp(P,kk)}
-    else if(o.lamp){const lw=new THREE.Vector3();o.lamp.getWorldPosition(lw);lw.y+=.045;Tb=actSp(P,lw)}else Tb=actSp(P,fr(Wd.s*.08,.98,Math.max(.3,Math.min(.55,D-.1))));
+  else if(kind==='kettle'){const press=actWin(t,0,.6)*(1-actWin(t,1.0,1.6));body(.12*press+.05,.1*press+.18*actWin(t,1.4,2.0)*(1-actWin(t,5.0,5.6))-.3*up);
+    let Tb;if(o.lamp){const lw=new THREE.Vector3();o.lamp.getWorldPosition(lw);lw.y+=.045;Tb=actSp(P,lw)}else Tb=actSp(P,fr(Wd.s*.08,.98,Math.max(.3,Math.min(.55,D-.1))));
     const hold=actWin(t,5.4,6.0);
-    actHand(P,Wd,actMean([[Tb,press],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-press-up)+.0001]]),o.knob?V(-Wd.s,0,0):actMean([[V(0,-1,0),press],[V(-Wd.s,0,0),Math.max(0,1-press)]]).normalize(),w,dt);
-    grip(Wd,[[o.knob?'pinch':'point',press],['cup',Math.max(0,1-press-hold)],[itemPose,hold]]);
+    actHand(P,Wd,actMean([[Tb,press],[actMouth(P,Wd),up],[ACT_CARRY(Wd),Math.max(0,1-press-up)+.0001]]),actMean([[V(0,-1,0),press],[V(-Wd.s,0,0),Math.max(0,1-press)]]).normalize(),w,dt);
+    grip(Wd,[['point',press],['cup',Math.max(0,1-press-hold)],[itemPose,hold]]);
     actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);grip(Od,[['relax',1]]);actHold(a,Wd,.75*up)}
   // ---------------- door: reach for the handle, press it down (the latch lets go), push / pull ----------------
   else if(kind==='door'){const rc=actWin(t,.05,.5)*(1-actWin(t,1.95,2.4)),ps=actWin(t,.65,1.6);body(.08+.1*ps,.04);
@@ -253,19 +251,16 @@ function actFridge(E,x,z,ry,w,o){o=o||{};const H=o.h||1.9,Dp=.7,T=.03,c=Math.cos
   bx(-w/2+T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(w/2-T/2,H/2,Dp+.006,T,H-.05,.012,'#2a2c30',1);bx(0,H-.03,Dp+.006,w,.02,.012,'#2a2c30',1);bx(0,.16,Dp+.006,w,.02,.012,'#2a2c30',1);
   door.castShadow=false;
   const hp=loc(-w/2,Dp+.037);door.position.set(E.ox+hp[0],INT_Y+H/2,E.oz+hp[1]);door.rotation.y=ry;E.grp.add(door);
-  const F={door,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62)};F.set(0);
-  const label=o.label||'Open the fridge',items=['milk','juice','kefir','cola'];let n=0;
-  E.act(F.stand[0],F.stand[1],1.5,label,()=>{const it=items[n++%items.length];const p=loc(0,Dp/2);
-    const sa=loc(.42,1.4),sb=loc(.2,1.04);   // stand to the handle's side, out of the door's sweep; step in to the shelf later
-    if(ACT.start('fridge',{F,item:it,tx:E.ox+p[0],tz:E.oz+p[1],reach:1.05,stand:[E.ox+sa[0],E.oz+sa[1]],step:[E.ox+sb[0],E.oz+sb[1]],onEnd:cx=>{if(!cx)toast('Cheers','you had some '+(it==='cola'?'cola':it))}}))toast('Fridge',it==='milk'?'a carton of cold milk':it==='juice'?'orange juice':it==='kefir'?'kefir':'a cold bottle of cola')});
+  // the fixture record kitchen.js works with: hinge angle, where to stand, the front of the door, and where each kind of food sits
+  const SH={milk:[-.14,.94],juice:[.1,1.3],kefir:[-.02,.6],cola:[.16,1.02]};
+  const F={door,w,H,ox:E.ox,oz:E.oz,ry,set(k){door.rotation.y=ry-1.85*k},stand:loc(0,Dp+.62),
+    front(){const p=loc(0,Dp+.04);return {x:E.ox+p[0],z:E.oz+p[1]}},
+    shelf(k){const q=SH[k]||[0,1],p=loc(q[0],Dp*.5);return new THREE.Vector3(E.ox+p[0],INT_Y+q[1],E.oz+p[1])}};F.set(0);
+  KIT.fridge(E,F);                                   // E opens the door; a menu lets you take milk / juice / kefir / cola (kitchen.js)
   return F}
 
-// ---------- an electric kettle on a counter (x,z in E-local metres, y = counter top) ----------
-function actKettle(E,x,y,z,ry,o){o=o||{};const bx=(dx,dy,dz,sw,sh,sd,col,m)=>E.box(x+dx,y+dy,z+dz,sw,sh,sd,col,m||0,ry);
-  bx(0,.012,0,.18,.024,.18,'#2a2d32',1);bx(0,.14,0,.15,.24,.15,o.body||'#eef1f3',6);bx(0,.275,0,.12,.03,.12,'#cfd4d8',6);bx(.1,.2,0,.07,.05,.04,'#eef1f3',6);bx(-.095,.16,0,.025,.2,.05,'#1c1d20',1);bx(0,.31,0,.045,.02,.045,'#1c1d20',1);
-  const lamp=new THREE.Mesh(new THREE.BoxGeometry(.03,.012,.012),new THREE.MeshBasicMaterial({color:0x223344}));lamp.position.set(E.ox+x,INT_Y+y+.03,E.oz+z+.1);lamp.rotation.y=ry;E.grp.add(lamp);
-  E.obb(x,z,.12,.12,0);
-  const stand=o.stand||[x,z+.8];
-  E.act(stand[0],stand[1],1.3,o.label||'Boil the kettle',()=>{
-    if(ACT.start('kettle',{lamp,steam:[E.ox+x+.1,INT_Y+y+.3,E.oz+z],tx:E.ox+x,tz:E.oz+z,reach:o.reach||.5,onEnd:cx=>{if(!cx)toast('Tea','hot, sweet and exactly what you needed')}}))toast('Kettle','the button clicks and the water starts to hum')});
-  return {lamp}}
+// ---------- an electric kettle on a worktop (x,z in E-local metres, y = counter top above the floor) ----------
+// a real object you can pick up, fill at the tap, put on a table, switch on and pour from (kitchen.js)
+function actKettle(E,x,y,z,ry,o){o=o||{};
+  const sp=KIT.spot(E,{x,z,y:INT_Y+y,ry,name:'Worktop',r:1.5,w:.9}),obj=KIT.mkProp('kettle');
+  obj.position.set(E.ox+x,INT_Y+y,E.oz+z);obj.rotation.y=ry;E.grp.add(obj);sp.items.push({kind:'kettle',obj,slot:0,water:0,boiled:false});return {spot:sp}}

@@ -106,12 +106,12 @@ const PRD={designs:[],ready:false,cats:{},cashiers:[],geo:{},_s:1};
 })();
 
 // ---------------------------------------------------------------- atlas + shapes
-PRD.init=function(){if(this.ready)return;this.ready=true;const N=this.designs.length,CELL=256,COLS=8,rows=Math.ceil(N/COLS);
-  const cv=document.createElement('canvas');cv.width=COLS*CELL;cv.height=Math.max(2,Math.pow(2,Math.ceil(Math.log2(rows*CELL))));const x=cv.getContext('2d');this.atlasH=cv.height;
-  this.designs.forEach(d=>{const c=d.i%COLS,r=Math.floor(d.i/COLS);x.save();x.translate(c*CELL,r*CELL);x.beginPath();x.rect(0,0,240,CELL);x.clip();try{d.paint(x)}catch(e){console.warn('[products]',d.id,e)}x.restore();
+PRD.init=function(){if(this.ready)return;this.ready=true;const N=this.designs.length,K=(typeof MOBILE!=='undefined'&&MOBILE)?.5:1,CELL=256*K,COLS=8,rows=Math.ceil(N/COLS);   // K=.5 on phones: a 1024 px atlas (5.6 MB) instead of 2048 (22 MB); the labels are painted scaled
+  const cv=document.createElement('canvas');cv.width=COLS*CELL;cv.height=Math.max(2,Math.pow(2,Math.ceil(Math.log2(rows*CELL))));const x=cv.getContext('2d',{willReadFrequently:true});this.atlasH=cv.height;
+  this.designs.forEach(d=>{const c=d.i%COLS,r=Math.floor(d.i/COLS);x.save();x.translate(c*CELL,r*CELL);x.scale(K,K);x.beginPath();x.rect(0,0,240,256);x.clip();try{d.paint(x)}catch(e){console.warn('[products]',d.id,e)}x.restore();
     // plain strip for the sides: the colour of the label's left edge
-    const px=x.getImageData(c*CELL+4,r*CELL+CELL-60,1,1).data;x.fillStyle='rgb('+px[0]+','+px[1]+','+px[2]+')';x.fillRect(c*CELL+240,r*CELL,16,CELL);
-    d.u0=c*CELL/cv.width;d.u1=(c*CELL+240)/cv.width;d.v1=1-r*CELL/cv.height;d.v0=1-(r+1)*CELL/cv.height;d.su=(c*CELL+248)/cv.width;d.sv=(d.v0+d.v1)/2});
+    const px=x.getImageData(Math.round(c*CELL+4*K),Math.round(r*CELL+CELL-60*K),1,1).data;x.fillStyle='rgb('+px[0]+','+px[1]+','+px[2]+')';x.fillRect(c*CELL+240*K,r*CELL,16*K,CELL);
+    d.u0=c*CELL/cv.width;d.u1=(c*CELL+240*K)/cv.width;d.v1=1-r*CELL/cv.height;d.v0=1-(r+1)*CELL/cv.height;d.su=(c*CELL+248*K)/cv.width;d.sv=(d.v0+d.v1)/2});
   const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;this.tex=t;
   this.mat=new THREE.MeshStandardMaterial({map:t,roughness:.5,metalness:.04})};
 // geometry for a design, built once and shared by every shop

@@ -33,7 +33,7 @@ const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,6
   // the code → makePlayer() options
   opts(a){const own=!a||a===this.cur;a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
     const o={skin:CH_SKIN[a[0]],iris:CH_EYE[a[1]][1],bd:CH_BD_ID[a[2]],hs:CH_HS_ID[a[3]],hair:H[1],hair2:H[2],brow:H[3],ts,bs:CH_BS_ID[a[7]],jeans:J[1],cuff:J[2],
-      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:own&&a[17]===0};
+      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:a[17]===0};   // friends' codes use the realistic body as well (it used to be only your own avatar)
     if(ts==='sailor'){o.shirt=0xf3f1ec;o.tee1='#f4f4f0';o.tee2='#'+C[1].toString(16).padStart(6,'0')}
     else{o.shirt=C[1];if(ts==='over'){o.tee1='#f4f4f0';o.tee2='#1d2f6a'}}
     return o},

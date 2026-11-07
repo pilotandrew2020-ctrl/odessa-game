@@ -10,12 +10,12 @@
 
 const FL={built:{},leaving:0,ready:false};
 const FL_DEF={
-  panel:{idx:58,W:9.6,D:6.8,H:2.8,door:0,title:'Your flat',sub:'panel block · carpet on the wall, wall unit, folding sofa',
+  panel:{idx:58,W:11,D:7.8,H:3.0,door:0,title:'Your flat',sub:'panel block · carpet on the wall, wall unit, folding sofa',
     // a quiet winter night: the lamps are dim and a little cold, the windows show blue snow-light (no New Year, no samovar)
     S:{door:'#efe9d9',hw:'#a8905a',rad:'cast',standGlb:true,standTint:'#d8b080',tileA:'#efe9da',tileB:'#c8c0ae',tileC:'#e6e0d0',exp:.46,wood:'#6b4a2c',wall:'#d3c3a0',wm:0,floor:'#8a5a34',fm:5,trim:'#f4efe4',ceil:'#ece8de',cm:0,beams:false,sofa:['#b3561f','#d6893c'],accent:'#7a3a2a',light:0xe6e3d6,win:'#46598a'}},
-  stalin:{idx:59,W:12,D:8.2,H:3.5,door:-5,title:'Your flat',sub:'Stalin-era house · tall windows, piano, long corridor',
+  stalin:{idx:59,W:13.5,D:9.4,H:4.0,door:-5,title:'Your flat',sub:'Stalin-era house · tall windows, piano, long corridor',
     S:{door:'#f2ede0',hw:'#b99a4a',rad:'cast',curt:['#a85a4a','#f1e6cf','#6f8a58'],standGlb:true,standTint:'#8a6240',tileA:'#f3f1ea',tileB:'#cfc8b8',tileC:'#e8e4d8',exp:.6,wood:'#4a3220',wall:'#e6d8bb',wm:0,floor:'#9a6b3c',fm:5,trim:'#f8f3e6',ceil:'#f6f1e4',cm:0,beams:false,sofa:['#3b5a4a','#cfc3a2'],accent:'#7a1f2b',light:0xffe6b8}},
-  new:{idx:60,W:11,D:7.2,H:3.1,door:-4.4,title:'Your flat',sub:'new build · open plan, kitchen island, glass wall',
+  new:{idx:60,W:12.5,D:8.3,H:3.4,door:-4.4,title:'Your flat',sub:'new build · open plan, kitchen island, glass wall',
     S:{door:'#e9e5dd',hw:'#9aa0a6',curt:'#e3e6e8',tileA:'#e6e8ea',tileB:'#aeb4b8',tileC:'#d6dadd',exp:.5,wood:'#b99a6c',wall:'#e4e5e6',wm:0,floor:'#8c8e92',fm:7,trim:'#ffffff',ceil:'#f3f3f3',cm:0,beams:false,sofa:['#7d838b','#d6d9dd'],accent:'#1d6a8a',light:0xfff3df}}};
 
 function installFlats(){
@@ -73,7 +73,7 @@ function flBuild(k){
 function flTick(dt){
   const B=PORTAL.cur&&/flat$/.test(PORTAL.cur)&&FL.built[PORTAL.cur.replace(/flat$/,'')];if(!B||PORTAL.active!==B)return;const h=B.hs,t=HSTATE.t||0;
   if(!FL.leaving&&!player.sit&&!(ACT&&ACT.cur)&&player.z<B.oz+.25&&Math.abs(player.x-(B.ox+B.dx))<.8)flToStair(B.key);
-  for(const v of h.tvs){v.t+=dt;if(v.on&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
+  for(const v of h.tvs){v.t+=dt;if(v.on&&!v.ch&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
       for(let i=0;i<7;i++){g.fillStyle=cols[(s+i+2)%6];g.globalAlpha=.55;g.fillRect(((i*23+t*40)%190)-20,8+(i*13)%60,34,16+(i*7)%20);g.globalAlpha=1}g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,160,6);v.tex.needsUpdate=true}
     if(v.light)v.light.intensity=v.on?.9*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
   for(const w of h.taps)w.m.visible=t<w.until}

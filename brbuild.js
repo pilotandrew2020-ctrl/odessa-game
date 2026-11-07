@@ -282,7 +282,7 @@ function init(){if(st.inited)return;st.inited=true;assets();buildUi();holdSpecia
     if(e.code==='KeyQ'){e.stopImmediatePropagation();e.preventDefault();toggle()}
     else if(e.code==='KeyT'){e.stopImmediatePropagation();e.preventDefault();cycleMat()}},true)}
 function start(){init();clear();st.mats=[50,0,0];st.mat=0;st.kind='w';st.mode=false;st.dirty=true;document.body.classList.remove('bld-on');renderHud()}
-function clear(){for(const p of P.slice())kill(p,false);P.length=0;keyOf.clear();cells.clear();regrow();hits.clear();for(const f of falls){scene.remove(f.m)}falls.length=0;if(st.ghost)st.ghost.visible=false}
+function clear(){for(const p of P.slice())kill(p,false);P.length=0;keyOf.clear();cells.clear();regrow();hits.clear();for(const f of falls){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose()}falls.length=0;if(st.ghost)st.ghost.visible=false}
 function end(){if(!st.inited)return;st.mode=false;document.body.classList.remove('bld-on');clear();if(st.ui){st.ui.mats.hidden=true;st.ui.btn.hidden=true}}
 
 return {tick,start,end,init,place,harvest,hit,ray,boom,toggle,pick,cycleMat,pub,sync,aim,build,kill,surf,give,

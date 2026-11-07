@@ -116,23 +116,23 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   B(4.3,.62,20.99,1.3,.8,.03,'#f6efd9',1);B(4.3,.66,20.97,.85,.5,.02,'#1a1c1e',2);B(4.3,1.02,20.95,1.0,.04,.05,steel,6);
   B(4.3,1.3,20.99,1.46,.28,.03,'#f6efd9',1);B(4.3,1.38,20.97,1.46,.04,.02,'#2f8f8a',1);
   for(const x of [3.85,4.3,4.75])C(x,1.28,20.94,.06,.06,.06,'#1c1c1c',1,Math.PI/2);
-  C(3.9,1.8,21.25,.3,.24,.42,'#e9e2cf',1);C(3.9,2.04,21.25,.1,.1,.06,'#2a2a2a',1);B(3.62,1.9,21.25,.3,.06,.06,'#e9e2cf',1,0,.3);B(4.2,1.95,21.25,.05,.34,.05,'#2a2a2a',1);   // kettle
+  /* the kettle on the gas ring is a real object now: picked up, filled, put on a table (kitchen.js, below) */
   C(4.7,1.72,21.65,.3,.3,.2,'#4a4d50',6);B(4.2,1.72,21.65,.4,.04,.07,'#2a2a2a',1);                                                                         // frying pan
-  solid(4.3,21.4,.75,.45);
+  solid(4.3,21.3,.75,.55);
   // gas meter and pipes
   B(4.3,2.4,21.78,.4,.5,.18,'#bfc4c6',1);C(4.3,2.4,21.68,.1,.1,.02,'#eee',1,Math.PI/2);C(4.3,1.98,21.78,.035,.035,.9,'#bdbdb0',6);C(3.6,2.62,21.78,.035,.035,1.4,'#bdbdb0',6,0,Math.PI/2);
   // counters with wooden fronts and cream tops
   const run=(x0,x1)=>{const w=x1-x0,cx=(x0+x1)/2,cells=Math.max(1,Math.round(w/.75));B(cx,.72,21.4,w,1.44,.9,woodD,5);B(cx,1.5,21.38,w+.04,.08,.96,cream,1);
-    for(let k=0;k<cells;k++){const xc=x0+(k+.5)*w/cells;B(xc,.75,20.94,w/cells-.06,1.2,.03,wood,5);B(xc+.18,1.2,20.91,.03,.18,.03,steel,6)}solid(cx,21.4,w/2,.45)};      // the collision box is the drawn worktop (front at 20.95): it used to stand 30 cm in front of it, so nobody could reach the tap or the hob
+    for(let k=0;k<cells;k++){const xc=x0+(k+.5)*w/cells;B(xc,.75,20.94,w/cells-.06,1.2,.03,wood,5);B(xc+.18,1.2,20.91,.03,.18,.03,steel,6)}solid(cx,21.2,w/2,.55)};
   run(5.05,6.2);run(8.0,9.5);
   // sink cabinet with a steel basin, chrome mixer, dish rack with plates and cups
   B(7.1,.72,21.4,1.8,1.44,.9,woodD,5);B(7.1,1.5,21.38,1.84,.08,.96,'#d9d6cc',1);B(7.1,1.545,21.4,1.2,.03,.7,'#aeb4b7',6);C(7.1,1.56,21.4,.07,.07,.02,'#333',1);
   for(const k of [0,1,2])B(6.6+k*.5,.75,20.94,.44,1.2,.03,wood,5);
-  C(7.1,1.78,21.72,.04,.04,.5,steel,6);C(7.1,2.02,21.43,.035,.035,.63,steel,6,Math.PI/2);      // the spout reaches over the front of the basin, so the hands under it are within an arm's length of the cabinetB(6.8,1.62,21.7,.1,.1,.1,steel,6);B(7.4,1.62,21.7,.1,.1,.1,steel,6);
+  C(7.1,1.78,21.72,.04,.04,.5,steel,6);C(7.1,2.02,21.52,.035,.035,.45,steel,6,Math.PI/2);B(6.8,1.62,21.7,.1,.1,.1,steel,6);B(7.4,1.62,21.7,.1,.1,.1,steel,6);
   B(7.1,2.1,21.62,1.4,.04,.4,steel,6);B(7.1,2.5,21.62,1.4,.04,.4,steel,6);for(const x of [6.4,7.8])B(x,2.3,21.62,.03,.42,.4,steel,6);
   for(let k=0;k<6;k++)C(6.6+k*.18,2.34,21.62,.22,.22,.03,k%2?'#cfe0ea':'#eeeee8',1,0,Math.PI/2);
   for(let k=0;k<3;k++){C(6.65+k*.3,2.58,21.62,.07,.06,.12,'#f2efe6',1);C(6.65+k*.3,2.58,21.62,.071,.071,.03,'#2a62b8',1)}
-  solid(7.1,21.4,.9,.45);
+  solid(7.1,21.2,.9,.55);
   // wall cupboards
   for(const [x,w] of [[8.75,1.5]]){B(x,2.35,21.65,w,.9,.42,wood,5);B(x,2.35,21.43,w-.06,.8,.03,'#a56a30',5);B(x+.2,2.2,21.4,.03,.2,.03,steel,6)}
   // bread, board, tangerines
@@ -152,10 +152,13 @@ function sovKitchen(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid}=K;
   K.done();
   // the flat is moved into the real building after it is built, so act targets are converted to world coordinates when used
   const wp=(x,z,y)=>grp.localToWorld(new THREE.Vector3(x,y==null?Y:y,z));
-  INTERACT.push({x:ox+4.3,z:oz+20.2,r:1.6,label:'Put the kettle on',fn:()=>{const st=wp(ox+3.7,oz+21.25,Y+2.05),kb=wp(ox+3.85,oz+20.91,Y+1.28);if(ACT.start('kettle',{steam:[st.x,st.y,st.z],tx:kb.x,tz:kb.z,knob:[kb.x,kb.y,kb.z],reach:.4,whistle:true,onEnd:cx=>{if(!cx)toast('Tea','strong, with a slice of lemon — grandma would approve')}}))toast('Kitchen','the gas ring clicks, the kettle starts to whistle')}});
-  const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.42,6),new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.15);sinkJet.visible=false;grp.add(sinkJet);
-  INTERACT.push({x:ox+6.8,z:oz+20.2,r:1.0,label:'Wash your hands',fn:()=>{const tg=wp(ox+7.1,oz+21.15);if(ACT.start('wash',{tx:tg.x,tz:tg.z,reach:.42,ty:1.62,jetMesh:sinkJet,onEnd:cx=>{if(!cx)toast('Kitchen','cold water, as always')}}))toast('Kitchen','you turn the old mixer tap')}});
-  INTERACT.push({x:ox+7.55,z:oz+20.2,r:.9,label:'Pour a glass of water',fn:()=>{const tg=wp(ox+7.1,oz+21.15);if(ACT.start('pour',{tx:tg.x,tz:tg.z,reach:.42,ty:1.62,jetMesh:sinkJet,item:'glass',onEnd:cx=>{if(!cx)toast('Cheers','tap water, cold and a little metallic')}}))toast('Kitchen','a glass under the tap')}});
+  // hands-on kitchen (kitchen.js): the tap, the soap, the kettle on the gas ring and the kitchen table all work like in the houses
+  {const Es={ox:0,oz:0,grp};
+   const sinkJet=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,.42,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));sinkJet.position.set(ox+7.1,Y+1.78,oz+21.32);sinkJet.visible=false;grp.add(sinkJet);
+   KIT.sink(Es,{t:{m:sinkJet,on:false,until:0},wx:ox+7.1,wz:oz+21.32,y:Y+1.75,cy:Y+1.5,ry:0,drink:true,stand:[ox+7.1,oz+20.35]});
+   const st=KIT.spot(Es,{x:ox+3.9,z:oz+21.25,y:Y+1.68,name:'Stove',onLabel:'Light the gas ring',whistle:true,r:1.5,w:.6}),kt=KIT.mkProp('kettle');
+   kt.position.set(ox+3.9,Y+1.68,oz+21.25);grp.add(kt);st.items.push({kind:'kettle',obj:kt,slot:0,water:0,boiled:false});
+   KIT.spot(Es,{x:ox+5.5,z:oz+15.3,y:Y+.8,name:'Kitchen table',w:1.4,r:1.8})}
   INTERACT.push({x:ox+2.9,z:oz+20.4,r:1.5,label:'Look at the preserves',fn:()=>toast('Pickles, tomatoes, beans','grandma\'s jars for the whole winter')});
   INTERACT.push({x:ox+2.6,z:oz+19.4,r:1.5,label:'Look at the wall carpet',fn:()=>toast('Ковёр на стене','red, with a diamond pattern — warm against the draught and a tradition')});
   INTERACT.push({x:ox+2.6,z:oz+13.1,r:1.5,label:'Check the clock',fn:()=>toast('23:58','two minutes to the New Year')});
@@ -189,7 +192,10 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   // old TV on a wooden cabinet with a cat figurine, bentwood chair
   place(-3.4,10.45,Math.PI,[[0,.55,0,2.2,1.1,.8,wood,5],[0,.55,.41,2.0,.9,.02,'#5e3a1a',5],[-.9,.1,.3,.1,.2,.1,'#3a2410',5],[.9,.1,.3,.1,.2,.1,'#3a2410',5]]);solid(-3.4,10.45,1.1,.45);
   MDL.put(grp,'cassette_player',{x:ox-2.62,y:Y+1.1,z:oz+10.45,ry:Math.PI,s:1.15});                       // a cassette recorder (≈16×27 cm) beside the set (Poly Haven, CC0)
-  MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
+  // the old CRT set shows the film / the news too: a screen-sized plane on its glass (tv.js), visible only while a programme runs
+  const svTv=window.svTv={m:null,m2:null,overlay:true,on:false,ch:0,t:0,light:null};{const cv=document.createElement('canvas');cv.width=160;cv.height=90;svTv.cv=cv;svTv.g=cv.getContext('2d');svTv.g.fillStyle='#08090b';svTv.g.fillRect(0,0,160,90);svTv.tex=new THREE.CanvasTexture(cv);svTv.tex.encoding=THREE.sRGBEncoding}
+  MDL.put(grp,'Television_01',{x:ox-3.4,y:Y+1.1,z:oz+10.45,ry:Math.PI,w:.95,ready:(holder,m)=>{holder.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(m),lo=holder.worldToLocal(b.min.clone()),hi=holder.worldToLocal(b.max.clone()),x0=Math.min(lo.x,hi.x),x1=Math.max(lo.x,hi.x),y0=Math.min(lo.y,hi.y),y1=Math.max(lo.y,hi.y),z0=Math.min(lo.z,hi.z),z1=Math.max(lo.z,hi.z),SW=(x1-x0)*(window.SV_TV_FIT?SV_TV_FIT.w:.62),SH=(y1-y0)*(window.SV_TV_FIT?SV_TV_FIT.h:.58),cy=y0+(y1-y0)*(window.SV_TV_FIT?SV_TV_FIT.cy:.55),cx=(x0+x1)/2;
+    const mat=new THREE.MeshBasicMaterial({map:svTv.tex}),mk=(z,ry)=>{const q=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),mat);q.position.set(cx,cy,z);q.rotation.y=ry;q.visible=false;holder.add(q);return q};svTv.m=mk(z1+.004,0);svTv.m2=mk(z0-.004,Math.PI);svTv.m.material=mat}});                       // a real 80s CRT set (Poly Haven, CC0)  place(-5.4,9.7,Math.PI,[[0,.5,0,.5,.06,.5,'#5a3318',5],[0,1.0,-.24,.46,.8,.04,'#5a3318',5],[-.22,.25,-.22,.05,.5,.05,'#5a3318',5],[.22,.25,-.22,.05,.5,.05,'#5a3318',5],[-.22,.25,.22,.05,.5,.05,'#5a3318',5],[.22,.25,.22,.05,.5,.05,'#5a3318',5]]);
   // framed pictures: roses and an old family photo
   for(const [x,col] of [[-8.8,'#8a8a8a'],[-2.0,'#c98f5a']]){B(x,1.9,10.84,.7,.55,.04,'#3a2a1a',5);B(x,1.9,10.82,.6,.45,.03,col,9)}
   MDL.put(grp,'hanging_picture_frame_02',{x:ox-10.0,y:Y+1.65,z:oz+10.84,ry:Math.PI,w:.75});                  // a real framed painting with glass (Poly Haven, CC0)
@@ -212,7 +218,7 @@ function sovLounge(grp,ox,oz,Y){const K=svKit(grp,ox,oz,Y),{B,C,S,solid,place}=K
   svGarland(grp,ox-10.5,Y+2.62,oz+10.7,ox-1.5,Y+2.62,oz+10.7,40,.35,[0xff2a1f,0x1fa8ff,0xffc61a,0x2dff6a]);
   svGarland(grp,ox-10.5,Y+2.62,oz+.3,ox-1.5,Y+2.62,oz+.3,40,.35,[0xff9a1f,0xff2a8a,0x1fe0ff,0xa8ff2a]);
   K.done();
-  INTERACT.push({x:ox-3.4,z:oz+9.2,r:1.9,label:'Watch the TV',fn:()=>toast('«Голубой огонёк»','a New Year concert, 1987')});
+  INTERACT.push({x:ox-3.4,z:oz+9.2,r:1.9,get label(){return svTv.m?TVX.label(svTv):'Watch the TV'},fn:()=>{if(svTv.m){TVX.cycle(svTv);if(window.AUD)AUD.beep()}else toast('«Голубой огонёк»','a New Year concert, 1987')}});
   INTERACT.push({x:ox-3.4,z:oz+2.95,r:1.5,label:'Open the champagne',fn:()=>toast('Советское шампанское','pop! С Новым годом!')});
   INTERACT.push({x:ox-3.9,z:oz+5.3,r:1.4,label:'Pet the cat',fn:()=>toast('Мурр','the cat purrs and does not blink')});
   INTERACT.push({x:ox-9.2,z:oz+8.2,r:1.9,label:'Look at Ded Moroz',fn:()=>toast('Дед Мороз и Снегурочка','cotton-wool figures from the 70s')})}

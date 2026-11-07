@@ -412,7 +412,7 @@ body.br-on #bAct{bottom:calc(214px + env(safe-area-inset-bottom,0px))!important;
     if(PORTAL.cur)PORTAL.exit();if(DRIVE.on)exitCar();this.ret={x:player.x,z:player.z,yaw:player.yaw,cam:{d:cam.dist,p:cam.pitch}};player.scoot=false;
     if(open){this.rd=open.rd;this.sd=open.sd;this.t0=open.t0;this.host=false}
     else{this.rd=Date.now();this.sd=(Date.now()%2147483647)|0;this.host=true;this.t0=Date.now()+(fr?25000:0)}   // friends online: 25 s in the bus lobby so they can tap JOIN
-    this.seed=this.sd;this.op=[];this.tk=[];this.gone=new Set();this.BOTS=Math.max(3,12-(open?1+this.matesOf(open.rd):1+fr));
+    this.seed=this.sd;this.op=[];this.tk=[];this.gone=new Set();this.BOTS=Math.min((typeof MOBILE!=='undefined'&&MOBILE)?7:99,Math.max(3,12-(open?1+this.matesOf(open.rd):1+fr)));   // phones: at most 7 bots
     if(this.ui.inv)this.ui.inv.hidden=true;this.on=true;this.dead=false;this.kills=0;this.sh=0;this.out=false;this.fov0=camera.fov;this.items.length=0;this.sT0=0;
     this.inv=[{k:'w',id:'pick',rar:0,mag:0},null,null,null,null];this.sel=0;this.ammo={light:0,medium:0,shells:0,heavy:0,rocket:0};this.rl=0;this.drk=null;this.place=0;this.winT=0;this.prev=undefined;
     document.body.classList.add('br-on');this.ui.root.hidden=false;this.ui.res.hidden=true;this.btn.classList.add('on');
