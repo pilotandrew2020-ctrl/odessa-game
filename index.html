@@ -142,6 +142,13 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #spkClose{padding:4px 10px}
 #spkList button.del{padding:6px 9px;margin-left:-4px;opacity:.75}
 #spk .row button{padding:8px 12px}
+#spkLink{display:flex;gap:6px}
+#spkUrl{flex:1;min-width:0;font:inherit;font-size:15px;color:var(--chalk);background:rgba(245,241,232,.08);border:1px solid var(--line);border-radius:12px;padding:10px 12px;-webkit-user-select:text;user-select:text}
+#spkUrl:focus{outline:2px solid var(--sun);outline-offset:1px}
+#spkStream{width:100%;overflow:hidden;border-radius:12px}
+#spkStream iframe{display:block;width:100%;height:220px;border:0}
+#spkStream audio{width:100%}
+#spkStream a{display:block;color:var(--sun);padding:10px;overflow-wrap:anywhere}
 #spkVol{flex:1;min-width:0;accent-color:var(--sun)}
 #spkList{display:flex;flex-direction:column;gap:6px;max-height:30vh;overflow:auto}
 #spkList button{text-align:left;padding:8px 10px;font-weight:600}
@@ -171,6 +178,10 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #topBtns button:active,#coHud .coRow button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
 @media (hover:hover){#topBtns button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}}
 #topBtns button:focus-visible{outline:0;background:#fff;color:#0a0a0a;border-left-color:var(--sun)}
+#bVoice{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(184px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
+#bVoice i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
+#bVoice.on{background:var(--hud-on);color:#17120a}
+#bVoice:disabled{opacity:.55}
 /* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
 #actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:5px;align-items:flex-end}
 #actBtns>button{position:relative;width:48px;height:48px;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:inset 3px 0 0 transparent;transition:background .12s,color .12s,transform .08s}
@@ -257,6 +268,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
     <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
+    <button id="bVoice" type="button" aria-label="Enable voice chat" aria-pressed="false"><i>🎙️</i><span>Mic off</span></button>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
     <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button></div></div>
@@ -265,10 +277,13 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
     <div id="spk" hidden>
       <div class="spkTop"><b id="spkName">Speaker is off</b><button id="spkClose" aria-label="Close">×</button></div>
+      <div id="spkLink"><input id="spkUrl" type="url" inputmode="url" placeholder="Paste a YouTube, Spotify, SoundCloud, Yandex or HTTPS link" autocomplete="off"><button id="spkLoad" type="button">Play link</button></div>
+      <div id="spkStream" hidden></div>
       <div class="row"><button id="spkPrev">⏮</button><button id="spkPlay">▶</button><button id="spkNext">⏭</button><input id="spkVol" type="range" min="0" max="100" value="70" aria-label="Volume"></div>
       <div id="spkList"></div>
       <div class="row"><label class="filebtn">Your tracks<input id="spkFile" type="file" accept="audio/*" multiple></label><button id="spkCarry">Put it down</button></div>
       <small>Your tracks — mp3s from your phone or laptop. They are saved in this browser for next time.</small>
+      <small id="spkHint">Share public links only. Other services open externally; autoplay, timing and 3D audio depend on the provider.</small>
     </div>
     <div id="liftUI" hidden><div class="spkTop"><b>Lift · which floor?</b><button id="liftClose" aria-label="Close">×</button></div><div id="liftBtns"></div><small style="color:var(--muted);font-size:11.5px">Your flat — any floor, standard layout.</small></div>
     <div id="toast"><b id="tB"></b><span id="tS"></span></div>
@@ -6261,7 +6276,7 @@ const TRK_DB={db:null,
   add(name,blob){return this.tx('readwrite',st=>st.add({name,blob}))},
   del(id){return this.tx('readwrite',st=>st.delete(id))}};
 const SPK={
-  owned:false,carry:true,playing:false,idx:0,bpm:120,vol:.7,user:[],
+  owned:false,carry:true,playing:false,idx:0,bpm:120,vol:.7,user:[],media:null,mediaT0:0,mediaOffset:0,mediaStamp:0,mediaOwner:'',mediaNode:null,
   init(scene){
     const g=new THREE.Group();const body=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,.5,20),std(0x1b1d22,.6,.2));body.rotation.z=Math.PI/2;body.position.y=.17;g.add(body);
     const grill=new THREE.Mesh(new THREE.CylinderGeometry(.163,.163,.38,20,1,true),std(0x2a7fbf,.5,.3));grill.rotation.z=Math.PI/2;grill.position.y=.17;g.add(grill);
@@ -6270,6 +6285,8 @@ const SPK={
     INTERACT.push({x:0,z:0,r:1e9,label:'Pick up speaker',cond:()=>this.owned&&!this.carry&&Math.hypot(this.ground.position.x-player.x,this.ground.position.z-player.z)<2.2,fn:()=>this.pickUp()});
     this.buildList();
     $('spkPlay').onclick=()=>this.togglePlay();$('spkNext').onclick=()=>this.next();$('spkPrev').onclick=()=>this.prev();$('spkClose').onclick=()=>{$('spk').hidden=true};
+    $('spkLoad').onclick=()=>this.playLink($('spkUrl').value);
+    $('spkUrl').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();this.playLink(e.currentTarget.value)}});
     $('spkVol').oninput=e=>{this.vol=e.target.value/100;if(this.out)this.out.gain.value=this.vol};
     $('spkCarry').onclick=()=>{if(!this.owned)this.takeOut();else if(this.carry)this.place();else this.pickUp()};
     // iPad/iPhone: accept="audio/*" opens the Music library, where Apple Music songs are DRM-locked and grey, and it
@@ -6284,6 +6301,60 @@ const SPK={
     TRK_DB.all().then(list=>{for(const t of list){if(this.user.some(u=>u.id===t.id))continue;this.user.push({id:t.id,name:t.name,url:URL.createObjectURL(t.blob)})}this.buildList()});
   },
   all(){return TRACKS.concat(this.user.map(u=>Object.assign({kind:'file'},u)))},
+  parseLink(raw){
+    let u;try{u=new URL(String(raw||'').trim())}catch(e){return null}
+    if(u.protocol!=='https:'||u.username||u.password||u.href.length>2000)return null;
+    const host=u.hostname.toLowerCase(),is=h=>host===h||host.endsWith('.'+h);
+    let kind='',id='';
+    if(is('youtube.com')||is('youtube-nocookie.com')||host==='youtu.be'){
+      id=host==='youtu.be'?u.pathname.split('/')[1]:(u.pathname==='/watch'?u.searchParams.get('v'):u.pathname.match(/\/(?:embed|shorts|live)\/([^/?]+)/)?.[1])||'';
+      if(!/^[\w-]{11}$/.test(id))return null;kind='youtube'
+    }else if(is('soundcloud.com')||host==='on.soundcloud.com')kind='soundcloud';
+    else if(is('spotify.com')){
+      const m=u.pathname.match(/\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);if(m){kind='spotify';id=m[1]+'/'+m[2]}else kind='external'
+    }else if(is('music.yandex.ru')||is('music.yandex.com')){
+      const m=u.pathname.match(/\/album\/(\d+)(?:\/track\/(\d+))?/);if(m){kind='yandex';id=(m[2]||'')+'/'+m[1]}else kind='external'
+    }else if(/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|webm|mp4|caf|aif|aiff)$/i.test(u.pathname))kind='audio';
+    else kind='external';
+    return {url:u.href,kind,id}
+  },
+  mediaState(){return this.media&&this.mediaOwner==='local'?{u:this.media.url,t:this.mediaT0,o:this.mediaOffset,p:this.playing?1:0}:null},
+  clearMediaNode(){
+    if(this.mediaNode){if(this.mediaNode.audio){this.mediaNode.audio.pause();this.mediaNode.audio.removeAttribute('src');this.mediaNode.audio.load()}
+      if(this.mediaNode.frame)this.mediaNode.frame.src='about:blank';this.mediaNode=null}
+    const box=$('spkStream');box.replaceChildren();box.hidden=true
+  },
+  mediaCommand(func,args){
+    const n=this.mediaNode;if(!n||!n.frame||!this.media)return;
+    const target=this.media.kind==='youtube'?'https://www.youtube.com':this.media.kind==='soundcloud'?'https://w.soundcloud.com':'*';
+    const msg=this.media.kind==='soundcloud'?{method:func==='playVideo'?'play':func==='pauseVideo'?'pause':'seekTo',value:args&&args[0]}:{event:'command',func,args:args||[]};
+    try{n.frame.contentWindow.postMessage(JSON.stringify(msg),target)}catch(e){console.warn('[speaker] player command failed',e)}
+  },
+  showMedia(media,t0,offset,autoplay){
+    this.clearMediaNode();const box=$('spkStream');box.hidden=false;const age=Math.max(0,(Date.now()-t0)/1000)+Math.max(0,offset||0);
+    if(media.kind==='audio'){
+      const audio=document.createElement('audio');audio.controls=true;audio.playsInline=true;audio.preload='metadata';audio.src=media.url;box.appendChild(audio);
+      this.mediaNode={audio};
+      audio.onerror=()=>toast('Audio link failed','The server may block playback or require a different URL');
+      audio.addEventListener('loadedmetadata',()=>{if(Number.isFinite(audio.duration)&&age<audio.duration)audio.currentTime=age},{once:true});
+      if(autoplay)audio.play().catch(()=>toast('Tap Play in the audio player','The browser blocked remote autoplay'));
+      return
+    }
+    let src='';
+    if(media.kind==='youtube')src='https://www.youtube.com/embed/'+encodeURIComponent(media.id)+'?enablejsapi=1&playsinline=1&controls=1&autoplay='+(autoplay?'1':'0')+'&origin='+encodeURIComponent(location.origin);
+    else if(media.kind==='soundcloud')src='https://w.soundcloud.com/player/?url='+encodeURIComponent(media.url)+'&auto_play='+(autoplay?'true':'false')+'&visual=true';
+    else if(media.kind==='spotify')src='https://open.spotify.com/embed/'+media.id+'?utm_source=generator';
+    else if(media.kind==='yandex'&&media.id.split('/')[0])src='https://music.yandex.ru/iframe/#track/'+media.id;
+    if(!src){const a=document.createElement('a');a.href=media.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open this music link in its service';box.appendChild(a);return}
+    const frame=document.createElement('iframe');frame.src=src;frame.title='Shared music player';frame.allow='autoplay; encrypted-media; fullscreen; picture-in-picture';frame.allowFullscreen=true;frame.loading='eager';box.appendChild(frame);this.mediaNode={frame};
+    if(autoplay&&(media.kind==='youtube'||media.kind==='soundcloud'))for(const wait of [900,1800,3200])setTimeout(()=>{if(this.mediaNode&&this.mediaNode.frame===frame){this.mediaCommand('seekTo',media.kind==='soundcloud'?[age*1000,true]:[age,true]);this.mediaCommand('playVideo',[]) }},wait);
+  },
+  playLink(raw){
+    const media=this.parseLink(raw);    if(!media){toast('Invalid link','Use a public HTTPS link without embedded credentials');return}
+    this.stop(true,false);this.media=media;this.mediaOwner='local';this.mediaOffset=0;this.mediaT0=this.mediaStamp=Date.now();this.playing=true;this.owned=true;this.carry=true;
+    PLR.speaker.visible=true;this.ground.visible=false;$('bSpk').classList.add('on');$('spkName').textContent=media.kind.toUpperCase()+' · '+new URL(media.url).hostname;$('spkPlay').textContent='⏸';
+    this.showMedia(media,this.mediaT0,0,true);$('spk').hidden=false;toast('Shared link sent','External players may require a tap and may not sync exactly');this.buildList();if(typeof COOP!=='undefined')COOP.push(true)
+  },
   buildList(){const L=$('spkList');if(!L)return;L.innerHTML='';this.all().forEach((t,i)=>{const b=document.createElement('button');b.textContent=(i===this.idx&&this.playing?'▶ ':'')+t.name;b.onclick=()=>{const was=this.playing;this.idx=i;this.takeOut();if(was)this.play()};L.appendChild(b);
     if(t.kind==='file'){const x=document.createElement('button');x.className='del';x.textContent='✕';x.title='Remove track';x.onclick=()=>{const k=i-TRACKS.length;const u=this.user[k];if(!u)return;if(this.idx===i&&this.playing)this.stop();this.user.splice(k,1);if(u.id!==undefined)TRK_DB.del(u.id);try{URL.revokeObjectURL(u.url)}catch(e){}if(this.idx>=TRACKS.length+this.user.length)this.idx=0;this.buildList()};L.appendChild(x)}})},
   panel(){const p=$('spk');p.hidden=!p.hidden;if(!p.hidden){this.buildList();$('spkCarry').textContent=!this.owned?'Take out speaker':(this.carry?'Put it down':'Carry it')}},
@@ -6299,13 +6370,24 @@ const SPK={
   pickUp(){this.carry=true;PLR.speaker.visible=true;this.ground.visible=false;this.route()},
   toggleCarry(){if(!this.owned)this.takeOut();else if(this.carry)this.place();else if(Math.hypot(this.ground.position.x-player.x,this.ground.position.z-player.z)<3)this.pickUp();else{this.stop();this.owned=false;this.ground.visible=false;PLR.speaker.visible=false;$('bSpk').classList.remove('on')}},
   route(){if(!this.out)return;this.posG.gain.setTargetAtTime(1.6,AUD.ctx.currentTime,.05)},
-  togglePlay(){this.playing?this.stop():this.takeOut()},
+  togglePlay(){if(this.media){if(this.playing)this.stop();else{this.mediaT0=this.mediaStamp=Date.now();this.playing=true;this.showMedia(this.media,this.mediaT0,this.mediaOffset,true);$('spkPlay').textContent='⏸';if(typeof COOP!=='undefined')COOP.push(true)}return}this.playing?this.stop():this.takeOut()},
   next(){this.idx=(this.idx+1)%this.all().length;this.play()},prev(){this.idx=(this.idx-1+this.all().length)%this.all().length;this.play()},
-  play(){if(!this.ensure())return;if(AUD.unmute)AUD.unmute();this.stop(true,false);const t=this.all()[this.idx];this.playing=true;this.t0=Date.now();this.bpm=t.bpm||110;$('spkName').textContent=t.name;$('spkPlay').textContent='⏸';
+  play(){if(!this.ensure())return;if(AUD.unmute)AUD.unmute();this.stop(true,false);this.clearMediaNode();this.media=null;this.mediaOwner='';this.mediaOffset=0;const t=this.all()[this.idx];this.playing=true;this.t0=Date.now();this.bpm=t.bpm||110;$('spkName').textContent=t.name;$('spkPlay').textContent='⏸';
     if(t.kind==='file'){this.el=new Audio(t.url);this.el.crossOrigin='anonymous';try{this.src=AUD.ctx.createMediaElementSource(this.el);this.src.connect(this.out)}catch(e){}this.el.onended=()=>this.next();this.el.play().catch(()=>{})}
     else{this.seq={t:AUD.ctx.currentTime+.08,step:0,kind:t.kind,bpm:t.bpm}}
     this.buildList();toast('♪ '+t.name,'speaker');if(typeof COOP!=='undefined')COOP.push(true)},
-  stop(keep,sync){this.playing=false;this.seq=null;if(this.el){this.el.pause();this.el=null}if(!keep){$('spkPlay').textContent='▶';$('spkName').textContent='Paused'}this.buildList();if(sync!==false&&typeof COOP!=='undefined')COOP.push(true)},
+  stop(keep,sync){if(this.media&&this.playing){this.mediaOffset=Math.max(0,(Date.now()-this.mediaT0)/1000);this.mediaStamp=Date.now()}this.playing=false;this.seq=null;if(this.el){this.el.pause();this.el=null}if(this.media){this.mediaCommand('pauseVideo',[]);this.clearMediaNode()}if(!keep){$('spkPlay').textContent='▶';$('spkName').textContent='Paused'}this.buildList();if(sync!==false&&typeof COOP!=='undefined')COOP.push(true)},
+  receiveMedia(R){
+    const m=R.st&&R.st.md;if(!m||typeof m.u!=='string'||typeof m.t!=='number'||typeof m.p!=='number'){if(this.mediaOwner===R.peer){this.clearMediaNode();this.media=null;this.mediaOwner='';R.mediaRemoteT0=null;this.playing=false}return}
+    const parsed=this.parseLink(m.u);if(!parsed||parsed.url!==m.u)return;
+    if(Number.isFinite(R.recv)&&Number.isFinite(+R.st.ts)){const sample=R.recv-Number(R.st.ts);if(!Number.isFinite(R.mediaClockOff)||sample<R.mediaClockOff)R.mediaClockOff=sample;else R.mediaClockOff+=(sample-R.mediaClockOff)*.04}
+    const t0=m.t+(Number.isFinite(R.mediaClockOff)?R.mediaClockOff:0);
+    if(this.mediaOwner===R.peer&&this.media&&this.media.url===m.u&&R.mediaRemoteT0===m.t&&this.playing===!!m.p)return;
+    if((this.mediaOwner&&this.mediaOwner!==R.peer)||(!this.mediaOwner&&this.owned))return;
+    this.mediaOwner=R.peer;this.media=parsed;R.mediaRemoteT0=m.t;this.mediaT0=t0;this.mediaOffset=Math.max(0,Number(m.o)||0);this.playing=!!m.p;
+    $('spk').hidden=false;$('spkName').textContent=(m.p?'▶ ':'Ⅱ ')+parsed.kind.toUpperCase()+' · '+new URL(m.u).hostname;$('spkPlay').textContent=m.p?'⏸':'▶';
+    this.showMedia(parsed,t0,m.o,!!m.p)
+  },
   update(dt){
     if(this.ground.visible)this.ring.material.emissiveIntensity=this.playing?1+Math.max(0,Math.sin(UNI.uTime.value*Math.PI*2*this.bpm/60))*2:.3;
     if(this.owned&&this.panner){const p=this.carry?player:this.ground.position;AUD.position(this.panner,p.x,p.y+(this.carry?1.1:.3),p.z)}
@@ -6355,6 +6437,116 @@ const MUSIC={
     const mel=[[0,74],[4,73],[6,74],[8,76],[12,77],[16,76],[20,74],[24,73],[28,74],[32,69],[36,70],[40,69],[44,67],[46,69],[48,70],[52,69],[56,67],[60,65],[64,64],[68,65],[72,67],[76,69],[80,74],[88,73],[92,74]];
     const pos=(Math.floor(step/12)%8)*12+s;for(const [p,n] of mel)if(p===pos){vTone(t,mtof(n),spb*3.4,.05,'square',2000,true,-6);vTone(t,mtof(n),spb*3.4,.04,'sawtooth',1800,false,6)}
   },
+};
+
+const VOICE={
+  stream:null,enabled:false,peers:new Map(),
+  init(){ $('bVoice').onclick=()=>this.toggle();this.ui() },
+  ui(){
+    const b=$('bVoice');if(!b)return;
+    b.classList.toggle('on',this.enabled);b.setAttribute('aria-pressed',String(this.enabled));
+    b.setAttribute('aria-label',this.enabled?'Mute voice chat':'Enable voice chat');
+    b.innerHTML='<i>🎙️</i><span>'+(this.enabled?'Mic on':'Mic off')+'</span>'
+  },
+  async toggle(){
+    if(!NET.active){toast('Voice chat needs a room code','Join a code-based room first; shared Claude rooms do not carry WebRTC signals');return}
+    if(typeof RTCPeerConnection==='undefined'){toast('WebRTC is not available in this browser','Try the current version of Safari or Chrome');return}
+    if(!this.stream){
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast('Microphone unavailable','Open the game over HTTPS in a browser that supports microphone access');return}
+      try{
+        AUD.start();const unlock=AUD.ctx&&AUD.ctx.resume();
+        this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+        if(unlock)await unlock;this.enabled=true;this.ui();COOP.push(true);this.sync();
+        toast('Voice chat on','Direct peer audio; only enable it with people you trust')
+      }catch(e){if(this.stream)for(const t of this.stream.getTracks())t.stop();this.stream=null;this.enabled=false;this.ui();toast('Microphone permission failed',String(e&&e.message||e).slice(0,100))}
+      return
+    }
+    this.enabled=!this.enabled;for(const t of this.stream.getAudioTracks())t.enabled=this.enabled;
+    this.ui();COOP.push(true);toast(this.enabled?'Voice chat on':'Microphone muted','')
+  },
+  reset(){
+    for(const R of COOP.peers.values())this.closePeer(R);
+    if(this.stream)for(const t of this.stream.getTracks())t.stop();
+    this.stream=null;this.enabled=false;this.ui()
+  },
+  signal(R,kind,data){
+    if(!NET.active||!R||!R.peer||!R.peer.startsWith('n:'))return;
+    const sig={to:R.peer.slice(2),k:kind};
+    if(kind==='ice')sig.c=data&&data.toJSON?data.toJSON():data;else sig.d=data;
+    NET.send({sg:sig},true)
+  },
+  closePeer(R,retry){
+    const v=R&&R.voice;if(!v)return;
+    try{if(v.pc)v.pc.close()}catch(e){}
+    for(const n of [v.src,v.filter,v.gain,v.pan])try{if(n)n.disconnect()}catch(e){}
+    R.voice=null;this.peers.delete(R.peer);if(retry)R.voiceRetry=performance.now()+5000
+  },
+  peer(R){
+    if(!R||!R.peer||!R.peer.startsWith('n:')||!NET.active||typeof RTCPeerConnection==='undefined')return null;
+    if(R.voice&&R.voice.pc.connectionState!=='closed')return R.voice;
+    if(R.voiceRetry>performance.now())return null;R.voiceRetry=0;
+    const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    const v={pc,candidates:[],makingOffer:false};R.voice=v;this.peers.set(R.peer,R);
+    v.sender=pc.addTransceiver('audio',{direction:'sendrecv'}).sender;this.attach(v);
+    pc.onicecandidate=e=>{if(e.candidate)this.signal(R,'ice',e.candidate)};
+    pc.ontrack=e=>{
+      if(!AUD.ok)AUD.start();if(!AUD.ok)return;
+      try{
+        const c=AUD.ctx,stream=e.streams&&e.streams[0]||new MediaStream([e.track]),src=c.createMediaStreamSource(stream),
+          filter=c.createBiquadFilter(),gain=c.createGain(),pan=AUD.panner(AUD.mus);
+        filter.type='lowpass';filter.frequency.value=18000;gain.gain.value=0;pan.refDistance=2;pan.maxDistance=75;pan.rolloffFactor=1.35;
+        src.connect(filter);filter.connect(gain);gain.connect(pan);Object.assign(v,{src,filter,gain,pan});
+        c.resume().catch(err=>console.warn('[voice] audio context resume failed',err))
+      }catch(err){console.warn('[voice] remote audio setup failed',err)}
+    };
+    pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed')this.closePeer(R,true);else if(pc.connectionState==='closed')this.closePeer(R)};
+    return v
+  },
+  attach(v){
+    const track=this.stream&&this.stream.getAudioTracks()[0];if(!track||!v.sender||v.sender.track===track)return;
+    v.sender.replaceTrack(track).catch(err=>console.warn('[voice] microphone track attach failed',err))
+  },
+  async receive(from,sig){
+    if(!NET.active||!sig||sig.to!==NET.cid||!['offer','answer','ice'].includes(sig.k))return;
+    const R=COOP.peers.get('n:'+from);if(!R||!R.st||!R.st.vc)return;
+    const now=performance.now();if(!Number.isFinite(R.voiceSigWindow)||now-R.voiceSigWindow>1000){R.voiceSigWindow=now;R.voiceSigCount=0}if(++R.voiceSigCount>64)return;
+    try{
+      const v=this.peer(R);if(!v)return;const pc=v.pc;
+      if(sig.k==='offer'||sig.k==='answer'){
+        if(typeof sig.d!=='string'||sig.d.length>30000)return;
+        await pc.setRemoteDescription({type:sig.k,sdp:sig.d});
+        for(const c of v.candidates.splice(0))await pc.addIceCandidate(c);
+        if(sig.k==='offer'){const answer=await pc.createAnswer();await pc.setLocalDescription(answer);this.signal(R,'answer',pc.localDescription.sdp)}
+      }else if(sig.k==='ice'){
+        const c=sig.c;if(!c||typeof c.candidate!=='string'||c.candidate.length>2048)return;
+        if(pc.remoteDescription)await pc.addIceCandidate(c);else if(v.candidates.length<64)v.candidates.push(c)
+      }
+    }catch(err){console.warn('[voice] signaling failed',err)}
+  },
+  sync(){
+    if(!NET.active||!this.stream)return;
+    const own=NET.cid;
+    for(const R of COOP.peers.values()){
+      if(!R.st||!R.st.vc||!R.peer.startsWith('n:'))continue;
+      let v;try{v=this.peer(R);if(v)this.attach(v)}catch(err){console.warn('[voice] peer setup failed',err);continue}if(!v||v.makingOffer)continue;
+      const remote=R.peer.slice(2);
+      if(own.localeCompare(remote)>=0||v.pc.signalingState!=='stable'||v.pc.localDescription)continue;
+      v.makingOffer=true;
+      v.pc.createOffer().then(o=>v.pc.setLocalDescription(o)).then(()=>this.signal(R,'offer',v.pc.localDescription.sdp))
+        .catch(err=>console.warn('[voice] offer failed',err)).finally(()=>{v.makingOffer=false})
+    }
+  },
+  update(){
+    this.sync();if(!AUD.ok)return;const T=AUD.ctx.currentTime;
+    for(const [key,R] of this.peers){
+      const v=R.voice,s=R.st||{},x=R.has?R.x:s.x,y=R.has?R.y:s.y,z=R.has?R.z:s.z;
+      if(!v||!v.pan||![x,y,z].every(Number.isFinite))continue;
+      AUD.position(v.pan,x,y+1.4,z);
+      const hidden=(s.zn||'')!==COOP.zone(),cabin=s.m==='sit'||s.m==='pass'||s.m==='heli'||(Array.isArray(s.pl)&&s.pl[8]===1);
+      v.gain.gain.setTargetAtTime(s.vc?(hidden?.08:cabin?.34:.9):0,T,.16);
+      v.filter.frequency.setTargetAtTime(hidden||cabin?950:18000,T,.2)
+    }
+  }
 };
 
 window.AUD=AUD;window.SPK=SPK;
@@ -7550,6 +7742,7 @@ async function boot(){
   window.addEventListener('resize',onResize);
   setupInput();
   if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
+  VOICE.init();
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';
   requestAnimationFrame(loop);
   COOP.init();
@@ -7697,7 +7890,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){if(R.spk){R.spk.dispose();R.spk=null}if(R.machine){R.machine.dispose();R.machine=null}if(R.spkMesh){scene.remove(R.spkMesh);R.spkMesh=null}if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
+  drop(R){VOICE.closePeer(R);if(R.spk){R.spk.dispose();R.spk=null}if(R.machine){R.machine.dispose();R.machine=null}if(R.spkMesh){scene.remove(R.spkMesh);R.spkMesh=null}if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);R.bub.material.map.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
@@ -7721,7 +7914,8 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
   // ---------- presence out ----------
   push(force){if(!this.online())return;const r2=v=>Math.round(v*100)/100;
     const zn=this.zone();const ret=PORTAL.cur?PORTAL.ret:null;const ind=PORTAL.cur&&PORTAL.active;
-    const st={v:1,in:started?1:0,n:this.nameOf(),o:this.me.outfit,ch:CHAR.cur,x:r2(player.x),y:r2(player.y),z:r2(player.z),r:r2(player.yaw),m:this.mode(),s:r2(player.spd||0),zn};
+    const st={v:1,in:started?1:0,n:this.nameOf(),o:this.me.outfit,ch:CHAR.cur,x:r2(player.x),y:r2(player.y),z:r2(player.z),r:r2(player.yaw),m:this.mode(),s:r2(player.spd||0),zn,vc:VOICE.enabled?1:0};
+    const md=SPK.mediaState();if(md){if(SPK.playing&&Date.now()-SPK.mediaStamp>800)SPK.mediaStamp=Date.now();st.md=md;st.ts=SPK.mediaStamp||Date.now()}
     if(ret){st.rx=r2(ret.x);st.rz=r2(ret.z);st.rr=r2(ret.yaw||0);st.zt=(ind&&ind.title)||''}
     if(typeof DRIVE!=='undefined'&&DRIVE.on&&DRIVE.car){st.x=r2(DRIVE.car.x);st.z=r2(DRIVE.car.z);st.y=r2(DRIVE.car.y);st.r=r2(DRIVE.car.yaw||0);st.ct=[DRIVE.car.type|0,DRIVE.car.col|0];st.cv=[r2(DRIVE.v),r2(DRIVE.thr||0)]}   // car model + colour: everybody sees the same car
     // flying: the airframe position (not the hidden pilot) plus [pitch, roll, throttle] for the rotors
@@ -7759,6 +7953,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       if(!R.pnet){R.pnet=new NetSnaps();R.pst=null}if(R.pst!==s){R.pst=s;R.pnet.push({x:s.x,y:s.y,z:s.z,yaw:s.r||0,p:0,r:0},s.ts)}
       const q=R.pnet.update(dt);if(q){R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true;R.pok=true}}},
   update(dt){
+    VOICE.update();
     if(!this.online())return;
     this.sendT-=dt;if(this.sendT<=0){this.sendT=1/15;this.push(false)}
     // my own chat bubble
@@ -7766,7 +7961,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const zn=this.zone();const k=1-Math.exp(-dt*12);
     // passengers last: the car they sit in has been moved by then, so they are seated from this frame's pose
     const order=[...this.peers.values()].sort((a,b)=>(a.st&&a.st.m==='pass'?1:0)-(b.st&&b.st.m==='pass'?1:0));
-    for(const R of order){const s=R.st;
+    for(const R of order){const s=R.st;SPK.receiveMedia(R);
       const show=!!(s&&s.in&&(s.zn||'')===zn&&typeof s.x==='number');
       if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.plane)R.plane.root.visible=false;if(R.swRing)R.swRing.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.xveh)R.xveh.v.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
       const lk=Array.isArray(s.lk)?s.lk.filter(x=>typeof x==='string').slice(0,4):[];
@@ -7907,7 +8102,7 @@ const MQ={
 const NET={active:false,code:'',cid:'',ws:null,rest:new Uint8Array(0),seen:new Map(),lastSend:0,ping:0,sweep:0,gen:0,retry:0,
   st(t,ok){const e=$('netStatus');if(e){e.textContent=t;e.classList.toggle('ok',!!ok)}},
   topic(id){return 'myodesa/v2/'+this.code+'/'+id},
-  stop(){this.gen++;clearInterval(this.ping);clearInterval(this.sweep);clearTimeout(this.retry);if(this.ws){try{this.ws.onclose=null;this.ws.close()}catch(e){}this.ws=null}this.active=false},
+  stop(){this.gen++;clearInterval(this.ping);clearInterval(this.sweep);clearTimeout(this.retry);if(this.ws){try{this.ws.onclose=null;this.ws.close()}catch(e){}this.ws=null}this.active=false;VOICE.reset()},
   // open a socket to the first broker that answers
   open(gen,first){return new Promise(res=>{let i=0;const next=()=>{if(gen!==this.gen)return res(false);if(i>=MQ.urls.length)return res(false);const url=MQ.urls[i++];let done=false,ok=false,ws;
       const fail=()=>{if(done)return;done=true;try{ws.close()}catch(e){}next()};
@@ -7924,6 +8119,7 @@ const NET={active:false,code:'',cid:'',ws:null,rest:new Uint8Array(0),seen:new M
   msg(b){const tl=(b[0]<<8)|b[1];const topic=MQ.dec.decode(b.slice(2,2+tl));const id=topic.split('/').pop();if(id===this.cid)return;
     let st=null;try{st=JSON.parse(MQ.dec.decode(b.slice(2+tl)))}catch(e){return}
     if(!st||typeof st!=='object')return;
+    if(st.sg&&typeof st.sg==='object'){if(st.sg.to===this.cid)VOICE.receive(id,st.sg);return}
     if(st.gone){this.seen.delete(id);COOP.netRemove(id);COOP.status(COOP.countText());return}
     const isNew=!this.seen.has(id);this.seen.set(id,performance.now());COOP.netUpsert(id,st);if(isNew)COOP.status(COOP.countText())},
   lost(gen,ws){if(gen!==this.gen||!this.active)return;this.ws=null;this.st('Connection lost — reconnecting…');

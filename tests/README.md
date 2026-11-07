@@ -19,6 +19,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_hudm` | Modes / Menu top bar |
 | `t_coop`, `t_coop2`, `t_heli_peer` | co-op with fake friends: cars, swimmer, plane, helicopter |
 | `t_audio` | positional Web Audio engines, remote vehicle voice, and same-track speaker restart sync |
+| `t_voice` | provider URL parsing, synchronized link state, microphone UI, and mocked WebRTC offer/answer/ICE signaling |
 | `t_swim2`, `t_water`, `t_land_light`, `t_light` | swimming, light plane (water landing, take-off), boarding |
 | `t_stairs`, `t_cabin`, `t_bomb` | aircraft stairs, airliner cabin and cockpit, helicopter bomb |
 | `t_kit1`, `t_kit2`, `t_kit4`, `t_kit6`, `t_kit8`, `t_kit9` | hands-on kitchen: fridge, kettle to tea, hand washing (house, bathroom, Soviet flat), omelette, dishes, sleep |
