@@ -1,5 +1,6 @@
 graphify-out/
 tests/out/
+node_modules/
 ext.js
 diff_files.js
 copy_files.js
