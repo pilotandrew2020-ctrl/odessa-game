@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="My Odesa">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0b1b22">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="lib/fonts.css">
+  <title>Игровой Центр — Моя Одесса</title>
+  <style>
+    :root {
+      --ink: #0b1b22;
+      --sea: #0e4a5c;
+      --sea2: #13708a;
+      --sun: #f2c14e;
+      --chalk: #f5f1e8;
+      --muted: #a9bcc2;
+      --glass: rgba(9, 26, 33, 0.72);
+      --line: rgba(245, 241, 232, 0.16);
+      --f-disp: "Unbounded", "Golos Text", system-ui, sans-serif;
+      --f-body: "Golos Text", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: linear-gradient(180deg, #07151b 0%, #0b1b22 60%, #0e2a36 100%);
+      color: var(--chalk);
+      font-family: var(--f-body);
+      min-height: 100vh;
+      padding: calc(24px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      max-width: 900px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    h1 {
+      font-family: var(--f-disp);
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 900;
+      letter-spacing: .02em;
+      color: var(--sun);
+      text-shadow: 0 2px 14px rgba(242, 193, 78, 0.35);
+      margin-bottom: 8px;
+    }
+    p.sub {
+      color: var(--muted);
+      font-size: 14px;
+      letter-spacing: .04em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+    }
+    .tile {
+      background: var(--glass);
+      border: 1.5px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-decoration: none;
+      color: inherit;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: transform .15s, border-color .15s, box-shadow .15s;
+      min-height: 180px;
+      touch-action: manipulation;
+    }
+    .tile:hover, .tile:active {
+      transform: translateY(-3px);
+      border-color: var(--sun);
+      box-shadow: 0 12px 32px rgba(242, 193, 78, 0.25);
+    }
+    .tile-featured {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(14, 74, 92, 0.85), rgba(9, 26, 33, 0.9));
+      border-color: rgba(242, 193, 78, 0.4);
+    }
+    .tile-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+    }
+    .tile-title {
+      font-family: var(--f-disp);
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .tile-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+      margin-bottom: 14px;
+      flex-grow: 1;
+    }
+    .tile-meta {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--sun);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ИГРОВОЙ ЦЕНТР</h1>
+    <p class="sub">Мини-игры и 3D мир города Одесса</p>
+  </header>
+
+  <div class="grid">
+    <a href="index.html" class="tile tile-featured">
+      <div class="tile-icon">⚓</div>
+      <div>
+        <div class="tile-title">Моя Одесса (3D Игра)</div>
+        <div class="tile-desc">Открытый трехмерный мир города: Морвокзал, Потемкинская лестница, яхты, катера, полеты, интерьеры и пляжи.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ В 3D →</div>
+    </a>
+
+    <a href="games/2048.html" class="tile">
+      <div class="tile-icon">🔢</div>
+      <div>
+        <div class="tile-title">Одесса 2048</div>
+        <div class="tile-desc">Классическая числовая головоломка со свайпами и сохранением лучшего счета.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ →</div>
+    </a>
+
+    <a href="games/snake.html" class="tile">
+      <div class="tile-icon">🐍</div>
+      <div>
+        <div class="tile-title">Змейка у Моря</div>
+        <div class="tile-desc">Ловите черноморские рапаны и бычки, избегая столкновения со стенами. Свайпы и кнопки.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ →</div>
+    </a>
+
+    <a href="games/memory.html" class="tile">
+      <div class="tile-icon">🃏</div>
+      <div>
+        <div class="tile-title">Память / Найди пару</div>
+        <div class="tile-desc">Одесские символы: якорь, чайка, маяк, солнце, катер и волны. Тренируйте память.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ →</div>
+    </a>
+
+    <a href="games/gull.html" class="tile">
+      <div class="tile-icon">🕊️</div>
+      <div>
+        <div class="tile-title">Полет Чайки</div>
+        <div class="tile-desc">Одесская чайка над волнами: один тап для взмаха крыльев сквозь морские столбы.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ →</div>
+    </a>
+
+    <a href="games/quiz.html" class="tile">
+      <div class="tile-icon">🏛️</div>
+      <div>
+        <div class="tile-title">Одесская Викторина</div>
+        <div class="tile-desc">15 проверенных фактов: Дерибасовская, Оперный театр, Привоз и история города.</div>
+      </div>
+      <div class="tile-meta">ИГРАТЬ →</div>
+    </a>
+  </div>
+</body>
+</html>

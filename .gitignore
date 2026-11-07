@@ -1,0 +1,12 @@
+graphify-out/
+tests/out/
+ext.js
+diff_files.js
+copy_files.js
+peek.js
+dif.txt
+files_new.txt
+files_o.txt
+f_n.txt
+f_o.txt
+lst.txt
