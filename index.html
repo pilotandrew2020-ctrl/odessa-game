@@ -367,6 +367,13 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="creator.js"></script>
 <script src="products.js"></script>
 <script src="carx.js"></script>
+<script src="brwarm.js"></script>
+<script src="engine.js"></script>
+<script src="wmusic.js"></script>
+<script src="fill.js"></script>
+<script src="fill_data.js"></script>
+<script src="steps.js"></script>
+<script src="ven.js"></script>
 <script src="buses.js"></script>
 <script src="houses.js"></script>
 <script src="fdet.js"></script>
@@ -375,6 +382,8 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="rides.js"></script>
 <script src="shev.js"></script>
 <script src="gorky.js"></script>
+<script src="clinic.js"></script>
+<script src="lunapark.js"></script>
 <script src="cinema.js"></script>
 <script src="acts.js"></script>
 <script src="modern.js"></script>
@@ -2295,7 +2304,7 @@ async function buildAllLandmarks(scene){
   const G=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2});GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});
   const steps=[['home',()=>buildHome(grp,G,P,Sg,GRX)],['stairs',()=>buildStairs(grp,P,GRX)],['station',()=>buildStation(grp,G,P,Sg,GRX)],['lighthouse',()=>buildLighthouse(grp,P)],
     ['opera',()=>buildOpera(grp,G,P,Sg,GRX)],['port',()=>buildPort(grp,G,P,Sg,GRX)],['parks',()=>buildParks(grp,G,P,Sg,GRX)],['b411',()=>build411(grp,G,P,Sg,GRX)],['lanz',()=>buildLanzheron(grp,G,P,Sg,GRX)],['azs',()=>buildNeighbourhood(grp,G,P,Sg,GRX)],
-    ['shops',()=>installShops(grp,G,P,Sg,GRX)],['khru',()=>installKhru(grp,G,P,Sg,GRX)],['kstyle',()=>installKstyle(grp,G,P,Sg,GRX)],['bldg',()=>installBldg()],['soviet',()=>installSoviet(grp,G,P,Sg,GRX)],['shev',()=>installShevchenko(grp,G,P,Sg,GRX)],['gorky',()=>installGorky(grp,G,P,Sg,GRX)],['cinema',()=>installCinema(grp,G,P,Sg,GRX)],['modern',()=>installModern()],['flats',()=>installFlats()]];
+    ['shops',()=>installShops(grp,G,P,Sg,GRX)],['clinic',()=>installClinics(grp,G,P,Sg,GRX)],['lunapark',()=>installLunapark(grp,G,P,Sg,GRX)],['khru',()=>installKhru(grp,G,P,Sg,GRX)],['kstyle',()=>installKstyle(grp,G,P,Sg,GRX)],['bldg',()=>installBldg()],['soviet',()=>installSoviet(grp,G,P,Sg,GRX)],['shev',()=>installShevchenko(grp,G,P,Sg,GRX)],['gorky',()=>installGorky(grp,G,P,Sg,GRX)],['cinema',()=>installCinema(grp,G,P,Sg,GRX)],['modern',()=>installModern()],['flats',()=>installFlats()]];
   for(const [nm,f] of steps){
     try{f()}catch(e){console.error('landmark '+nm+' failed',e)}
     await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
