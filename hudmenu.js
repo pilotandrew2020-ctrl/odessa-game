@@ -11,14 +11,14 @@ const HUDM={
   ROW1:['bModes','bTime','bRain','bSnow'],
   ROW2:['bFog','bGun','bPolish','bMenu'],
   ROW3:['bBR','bHS','bJetRace'],
-  RIGHT:['bMap','bBag'],                      // these two live in #quickRow (icons only)
+  RIGHT:['bMap','bChat','bBag'],              // these live in #quickRow (icon proxies)
   KEEP:new Set(),                             // nothing needs "keep the list open": there is no list
   bar:null,rows:null,ready:false,
   css(){if(document.getElementById('hudmCss'))return;const st=document.createElement('style');st.id='hudmCss';st.textContent=`
 #topBtns{display:contents}   /* the old bar/popovers are gone: hudmenu.js places a compact tile stack */
-#hudmStack{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(64px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:9}
-#hudmStack .hmRow{display:flex;gap:4px;flex-wrap:wrap}
-#hudmStack button{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:rgba(14,18,26,.42);color:#f3f1ea;font:800 13px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.3);touch-action:manipulation;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+#hudmStack{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(118px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:9;max-width:88vw}
+#hudmStack .hmRow{display:flex;gap:4px}
+#hudmStack button{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:rgba(14,18,26,.5);color:#f3f1ea;font:800 10.5px/1 var(--f-disp);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.3);touch-action:manipulation;text-shadow:0 1px 0 rgba(0,0,0,.4)}
 #hudmStack button::before{content:"";flex:none;width:9px;height:9px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
 #hudmStack button.on{background:rgba(242,193,78,.9);color:#17120a}
 #hudmStack button:active{transform:scale(.94);background:rgba(255,255,255,.85);color:#0a0a0a}
@@ -31,17 +31,18 @@ const HUDM={
 #hudmStack #bGun{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
 #hudmStack #bJobs{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5'/%3E%3C/svg%3E")}
 #hudmStack #bFlight{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l3 8 6 3-6 3-3 4-3-4-6-3 6-3z'/%3E%3C/svg%3E')}
-#hudmStack #bModes.on,#hudmStack #bGun.on{background:rgba(242,193,78,.9);color:#17120a}`;document.head.appendChild(st)},
+#hudmStack button.on,#hudmStack button:active{background:rgba(242,193,78,.9);color:#17120a}`;document.head.appendChild(st)},
   rank(id){const i=this.ROW1.concat(this.ROW2,this.ROW3).indexOf(id);return i<0?99:i},
   // put a bar button into its fixed row / right quick row (buttons are MOVED, not recreated)
   adopt(btn){if(!btn||btn.tagName!=='BUTTON'||!this.ready)return;const id=btn.id;if(id==='bModes')return;
-    if(id==='bMenu')btn.textContent='Main menu';
-    if(this.RIGHT.includes(id)){const row=document.getElementById('quickRow');const anchor={bMap:'qrMap',bBag:'qrBag'}[id];
+    if(id==='bMenu'){btn.textContent='MENU'}
+    if(this.RIGHT.includes(id)){const row=document.getElementById('quickRow');const anchor={bMap:'qrMap',bBag:'qrBag',bChat:'qrChat'}[id];
       const slot=anchor&&document.getElementById(anchor);
-      if(slot){slot.style.display='none';if(btn.parentNode!==row){btn.classList.add('qrBtn');row.replaceChild(btn,slot)}btn.id=id}   // keep the real id
+      if(slot){const tile=document.createElement('button');tile.type='button';tile.innerHTML=slot.innerHTML;tile.title=btn.title;tile.dataset.for=id;tile.onclick=()=>btn.click();slot.parentNode.replaceChild(tile,slot);slot.style.display='none'}   // an icon proxy keeps its place; the REAL button stays adopted by the scripts that own it
+      btn.classList.add('qrMirror');btn.style.display='none';   // the row tile is the visible copy; the real button keeps its id + handlers
       return}
     const row=this.ROW1.includes(id)?this.rows[0]:this.ROW2.includes(id)?this.rows[1]:this.ROW3.includes(id)?this.rows[2]:null;
-    if(!row||btn.parentNode===row)return;
+    if(!row||btn.parentNode===row||btn.classList.contains('qrMirror'))return;   // qrMirror = hidden proxy, its tile lives in #quickRow
     const r=this.rank(id);let before=null;for(const c of row.querySelectorAll('button')){if(this.rank(c.id)>r){before=c;break}}
     row.insertBefore(btn,before)},
   init(){if(this.ready)return true;const bar=document.getElementById('topBtns');if(!bar)return false;this.bar=bar;this.css();
@@ -58,6 +59,7 @@ const HUDM={
       if(p.hidden){p.innerHTML='';ids.forEach(b=>{b.classList.add('mini');p.appendChild(b)});p.hidden=false;modes.classList.add('on')}
       else{ids.forEach(b=>this.stack.appendChild(b));p.hidden=true;modes.classList.remove('on')}};
     this.rows[0].appendChild(modes);
+    {const qb=document.createElement('button');qb.id='bPolish';this.syncPolish=()=>{qb.textContent='GFX '+(typeof S!=='undefined'&&S.polish==='max'?'MAX':'LITE')};this.syncPolish();qb.title='Visual polish: Lite / Max';qb.textContent='GFX LITE';qb.onclick=()=>{if(typeof S==='undefined')return;S.polish=S.polish==='max'?'lite':'max';try{if(typeof saveS==='function')saveS()}catch(e){}this.syncPolish();if(typeof applyTime==='function')applyTime()};bar.appendChild(qb)}
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
     // buttons that scripts append to the old bar from now on get adopted too
     new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&n.parentNode===bar)this.adopt(n)}).observe(bar,{childList:true});
