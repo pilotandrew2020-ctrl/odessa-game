@@ -225,11 +225,11 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 @media (max-height:430px){#actBtns>button{width:44px;height:44px}#qMenu{left:44px}#qMenu button{padding:8px 22px 8px 11px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#topBtns button{padding:6px 14px 6px 9px}#heliControls{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
 /* ===== in-game HUD — the OLD beloved look (wide slanted glass bars with a juicy blur) restored;
    the v3 rounded-tile override that shrank the bar into a narrow strip is turned OFF. ===== */
+/* the old HUD-v3 tile/flower overrides stay OFF: hudmenu.js draws the glass tiles on two fixed rows itself */
 :root{--hud-bg:linear-gradient(180deg,rgba(30,42,70,.74),rgba(12,18,36,.82));--hud-rim:rgba(255,255,255,.24);--hud-on:linear-gradient(180deg,#ffe07a,#f4a93a)}
-#topBtns{gap:4px}   /* the wide bars keep their old look: see the base rules above */
+#topBtns{display:contents}
 :is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:15px;height:15px;margin-right:8px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
-#topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:11px 13px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:16px;height:16px}   /* weather = icon-only tiles (the buttons keep their title text) */
 #coHud{top:calc(190px + env(safe-area-inset-top,0px))}
 #bMap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z'/%3E%3Ccircle cx='12' cy='10' r='2.3'/%3E%3C/svg%3E")}
 #bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8'/%3E%3C/svg%3E")}
