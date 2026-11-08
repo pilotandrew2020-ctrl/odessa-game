@@ -13,6 +13,12 @@ const PHONE={
     this.root=g;this.screen=screen;this.draw();camera.add(g);g.visible=false;
     let b=document.getElementById('bPhone');if(!b){b=document.createElement('button');b.id='bPhone';b.type='button';b.innerHTML='<i>📱</i><span>Phone</span>';document.body.appendChild(b)}
     b.onclick=()=>this.toggle();
+    // GTA-V slab: app tiles -> panels (news / clock / bank); the slab mirrors the 3D phone state
+    if(!this.gtInit){this.gtInit=1;
+      const gt=document.getElementById('gtPhone');
+      if(gt){gt.addEventListener('click',e=>{const app=e.target.closest('.gtApp');if(!app)return;this.openApp(app.dataset.app)})}
+      const back=document.getElementById('gtBack');if(back)back.onclick=e=>{e.stopPropagation();const gt=document.getElementById('gtPhone');gt.querySelector('#gtApp').hidden=true;gt.querySelector('#gtApps').style.display='grid'};
+      if(gt){const gtClock=gt.querySelector('#gtClock');setInterval(()=>{gtClock.textContent=new Intl.DateTimeFormat('uk-UA',{hour:'2-digit',minute:'2-digit'}).format(new Date())},1000)}}
     this.ui()
   },
   draw(){
@@ -31,11 +37,19 @@ const PHONE={
     c.fillStyle='#8fa3b8';c.font='11px system-ui';c.fillText('Tap phone icon to put away',14,490);
     this.texture.needsUpdate=true
   },
-  ui(){const b=document.getElementById('bPhone');if(b){b.classList.toggle('on',this.open);b.setAttribute('aria-pressed',String(this.open));b.setAttribute('aria-label',this.open?'Put phone away':'Open phone')}} ,
+  ui(){const b=document.getElementById('bPhone');if(b){b.classList.toggle('on',this.open);b.setAttribute('aria-pressed',String(this.open));b.setAttribute('aria-label',this.open?'Put phone away':'Open phone')}
+    // the GTA-V style slab slides out of / back into the right edge alongside the 3D hand phone
+    const g=document.getElementById('gtPhone');if(g)g.classList.toggle('show',this.open)},
   toggle(){
     this.open=!this.open;this.root.visible=true;this.t=this.open?0:1;this.ui();
     if(typeof COOP!=='undefined')COOP.push(true)
   },
+  openApp(name){const gt=document.getElementById('gtPhone');if(!gt)return;const body=gt.querySelector('#gtAppBody'),panel=gt.querySelector('#gtApp'),apps=gt.querySelector('#gtApps');
+    apps.style.display='none';panel.hidden=false;
+    if(name==='news')body.innerHTML='<h3>📢 Patch notes</h3><p>'+this.news+'</p>';
+    else if(name==='clock'){const now=new Date();body.innerHTML='<h3>🕐 Clock</h3><div class="row2"><span>Time</span><b>'+new Intl.DateTimeFormat('uk-UA',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now)+'</b></div><div class="row2"><span>Date</span><b>'+new Intl.DateTimeFormat('uk-UA',{weekday:'long',day:'numeric',month:'long'}).format(now)+'</b></div>'+(typeof S!=='undefined'?'<div class="row2"><span>Game time</span><b>'+(S.time==='day'?'☀️ Day':S.time==='dusk'?'🌇 Sunset':'🌙 Night')+'</b></div>':'')}
+    else if(name==='bank')body.innerHTML='<h3>🏦 Bank</h3><div class="row2"><span>Balance</span><b>'+(typeof WALLET!=='undefined'?WALLET.fmt():'₴0')+'</b></div>';
+    else body.innerHTML='<p>Coming soon</p>'},
   tick(dt){
     if(!this.root)return;
     if(this.open&&this.t<1){this.t=Math.min(1,this.t+dt*3);this.draw()}

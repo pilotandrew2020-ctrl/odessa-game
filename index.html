@@ -35,6 +35,26 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #dSub{font-size:12px;color:var(--chalk);opacity:.85;letter-spacing:.06em;text-transform:uppercase}
 #mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:132px;height:132px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
 #homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(152px + env(safe-area-inset-top,0px));width:132px;text-align:center;font-size:12px;font-weight:700;background:var(--glass);border-radius:999px;padding:5px 0;pointer-events:none;font-variant-numeric:tabular-nums}
+/* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG (phone and mic stay below) */
+#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(178px + env(safe-area-inset-top,0px));display:flex;gap:7px;z-index:9}
+#quickRow button{flex:1;min-width:40px;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.35);border-radius:12px;background:rgba(14,18,26,.4);color:#f3f1ea;font-size:17px;line-height:1;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 3px 10px rgba(0,0,0,.28);touch-action:manipulation;transition:transform .08s,background .12s}
+#quickRow button:active{transform:scale(.93);background:rgba(255,255,255,.8);color:#0a0a0a}
+#quickRow button.on{background:rgba(242,193,78,.9);color:#17120a}
+/* GTA-V phone: a vertical slab that slides in from the right edge */
+#gtPhone{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(160px + env(safe-area-inset-top,0px));width:238px;max-height:420px;z-index:30;display:flex;flex-direction:column;border:1.5px solid rgba(255,255,255,.4);border-radius:20px;background:rgba(12,16,24,.72);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:0 14px 34px rgba(0,0,0,.5);transform:translateX(120%);transition:transform .28s cubic-bezier(.2,.9,.3,1.1);pointer-events:auto}
+#gtPhone.show{transform:translateX(0)}
+#gtPhone[hidden]{display:none}
+#gtTop{display:flex;justify-content:space-between;padding:10px 14px 6px;font:800 13px/1 var(--f-disp);color:#f3f1ea}
+#gtApps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.gtApp{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border:1px solid rgba(255,255,255,.22);border-radius:14px;background:rgba(255,255,255,.08);color:#f3f1ea;font:700 10px/1 var(--f-disp);touch-action:manipulation}
+.gtApp i{font-style:normal;font-size:22px}
+.gtApp:active{background:rgba(242,193,78,.85);color:#17120a}
+#gtApp{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px 12px;border-top:1px solid rgba(255,255,255,.18)}
+#gtApp[hidden]{display:none}
+#gtAppBody{flex:1;overflow:auto;color:#eef2f6;font:500 12px/1.5 system-ui;padding:4px 2px}
+#gtAppBody h3{font:800 15px var(--f-disp);color:#f2c14e;margin:6px 0}
+#gtAppBody .row2{display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.12);padding:5px 0}
+#gtBack{margin-top:8px;padding:9px;border:1px solid rgba(255,255,255,.3);border-radius:10px;background:rgba(255,255,255,.1);color:#f3f1ea;font:700 11px var(--f-disp)}
 #joy{position:absolute;left:0;bottom:calc(8vh + env(safe-area-inset-bottom,0px));width:48vw;height:52vh;pointer-events:auto}
 #joyBase{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(245,241,232,.45);background:rgba(9,26,33,.25);display:none;pointer-events:none}
 #joyBase.rest{display:block;opacity:.38}
@@ -264,6 +284,17 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span></div>
     <canvas id="mini" width="264" height="264"></canvas>
     <div id="homeDir">Home · 0 m</div>
+    <div id="quickRow"><button id="qrMap" title="Map">🗺</button><button id="qrChat" title="Chat">💬</button><button id="qrBag" title="Bag">🎒</button></div>
+    <!-- GTA-V style phone: slides out of the Phone button, apps inside -->
+    <div id="gtPhone" hidden>
+      <div id="gtTop"><span id="gtClock">12:00</span><span id="gtBat">84%</span></div>
+      <div id="gtApps">
+        <button class="gtApp" data-app="news"><i>📰</i><b>News</b></button>
+        <button class="gtApp" data-app="clock"><i>🕐</i><b>Clock</b></button>
+        <button class="gtApp" data-app="bank"><i>🏦</i><b>Bank</b></button>
+      </div>
+      <div id="gtApp" hidden><div id="gtAppBody"></div><button id="gtBack">← Home</button></div>
+    </div>
     <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
     <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
