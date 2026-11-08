@@ -172,8 +172,8 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #netStatus{font-size:12.5px;color:var(--muted);line-height:1.4}#netStatus.ok{color:var(--sun);font-weight:700;font-size:14px}
 /* ===== touch controls v2: round, readable, thumb-sized and kept out of the middle of the view ===== */
 /* ===== in-game HUD, same language as the main menu: dark slanted bars, yellow on the active one ===== */
-#topBtns{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top,0px));display:flex;gap:3px;flex-wrap:wrap;align-items:center;max-width:min(66vw,620px)}
-#topBtns button,#coHud .coRow button{position:relative;border:0;border-left:3px solid transparent;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;padding:7px 13px 7px 8px;font:700 9.5px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,0 100%);transition:background .12s,color .12s,transform .12s;touch-action:manipulation}
+#topBtns{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(62px + env(safe-area-inset-top,0px));display:flex;gap:4px;flex-wrap:wrap;align-items:center;max-width:min(92vw,1180px)}
+#topBtns button,#coHud .coRow button{position:relative;border:0;border-left:3px solid transparent;border-radius:0;background:rgba(0,0,0,.5);color:#e9e6dc;padding:10px 18px 10px 12px;font:700 11px/1 var(--f-disp);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:background .12s,color .12s,transform .12s;touch-action:manipulation}
 #topBtns button.on,#coHud .coRow button.on{background:var(--sun);color:#111;border-left-color:#fff}
 #topBtns button:active,#coHud .coRow button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
 @media (hover:hover){#topBtns button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}}
@@ -223,16 +223,13 @@ body #gunBar::-webkit-scrollbar{display:none}
 body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
 #joy{width:44vw;height:52vh}
 @media (max-height:430px){#actBtns>button{width:44px;height:44px}#qMenu{left:44px}#qMenu button{padding:8px 22px 8px 11px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#topBtns button{padding:6px 14px 6px 9px}#heliControls{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
-/* ===== in-game HUD v3 (2026-10-30): game-style rounded tiles with icons instead of the slanted menu bars. Dark glass panel, thin light rim,
-   a hard bottom edge so it reads as a physical key, one warm-yellow "selected" state with a glow; every handler/id above is untouched ===== */
+/* ===== in-game HUD — the OLD beloved look (wide slanted glass bars with a juicy blur) restored;
+   the v3 rounded-tile override that shrank the bar into a narrow strip is turned OFF. ===== */
 :root{--hud-bg:linear-gradient(180deg,rgba(30,42,70,.74),rgba(12,18,36,.82));--hud-rim:rgba(255,255,255,.24);--hud-on:linear-gradient(180deg,#ffe07a,#f4a93a)}
-#topBtns{gap:6px}
-#topBtns button,#coHud .coRow button,#actBtns>button,#qMenu button,#heliControls button{clip-path:none;border:1.5px solid var(--hud-rim);border-radius:11px;background:var(--hud-bg);color:#f3f1ea;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 0 rgba(0,0,0,.45),0 7px 14px rgba(0,0,0,.26);transform:none;text-shadow:0 1px 0 rgba(0,0,0,.55)}
-#topBtns button,#coHud .coRow button{display:inline-flex;align-items:center;padding:8px 12px 8px 10px;font:800 10px/1 var(--f-disp);letter-spacing:.07em}
-:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
+#topBtns{gap:4px}   /* the wide bars keep their old look: see the base rules above */
+:is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:15px;height:15px;margin-right:8px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
-#topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:8px 9px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:15px;height:15px}   /* weather = icon-only tiles (the buttons keep their title text) */
+#topBtns #bRain,#topBtns #bSnow,#topBtns #bFog{font-size:0;padding:11px 13px}#topBtns #bRain::before,#topBtns #bSnow::before,#topBtns #bFog::before{margin-right:0;width:16px;height:16px}   /* weather = icon-only tiles (the buttons keep their title text) */
 #coHud{top:calc(190px + env(safe-area-inset-top,0px))}
 #bMap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z'/%3E%3Ccircle cx='12' cy='10' r='2.3'/%3E%3C/svg%3E")}
 #bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8'/%3E%3C/svg%3E")}
@@ -243,12 +240,11 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bGun{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
 #bHS{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.8-6.5 10-6.5S22 12 22 12s-3.8 6.5-10 6.5S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='2.8'/%3E%3C/svg%3E")}
 #bBag{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 8V6a5 5 0 0 1 10 0v2'/%3E%3Crect x='4.5' y='8' width='15' height='13' rx='3'/%3E%3Cpath d='M9 14h6'/%3E%3C/svg%3E")}
-#topBtns button.on,#coHud .coRow button.on,#actBtns>button.on,#qMenu button.on,#actBtns>button.has.open,#actBtns.open>#bQuick{background:var(--hud-on);color:#1b1204;border-color:rgba(255,255,255,.85);text-shadow:none;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #9a5e0c,0 0 16px rgba(255,190,60,.5)}
-#topBtns button:active,#coHud .coRow button:active,#actBtns>button:active,#qMenu button:active,#heliControls button:active{background:linear-gradient(180deg,#fff,#d9dde8);color:#0a0a0a;border-color:#fff;transform:translateY(2px) scale(.97);box-shadow:inset 0 1px 0 #fff,0 0 0 rgba(0,0,0,0)}
-@media (hover:hover){#topBtns button:hover,#actBtns>button:hover:not(.on):not(#bJump),#qMenu button:hover,#heliControls button:hover{background:linear-gradient(180deg,rgba(70,90,134,.82),rgba(26,36,64,.88));color:#fff;border-color:rgba(255,255,255,.6);transform:translateY(-1px)}
-  #topBtns button.on:hover,#qMenu button.on:hover{background:var(--hud-on);color:#1b1204}}
-#topBtns button:focus-visible{outline:2px solid #fff;outline-offset:2px;background:var(--hud-bg);color:#fff}
+#topBtns button.on,#coHud .coRow button.on{background:var(--sun);color:#111;border-left-color:#fff;text-shadow:none}
+#topBtns button:active,#coHud .coRow button:active,#actBtns>button:active,#qMenu button:active,#heliControls button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
+@media (hover:hover){#topBtns button:hover,#actBtns>button:hover:not(.on):not(#bJump),#qMenu button:hover,#heliControls button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
+  #topBtns button.on:hover{background:var(--sun);color:#111}}
+#topBtns button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 #actBtns{gap:7px}
 #actBtns>button{width:52px;height:52px;border-radius:13px}
 #actBtns>button b{font:800 7px/1 var(--f-disp);letter-spacing:.1em}
