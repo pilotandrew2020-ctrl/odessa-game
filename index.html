@@ -6673,27 +6673,25 @@ function applyTextureAnisotropy(){
   });
 }
 // WebGL compiles a program the first time a material is actually drawn, which produced the
-// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Push every
-// program through the compiler while the loading overlay is still up.
-function warmupShaders(unhideAll){
+// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Compile
+// programs without un-hiding everything (that doubled GPU memory and could stall mobile Safari).
+function warmupShaders(){
   if(!renderer||!scene||!camera)return;
-  let forced=null;
-  if(unhideAll){
-    forced=[];
-    scene.traverse(o=>{if(o.isMesh&&o.visible===false){o.visible=true;forced.push(o)}});
-    if(typeof PORTAL!=='undefined'&&PORTAL&&PORTAL.built)for(const n in PORTAL.built){const g=PORTAL.built[n]&&PORTAL.built[n].grp;if(g&&!g.visible){g.visible=true;forced.push(g)}}
-  }
   const prevTone=renderer.toneMapping;
+  let rt=null,prevRT=null;
   try{
     camera.updateMatrixWorld(true);
-    renderer.compile(scene,camera);
-    const rt=new THREE.WebGLRenderTarget(8,8,{depthBuffer:true,stencilBuffer:false});
-    const prevRT=renderer.getRenderTarget();
-    renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(prevRT);
-    rt.dispose();
-  }catch(e){console.error('shader warmup failed',e)}
-  renderer.toneMapping=prevTone;
-  if(forced)for(const o of forced)o.visible=false;
+    // compile() may touch every material; keep it best-effort and never block gameplay startup.
+    if(typeof renderer.compile==='function')renderer.compile(scene,camera);
+  }catch(e){console.warn('shader compile warmup',e)}
+  try{
+    rt=new THREE.WebGLRenderTarget(2,2,{depthBuffer:true,stencilBuffer:false});
+    prevRT=renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.render(scene,camera);
+  }catch(e){console.warn('shader render warmup',e)}
+  try{if(rt){renderer.setRenderTarget(prevRT);rt.dispose()}}catch(e){}
+  try{renderer.toneMapping=prevTone}catch(e){}
   if(typeof cityLodT!=='undefined')cityLodT=0;
 }
 function applyQuality(){
@@ -7698,6 +7696,7 @@ function adaptLowDrawCalls(){
 // startup timing per phase (ms since navigation), readable as window.BOOT_T when tuning load time on iPad
 const bootMark=n=>{(window.BOOT_T=window.BOOT_T||[]).push([n,Math.round(performance.now())])};
 async function boot(){
+  const bootFail=e=>{console.error('[boot]',e);try{const b=$('bStart');if(b){b.disabled=false;b.textContent='Play (limited)';b.title=String(e&&e.message||e||'boot error')}}catch(_){} };
   try{COOP.initMenu()}catch(e){console.error('coop menu',e)}
   try{GUN.build()}catch(e){console.error('guns build',e)}
   try{BR.init()}catch(e){console.error('br init',e)}
@@ -7708,6 +7707,7 @@ async function boot(){
     await Promise.all([decodeData(),fontsReady]);
   }catch(e){$('bStart').textContent='Couldn\'t load the map';console.error(e);return}
   bootMark('Painting textures…');$('bStart').textContent='Painting textures…';await new Promise(r=>requestAnimationFrame(()=>r()));
+  try{
   genTextures();genSignAtlas();genProductAtlas();
   setupRenderer();
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbcd0dc,.0026);
@@ -7733,19 +7733,19 @@ async function boot(){
   try{YACHT.init(scene)}catch(e){console.error('yacht',e)}
   try{PLN.init(scene);AIRP.init(scene);AIRP.addButton()}catch(e){console.error('airport',e)}
   try{BUDDY.init()}catch(e){console.error('buddy',e)}
-  bootMark('scene');applyQuality();applyTime();bootMark('chunks');
+  bootMark('scene');applyQuality();applyTime();  bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
-  bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
-  // unhiding every interior to compile it doubles GPU memory for a moment — too much for mobile Safari
-  warmupShaders(!MOBILE);
-  buildPlaceList();
+  try{buildPlaceList()}catch(e){console.error('[boot] places',e)}
   window.addEventListener('resize',onResize);
-  setupInput();
-  if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
-  VOICE.init();
-  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';
+  try{setupInput()}catch(e){console.error('[boot] input',e)}
+  try{if((typeof SPK!=='undefined')&&SPK)SPK.init(scene)}catch(e){console.error('[boot] speaker',e)}
+  try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
+  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
-  COOP.init();
+  $('bStart').title='Starting…';
+  setTimeout(()=>{try{warmupShaders()}catch(e){console.warn('[boot] shader warmup',e)}$('bStart').title=''},60);
+  try{COOP.init()}catch(e){console.error('[boot] coop',e)}
+  }catch(e){bootFail(e);try{requestAnimationFrame(loop)}catch(_){}}
 }
 let last=performance.now(),_shadowTick=0;
 const _loopErr={};
@@ -7791,7 +7791,7 @@ function loop(t){
   else sunL.position.copy(sunDir).multiplyScalar(300).add(camera.position);
   updateSnow(dt);if(window.GFX)GFX.update(dt);});
   safe('uw',underwaterFx);
-  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;warmupShaders(false)}
+  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;try{warmupShaders()}catch(e){console.warn('portal warmup',e)}}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   // phones and tablets: the sun's shadow map (which redraws every chunk that touches the 110 m frustum) is refreshed every other frame, or every frame when moving fast
   if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
