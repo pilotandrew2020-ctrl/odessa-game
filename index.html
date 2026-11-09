@@ -33,12 +33,13 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #district{position:absolute;left:max(16px,env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top,0px));pointer-events:none;display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 #dName{font-family:var(--f-disp);font-weight:800;font-size:20px;letter-spacing:.02em}
 #dSub{font-size:12px;color:var(--chalk);opacity:.85;letter-spacing:.06em;text-transform:uppercase}
-#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:132px;height:132px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
-#homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(152px + env(safe-area-inset-top,0px));width:132px;text-align:center;font-size:12px;font-weight:700;background:transparent;border-radius:0;padding:0 0 4px;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.6);border-bottom:0}
-/* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG (phone and mic stay below) */
-#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(178px + env(safe-area-inset-top,0px));display:flex;gap:7px;width:132px;z-index:9;margin-bottom:12px}
-#quickRow button{flex:1;min-width:0;height:38px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.35);border-radius:12px;background:rgba(14,18,26,.4);color:#f3f1ea;font-size:17px;line-height:1;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 3px 10px rgba(0,0,0,.28);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit;padding:0}
-#quickRow button:active{transform:scale(.93);background:rgba(255,255,255,.8);color:#0a0a0a}
+/* compact minimap — smaller, cleaner circle */
+#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:112px;height:112px;border-radius:50%;border:1.5px solid rgba(245,241,232,.6);box-shadow:0 2px 12px rgba(0,0,0,.3);pointer-events:none}
+#homeDir{display:none}
+/* quick actions row — glass pill buttons under minimap */
+#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(132px + env(safe-area-inset-top,0px));display:flex;gap:6px;width:auto;z-index:9}
+#quickRow button{flex:0 0 auto;min-width:0;height:34px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(14,18,26,.4);color:#f3f1ea;font-size:15px;line-height:1;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.25);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit}
+#quickRow button:active{transform:scale(.92);background:rgba(255,255,255,.8);color:#0a0a0a}
 #quickRow button.on{background:rgba(242,193,78,.9);color:#17120a}
 /* GTA-V phone: a vertical slab that slides in from the right edge */
 #gtPhone{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(160px + env(safe-area-inset-top,0px));width:238px;max-height:420px;z-index:30;display:flex;flex-direction:column;border:1.5px solid rgba(255,255,255,.4);border-radius:20px;background:rgba(12,16,24,.72);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:0 14px 34px rgba(0,0,0,.5);transform:translateX(120%);transition:transform .28s cubic-bezier(.2,.9,.3,1.1);pointer-events:auto}
@@ -206,23 +207,24 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #bPhone i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
 #bPhone.on{background:var(--hud-on);color:#17120a}
 /* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
-#actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:5px;align-items:flex-end}
-#actBtns>button{position:relative;width:48px;height:48px;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:inset 3px 0 0 transparent;transition:background .12s,color .12s,transform .08s}
+#actBtns{position:absolute;right:max(88px,calc(env(safe-area-inset-right) + 88px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:flex-end}
+#actBtns>button{position:relative;width:44px;height:44px;padding:0;border:0;border-radius:12px;background:rgba(10,14,22,.65);color:#e9e6dc;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;touch-action:none;box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);transition:background .12s,color .12s,transform .08s,box-shadow .12s}
 #actBtns>button i,#qMenu button i{font-style:normal;display:flex;line-height:0}
-#actBtns>button svg,#qMenu button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-#actBtns>button b{font:700 7px/1 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
-#actBtns>button:active{background:#fff;color:#0a0a0a;transform:scale(.94)}
-#actBtns>button.on{background:var(--sun);color:#111;box-shadow:inset 3px 0 0 #fff}
-#actBtns>button.has::after{content:"";position:absolute;right:11px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
+#actBtns>button svg,#qMenu button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#actBtns>button b{font:700 6.5px/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+#actBtns>button:active{background:#fff;color:#0a0a0a;transform:scale(.92)}
+#actBtns>button.on{background:var(--sun);color:#111;box-shadow:0 2px 8px rgba(242,193,78,.4),inset 0 1px 0 rgba(255,255,255,.3)}
+#actBtns>button.has::after{content:"";position:absolute;right:6px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
 #actBtns>button.has.open{background:var(--sun);color:#111}
 #bView b::before{content:"Camera · "}
-#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
-#actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
-#actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
-#actBtns>#bJump:active{background:#fff}
-#qMenu{position:absolute;right:calc(100% + 10px);bottom:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;visibility:visible;pointer-events:auto}
-#qMenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:52px;padding:8px 6px;border:1.5px solid rgba(255,255,255,.28);border-radius:12px;background:rgba(14,18,26,.45);color:#e9e6dc;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-align:center;touch-action:none;opacity:1;transform:none;transition:background .12s,color .12s,transform .08s}
-#qMenu button b{font:700 10.5px/1 var(--f-disp);letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+#bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:6.5px}
+#actBtns>#bJump{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffe786,#f2a93a 78%);color:#2a1a04;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),0 4px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.4);gap:2px;border:none}
+#actBtns>#bJump svg{width:28px;height:28px;stroke-width:2}
+#actBtns>#bJump:active{background:radial-gradient(circle at 50% 30%,#fff,#e6e9f0 78%);transform:translateY(2px)}
+#qMenu{position:absolute;right:calc(100% + 8px);bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:6px;visibility:visible;pointer-events:auto;padding:6px;background:rgba(14,18,26,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#qMenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:56px;padding:8px 6px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(255,255,255,.05);color:#e9e6dc;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);text-align:center;touch-action:none;opacity:1;transform:none;transition:background .12s,color .12s,transform .08s}
+#qMenu button b{font:700 9px/1 var(--f-disp);letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
+#qMenu button:active{transform:scale(.94);background:rgba(255,255,255,.2);color:#fff}
 #qMenu button.on{background:rgba(242,193,78,.92);color:#17120a;border-color:rgba(255,255,255,.85)}
 #qMenu button:active{background:#fff;color:#0a0a0a}
 @media (hover:hover){#qMenu button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun)}#actBtns>button:hover:not(.on):not(#bJump){background:rgba(255,255,255,.9);color:#0a0a0a}}
@@ -279,8 +281,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
   <canvas id="c"></canvas>
   <div id="hud" hidden>
     <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span></div>
-    <canvas id="mini" width="264" height="264"></canvas>
-    <div id="homeDir">Home · 0 m</div>
+    <canvas id="mini" width="224" height="224"></canvas>
     <div id="quickRow"><button id="qrMap" title="Map">🗺</button><button id="qrChat" title="Chat">💬</button><button id="qrBag" title="Bag">🎒</button></div>
     <!-- GTA-V style phone: slides out of the Phone button, apps inside -->
     <div id="gtPhone" hidden>
@@ -299,7 +300,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <button id="bPhone" type="button" aria-label="Open phone" aria-pressed="false"><i>📱</i><span>Phone</span></button>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button></div></div>
+    <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="14" rx="2"/><path d="M10 14h4M8 17h8"/></svg></i><b>Speaker</b></button></div></div>
     <div id="heliControls" hidden><button id="bFlyUp">Up</button><button id="bFlyDown">Down</button><button id="bFlyLeft">&#9664; Left</button><button id="bFlyRight">Right &#9654;</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
