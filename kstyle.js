@@ -85,7 +85,7 @@ function ksBuild(grp,P,GR,at,st,tag){
       bx(0,.7,2.85,3.6,.2,1.8,st.canopy,1);bx(-1.7,.7,1.4,.16,2.8,.16,'#8a9096',1);bx(1.7,.7,1.4,.16,2.8,.16,'#8a9096',1)}
     else{bx(0,.1,1.2,2.4,2.5,.1,st.door,5);bx(-.6,.17,1.25,1.1,2.3,.04,'#9cc2d6',2);bx(.6,.17,1.25,1.1,2.3,.04,'#9cc2d6',2);bx(0,.17,1.25,.05,2.3,.05,'#111',6);
       bx(0,.9,3.3,4.2,.16,2.0,st.canopy,1);bx(-2.0,.9,1.65,.1,3.3,.1,'#8a9096',1);bx(2.0,.9,1.65,.1,3.3,.1,'#8a9096',1);bx(2.2,.3,1.3,.5,.6,.14,'#2f3a40',2)}
-    bx(0,.62,.17,2.6,.34,.5,'#a6a39b');bx(0,1.12,.085,2.6,.17,.5,'#a6a39b');
+    STEPS.flight(P,dr.x,dr.z,dr.nx,dr.nz,y0+.34,{foot:y0,w:2.6,land:.87,run:.5,rise:.17,col:sRGB('#a6a39b'),noRamp:true});      // two real steps up to the door
     const pm=plateMesh([(st.key==='new'?'ПАРАДНА ':'ПІД\'ЇЗД ')+(s+1)],{w:512,h:96,size:58,color:st.key==='new'?'#e8f0f4':'#3a2a10',bg:st.key==='new'?'#2f3a40':(st.key==='panel'?'#9aa4ad':'#e0b030'),weight:'800'},1.9,.34,.2),pp2=q(0,st.plate[0]);
     pm.position.set(pp2[0],y0+st.plate[1],pp2[1]);pm.rotation.y=ry;grp.add(pm);
     INTERACT.push({x:dr.x+dr.nx*1.9,z:dr.z+dr.nz*1.9,y:y0,r:2.1,label:'Enter entrance '+(s+1),cond:()=>!PORTAL.cur&&!RIDE.on,act:'door',actO:()=>({tx:dr.x+dr.nx*.16,tz:dr.z+dr.nz*.16,stand:[dr.x+dr.nx*.8,dr.z+dr.nz*.8]}),   // the leaf sits right in the facade; you step up to the door and take the handle

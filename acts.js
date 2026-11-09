@@ -9,7 +9,7 @@
    =================================================================================================== */
 
 const ACT={cur:null,hooked:false,props:{},em:null,pts:null,pp:[],snd:0};
-const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4,door:2.5,key:5.2};
+const ACT_DUR={wash:5.4,pour:6.4,fridge:8.4,kettle:10.4,door:2.5,key:5.2,eat:4.4};
 const actEase=x=>x<=0?0:x>=1?1:x*x*(3-2*x);
 const actWin=(t,a,b)=>actEase((t-a)/(b-a));
 
@@ -82,6 +82,7 @@ ACT.start=function(kind,o){
   if(kind==='fridge'&&o.F){const gx=a.gx!==undefined?a.gx:player.x,gz=a.gz!==undefined?a.gz:player.z;
     a.hand=((o.tx-gx)*Math.cos(a.yaw)-(o.tz-gz)*Math.sin(a.yaw))>0?1:0}
   const pr=actProp(a.item),HH=PLR.arms[a.hand].hand;if(pr.parent!==HH)HH.add(pr);a.prop=pr;a.canWas=PLR.can.visible;PLR.can.visible=false;a.bx=player.x;a.bz=player.z;a.adv=0;a.lp=0;
+  if(a.o.bite!==undefined)a.bites=a.o.bite;
   ACT.cur=a;return true};
 function actEnd(cancel){const a=ACT.cur;if(!a)return;ACT.cur=null;
   if(a.prop)a.prop.visible=false;if(PLR){PLR.can.visible=a.canWas;if(PLR.foam)PLR.foam.forEach(f=>f.visible=false);PLR.hdHold=null;for(const A of PLR.arms){A.ikp=null;A.hand.rotation.set(0,0,0)}}
@@ -113,6 +114,7 @@ function actTick(dt){actSteamTick(dt);const a=ACT.cur;if(!a)return;a.t+=dt;
     if(at(5.0)){actSfx('click');actSfx('ding');if(o.lamp)o.lamp.material.color.setHex(0x223344);if(o.whistle)AUD.tone(2300,2100,.7,.07,'sine')}
     a.prop.visible=t>5.6&&t<9.6;for(const s of [7.3,8.3,9.1])if(at(s))actSfx('gulp')}
   else if(a.kind==='door'){if(at(.5))actSfx('latch');if(at(.9))actSfx('creak');if(o.leaf)o.leaf(actWin(t,.9,2.0))}
+  else if(a.kind==='eat'){if(o.bite!==undefined&&at(o.bite))actSfx('thunk')}
   else if(a.kind==='key'){
     a.prop.visible=t>.25&&t<3.0;if(at(.3))actSfx('keyin');if(at(1.35))actSfx('keyin');if(at(1.95))actSfx('bolt');if(at(2.3))actSfx('bolt');if(at(2.8))actSfx('keyin');if(at(3.45))actSfx('latch');if(at(3.7))actSfx('creak');
     if(o.leaf)o.leaf(actWin(t,3.6,4.7));
@@ -157,8 +159,16 @@ function actApply(P,dt){
   const body=(lean,head)=>{P.spine.rotation.x+=(lean-P.spine.rotation.x)*w;P.head.rotation.x+=(head-P.head.rotation.x)*w};
   const fr=actFrame(),V=(x,y,z)=>new THREE.Vector3(x,y,z),D=o.tx===undefined?.8:Math.hypot(o.tx-player.x,o.tz-player.z);
   const grip=(A,list)=>{A.hand.userData.rig.tgt=actCurl(list)};
-  const up=kind==='pour'?actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0)):kind==='fridge'?actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9)):kind==='kettle'?actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9)):0;
+  const up=kind==='pour'?actWin(t,2.9,3.7)*(1-actWin(t,5.2,6.0)):kind==='fridge'?actWin(t,4.0,4.8)*(1-actWin(t,7.0,7.9)):kind==='kettle'?actWin(t,6.4,7.2)*(1-actWin(t,9.0,9.9)):kind==='eat'?
+    actWin(t,.8,1.5)*(1-actWin(t,3.6,4.2)):0;
   const itemPose=a.item==='cola'||a.item==='glass'||a.item==='cup'?'glass':'carton';
+  // ---------------- eat: bring it to the mouth, bite, chew, swallow (food in hand, other hand relaxed) ----------------
+  if(kind==='eat'){const b1=actWin(t,.8,1.5),b2=actWin(t,2.0,2.7),b3=actWin(t,3.2,3.8),
+      chew=k=>k?Math.abs(Math.sin(t*11))*(.06-.04*k):0,bite=Math.max(b1,b2*.7,b3*.5);
+    body(-.1*up,-.22*up);grip(Wd,[['flat',1]]);grip(Od,[['relax',1]]);
+    actHand(P,Wd,actMean([[actMouth(P,Wd),up],[ACT_CARRY(Wd),1-up]]),V(-Wd.s,0,0),w,dt);actHand(P,Od,ACT_REST(Od),V(-Od.s,0,0),w,dt);
+    actHold(a,Wd,.85*up);a.prop.rotation.x+=bite*.5+chew(bite)*.3;a.prop.position.y-=bite*.006;   // the tip dips in as you bite
+    if(P.head)P.head.rotation.x+=-(bite*.45+chew(bite)*.3)*w}
   // ---------------- wash: both palms meet under the tap and rub, fingers lace, then a rinse with cupped hands ----------------
   if(kind==='wash'){body(.5,.3);
     const dh=Math.max(.3,Math.min(.6,D-.08)),C=actSp(P,fr(0,o.ty||.97,dh));

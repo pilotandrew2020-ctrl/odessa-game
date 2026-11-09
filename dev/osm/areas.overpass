@@ -1,0 +1,10 @@
+[out:json][timeout:180];
+(
+  way["landuse"="cemetery"](46.339,30.6185,46.637,30.8165);
+  way["amenity"="grave_yard"](46.339,30.6185,46.637,30.8165);
+  way["leisure"~"^(park|garden)$"](46.339,30.6185,46.637,30.8165);
+  way["landuse"~"^(village_green|recreation_ground)$"](46.339,30.6185,46.637,30.8165);
+  rel["landuse"="cemetery"](46.339,30.6185,46.637,30.8165);
+  rel["leisure"~"^(park|garden)$"](46.339,30.6185,46.637,30.8165);
+);
+out geom;

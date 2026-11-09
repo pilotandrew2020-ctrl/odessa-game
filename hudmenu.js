@@ -1,57 +1,68 @@
-// hudmenu.js — a calm top bar: only MODES and MENU are always on screen, everything else lives inside them.
-//   MODES  → Battle Royale, Hide & Seek (and any later game mode button)
-//   MENU   → Map, Day/Night, Rain, Snow, Fog, Armed, Bag and the old "Menu" (pause / main menu)
-// The real buttons are MOVED, not recreated, so every handler and every `.on` state that other scripts keep on them still works.
-// Scripts that add a button to #topBtns later (Armed, Battle Royale, Hide & Seek, Bag) are picked up by a MutationObserver.
+// hudmenu.js — compact HUD for the iPad: NO big popovers anywhere.
+//   top-left stack under "Chykalenka St" (tiny tiles, half the old padding/font):
+//     MODES · DAY · RAIN · SNOW · FOG · QUALITY · ARMED · EARN · FLIGHT
+//   right side under the mini-map / Home line: MAP · CHAT · BAG as icon tiles (index.html #quickRow,
+//     wired to the same buttons so every handler and `.on` state other scripts keep still works).
+// The real buttons are MOVED, not recreated, so every handler and every `.on` state that other
+// scripts keep on them still works. Late-added buttons (Armed, Battle Royale, Bag…) are adopted
+// by a MutationObserver.
 const HUDM={
-  MODES:['bBR','bHS'],
-  ORDER:['bMap','bTime','bRain','bSnow','bFog','bPolish','bGun','bBag','bJobs','bFlight','bMenu'],
-  KEEP:new Set(['bTime','bRain','bSnow','bFog','bPolish','bGun','bFlight']),   // toggles keep the list open so you can flip several in a row
-  bar:null,pm:null,pn:null,bm:null,bn:null,ready:false,
+  MODES:['bBR','bHS','bJetRace'],            // Jet Ski Rider rides along BR and Hide & Seek
+  ROW1:['bModes','bTime','bRain','bSnow'],
+  ROW2:['bFog','bGun','bPolish','bMenu'],
+  ROW3:['bBR','bHS','bJetRace'],
+  RIGHT:['bMap','bBag'],                      // these two live in #quickRow (icons only)
+  KEEP:new Set(),                             // nothing needs "keep the list open": there is no list
+  bar:null,rows:null,ready:false,
   css(){if(document.getElementById('hudmCss'))return;const st=document.createElement('style');st.id='hudmCss';st.textContent=`
-#topBtns .hmBox{position:relative;display:block}
-#topBtns .hmBox>button{width:auto}
-#topBtns .hmPop{position:absolute;left:0;top:calc(100% + 7px);z-index:40;display:flex;flex-direction:column;gap:6px;min-width:190px;padding:8px;border:1.5px solid var(--hud-rim,rgba(255,255,255,.3));border-radius:14px;background:rgba(10,12,16,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 14px 32px rgba(0,0,0,.45)}
-#topBtns .hmPop[hidden]{display:none}
-#topBtns .hmPop button{width:100%;justify-content:flex-start;min-width:0;font-size:11px;padding:10px 12px 10px 10px}
-#topBtns .hmPop #bRain,#topBtns .hmPop #bSnow,#topBtns .hmPop #bFog{font-size:11px;padding:10px 12px 10px 10px}
-#topBtns .hmPop #bRain::before,#topBtns .hmPop #bSnow::before,#topBtns .hmPop #bFog::before{margin-right:7px;width:13px;height:13px}
-#topBtns .hmPop .hmHead{font:800 9px/1 var(--f-disp,inherit);letter-spacing:.14em;text-transform:uppercase;color:#f2c14e;padding:2px 4px 4px}
-:is(#bModes,#bHudMenu)::before{content:"";flex:none;width:13px;height:13px;margin-right:7px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
-#bModes{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='13.5' width='7' height='7' rx='2'/%3E%3C/svg%3E")}
-#bHudMenu{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3C/svg%3E")}
-#bModes.open,#bHudMenu.open{background:var(--hud-on,#f2c14e);color:#1b1204;border-color:rgba(255,255,255,.85);text-shadow:none}`;document.head.appendChild(st)},
-  box(id,label,head){const w=document.createElement('div');w.className='hmBox';const b=document.createElement('button');b.id=id;b.textContent=label;b.setAttribute('aria-haspopup','true');b.setAttribute('aria-expanded','false');
-    const p=document.createElement('div');p.className='hmPop';p.hidden=true;const h=document.createElement('div');h.className='hmHead';h.textContent=head;p.appendChild(h);w.append(b,p);return {w,b,p}},
-  rank(id){const i=this.ORDER.indexOf(id);return i<0?99:i},
-  // put a top-bar button into the list it belongs to (in the fixed order)
-  adopt(btn){if(!btn||btn.tagName!=='BUTTON'||!this.ready)return;const id=btn.id;if(id==='bModes'||id==='bHudMenu')return;
+#topBtns{display:contents}   /* the old bar/popovers are gone: hudmenu.js places a compact tile stack */
+#hudmStack{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(64px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:9}
+#hudmStack .hmRow{display:flex;gap:4px;flex-wrap:wrap}
+#hudmStack button{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid rgba(255,255,255,.32);border-radius:10px;background:rgba(14,18,26,.42);color:#f3f1ea;font:800 13px/1 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.3);touch-action:manipulation;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+#hudmStack button::before{content:"";flex:none;width:9px;height:9px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+#hudmStack button.on{background:rgba(242,193,78,.9);color:#17120a}
+#hudmStack button:active{transform:scale(.94);background:rgba(255,255,255,.85);color:#0a0a0a}
+#hudmStack #bModes{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='13.5' width='7' height='7' rx='2'/%3E%3C/svg%3E")}
+#hudmStack #bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3C/svg%3E")}
+#hudmStack #bRain{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 15.5a4.5 4.5 0 1 1 1-8.9 5.5 5.5 0 0 1 10.4 2A3.5 3.5 0 0 1 17.5 15.5z'/%3E%3C/svg%3E")}
+#hudmStack #bSnow{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 2.5v19M4 7l16 10M20 7L4 17'/%3E%3C/svg%3E")}
+#hudmStack #bFog{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M3 8h13M6 12h15M3 16h12M8 20h11'/%3E%3C/svg%3E")}
+#hudmStack #bPolish{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
+#hudmStack #bGun{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
+#hudmStack #bJobs{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5'/%3E%3C/svg%3E")}
+#hudmStack #bFlight{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l3 8 6 3-6 3-3 4-3-4-6-3 6-3z'/%3E%3C/svg%3E')}
+#hudmStack #bModes.on,#hudmStack #bGun.on{background:rgba(242,193,78,.9);color:#17120a}`;document.head.appendChild(st)},
+  rank(id){const i=this.ROW1.concat(this.ROW2,this.ROW3).indexOf(id);return i<0?99:i},
+  // put a bar button into its fixed row / right quick row (buttons are MOVED, not recreated)
+  adopt(btn){if(!btn||btn.tagName!=='BUTTON'||!this.ready)return;const id=btn.id;if(id==='bModes')return;
     if(id==='bMenu')btn.textContent='Main menu';
-    if(this.MODES.includes(id)){if(btn.parentNode!==this.pm)this.pm.appendChild(btn);return}
-    if(btn.parentNode===this.pn)return;
-    const r=this.rank(id);let before=null;for(const c of this.pn.querySelectorAll('button')){if(this.rank(c.id)>r){before=c;break}}
-    this.pn.insertBefore(btn,before)},
-  show(which){const m=which==='m';this.pm.hidden=!(which==='modes');this.pn.hidden=!(which==='menu');this.bm.classList.toggle('open',!this.pm.hidden);this.bn.classList.toggle('open',!this.pn.hidden);
-    this.bm.setAttribute('aria-expanded',String(!this.pm.hidden));this.bn.setAttribute('aria-expanded',String(!this.pn.hidden))},
-  close(){this.show('')},
+    if(this.RIGHT.includes(id)){const row=document.getElementById('quickRow');const anchor={bMap:'qrMap',bBag:'qrBag'}[id];
+      const slot=anchor&&document.getElementById(anchor);
+      if(slot){slot.style.display='none';if(btn.parentNode!==row){btn.classList.add('qrBtn');row.replaceChild(btn,slot)}btn.id=id}   // keep the real id
+      return}
+    const row=this.ROW1.includes(id)?this.rows[0]:this.ROW2.includes(id)?this.rows[1]:this.ROW3.includes(id)?this.rows[2]:null;
+    if(!row||btn.parentNode===row)return;
+    const r=this.rank(id);let before=null;for(const c of row.querySelectorAll('button')){if(this.rank(c.id)>r){before=c;break}}
+    row.insertBefore(btn,before)},
   init(){if(this.ready)return true;const bar=document.getElementById('topBtns');if(!bar)return false;this.bar=bar;this.css();
-    const A=this.box('bModes','Modes','Game modes'),B=this.box('bHudMenu','Menu','Menu');this.bm=A.b;this.pm=A.p;this.bn=B.b;this.pn=B.p;
-    bar.insertBefore(B.w,bar.firstChild);bar.insertBefore(A.w,bar.firstChild);this.ready=true;
-    A.b.onclick=e=>{e.stopPropagation();this.show(this.pm.hidden?'modes':'')};
-    B.b.onclick=e=>{e.stopPropagation();this.show(this.pn.hidden?'menu':'')};
-    for(const p of [this.pm,this.pn])p.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!this.KEEP.has(b.id))this.close()});
-    document.addEventListener('pointerdown',e=>{if(this.ready&&!e.target.closest('.hmBox'))this.close()},true);
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')this.close()});
-    // flight controls: easy (up = climb) or pilot style (up = dive); remembered in the settings
-    {const f=document.createElement('button');f.id='bFlight';const lab=()=>{f.textContent='Flight: '+((typeof S!=='undefined'&&S.flyPilot)?'pilot':'easy')};lab();f.title='Flight controls: easy = up climbs, pilot = up dives';
-     f.onclick=()=>{if(typeof S==='undefined')return;S.flyPilot=!S.flyPilot;try{if(typeof saveS==='function')saveS()}catch(e){}lab();if(typeof toast==='function')toast('Flight controls',S.flyPilot?'pilot style: stick back = nose up':'easy: up is up, down is down')};bar.appendChild(f)}
-    {const j=document.createElement('button');j.id='bJobs';j.textContent='Earn money';j.title='Ways to earn money';j.onclick=()=>{if(typeof JOBS!=='undefined')JOBS.menu()};bar.appendChild(j)}
-    {const qb=document.createElement('button');qb.id='bPolish';this.syncPolish=()=>{qb.textContent='Quality: '+(typeof S!=='undefined'&&S.polish==='max'?'Max':'Lite')};this.syncPolish();qb.title='Visual polish: Lite / Max';qb.onclick=()=>{if(typeof S==='undefined')return;S.polish=S.polish==='max'?'lite':'max';try{if(typeof saveS==='function')saveS()}catch(e){}this.syncPolish();if(typeof applyTime==='function')applyTime();if(typeof toast==='function')toast('Quality: '+(S.polish==='max'?'Max':'Lite'),S.polish==='max'?'polished lighting and sky':'lite mobile profile');};bar.appendChild(qb)}
+    this.stack=document.createElement('div');this.stack.id='hudmStack';
+    this.rows=[0,1,2].map(()=>{const r=document.createElement('div');r.className='hmRow';this.stack.appendChild(r);return r});
+    document.getElementById('hud').appendChild(this.stack);this.ready=true;
+    // MODES: one live mode -> just toggle it; two -> a tiny panel with only the mode buttons
+    const modes=document.createElement('button');modes.id='bModes';modes.textContent='Modes';modes.title='Game modes: Battle Royale, Hide & Seek';
+    modes.onclick=e=>{e.stopPropagation();const ids=this.MODES.map(id=>document.getElementById(id)).filter(Boolean);
+      if(ids.length===1){ids[0].click();return}
+      let p=document.getElementById('modesPanel');
+      if(!p){p=document.createElement('div');p.id='modesPanel';p.hidden=true;p.style.cssText='position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(84px + env(safe-area-inset-top,0px));z-index:41;display:flex;flex-direction:column;gap:6px;min-width:150px;padding:8px;border:1.5px solid rgba(255,255,255,.3);border-radius:14px;background:rgba(10,12,16,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)';
+        document.getElementById('hud').appendChild(p)}
+      if(p.hidden){p.innerHTML='';ids.forEach(b=>{b.classList.add('mini');p.appendChild(b)});p.hidden=false;modes.classList.add('on')}
+      else{ids.forEach(b=>this.stack.appendChild(b));p.hidden=true;modes.classList.remove('on')}};
+    this.rows[0].appendChild(modes);
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
-    // buttons that scripts append to the bar from now on
+    // buttons that scripts append to the old bar from now on get adopted too
     new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&n.parentNode===bar)this.adopt(n)}).observe(bar,{childList:true});
     // MODES lights up while a mode is running
-    setInterval(()=>{const on=this.MODES.some(id=>{const b=document.getElementById(id);return b&&b.classList.contains('on')});this.bm.classList.toggle('on',on)},500);
+    setInterval(()=>{const on=this.MODES.some(id=>{const b=document.getElementById(id);return b&&b.classList.contains('on')});modes.classList.toggle('on',on)},500);
     return true}
 };
 (function(){const go=()=>{if(!HUDM.init())setTimeout(go,100)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go()})();

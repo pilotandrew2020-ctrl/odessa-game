@@ -112,8 +112,9 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     // deltas of the single bones
     D[R.iPel].copy(Wh);
     const s1=R.idx.spine_01,s2=R.idx.spine_02,s3=R.idx.spine_03,nk=R.idx.neck_01,hd=R.idx.Head;
-    if(s1!==undefined)D[s1].copy(Wh).multiply(RT.e.copy(RQ1).slerp(rel,.3));
-    if(s2!==undefined)D[s2].copy(Wh).multiply(RT.e.copy(RQ1).slerp(rel,.65));
+    const lw=P._leanW||0;      // while an act leans over a worktop the whole back follows the classic rig's bow, otherwise the GLB shoulders stay ~25 cm higher than the classic ones the arm IK was solved for and the hands miss
+    if(s1!==undefined)D[s1].copy(Wh).multiply(RT.e.copy(RQ1).slerp(rel,.3+.7*lw));
+    if(s2!==undefined)D[s2].copy(Wh).multiply(RT.e.copy(RQ1).slerp(rel,.65+.35*lw));
     if(s3!==undefined)D[s3].copy(Ws);
     if(nk!==undefined)D[nk].copy(Ws).slerp(Wd,.5);
     if(hd!==undefined)D[hd].copy(Wd);
@@ -146,13 +147,31 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         RV.b.copy(S.hv).applyQuaternion(D[S.ft]);if(RV.a.y+RV.b.y<low)low=RV.a.y+RV.b.y;RV.b.copy(S.tv).applyQuaternion(D[S.ft]);if(RV.a.y+RV.b.y<low)low=RV.a.y+RV.b.y}
       dy=low<1e8&&lowP<1e8?lowP/SC-low:0}
     // bone rotations, parents first
-    for(let i=0;i<n;i++){const k=kind[i],p=par[i];
+    const solve=()=>{for(let i=0;i<n;i++){const k=kind[i],p=par[i];
       if(!k){if(p<0)Qw[i].copy(bindW[i]);else Qw[i].copy(Qw[p]).multiply(bindL[i]);continue}
       Qw[i].copy(D[i]).multiply(bindW[i]);
-      if(p<0)B[i].quaternion.copy(Qw[i]);else B[i].quaternion.copy(RT.a.copy(Qw[p]).invert().multiply(Qw[i]))}
+      if(p<0)B[i].quaternion.copy(Qw[i]);else B[i].quaternion.copy(RT.a.copy(Qw[p]).invert().multiply(Qw[i]))}};
+    solve();
     // pelvis moves in its parent's frame
     {const p=par[ip];RV.a.set(hp.x/SC,dy,hp.z/SC);if(p>=0)RV.a.applyQuaternion(RT.a.copy(Qw[p]).invert());B[ip].position.copy(R.p0||(R.p0=B[ip].position.clone())).add(RV.a)}
-  }};
+    if(lw>.02){this.armIK(P,R,lw);solve()}
+  },
+  // while an act is on (acts.js sets P._leanW), the classic arm has already reached the target for ITS shoulder; the GLB shoulder sits higher, so aim the GLB upper arm and forearm at the classic wrist
+  // (two-bone solve in root space, elbow bending the way the classic elbow does); held props and the soap foam ride on the classic hand, which is now where the GLB hand is
+  armIK(P,R,lw){const SC=this.SC,Hb=R.Hb,D=R.D,B=R.B,root=P.root;root.updateMatrixWorld(true);
+    const Ws=RT.b.copy(P.hips.quaternion).multiply(P.spine.quaternion);
+    for(const S of R.sides){const A=S.arm;if(!A)continue;
+      const Wsh=RK.q1.copy(Ws).multiply(A.sh.quaternion),Wel=RK.q2.copy(Wsh).multiply(A.el.quaternion);
+      B[S.ua].getWorldPosition(RK.s);root.worldToLocal(RK.s);A.hand.getWorldPosition(RK.t);root.worldToLocal(RK.t);A.el.getWorldPosition(RK.e);root.worldToLocal(RK.e);
+      const rUA=RK.r1.subVectors(Hb[S.la],Hb[S.ua]),rLA=RK.r2.subVectors(Hb[S.ha],Hb[S.la]),L1=rUA.length()*SC,L2=rLA.length()*SC;rUA.normalize();rLA.normalize();
+      const v=RK.v.subVectors(RK.t,RK.s);let d=v.length();if(d<1e-4)continue;v.multiplyScalar(1/d);d=Math.min(Math.max(d,Math.abs(L1-L2)+.01),L1+L2-.002);
+      const a=(L1*L1-L2*L2+d*d)/(2*d),h=Math.sqrt(Math.max(0,L1*L1-a*a));
+      RK.p.subVectors(RK.e,RK.s);RK.p.addScaledVector(v,-RK.p.dot(v));if(RK.p.lengthSq()<1e-6){RK.p.set(0,-1,0);RK.p.addScaledVector(v,-RK.p.dot(v))}RK.p.normalize();
+      RK.el.copy(RK.s).addScaledVector(v,a).addScaledVector(RK.p,h);
+      const du=RK.d1.subVectors(RK.el,RK.s).normalize(),hand=RK.hd.copy(RK.s).addScaledVector(v,d),dl=RK.d2.subVectors(hand,RK.el).normalize();
+      RK.q3.setFromUnitVectors(RK.r3.copy(rUA).applyQuaternion(Wsh),du).multiply(Wsh);D[S.ua].slerp(RK.q3,lw);
+      RK.q4.setFromUnitVectors(RK.r3.copy(rLA).applyQuaternion(Wel),dl).multiply(Wel);D[S.la].slerp(RK.q4,lw)}}};
+const RK={s:new THREE.Vector3(),t:new THREE.Vector3(),e:new THREE.Vector3(),v:new THREE.Vector3(),p:new THREE.Vector3(),el:new THREE.Vector3(),hd:new THREE.Vector3(),d1:new THREE.Vector3(),d2:new THREE.Vector3(),r1:new THREE.Vector3(),r2:new THREE.Vector3(),r3:new THREE.Vector3(),q1:new THREE.Quaternion(),q2:new THREE.Quaternion(),q3:new THREE.Quaternion(),q4:new THREE.Quaternion()};
 const RT={a:new THREE.Quaternion(),b:new THREE.Quaternion(),c:new THREE.Quaternion(),d:new THREE.Quaternion(),e:new THREE.Quaternion(),f:new THREE.Quaternion(),g:new THREE.Quaternion(),h:new THREE.Quaternion(),i:new THREE.Quaternion()},
   RV={a:new THREE.Vector3(),b:new THREE.Vector3()},RQ1=new THREE.Quaternion(),RAXZ=new THREE.Vector3(0,0,1),RPEL=new THREE.Vector3(),
   RSEAT={sit:1,suv:1,drive:1,bike:1},RKSEAT={sit:.0,suv:.0,drive:.0,bike:.0};

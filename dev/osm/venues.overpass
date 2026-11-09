@@ -1,0 +1,12 @@
+[out:json][timeout:180];
+(
+  nwr["amenity"~"^(restaurant|cafe|bar|pub|fast_food|nightclub|biergarten|food_court|ice_cream|cinema|theatre|arts_centre|casino|internet_cafe|pharmacy|bank|atm|post_office|hospital|clinic|doctors|dentist|veterinary|school|kindergarten|university|college|library|fuel|car_wash|car_rental|marketplace|community_centre|events_venue|social_centre|place_of_worship|police|fire_station|townhall|courthouse|bus_station|ferry_terminal|bicycle_rental|boat_rental|public_bath|spa|planetarium|studio|driving_school|language_school|music_school)$"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["shop"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["leisure"~"^(fitness_centre|sports_centre|stadium|swimming_pool|water_park|amusement_arcade|adult_gaming_centre|bowling_alley|dance|escape_game|miniature_golf|ice_rink|sauna|marina|beach_resort|golf_course|horse_riding|sports_hall|playground|park|garden|dog_park|pitch)$"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["tourism"~"^(hotel|hostel|motel|guest_house|apartment|museum|gallery|attraction|viewpoint|zoo|aquarium|theme_park|artwork|camp_site|information)$"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["historic"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["office"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["craft"]["name"](46.339,30.6185,46.637,30.8165);
+  nwr["railway"~"^(station|halt)$"]["name"](46.339,30.6185,46.637,30.8165);
+);
+out center tags;

@@ -14,6 +14,7 @@ const SH_BRANDS={
   lidl:{name:'LIDL',bg:'#0050aa',fg:'#fff000'},tavria:{name:'ТАВРІЯ В',bg:'#d21f26',fg:'#ffffff'},nike:{name:'NIKE',bg:'#111111',fg:'#ffffff'},adidas:{name:'adidas',bg:'#ffffff',fg:'#111111'},
   zara:{name:'ZARA',bg:'#f4f4f0',fg:'#111111'},hm:{name:'H&M',bg:'#e50010',fg:'#ffffff'},comfy:{name:'COMFY',bg:'#2d8f3a',fg:'#ffffff'},toys:{name:'TOY KINGDOM',bg:'#6a2cb8',fg:'#ffd84a'},
   mcd:{name:"McDonald's",bg:'#da291c',fg:'#ffc72c'},kfc:{name:'KFC',bg:'#e4002b',fg:'#ffffff'},bk:{name:'BURGER KING',bg:'#d62300',fg:'#f5ebdc'},shaw:{name:'ШАУРМА',bg:'#2e6b2e',fg:'#ffe066'},
+  pub:{name:'SEA PUB',bg:'#18384a',fg:'#f2c14e'},bar:{name:'RIVER BAR',bg:'#442627',fg:'#f4d8b8'},bowling:{name:'BOWLING CLUB',bg:'#213d66',fg:'#f2c14e'},
   pizza:{name:'PIZZA',bg:'#b3141b',fg:'#ffffff'},sushi:{name:'SUSHI',bg:'#15151a',fg:'#ff4a55'},kebab:{name:'KEBAB HOUSE',bg:'#6b3a1a',fg:'#ffd27a'},gelato:{name:'GELATO',bg:'#ff8fb8',fg:'#ffffff'},
   coffee:{name:'COFFEE',bg:'#4a2f1d',fg:'#f6e7cf'},bakery:{name:'BAKERY',bg:'#c98a3a',fg:'#fff4de'},tea:{name:'BUBBLE TEA',bg:'#35b6a8',fg:'#ffffff'},smoothie:{name:'SMOOTHIES',bg:'#78b52c',fg:'#ffffff'},
   flowers:{name:'FLOWERS',bg:'#c2417b',fg:'#ffffff'},pharmacy:{name:'АПТЕКА',bg:'#1f9d55',fg:'#ffffff'},phones:{name:'iSTORE · PHONES',bg:'#1b1b1f',fg:'#ffffff'},sweets:{name:'SWEETS',bg:'#e05a8b',fg:'#fff1f6'},
@@ -50,6 +51,9 @@ function shEnv(grp,ox,oz,H,Pext){const P=Pext||new PB(),E={grp,P,ox,oz,H,peds:[]
   E.plate=(lines,x,y,z,ry,w,h,opt)=>{const m=plateMesh(lines,Object.assign({w:1024,h:Math.round(1024*h/w),size:130,color:'#fff',bg:'#333',weight:'900'},opt||{}),w,h,opt&&opt.emis!==undefined?opt.emis:.8);m.position.set(ox+x,INT_Y+y,oz+z);m.rotation.y=ry;grp.add(m);return m};
   E.logo=(key,x,y,z,ry,w,h,glow)=>{const m=shLogoMesh(key,w,h,glow);m.position.set(ox+x,INT_Y+y,oz+z);m.rotation.y=ry;grp.add(m);return m};
   E.act=(x,z,r,label,fn)=>INTERACT.push({x:ox+x,z:oz+z,r,label,fn});
+  // own Blender models (dev/blender/shopkit.py + venkit.py): placed at the footprint centre, merged per material (bake); window.SH_BOX=1 brings the old box furniture back
+  E.glb=typeof MDL!=='undefined'&&!window.SH_BOX;
+  E.mdl=(name,x,z,ry,o)=>MDL.put(grp,name,Object.assign({x:ox+x,y:INT_Y+((o&&o.dy)||0),z:oz+z,ry:ry||0,keep:1,bake:1},o));
   // the walkable floor of a room built from boxes: stepPlayer refuses every step inside an interior that has no ground function (room() adds one for the older interiors)
   E.floor=(x0,x1,z0,z1,surf)=>SPECIAL.push((x,z)=>{if(!grp.visible)return null;const lx=x-ox,lz=z-oz;return lx>x0&&lx<x1&&lz>z0&&lz<z1?{h:INT_Y,pri:9,surf:surf||'wood'}:null});
   E.ped=(x,z,yaw,route,o)=>{const p=intPed(ox+x,oz+z,yaw,route&&route.map(q=>[ox+q[0],oz+q[1]]));if(o)Object.assign(p,o);p.basket=!!(o&&o.basket);E.peds.push(p);return p};
@@ -73,6 +77,11 @@ function shUnit(E,side,x0,x1,z0,z1){const horiz=side==='S'||side==='N',W=horiz?x
   U.cash=(u,v,faceOut,key,seed)=>{const p=U.P(u,v);return E.cash(p[0],p[1],faceOut?ry:ry+Math.PI,key,seed||Math.round((p[0]*7.3+p[1]*3.1)*10))};
   // a facing row of goods starting at (u,v), running along (du,dv) for len metres, labels turned towards (fu,fv); all in unit coordinates
   U.row=(cat,u,y,v,du,dv,len,fu,fv,seed,o)=>{const p=U.P(u,v);E.rowW(cat,p[0],y,p[1],t[0]*du-n[0]*dv,t[1]*du-n[1]*dv,len,Math.atan2(t[0]*fu-n[0]*fv,t[1]*fu-n[1]*fv),seed,o)};
+  // a model at (u,v); a turns it from facing the opening (0) to the back wall (PI), +PI/2 faces along +u
+  U.glb=E.glb;
+  U.m=(name,u,v,a,o)=>{const p=U.P(u,v);return E.mdl(name,p[0],p[1],ry+(a||0),o)};
+  // a run of 1 m modules centred on (u,v), stretched a little to fill len; along 'u' or 'v' (the model's x axis follows the run)
+  U.strip=(name,u,v,len,along,a,o)=>{const n=Math.max(1,Math.round(len)),k=len/n,h=along==='v';for(let i=0;i<n;i++){const s=-len/2+(i+.5)*k;U.m(name,h?u:u+s,h?v+s:v,(h?Math.PI/2:0)+(a||0),Object.assign({sc:[k,1,1]},o))}};
   return U}
 
 // shop front: pillars at both ends, a fascia with the logo above the opening and a light strip under it
@@ -85,50 +94,61 @@ function shFront(U,key,opt){opt=opt||{};const E=U.E,H=E.H,W=U.W,b=SH_BRANDS[key]
 // ---------- supermarket (Lidl, Tavria V) ----------
 function shMarket(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,cols=['#d8372a','#f2c418','#2f6db0','#3f9a4a','#e07a2a','#8a4ab0','#f4f4f0','#7a3b1e'],b=SH_BRANDS[key];
   // open chillers along the back wall: milk, yoghurt, cheese and drinks on lit shelves (real packs, see products.js)
-  {const fw=W-1.4;U.box(0,1.15,D-.08,fw,2.3,.1,'#cfe3ee',1);U.box(0,.1,D-.45,fw,.2,.8,'#8e969c',6);U.box(0,2.36,D-.45,fw+.1,.12,.9,b.bg,0);U.box(0,2.27,D-.5,fw-.2,.04,.6,'#f4fbff',8);
-    for(const s of [-1,1])U.box(s*fw/2,1.15,D-.45,.08,2.3,.8,'#8e969c',6);
-    [.3,.78,1.26,1.74].forEach((y,l)=>{U.box(0,y-.01,D-.46,fw-.1,.03,.7,'#e4eaee',1);U.row(l===3?'drinks':'fridge',-fw/2+.1,y+.02,D-.64,1,0,fw-.2,0,-1,31+l*5,{gap:.04})});
+  {const fw=W-1.4;
+    if(U.glb)U.strip('sh_chiller',0,D-.45,fw,'u',0,{tints:{tint_a:b.bg}});
+    else{U.box(0,1.15,D-.08,fw,2.3,.1,'#cfe3ee',1);U.box(0,.1,D-.45,fw,.2,.8,'#8e969c',6);U.box(0,2.36,D-.45,fw+.1,.12,.9,b.bg,0);U.box(0,2.27,D-.5,fw-.2,.04,.6,'#f4fbff',8);
+      for(const s of [-1,1])U.box(s*fw/2,1.15,D-.45,.08,2.3,.8,'#8e969c',6)}
+    [.3,.78,1.26,1.74].forEach((y,l)=>{if(!U.glb)U.box(0,y-.01,D-.46,fw-.1,.03,.7,'#e4eaee',1);U.row(l===3?'drinks':'fridge',-fw/2+.1,y+.02,D-.64,1,0,fw-.2,0,-1,31+l*5,{gap:.04})});
     U.obb(0,D-.45,fw/2,.45)}
   // aisles: gondola shelves running along the opening, real packs facing both ways
   const rows=[];for(let v=4.2;v<D-2.6;v+=3.1)rows.push(v);
   const AIS=[[['snacks','sweets','snacks','pantry'],['drinks','drinks','mix','drinks']],[['pantry','pantry','coffee','sweets'],['home','pantry','home','pantry']],[['bakery','pantry','pantry','pantry'],['mix','snacks','sweets','drinks']],[['mix','pantry','snacks','sweets'],['drinks','mix','drinks','pantry']]];
   rows.forEach((v,ri)=>{const len=W-(opt.cross||9),u0=-len/2,A=AIS[ri%AIS.length];
-    U.box(0,.08,v,len,.16,.9,'#8e969c',6);U.box(0,.9,v,len,1.8,.06,'#c9ccd0',6);U.obb(0,v,len/2,.55);
-    for(const s of [-1,1])U.box(s*len/2,.9,v,.06,1.8,.9,'#c9ccd0',6);
-    for(let l=0;l<4;l++)for(const sd of [-1,1]){const y=.22+l*.4;U.box(0,y,v+sd*.22,len-.06,.03,.4,'#e8e8e4',1);U.row(A[sd<0?0:1][l],u0+.06,y+.015,v+sd*.22,1,0,len-.12,0,sd<0?-1:1,ri*40+l*7+(sd<0?0:3),{gap:.03})}
-    U.box(0,1.95,v,len,.14,.5,b.bg,0)});
+    if(U.glb){U.strip('sh_gond',0,v,len,'u',0,{tints:{tint_a:b.bg}});for(const s of [-1,1])U.m('sh_gond_end',s*len/2,v,s*Math.PI/2,{tints:{tint_a:b.bg,tint_b:b.fg||'#f2c418'}});U.obb(0,v,len/2+.2,.55)}
+    else{U.box(0,.08,v,len,.16,.9,'#8e969c',6);U.box(0,.9,v,len,1.8,.06,'#c9ccd0',6);U.obb(0,v,len/2,.55);
+      for(const s of [-1,1])U.box(s*len/2,.9,v,.06,1.8,.9,'#c9ccd0',6)}
+    for(let l=0;l<4;l++)for(const sd of [-1,1]){const y=.22+l*.4;if(!U.glb)U.box(0,y,v+sd*.22,len-.06,.03,.4,'#e8e8e4',1);U.row(A[sd<0?0:1][l],u0+.06,y+.015,v+sd*.22,1,0,len-.12,0,sd<0?-1:1,ri*40+l*7+(sd<0?0:3),{gap:.03})}
+    if(!U.glb)U.box(0,1.95,v,len,.14,.5,b.bg,0)});
   // fruit and veg crates along the side walls
-  for(const s of [-1,1])for(let k=0;k<3;k++){const u=s*(W/2-1.2),v=1.2+k*1.3;U.box(u,.4,v,1,.8,1.1,'#b98a4a',5);U.obb(u,v,.55,.6);for(let r=-1;r<=1;r++)U.row('fresh',u-.4,.8,v+r*.32,1,0,.8,0,-1,k*9+r*3+(s>0?5:0),{gap:.04})}
-  // checkouts: belt, till desk and a cashier at each manned lane (the middle of the opening stays free)
-  const lanes=[-W/2+3.2,-W/2+6.2,W/2-3.2,W/2-6.2];lanes.forEach((u,i)=>{U.box(u,.5,1.2,.9,1,1.8,'#34363b',1);U.box(u,1.02,1.2,.96,.05,1.86,'#1c1d20',1);U.box(u,.5,2.4,1.1,1,.9,'#e4e4de',1);U.box(u,1.02,2.4,1.16,.05,.96,'#9aa0a6',1);
-    U.box(u,1.27,2.5,.46,.32,.06,'#1f1f22',0);U.box(u,1.07,2.1,.32,.03,.2,'#222',1);U.box(u,1.9,.2,.1,.5,.1,b.bg,3);U.obb(u,1.5,.6,1.25);
-    if(i<3)U.cash(u,3.1,true,key,i+1)});
-  U.act(-W/2+4.7,.2,1.7,'Pay at the checkout',shPayBasket);U.act(W/2-4.7,.2,1.7,'Pay at the checkout',shPayBasket);
+  for(const s of [-1,1])for(let k=0;k<3;k++){const u=s*(W/2-1.2),v=1.2+k*1.3;if(U.glb)U.m('sh_produce',u,v,0);else U.box(u,.4,v,1,.8,1.1,'#b98a4a',5);U.obb(u,v,.55,.6);for(let r=-1;r<=1;r++)U.row('fresh',u-.4,.8,v+r*.32,1,0,.8,0,-1,k*9+r*3+(s>0?5:0),{gap:.04})}
+  // checkouts: belt, till desk and a cashier at each manned lane — DEEP inside the hall (like Lidl / Tavria V):
+  // the middle of the opening stays free, the desks sit past the last aisle row, at the back wall end of the shop
+  const lanes=[-W/2+3.2,-W/2+6.2,W/2-6.2,W/2-3.2];lanes.forEach((u,i)=>{if(U.glb)U.m('sh_checkout',u,1.575,0,{tints:{tint_a:b.bg}});else{U.box(u,.5,D-1.4,.9,1,1.8,'#34363b',1);U.box(u,1.02,D-1.4,.96,.05,1.86,'#1c1d20',1);U.box(u,.5,D-.2,1.1,1,.9,'#e4e4de',1);U.box(u,1.02,D-.2,1.16,.05,.96,'#9aa0a6',1);
+    U.box(u,1.27,D-.1,.46,.32,.06,'#1f1f22',0);U.box(u,1.07,D-.5,.32,.03,.2,'#222',1);U.box(u,1.9,D-.4,.1,.5,.1,b.bg,3)}U.obb(u,D-1.1,.6,1.25);
+    if(i<3)U.cash(u,D-.3,true,key,i+1)});
+  U.act(-W/2+4.7,.2,D-2.2,'Pay at the checkout',shPayBasket);U.act(W/2-4.7,.2,D-2.2,'Pay at the checkout',shPayBasket);
   // things to take
   const goods=opt.goods||['milk','bread','juice','apples','crisps','cheese','chocolate','cola','water','sausage'];
   goods.forEach((g,i)=>{const r=rows[i%rows.length],u=-((W-9)/2)+1.6+Math.floor(i/rows.length)*((W-9)/Math.max(1,Math.ceil(goods.length/rows.length))),v=r-1.35;
-    U.act(u,v,1.25,'Take '+g+' · '+WALLET.fmt(PRICE[g]),()=>addItem(g))});
+    U.act(u,v,1.25,'Take '+g+' · '+WALLET.fmt(PRICE[g]),()=>{addItem(g);shHold(g)});
+    const hit=new THREE.Mesh(new THREE.SphereGeometry(.38,8,6),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+    hit.position.set(E.ox+u,INT_Y+1.05,E.oz+v);E.grp.add(hit);INTERACT[INTERACT.length-1].rayObj=hit});
   // hanging aisle numbers
   rows.forEach((v,ri)=>U.plate([String(ri+1)],0,3.4,v,.9,.9,{bg:b.bg,color:b.fg,size:120,w:256,h:256},false))}
 
 // ---------- sports / fashion shop with brand clothes you can buy and wear ----------
 function shClothesRack(U,u,v,c,faceIn){const E=U.E,metal='#9aa0a6',hex=n=>'#'+n.toString(16).padStart(6,'0'),colr=hex(c.o.shirt||c.o.jeans||c.o.shoe||0x888888);
-  if(c.slot==='top'||c.slot==='bottom'){U.box(u,1.6,v,1.3,.05,.05,metal,6);for(const s of [-.62,.62])U.box(u+s,.8,v,.05,1.6,.05,metal,6);
+  if(U.glb)U.m(c.slot==='top'?'sh_rack_top':c.slot==='bottom'?'sh_rack_pants':'sh_shoestand',u,v,0,{tints:{tint_a:colr,tint_b:'#f2f2ee'}});
+  else if(c.slot==='top'||c.slot==='bottom'){U.box(u,1.6,v,1.3,.05,.05,metal,6);for(const s of [-.62,.62])U.box(u+s,.8,v,.05,1.6,.05,metal,6);
     for(let i=0;i<5;i++)U.box(u-.5+i*.25,c.slot==='top'?1.22:1.05,v,.05,c.slot==='top'?.7:1.0,.48,colr,0)}
   else{U.box(u,.45,v,1.2,.9,.5,'#efe9dc',5);for(let i=0;i<3;i++)U.box(u-.38+i*.38,.98,v,.3,.16,.42,colr,1)}
   U.obb(u,v,.68,.3);const p=U.P(u,v+(faceIn?-1.1:1.1));E.act(p[0],p[1],1.15,null,()=>WARDROBE.rack(c));const it=INTERACT[INTERACT.length-1];Object.defineProperty(it,'label',{get(){return WARDROBE.label(c)}})}
-function shMannequin(U,u,v,col){const c=col||'#d9d4c8';U.box(u,.45,v,.14,.9,.14,c,0);U.box(u+.14,.45,v,.14,.9,.14,c,0);U.box(u+.07,1.2,v,.42,.6,.2,'#f0f0f0',0);U.box(u+.07,1.68,v,.2,.26,.2,c,0);U.box(u+.07,.04,v,.5,.06,.5,'#222',1)}
+function shMannequin(U,u,v,col){const c=col||'#d9d4c8';if(U.glb){U.m('mannequin',u+.07,v,0,{tints:{tint_top:'#f0f0f0',tint_bottom:c}});return}U.box(u,.45,v,.14,.9,.14,c,0);U.box(u+.14,.45,v,.14,.9,.14,c,0);U.box(u+.07,1.2,v,.42,.6,.2,'#f0f0f0',0);U.box(u+.07,1.68,v,.2,.26,.2,c,0);U.box(u+.07,.04,v,.5,.06,.5,'#222',1)}
 function shSport(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,b=SH_BRANDS[key],ink=key==='adidas'||key==='zara'?'#111':'#fff';
   // logo wall and shoe wall at the back
   U.box(0,2.05,D-.15,W-.8,4.0,.2,key==='adidas'?'#f2f2ee':b.bg,0);U.logo(key,0,3.5,D-.3,Math.min(W-3,10),Math.min(W-3,10)*.25,false,.9);
-  for(let l=0;l<3;l++)for(let i=0;i<Math.floor((W-3)/.9);i++){const u=-(W-3)/2+.45+i*.9;U.box(u,.5+l*.62,D-.5,.8,.04,.55,'#fff',0);U.box(u,.66+l*.62,D-.5,.5,.2,.3,['#ff6a00','#f2f2ee','#2a62b8','#111','#d9261c','#2ad1ff'][(i+l*2)%6],0)}
+  const SNK=['#ff6a00','#f2f2ee','#2a62b8','#111','#d9261c','#2ad1ff'];
+  if(U.glb){for(let i=0;i<Math.floor((W-3)/.9);i++)U.m('sh_shoewall',-(W-3)/2+.45+i*.9,D-.5,0,{tints:{tint_a:SNK[i%6],tint_b:SNK[(i+2)%6],tint_c:SNK[(i+4)%6]}})}
+  else for(let l=0;l<3;l++)for(let i=0;i<Math.floor((W-3)/.9);i++){const u=-(W-3)/2+.45+i*.9;U.box(u,.5+l*.62,D-.5,.8,.04,.55,'#fff',0);U.box(u,.66+l*.62,D-.5,.5,.2,.3,SNK[(i+l*2)%6],0)}
   U.obb(0,D-.4,(W-3)/2,.5);
   // clothes racks along both side walls and central tables
   const items=opt.items||[];let k=0;for(const s of [-1,1])for(let v=4;v<D-3;v+=3.2){const u=s*(W/2-1.6);const c=items[k++%Math.max(1,items.length)];
-    if(c)shClothesRack(U,u,v,c,s>0);else{U.box(u,1.6,v,.05,.05,1.3,'#9aa0a6',6);for(let i=0;i<5;i++)U.box(u,1.2,v-.5+i*.25,.48,.7,.05,['#2b2b2e','#f2f2ee','#ff6a00','#2a62b8','#d9261c'][(i+k)%5],0);U.obb(u,v,.3,.7)}}
-  for(const u of [-W/4,W/4]){U.box(u,.45,D*.55,2.2,.9,1.2,'#ece6da',5);for(let i=0;i<3;i++)U.box(u-.7+i*.7,1.0,D*.55,.5,.2,.4,['#ff6a00','#2b2b2e','#f2f2ee'][i],0);U.obb(u,D*.55,1.1,.6)}
+    if(c)shClothesRack(U,u,v,c,s>0);else{if(U.glb)U.m('sh_rack_top',u,v,Math.PI/2,{tints:{tint_a:['#2b2b2e','#f2f2ee','#ff6a00','#2a62b8','#d9261c'][k%5],tint_b:'#f2f2ee'}});
+      else{U.box(u,1.6,v,.05,.05,1.3,'#9aa0a6',6);for(let i=0;i<5;i++)U.box(u,1.2,v-.5+i*.25,.48,.7,.05,['#2b2b2e','#f2f2ee','#ff6a00','#2a62b8','#d9261c'][(i+k)%5],0)}U.obb(u,v,.3,.7)}}
+  for(const u of [-W/4,W/4]){if(U.glb){U.strip('sh_table',u,D*.55,2.2,'u');for(let i=0;i<3;i++)U.m('sh_sneaker',u-.7+i*.7,D*.55,0,{dy:.9,tints:{tint_a:['#ff6a00','#2b2b2e','#f2f2ee'][i]}})}
+    else{U.box(u,.45,D*.55,2.2,.9,1.2,'#ece6da',5);for(let i=0;i<3;i++)U.box(u-.7+i*.7,1.0,D*.55,.5,.2,.4,['#ff6a00','#2b2b2e','#f2f2ee'][i],0)}U.obb(u,D*.55,1.1,.6)}
   shMannequin(U,-W/2+3.2,2.4);shMannequin(U,W/2-3.6,2.4,'#c8b89a');shMannequin(U,.0,D*.85,'#d9d4c8');
-  U.box(0,.55,2.2,2.6,1.1,.9,'#1b1b1e',1);U.box(0,1.12,2.2,2.7,.06,1,'#e8e4da',1);U.obb(0,2.2,1.35,.5);if(opt.ped!==false)U.cash(0,3.0,true,key,key.length*5)}
+  if(U.glb)U.m('shop_counter',0,2.2,0,{tints:{tint_wood:'#1b1b1e',tint_panel:'#2a2a2e'}});else{U.box(0,.55,2.2,2.6,1.1,.9,'#1b1b1e',1);U.box(0,1.12,2.2,2.7,.06,1,'#e8e4da',1)}U.obb(0,2.2,1.35,.5);if(opt.ped!==false)U.cash(0,3.0,true,key,key.length*5)}
 
 // ---------- small shops: a back wall of goods, a counter, a few things to buy ----------
 const SH_SMALL={
@@ -142,19 +162,20 @@ const SH_CAT={pharmacy:['pharma','pharma','home','pharma'],phones:['tech'],sweet
 function shSmall(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,b=SH_BRANDS[key]||{bg:'#333'},S=SH_SMALL[key]||{items:[],pal:['#ccc']},pal=S.pal,cat=SH_CAT[key],sd0=key.length*13;
   // back wall shelves
   U.box(0,1.3,D-.15,W-.6,2.6,.2,b.bg,0);
-  if(cat)for(let l=0;l<4;l++){const y=.3+l*.5;U.box(0,y-.01,D-.46,W-.9,.03,.34,'#e8e8e4',1);U.row(cat[l%cat.length],-(W-1.2)/2,y+.015,D-.5,1,0,W-1.2,0,-1,sd0+l*5,{gap:.05})}
-  else for(let l=0;l<4;l++)for(let i=0;i<Math.floor((W-1.2)/.5);i++){const u=-(W-1.2)/2+.25+i*.5;U.box(u,.5+l*.55,D-.45,.42,.3+((i+l)%3)*.08,.3,pal[(i*2+l)%pal.length],0)}
-  U.box(0,.04,D-.45,W-.6,.06,.5,'#444',1);U.obb(0,D-.4,(W-.6)/2,.4);
+  if(U.glb)U.strip('sh_wall',0,D-.46,W-.9,'u',0,{tints:{tint_a:'#f4f4f0'}});
+  if(cat)for(let l=0;l<4;l++){const y=.3+l*.5;if(!U.glb)U.box(0,y-.01,D-.46,W-.9,.03,.34,'#e8e8e4',1);U.row(cat[l%cat.length],-(W-1.2)/2,y+.015,D-.5,1,0,W-1.2,0,-1,sd0+l*5,{gap:.05})}
+  else for(let l=0;l<4;l++)for(let i=0;i<Math.floor((W-1.2)/.5);i++){const u=-(W-1.2)/2+.25+i*.5,h=.3+((i+l)%3)*.08;U.box(u,U.glb?.3+l*.5+.015+h/2:.5+l*.55,D-.45,.42,h,.3,pal[(i*2+l)%pal.length],0)}
+  if(!U.glb)U.box(0,.04,D-.45,W-.6,.06,.5,'#444',1);U.obb(0,D-.4,(W-.6)/2,.4);
   // side display tables
-  for(const s of [-1,1]){const u=s*(W/2-1.2),tl=Math.min(4,D-4);U.box(u,.45,D*.5,1.1,.9,tl,'#ece6da',5);
-    if(cat)for(const du of [-.27,.27])U.row(cat[((s>0?1:0)+(du>0?1:0))%cat.length],u+du,.93,D*.5-tl/2+.05,0,1,tl-.1,-s,0,sd0+(s>0?9:2)+(du>0?4:0),{gap:.05});
+  for(const s of [-1,1]){const u=s*(W/2-1.2),tl=Math.min(4,D-4);if(U.glb)U.strip('sh_table',u,D*.5,tl,'v');else U.box(u,.45,D*.5,1.1,.9,tl,'#ece6da',5);
+    if(cat)for(const du of [-.27,.27])U.row(cat[((s>0?1:0)+(du>0?1:0))%cat.length],u+du,U.glb?.905:.93,D*.5-tl/2+.05,0,1,tl-.1,-s,0,sd0+(s>0?9:2)+(du>0?4:0),{gap:.05});
     else for(let i=0;i<4;i++)U.box(u,.98,D*.5-1.4+i*.95,.5,.2,.6,pal[(i+(s>0?2:0))%pal.length],0);U.obb(u,D*.5,.6,tl/2)}
-  if(S.tall)for(let i=0;i<4;i++)U.box(-1.6+i*1.05,.9,D*.45,.5,1.8,.5,pal[i%pal.length],0);
-  if(W>20)for(let v=5.5;v<D-3;v+=3.6){U.box(0,.55,v,W-12,1.1,1.1,'#dadcd8',1);U.obb(0,v,(W-12)/2,.6);
-    if(cat)for(const sd of [-1,1])U.row(cat[(sd>0?1:0)%cat.length],-(W-12)/2+.05,1.13,v+sd*.3,1,0,W-12.1,0,sd<0?-1:1,sd0+v*3+sd,{gap:.05});
+  if(S.tall)for(let i=0;i<4;i++){const u=-1.6+i*1.05;if(U.glb){U.m('sh_flowers',u,D*.45,0,{tints:{tint_a:pal[i%pal.length],tint_b:pal[(i+1)%pal.length],tint_c:pal[(i+2)%pal.length]}});U.obb(u,D*.45,.5,.3)}else U.box(u,.9,D*.45,.5,1.8,.5,pal[i%pal.length],0)};
+  if(W>20)for(let v=5.5;v<D-3;v+=3.6){if(U.glb)U.strip('sh_island',0,v,W-12,'u');else U.box(0,.55,v,W-12,1.1,1.1,'#dadcd8',1);U.obb(0,v,(W-12)/2,.6);
+    if(cat)for(const sd of [-1,1])U.row(cat[(sd>0?1:0)%cat.length],-(W-12)/2+.05,U.glb?1.105:1.13,v+sd*.3,1,0,W-12.1,0,sd<0?-1:1,sd0+v*3+sd,{gap:.05});
     else for(let i=0;i<Math.floor((W-12)/.55);i++)for(const sd of [-1,1])U.box(-(W-12)/2+.3+i*.55,1.25,v+sd*.3,.46,.3,.3,pal[(i+(sd>0?2:0))%pal.length],0)}
   // counter with a till, shopkeeper behind
-  U.box(0,.55,2.0,2.6,1.1,.9,'#2a2a2e',1);U.box(0,1.12,2.0,2.7,.06,1,'#e8e4da',1);U.box(.6,1.3,2.0,.4,.35,.3,'#1b1b1f',0);U.obb(0,2.0,1.35,.5);
+  if(U.glb)U.m('shop_counter',0,2.0,0,{tints:{tint_wood:'#2a2a2e',tint_panel:'#3a3a40'}});else{U.box(0,.55,2.0,2.6,1.1,.9,'#2a2a2e',1);U.box(0,1.12,2.0,2.7,.06,1,'#e8e4da',1);U.box(.6,1.3,2.0,.4,.35,.3,'#1b1b1f',0)}U.obb(0,2.0,1.35,.5);
   if(opt.ped!==false)U.cash(0,3.0,true,key,sd0);
   // things to buy at the counter
   (S.items||[]).forEach(([n],i)=>U.act((i-(S.items.length-1)/2)*1.7,.2,1.2,'Buy '+n+' · '+WALLET.fmt(PRICE[n]),()=>shBuy(n,PRICE[n])))}
@@ -163,18 +184,70 @@ function shSmall(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,b=SH_BRANDS[key]
 const SH_MENU={mcd:[['Big Mac',139],['McNuggets ×6',119],['Fries',59]],kfc:[['Zinger burger',129],['Bucket ×9',299],['Fries',55]],bk:[['Whopper',149],['Chicken Royale',119],['Onion rings',59]],
   shaw:[['Shawarma classic',95],['Doner kebab',110],['Falafel wrap',85]],pizza:[['Margherita',139],['Pepperoni',169],['Calzone',149]],sushi:[['Philadelphia roll',189],['Maki set',159],['Miso soup',69]],
   kebab:[['Lamb kebab',160],['Chicken kebab',130],['Ayran',35]],gelato:[['Gelato ×2',75],['Waffle cone',55],['Milkshake',85]],coffee:[['Latte',65],['Cappuccino',60],['Croissant',50]],
-  bakery:[['Eclair',45],['Cinnamon roll',55],['Baguette',40]],tea:[['Bubble tea',95],['Mango tea',80],['Mochi',60]],smoothie:[['Berry smoothie',85],['Green smoothie',90],['Fruit cup',70]]};
+  bakery:[['Eclair',45],['Cinnamon roll',55],['Baguette',40]],tea:[['Bubble tea',95],['Mango tea',80],['Mochi',60]],smoothie:[['Berry smoothie',85],['Green smoothie',90],['Fruit cup',70]],
+  pub:[['Fish and chips',185],['Odesa mussels',240],['Kvass',45]],bar:[['Grilled vegetables',140],['Cheese plate',175],['Lemonade',55]]};
 function shFood(U,key,opt){opt=opt||{};const E=U.E,W=U.W,D=U.D,b=SH_BRANDS[key],menu=SH_MENU[key]||[];
   U.box(0,2.2,D-.2,W,4.4,.3,'#2b2b2f',0);                                     // kitchen wall
   U.box(0,2.1,D-.4,W-.4,4.0,.1,b.bg,0);
   U.logo(key,0,3.4,D-.52,Math.min(W-.6,8),Math.min(W-.6,8)*.25,false,1);
-  U.box(0,.6,D-1.2,W-1.2,1.2,.9,'#8e949a',6);U.obb(0,D-1.2,(W-1.2)/2,.5);          // grills and fridges
-  U.box(0,.55,1.4,W-.4,1.1,.9,b.bg,1);U.box(0,1.12,1.4,W-.3,.06,1,'#e8e4da',1);U.obb(0,1.4,(W-.4)/2,.5);     // counter
-  for(let i=0;i<3;i++)U.box(-W/2+1.2+i*1.5,1.3,1.35,.5,.35,.4,['#1f1f22','#c9a13a','#d8372a'][i],0);
+  if(U.glb){const fl=W-1.2,n=Math.max(1,Math.round(fl)),k=fl/n;for(let i=0;i<n;i++)U.m(i%2?'sh_line_b':'sh_line_a',-fl/2+(i+.5)*k,D-1.2,0,{sc:[k,1,1]})}
+  else U.box(0,.6,D-1.2,W-1.2,1.2,.9,'#8e949a',6);U.obb(0,D-1.2,(W-1.2)/2,.5);          // grills and fridges
+  if(U.glb)U.strip('sh_foodcounter',0,1.4,W-.4,'u',0,{tints:{tint_a:b.bg}});else{U.box(0,.55,1.4,W-.4,1.1,.9,b.bg,1);U.box(0,1.12,1.4,W-.3,.06,1,'#e8e4da',1)}U.obb(0,1.4,(W-.4)/2,.5);     // counter
+  for(let i=0;i<3;i++)if(U.glb)U.m('sh_foodset',-W/2+1.2+i*1.5,1.4,0,{dy:1.15,tints:{tint_a:['#2b2b2f','#c9a13a','#d8372a'][i]}});else U.box(-W/2+1.2+i*1.5,1.3,1.35,.5,.35,.4,['#1f1f22','#c9a13a','#d8372a'][i],0);
   // overhead menu board
   U.plate([b.name].concat(menu.map(m=>m[0]+'  ₴'+m[1])),0,3.3,1.9,Math.min(W-.8,6.4),1.8,{w:1024,h:288,sizes:[64,40,40,40],color:'#fff',bg:'rgba(10,10,12,.92)',weight:'800'},false);
   if(opt.ped!==false){U.cash(-W/4,2.8,true,key,key.length*3+1);U.cash(W/4,2.8,true,key,key.length*3+2)}
   menu.forEach(([n,p],i)=>U.act((i-(menu.length-1)/2)*Math.min(2.2,(W-1.6)/Math.max(1,menu.length-1)),-.35,1.25,'Order '+n+' · '+WALLET.fmt(p),()=>shBuy(n,p)))}
+
+function shBowling(U){
+  const E=U.E,W=U.W,D=U.D,laneCount=4,laneW=3.1,len=D-7,start=-D/2+2.8,pinZ=start+len-.6;
+  U.box(0,.1,0,W,.2,D,'#242b39',1);
+  U.box(0,3.3,D/2-.2,W,2.4,.35,'#192335',0);
+  U.plate(['BOWLING CLUB','Pick a lane · roll the ball'],0,3.2,D/2-.42,0,Math.min(W-1,12),2,{bg:'#18273e',color:'#f2c14e',sizes:[64,32]});
+  const balls=[],pins=[];
+  for(let lane=0;lane<laneCount;lane++){
+    const x=(lane-(laneCount-1)/2)*(laneW+.55);
+    U.box(x,.13,0,laneW,.16,D-1,'#a8794e',5);
+    U.box(x-laneW/2-.11,.28,0,.12,.3,D-1,'#d7c6a9',6);U.box(x+laneW/2+.11,.28,0,.12,.3,D-1,'#d7c6a9',6);
+    U.box(x,.22,pinZ,laneW*.72,.025,.13,'#fff0cf',8);
+    for(let row=0;row<4;row++)for(let col=0;col<=row;col++){
+      const m=new THREE.Mesh(new THREE.CylinderGeometry(.035,.075,.29,8),new THREE.MeshStandardMaterial({color:0xf4f1e8,roughness:.65}));
+      m.position.set(E.ox+x+(col-row/2)*.19,INT_Y+.16,E.oz+pinZ+row*.16);m.userData.lane=lane;E.grp.add(m);pins.push(m)
+    }
+    const ball=new THREE.Mesh(new THREE.SphereGeometry(.14,12,10),new THREE.MeshStandardMaterial({color:[0x27a3c4,0xe05a50,0x684cb5,0xf2c14e][lane],roughness:.3}));
+    ball.position.set(E.ox+x,INT_Y+.16,E.oz+start);ball.visible=false;E.grp.add(ball);balls.push({mesh:ball,x,z:0,lane,rollT:0});
+    U.box(x,.58,start-1.1,1.3,1.15,.2,'#303944',1);U.box(x,.85,start-.98,.85,.08,.08,'#f2c14e',8);
+    U.act(x,start-1.5,1.5,'Roll lane '+(lane+1),()=>{if(balls[lane].z>0)return;balls[lane].z=.01;balls[lane].mesh.visible=true;balls[lane].mesh.position.set(E.ox+x,INT_Y+.16,E.oz+start)})
+  }
+  for(let i=0;i<5;i++){U.box(-W/2+2+i*3.4,.45,D/2-2.2,2.5,.9,1.2,'#384352',1);U.obb(-W/2+2+i*3.4,D/2-2.2,1.3,.7)}
+  const tick=dt=>{if(PORTAL.cur!=='shop_bowling')return;for(const b of balls)if(b.z>0){b.z=Math.min(1,b.z+dt*.42);const pz=E.oz+start+len*b.z;b.mesh.position.set(E.ox+b.x,INT_Y+.16,pz);b.mesh.rotation.x+=dt*8;
+    if(b.z>=1){b.rollT+=dt;for(const pin of pins)if(pin.userData.lane===b.lane&&Math.abs(pin.position.z-pz)<.7)pin.rotation.z=.8;
+      if(b.rollT>2){b.z=0;b.rollT=0;b.mesh.visible=false;for(const pin of pins)if(pin.userData.lane===b.lane)pin.rotation.z=0}}}};
+  E.key='shop_bowling';ANIM.push(tick)
+}
+
+function shBuildCemetery(grp,P,GR,at){
+  const F=lotFrame(at.x,at.z,at.yaw),y0=rawH(at.x,at.z),w=106,d=78;lotPad(F,w+4,d+4,y0);
+  groundQuad(GR,[F.P(-w/2,-d/2),F.P(w/2,-d/2),F.P(w/2,d/2),F.P(-w/2,d/2)],4,y0+.05,F.yaw);
+  const fence=sRGB('#62696b'),stone=sRGB('#b9b7ac'),dark=sRGB('#555b5d');
+  const rail=(lx,lz,ww,dd)=>{const p=F.P(lx,lz);P.box(p[0],y0+1.05,p[1],ww,2.1,dd,F.yaw,fence,6)};
+  for(const s of [-1,1]){for(let x=-w/2;x<w/2;x+=4)rail(x,s*d/2,4,.12);
+    for(let z=-d/2;z<d/2;z+=4)rail(s*w/2,z,.12,4)}
+  for(let x=-w/2;x<=w/2;x+=4)rail(x,-d/2,4,.12);
+  for(let z=-d/2;z<d/2;z+=4)if(Math.abs(z)>5)rail(w/2,z,.12,4);
+  for(let row=0;row<5;row++)for(let col=0;col<8;col++){
+    const lx=-39+col*11.1,lz=-27+row*13.4;if(Math.abs(lx)<7&&lz<-20)continue;
+    const [x,z]=F.P(lx,lz),[sx,sz]=F.P(lx,lz+.6);P.box(x,y0+.13,z,1.45,.18,2.05,F.yaw,sRGB('#77766f'),1);
+    P.box(sx,y0+.5,sz,.72,.72,.18,F.yaw,stone,1);
+    P.box(sx,y0+.5,sz,.09,.43,.22,F.yaw,dark,1);addOBB(x,z,.72,1.02,F.a)
+  }
+  const [cx,cz]=F.P(0,d/2-5);P.box(cx,y0+2.5,cz,1.1,5,1.1,F.yaw,sRGB('#8b8b83'),1);
+  const sign=plateMesh(['MEMORIAL PARK'],{w:768,h:160,size:78,color:'#f4f1e8',bg:'#303638',weight:'800'},8,1.2,.7);sign.position.set(cx,y0+5.5,cz);sign.rotation.y=F.yaw;grp.add(sign);
+  const c0=F.P(-w/2+2,0),c1=F.P(w/2-2,0),c2=F.P(0,-d/2+2),g0=F.P(-w/4+1,-d/2),g1=F.P(w/4-1,-d/2);
+  addOBB(c0[0],c0[1],.12,d/2,F.a);addOBB(c1[0],c1[1],.12,d/2,F.a);addOBB(c2[0],c2[1],w/2,.12,F.a);
+  addOBB(g0[0],g0[1],w/4-3,.12,F.a);addOBB(g1[0],g1[1],w/4-3,.12,F.a);
+  const poi=F.P(0,d/2+7);PLACES.push({id:'cemetery',name:'Memorial Park',sub:'quiet memorial gardens',x:poi[0],z:poi[1],yaw:F.yaw,poi:['M','#7b8588']})
+}
 
 // ---------- what you bought is in your hand (first person: in front of the camera, third person: in the avatar's right hand) + a bag panel ----------
 const HELD={name:null,g:null};
@@ -199,25 +272,51 @@ function shHeldModel(name){const n=String(name||'').toLowerCase(),G=new THREE.Gr
   else if(n.includes('popcorn')){const T=0.075,Bm=0.05,h=.17;const cup=new THREE.Mesh(new THREE.CylinderGeometry(T,Bm,h,16,1,true),M(0xffffff,.6));cup.material.side=THREE.DoubleSide;G.add(cup);
     for(let i=0;i<8;i++){const a=i/8*6.283,w=new THREE.Mesh(new THREE.CylinderGeometry(T+.001,Bm+.001,h,2,1,true,a,.39),M(0xd6262d,.6));w.material.side=THREE.DoubleSide;G.add(w)}
     C(Bm,Bm,.004,0xd6262d,0,-h/2,0);for(let i=0;i<24;i++){const a=i*2.4,r=Math.sqrt(i/24)*.065,y=h/2-.005+Math.sin(i*1.7)*.012+(1-r/.065)*.03;S(.016+((i*7)%5)*.002,i%3?0xfff1c4:0xf6dc8a,Math.cos(a)*r,y,Math.sin(a)*r,1,.85,1)}}
-  else if(n==='cola'||n.includes('cola')){C(.03,.027,.15,0xc8102e,0,0,0);C(.0305,.0305,.05,0xf4f4f4,0,0,0);C(.012,.012,.02,0x222,0,.085,0)}
+  else if(n==='cola'||n.includes('cola')||n.includes('drink')){C(.03,.027,.15,0x168d91,0,0,0);C(.0305,.0305,.05,0xd7dbe0,0,0,0);C(.012,.012,.02,0x222,0,.085,0)}
+  else if(n.includes('milk')||n.includes('juice')){B(.085,.17,.07,0xf4f2e7,0,0,0);B(.088,.04,.074,n.includes('juice')?0xf09b3e:0x4a9bd2,0,.07,0);C(.018,.018,.02,0xe9f1f8,0,.1,0)}
+  else if(n.includes('water')){C(.04,.055,.18,0x9bd5ed,0,-.005,0);C(.016,.016,.03,0x4b94c1,0,.105,0)}
+  else if(n.includes('bread')||n.includes('loaf')){S(.09,0xb97832,0,0,0,1.6,.72,.82);for(let i=-1;i<=1;i++)B(.008,.1,.07,0xe6bc79,i*.04,.025,.048,.3,-.25,0)}
+  else if(n.includes('bun')||n.includes('croissant')){S(.072,0xc58a44,0,0,0,1.2,.72,.85);S(.035,0xd8a656,-.035,.035,.01);S(.035,0xd8a656,.035,.035,.01)}
+  else if(n.includes('apple')){S(.065,0xc83e35,0,0,0,1,.95,1);C(.006,.009,.025,0x59412b,0,.065,0)}
+  else if(n.includes('sausage')){C(.035,.035,.2,0xa84b3c,0,0,0,Math.PI/2,0)}
+  else if(n.includes('cheese')){B(.13,.09,.11,0xf2c84b,0,0,0);for(const [x,y] of [[-.03,.02],[.025,-.02]])S(.012,0xd9a92e,x,y,.058)}
+  else if(n.includes('chocolate')){B(.14,.08,.04,0x5c3328,0,0,0);for(let i=-1;i<=1;i++)B(.035,.065,.012,0x76483a,i*.045,0,.024,.0,0,0)}
+  else if(n.includes('crisps')){B(.13,.18,.045,0xe6b52d,0,0,0,0,0,0,.2);B(.1,.045,.01,0xd84e37,0,.025,.026)}
+  else if(/fish|chips|mussel|grill|burger|fries|wrap|kebab|gelato|milkshake|smoothie|latte|cappuccino|muffin|baguette/i.test(n)){C(.065,.065,.018,0xf3e7d3,0,-.055,0);S(.05,n.includes('fish')?0xd4a15f:0x9e5937,0,0,0,.95,.55,.72);for(const x of [-.035,.035])S(.018,0x5a9a4c,x,.02,.025)}
   else if(n==='shopping bag'||true){B(.17,.22,.09,0xc8a06a,0,0,0);B(.17,.03,.09,0xb08955,0,.115,0);for(const x of [-.04,.04])C(.004,.004,.1,0x6a5430,x,.17,0,0,0)}
   G.traverse(o=>{if(o.isMesh)o.castShadow=false});return G}
-function shHold(name){if(HELD.g&&HELD.g.parent)HELD.g.parent.remove(HELD.g);HELD.name=name||null;HELD.g=name?shHeldModel(name):null}
+function shDisposeHeld(g){if(!g)return;if(g.parent)g.parent.remove(g);g.traverse(o=>{if(!o.isMesh)return;if(o.geometry)o.geometry.dispose();const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms)if(m)m.dispose()})}
+function shHold(name){if(HELD.g)shDisposeHeld(HELD.g);HELD.name=name||null;HELD.g=name?shHeldModel(name):null;
+  if(typeof PLR!=='undefined'&&PLR.can){PLR.can.visible=!name;PLR.hdHold=name?[1,1]:[0,0];if(name&&typeof hdGrip==='function')hdGrip(PLR,0,'can')}}
+const SH_EAT={item:null,t:0,dur:3.2};
+function shEdible(n){return /milk|water|juice|bread|bun|croissant|apple|crisps|cheese|yogurt|chocolate|cola|sausage|pizza|ice cream|hematogen|candy|fish|chips|mussel|grill|burger|fries|wrap|kebab|gelato|milkshake|smoothie|latte|cappuccino|muffin|baguette/i.test(n)}
+function shEat(name){
+  if(!shEdible(name)||!(BAG[name]>0)){toast('Not ready to eat','buy and pay for a food or drink first');return}
+  // first, the proper eat/drink animation (acts.js): bring it to the mouth, bite / sip, chew, swallow — then consume
+  const drinking=/milk|water|juice|cola|yogurt|milkshake|smoothie|latte|cappuccino/i.test(name);
+  if(typeof ACT!=='undefined'&&ACT.start&&!player.sit&&(typeof DRIVE==='undefined'||!DRIVE.on)&&(typeof RIDE==='undefined'||!RIDE.on)&&cam.dist<=.76){
+    cam.dist=2.3;cam.init=false;if(ACT.start('eat',{item:drinking?'cola':(name.match(/bread|bun|loaf|apple/i)?'bread':'milk'),bite:1.0,onEnd(ok){if(!ok)return;BAG[name]=Math.max(0,(BAG[name]||0)-1);if(!BAG[name])delete BAG[name];shHold(null);toast(drinking?'Glug':'Nom nom',name);const p=document.getElementById('bagPanel');if(p&&!p.hidden)shBagPanel()}}))return}
+  shHold(name);SH_EAT.item=name;SH_EAT.t=0;toast('Enjoy your snack',name)
+}
 function shHeldTick(dt){const g=HELD.g;if(!g||typeof PLR==='undefined'||!PLR)return;
+  if(typeof hdGrip==='function'){PLR.hdHold=[1,1];hdGrip(PLR,0,'can')}
+  const eating=SH_EAT.item===HELD.name;  if(eating){SH_EAT.t+=dt;if(SH_EAT.t>=SH_EAT.dur){const n=SH_EAT.item;SH_EAT.item=null;SH_EAT.t=0;BAG[n]=Math.max(0,(BAG[n]||0)-1);if(!BAG[n])delete BAG[n];shHold(null);if(typeof toast==='function')toast('Finished',n);const p=document.getElementById('bagPanel');if(p&&!p.hidden)shBagPanel();return}}
+  const e=eating?Math.sin(Math.min(1,SH_EAT.t/1.2)*Math.PI/2):0;
   const fp=started&&cam.dist<=.75&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!MARINE.cur&&!HELI.on&&!PASS.host,tp=!fp&&PLR.root.visible&&!!PLR.arms;
   if(fp){if(!camera.parent)scene.add(camera);if(g.parent!==camera)camera.add(g);const sw=Math.hypot(player.vx||0,player.vz||0),t=UNI.uTime.value;
-    g.position.set(.3,-.3+Math.sin(t*6)*.006*Math.min(1,sw),-.72);g.rotation.set(.25,-.5,.1);g.scale.setScalar(.9);g.visible=true}
-  else if(tp){const el=PLR.arms[0].el;if(g.parent!==el)el.add(g);g.position.set(0,-.3,.09);g.rotation.set(.0,.4,0);g.scale.setScalar(1);g.visible=true}
+    g.position.set(.3-e*.12,-.3+Math.sin(t*6)*.006*Math.min(1,sw)+e*.12,-.72+e*.29);g.rotation.set(.25+e*1.1,-.5,.1);g.scale.setScalar(.9*(1-(eating ? .22*Math.min(1,SH_EAT.t/SH_EAT.dur):0)));g.visible=true}
+  else if(tp){const hand=PLR.arms[0].hand;if(g.parent!==hand)hand.add(g);g.position.set(0,-.045+e*.025,.055+e*.13);g.rotation.set(e*.7,.4,0);g.scale.setScalar(1-(eating ? .22*Math.min(1,SH_EAT.t/SH_EAT.dur):0));g.visible=true}
   else g.visible=false}
 function shBagPanel(){let p=document.getElementById('bagPanel');
   if(!p){p=document.createElement('div');p.id='bagPanel';p.hidden=true;p.style.cssText='position:fixed;left:14px;top:132px;min-width:230px;max-width:80vw;padding:12px 14px;border-radius:14px;background:rgba(14,22,30,.9);color:#e9eef2;font:600 14px/1.3 system-ui,sans-serif;z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.45)';document.body.appendChild(p)}
   const rows=Object.entries(BAG).filter(([,v])=>v>0);
   p.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:8px"><b>🎒 Your bag</b><span id="bagX" style="cursor:pointer;opacity:.7">✕</span></div>'+
-    (rows.length?rows.map(([k,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)"><span>'+k+(v>1?' ×'+v:'')+(HELD.name===k?' · <i style="color:#7fe38a">in hand</i>':'')+'</span><button data-k="'+k.replace(/"/g,'')+'" style="padding:4px 10px;border-radius:8px;border:0;background:#f2c14e;color:#222;font-weight:700;cursor:pointer">'+(HELD.name===k?'Put away':'Hold')+'</button></div>').join(''):'<div style="opacity:.7">Nothing yet — buy something in a shop</div>');
+    (rows.length?rows.map(([k,v])=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)"><span>'+k+(v>1?' ×'+v:'')+(HELD.name===k?' · <i style="color:#7fe38a">in hand</i>':'')+'</span><button data-k="'+k.replace(/"/g,'')+'" style="padding:4px 10px;border-radius:8px;border:0;background:#f2c14e;color:#222;font-weight:700;cursor:pointer">'+(HELD.name===k?'Put away':'Hold')+'</button>'+(shEdible(k)?'<button data-eat="'+k.replace(/"/g,'')+'" style="padding:4px 8px;border-radius:8px;border:0;background:#78c985;color:#16251a;font-weight:700;cursor:pointer">Eat / drink</button>':'')+'</div>').join(''):'<div style="opacity:.7">Nothing yet — buy something in a shop</div>');
   p.querySelector('#bagX').onclick=()=>{p.hidden=true};
   p.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;shHold(HELD.name===k?null:k);shBagPanel()});
+  p.querySelectorAll('button[data-eat]').forEach(b=>b.onclick=()=>{shEat(b.dataset.eat);shBagPanel()});
   return p}
-function shBagInit(){const row=document.getElementById('topBtns');if(!row||document.getElementById('bBag'))return;const b=document.createElement('button');b.id='bBag';b.textContent='Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};row.appendChild(b)}
+function shBagInit(){const ex=document.getElementById('bBag'),row=document.getElementById('topBtns');if(!ex&&!row)return;const b=ex||document.createElement('button');b.id='bBag';if(!ex)b.textContent='Bag';b.onclick=()=>{const p=shBagPanel();p.hidden=!p.hidden;if(!p.hidden)shBagPanel().hidden=false};if(!ex)row.appendChild(b)}      // the button is static markup in the thumb cluster (next to the camera tile); the fallback appends it to the top row
 
 // ---------- atrium dressing: palms in planters and a glass roof over the concourse ----------
 function shPalm(E,x,z,h){const ox=E.ox,oz=E.oz,P=E.P,bark=sRGB('#7b5a3a'),bark2=sRGB('#8f6b45'),gr=[sRGB('#2f7a3a'),sRGB('#3f9a46'),sRGB('#2a6a34')];
@@ -340,8 +439,9 @@ function shBuildFloor(fl){
       const tops=CLOTHES.filter(c=>c.slot==='top'&&!/^(nk|ad)_/.test(c.id)),bots=CLOTHES.filter(c=>c.slot==='bottom'&&!/^(nk|ad)_/.test(c.id)),shoes=CLOTHES.filter(c=>c.slot==='shoes'&&!/^(nk|ad)_/.test(c.id));
       tops.forEach((c,i)=>shClothesRack(U,-10.4,2.6+i*1.5,c,false));
       bots.forEach((c,i)=>shClothesRack(U,-5.6+i*2.6,D-23-.9,c,false));shoes.forEach((c,i)=>shClothesRack(U,10.4,2.6+i*1.8,c,true));
-      U.box(0,1.3,5.2,2.4,2.6,2.4,'#7a1fa2',1);U.box(0,1.2,3.99,1.6,2.3,.04,'#dfe7ec',6);U.obb(0,5.2,1.25,1.25);U.act(0,2.9,1.2,'Fitting room · your own clothes back',()=>WARDROBE.reset());
-      U.box(4,.55,2.4,2.4,1.1,.9,'#7a1fa2',1);U.box(4,1.12,2.4,2.5,.06,1,'#e8e4da',1);U.box(4.4,1.3,2.4,.4,.35,.3,'#1b1b1f',0);U.obb(4,2.4,1.25,.5);
+      if(U.glb){U.m('fitting_room',-.6,4.7,0,{tints:{tint_wood:'#e8e2d4',tint_curtain:'#7a1fa2'}});U.m('fitting_room',.6,4.7,0,{tints:{tint_wood:'#e8e2d4',tint_curtain:'#2f6db0'}})}
+      else{U.box(0,1.3,5.2,2.4,2.6,2.4,'#7a1fa2',1);U.box(0,1.2,3.99,1.6,2.3,.04,'#dfe7ec',6)}U.obb(0,5.2,1.25,1.25);U.act(0,2.9,1.2,'Fitting room · your own clothes back',()=>WARDROBE.reset());
+      if(U.glb)U.m('shop_counter',4,2.4,0,{sc:[.92,1,1],tints:{tint_wood:'#7a1fa2',tint_panel:'#8a3fb2'}});else{U.box(4,.55,2.4,2.4,1.1,.9,'#7a1fa2',1);U.box(4,1.12,2.4,2.5,.06,1,'#e8e4da',1);U.box(4.4,1.3,2.4,.4,.35,.3,'#1b1b1f',0)}U.obb(4,2.4,1.25,.5);
       U.cash(4,3.5,true,'fashion',4)}
     // centre-south: hair salon, jewelry, sunglasses (lift in the corner)
     {const U=shUnit(E,'S',6,12,0,10);shSmall(U,'salon',{ped:false});shFront(U,'salon');E.wall(6,0,6,10,H);shSalon(E,U)}
@@ -388,10 +488,10 @@ function shSalon(E,U){const p=U.P(0,U.D-2.6),sx=E.ox+p[0],sz=E.oz+p[1],Y=INT_Y,M
 // food court: tables with stools in the middle of the hall
 function shFoodCourtSeating(E){const seats=[];SH_MALL.seats=seats;const c1='#f2f0ea',c2=['#e63946','#f2c14e','#2a9d8f','#ff8a3d'];let n=0;
   for(const z of [9.2,12.4,19.6,22.8,25.0])for(let i=-5;i<=5;i++){const x=i*5.0;if(z>=13&&z<=19.5&&Math.abs(x)<7)continue;if(z===25.0&&Math.abs(x)>22)continue;
-    E.box(x,.74,z,1.2,.06,1.2,c1,1);E.box(x,.37,z,.12,.74,.12,'#8a8f94',6);E.obb(x,z,.7,.7);
-    for(const [dx,dz] of [[-.95,0],[.95,0],[0,-.95],[0,.95]]){E.box(x+dx,.22,z+dz,.44,.44,.44,c2[((n+i+2)%4+4)%4],1);seats.push([x+dx,z+dz])}n++}
+    const sc=c2[((n+i+2)%4+4)%4];E.obb(x,z,.7,.7);if(E.glb)E.mdl('sh_courttable',x,z,0,{tints:{tint_a:sc}});else{E.box(x,.74,z,1.2,.06,1.2,c1,1);E.box(x,.37,z,.12,.74,.12,'#8a8f94',6)}
+    for(const [dx,dz] of [[-.95,0],[.95,0],[0,-.95],[0,.95]]){if(!E.glb)E.box(x+dx,.22,z+dz,.44,.44,.44,sc,1);seats.push([x+dx,z+dz])}n++}
   // planters and a kids' corner
-  for(const x of [-26,26]){E.box(x,.45,17,1.6,.9,1.6,'#8a8f94',1);E.box(x,1.6,17,1.2,1.5,1.2,'#2f7a3a',0);E.obb(x,17,.9,.9)}}
+  for(const x of [-26,26]){if(E.glb)E.mdl('sh_planter',x,17,0);else{E.box(x,.45,17,1.6,.9,1.6,'#8a8f94',1);E.box(x,1.6,17,1.2,1.5,1.2,'#2f7a3a',0)}E.obb(x,17,.9,.9)}}
 
 // ===================================================================================================
 // exteriors
@@ -467,7 +567,7 @@ function shBuildShop(grp,P,GR,spec,at){const F=lotFrame(at.x,at.z,at.yaw),y0=raw
 function shBrandInterior(spec){let E2=null,B=null;
   const o=Object.assign({w:20,d:14,h:3.6,floor:0xe4e0d6,fr:.3,wall:0xf0ece2,ceil:0xf6f4ef,title:spec.title,sub:spec.sub,lights:[3.5,9],lcol:0xfff4e0,li:2},spec.room||{});
   B=simpleInterior(spec.key,spec.idx,Object.assign(o,{furnish(P,grp,ox,oz,hw,D){E2=shEnv(grp,ox,oz,o.h,P);       // draw into the interior's own prop builder
-      const U=shUnit(E2,'N',-hw,hw,0,D);spec.fill(U,E2);U.act(0,.3,1.7,'Go outside',()=>PORTAL.exit());E2.fin();
+      const U=shUnit(E2,'N',-hw,hw,0,D);spec.fill(U,E2);U.act(0,.3,1.7,'Go outside',()=>leaveShop());E2.fin();
       return E2}}));
   B.onEnter=()=>{PORTAL.peds=E2?E2.peds:[]};return B}
 
@@ -496,13 +596,21 @@ function installShops(grp,G,P,Sg,GR){
     {brand:'nike',key:'shop_nike',idx:16,title:'Nike',sub:'sneakers and sportswear · Moldavanka',at:geo(46.468,30.712),size:[30,24],W:16,Dp:11,H:5,poi:['N','#111111'],fill:(U,E)=>{shSport(U,'nike',{items:[CLOTHES.find(c=>c.id==='nk_hoodie'),CLOTHES.find(c=>c.id==='nk_jersey'),CLOTHES.find(c=>c.id==='nk_pants'),CLOTHES.find(c=>c.id==='nk_airmax')].filter(Boolean)})},room:{w:16,d:12,h:3.8,floor:0xe9e7e2}},
     {brand:'adidas',key:'shop_adidas',idx:17,title:'Adidas',sub:'three stripes · French Boulevard',at:geo(46.452,30.752),size:[30,24],W:16,Dp:11,H:5,poi:['A','#1f1f1f'],fill:(U,E)=>{shSport(U,'adidas',{items:[CLOTHES.find(c=>c.id==='ad_jacket'),CLOTHES.find(c=>c.id==='ad_tee'),CLOTHES.find(c=>c.id==='ad_pants'),CLOTHES.find(c=>c.id==='ad_super')].filter(Boolean)})},room:{w:16,d:12,h:3.8,floor:0xe9e7e2}},
     {brand:'mcd',key:'shop_mcd',idx:18,title:"McDonald's",sub:'burgers by the beach · Arkadia',at:geo(46.428,30.757),size:[32,26],W:18,Dp:12,H:5,poi:['M','#da291c'],wall:'#f6e4b0',fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'mcd');shBurgerSeating(U)},room:{w:18,d:14,h:3.6,floor:0xd9d2c4}},
-    {brand:'shaw',key:'shop_shaw',idx:19,title:'Shawarma bar',sub:'shawarma and kebab · Slobidka',at:geo(46.481,30.69),size:[24,20],W:10,Dp:8,H:4.2,poi:['Ш','#2e6b2e'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'shaw')},room:{w:10,d:8,h:3.2,floor:0xd9d2c4}}
+    {brand:'shaw',key:'shop_shaw',idx:19,title:'Shawarma bar',sub:'shawarma and kebab · Slobidka',at:geo(46.481,30.69),size:[24,20],W:10,Dp:8,H:4.2,poi:['Ш','#2e6b2e'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'shaw')},room:{w:10,d:8,h:3.2,floor:0xd9d2c4}},
+    {brand:'pub',key:'shop_sea_pub',idx:20,title:'Sea Pub',sub:'seafood and local drinks · coastal district',at:geo(46.428,30.74),size:[30,24],W:18,Dp:12,H:5,poi:['P','#18384a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'pub');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
+    {brand:'bar',key:'shop_river_bar',idx:21,title:'River Bar',sub:'grill and late-night food · Peresyp',at:geo(46.505,30.72),size:[30,24],W:18,Dp:12,H:5,poi:['B','#442627'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'bar');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
+    {brand:'bowling',key:'shop_bowling',idx:22,title:'Bowling Club',sub:'four lanes and a lounge · Odesa',at:geo(46.466,30.765),size:[44,34],W:32,Dp:24,H:6,poi:['B','#213d66'],fill:(U,E)=>shBowling(U),room:{w:32,d:26,h:4.8}},
+    // two more bars on free lots (user request: fill the empty zones with real infrastructure)
+    {brand:'bar',key:'shop_old_port_bar',idx:23,title:'Old Port Bar',sub:'brandy, mussels and sea stories · Old Port',at:geo(46.487,30.735),size:[30,24],W:16,Dp:11,H:4.6,poi:['B','#2b3d54'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'bar')},room:{w:16,d:12,h:3.6}},
+    {brand:'pub',key:'shop_mold_pub',idx:24,title:'Moldavanka Pub',sub:'kvass, shashlik and chess · Moldavanka',at:geo(46.473,30.702),size:[30,24],W:16,Dp:11,H:4.6,poi:['P','#3d2a1a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'pub')},room:{w:16,d:12,h:3.6}}
   ];
   const lotFor=(s,fallbacks)=>shFindLot(s.at[0],s.at[1],s.size[0],s.size[1],900);
   for(const s of spots){const at=lotFor(s);if(at)shBuildShop(grp,P,GR,s,at);else console.warn('no lot found for',s.key)}
+  {const cem=shFindLot(...geo(46.515,30.69),106,78,1000);if(cem)shBuildCemetery(grp,P,GR,cem);else console.warn('no lot found for cemetery')}
   // Żabka and the car dealer: same shops as before, new addresses
   {const z=shFindLot(...geo(46.553,30.746),24,20,900);buildZabka(grp,P,GR,z||undefined);
    const d=shFindLot(...geo(46.575,30.72),48,36,900);buildDealer(grp,P,GR,d||undefined)}
 }
 // seating inside the burger shop
-function shBurgerSeating(U){for(const u of [-5.5,0,5.5]){const v=U.D*.4;U.box(u,.74,v,1.1,.06,1.1,'#f2f0ea',1);U.box(u,.37,v,.12,.74,.12,'#8a8f94',6);U.obb(u,v,.65,.65);for(const [du,dv] of [[-.85,0],[.85,0]])U.box(u+du,.22,v+dv,.44,.44,.44,'#da291c',1)}}
+function shBurgerSeating(U){for(const u of [-5.5,0,5.5]){const v=U.D*.4;U.obb(u,v,.65,.65);if(U.glb){U.m('sh_courttable',u,v,0,{tints:{tint_a:'#da291c'}});continue}
+  U.box(u,.74,v,1.1,.06,1.1,'#f2f0ea',1);U.box(u,.37,v,.12,.74,.12,'#8a8f94',6);for(const [du,dv] of [[-.85,0],[.85,0]])U.box(u+du,.22,v+dv,.44,.44,.44,'#da291c',1)}}
