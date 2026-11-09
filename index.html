@@ -198,11 +198,11 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #topBtns button:active,#coHud .coRow button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
 @media (hover:hover){#topBtns button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}}
 #topBtns button:focus-visible{outline:0;background:#fff;color:#0a0a0a;border-left-color:var(--sun)}
-#bVoice{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(228px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
+#bVoice{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(184px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
 #bVoice i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
 #bVoice.on{background:var(--hud-on);color:#17120a}
 #bVoice:disabled{opacity:.55}
-#bPhone{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(290px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
+#bPhone{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(246px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
 #bPhone i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
 #bPhone.on{background:var(--hud-on);color:#17120a}
 /* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
@@ -6278,6 +6278,39 @@ const AUD={
     };
     return voice;
   },
+  panner(dest){
+    const p=this.ctx.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=3;p.maxDistance=220;p.rolloffFactor=1.15;p.connect(dest||this.sfx);return p},
+  position(p,x,y,z){const T=this.ctx.currentTime;if(p.positionX){p.positionX.setTargetAtTime(x,T,.04);p.positionY.setTargetAtTime(y,T,.04);p.positionZ.setTargetAtTime(z,T,.04)}else p.setPosition(x,y,z)},
+  machine(kind){
+    if(!this.ok)return null;
+    const c=this.ctx,p=this.panner(),out=c.createGain(),lo=c.createOscillator(),hi=c.createOscillator(),wh=c.createOscillator(),ns=c.createBufferSource(),
+      lf=c.createBiquadFilter(),hf=c.createBiquadFilter(),wf=c.createBiquadFilter(),nf=c.createBiquadFilter(),lg=c.createGain(),hg=c.createGain(),wg=c.createGain(),ng=c.createGain();
+    out.gain.value=0;lo.type=kind==='sub'?'sine':'sawtooth';hi.type='triangle';wh.type='sine';ns.buffer=this.noise;ns.loop=true;
+    lf.type='lowpass';hf.type='lowpass';wf.type='lowpass';nf.type='bandpass';lf.frequency.value=180;hf.frequency.value=700;wf.frequency.value=1300;nf.frequency.value=400;nf.Q.value=.55;
+    lg.gain.value=.72;hg.gain.value=.28;wg.gain.value=.14;ng.gain.value=.28;
+    lo.connect(lf);lf.connect(lg);lg.connect(out);hi.connect(hf);hf.connect(hg);hg.connect(out);wh.connect(wf);wf.connect(wg);wg.connect(out);ns.connect(nf);nf.connect(ng);ng.connect(out);out.connect(p);
+    lo.start();hi.start();wh.start();ns.start();
+    const voice={kind,p,out,lo,hi,wh,lf,hf,wf,nf,lg,hg,wg,ng,sonarAt:0,
+      update(x,y,z,speed,throttle,active,depth,level){
+        const T=c.currentTime,s=Math.min(1,Math.abs(Number(speed)||0)/(kind==='jet'?120:kind==='plane'?95:kind==='heli'?45:kind==='sub'?8:36)),load=Math.max(0,Math.min(1,Math.abs(Number(throttle)||0))),
+          rpm=.18+s*.62+load*.2,under=kind==='sub'&&(depth||0)>4,vol=active?Math.max(0,Math.min(1,level===undefined?1:level))*(kind==='sub'?.085:.075)*(.42+rpm*.58):0;
+        AUD.position(p,Number(x)||0,Number(y)||0,Number(z)||0);
+        const aircraft=kind==='plane'||kind==='jet',base=aircraft?42:kind==='heli'?22:kind==='sub'?19:kind==='boat'?27:30;
+        lo.frequency.setTargetAtTime(base+rpm*(kind==='jet'?110:kind==='plane'?86:kind==='heli'?28:kind==='sub'?12:kind==='boat'?58:112),T,.12);
+        hi.frequency.setTargetAtTime((aircraft?115:kind==='heli'?82:kind==='sub'?32:kind==='boat'?55:65)+rpm*(kind==='jet'?300:kind==='plane'?210:kind==='heli'?95:kind==='sub'?20:kind==='boat'?130:360),T,.12);
+        wh.frequency.setTargetAtTime((aircraft?220:kind==='heli'?150:kind==='sub'?38:kind==='boat'?100:90)+load*(kind==='jet'?2200:kind==='plane'?1250:kind==='heli'?420:kind==='sub'?24:kind==='boat'?480:620)+s*180,T,.1);
+        lf.frequency.setTargetAtTime(under?95:aircraft?500:kind==='heli'?340:kind==='sub'?180:560,T,.18);
+        hf.frequency.setTargetAtTime(under?115:aircraft?1250:kind==='heli'?720:kind==='sub'?180:1100,T,.18);
+        wf.frequency.setTargetAtTime(under?150:kind==='jet'?2500:kind==='plane'?1900:kind==='heli'?850:kind==='sub'?220:1450,T,.18);
+        nf.frequency.setTargetAtTime(under?95:kind==='jet'?1300+load*900:kind==='plane'?800+load*900:kind==='heli'?260+rpm*220:kind==='sub'?115:260+s*700,T,.2);
+        out.gain.setTargetAtTime(vol,T,.16);
+        if(kind==='sub'&&depth>12&&active&&T>=this.sonarAt){
+          this.sonarAt=T+6.5;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(1100,T);o.frequency.exponentialRampToValueAtTime(420,T+.65);g.gain.setValueAtTime(.035,T);g.gain.exponentialRampToValueAtTime(.0001,T+.7);o.connect(g);g.connect(p);o.start(T);o.stop(T+.72)}
+      },
+      dispose(){for(const s of [lo,hi,wh,ns])try{s.stop()}catch(e){}for(const n of [lo,hi,wh,ns,lf,hf,wf,nf,lg,hg,wg,ng,out,p])try{n.disconnect()}catch(e){}}
+    };
+    return voice;
+  },
   impulse(sec,decay){const c=this.ctx,n=c.sampleRate*sec,b=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay)}return b},
   noiseBuf(sec){const c=this.ctx,n=c.sampleRate*sec,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=w*.6+last*2.5}return b},
   setScene(t,s){this.time=t;this.season=s},
@@ -6743,27 +6776,25 @@ function applyTextureAnisotropy(){
   });
 }
 // WebGL compiles a program the first time a material is actually drawn, which produced the
-// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Push every
-// program through the compiler while the loading overlay is still up.
-function warmupShaders(unhideAll){
+// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Compile
+// programs without un-hiding everything (that doubled GPU memory and could stall mobile Safari).
+function warmupShaders(){
   if(!renderer||!scene||!camera)return;
-  let forced=null;
-  if(unhideAll){
-    forced=[];
-    scene.traverse(o=>{if(o.isMesh&&o.visible===false){o.visible=true;forced.push(o)}});
-    if(typeof PORTAL!=='undefined'&&PORTAL&&PORTAL.built)for(const n in PORTAL.built){const g=PORTAL.built[n]&&PORTAL.built[n].grp;if(g&&!g.visible){g.visible=true;forced.push(g)}}
-  }
   const prevTone=renderer.toneMapping;
+  let rt=null,prevRT=null;
   try{
     camera.updateMatrixWorld(true);
-    renderer.compile(scene,camera);
-    const rt=new THREE.WebGLRenderTarget(8,8,{depthBuffer:true,stencilBuffer:false});
-    const prevRT=renderer.getRenderTarget();
-    renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(prevRT);
-    rt.dispose();
-  }catch(e){console.error('shader warmup failed',e)}
-  renderer.toneMapping=prevTone;
-  if(forced)for(const o of forced)o.visible=false;
+    // compile() may touch every material; keep it best-effort and never block gameplay startup.
+    if(typeof renderer.compile==='function')renderer.compile(scene,camera);
+  }catch(e){console.warn('shader compile warmup',e)}
+  try{
+    rt=new THREE.WebGLRenderTarget(2,2,{depthBuffer:true,stencilBuffer:false});
+    prevRT=renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.render(scene,camera);
+  }catch(e){console.warn('shader render warmup',e)}
+  try{if(rt){renderer.setRenderTarget(prevRT);rt.dispose()}}catch(e){}
+  try{renderer.toneMapping=prevTone}catch(e){}
   if(typeof cityLodT!=='undefined')cityLodT=0;
 }
 function applyQuality(){
@@ -7772,6 +7803,7 @@ function adaptLowDrawCalls(){
 // startup timing per phase (ms since navigation), readable as window.BOOT_T when tuning load time on iPad
 const bootMark=n=>{(window.BOOT_T=window.BOOT_T||[]).push([n,Math.round(performance.now())])};
 async function boot(){
+  const bootFail=e=>{console.error('[boot]',e);try{const b=$('bStart');if(b){b.disabled=false;b.textContent='Play (limited)';b.title=String(e&&e.message||e||'boot error')}}catch(_){} };
   try{COOP.initMenu()}catch(e){console.error('coop menu',e)}
   try{GUN.build()}catch(e){console.error('guns build',e)}
   try{BR.init()}catch(e){console.error('br init',e)}
@@ -7782,6 +7814,7 @@ async function boot(){
     await Promise.all([decodeData(),fontsReady]);
   }catch(e){$('bStart').textContent='Couldn\'t load the map';console.error(e);return}
   bootMark('Painting textures…');$('bStart').textContent='Painting textures…';await new Promise(r=>requestAnimationFrame(()=>r()));
+  try{
   genTextures();genSignAtlas();genProductAtlas();
   setupRenderer();
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbcd0dc,.0026);
@@ -7809,18 +7842,18 @@ async function boot(){
   try{BUDDY.init()}catch(e){console.error('buddy',e)}
   bootMark('scene');applyQuality();applyTime();bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
-  bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
-  // unhiding every interior to compile it doubles GPU memory for a moment — too much for mobile Safari
-  warmupShaders(!MOBILE);
-  buildPlaceList();
+  try{buildPlaceList()}catch(e){console.error('[boot] places',e)}
   window.addEventListener('resize',onResize);
-  setupInput();
-  if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
-  VOICE.init();
-  PHONE.init();
-  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';
+  try{setupInput()}catch(e){console.error('[boot] input',e)}
+  try{if((typeof SPK!=='undefined')&&SPK)SPK.init(scene)}catch(e){console.error('[boot] speaker',e)}
+  try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
+  try{if(typeof PHONE!=='undefined'&&PHONE&&PHONE.init)PHONE.init()}catch(e){console.error('[boot] phone',e)}
+  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
-  COOP.init();
+  $('bStart').title='Starting…';
+  setTimeout(()=>{try{warmupShaders()}catch(e){console.warn('[boot] shader warmup',e)}$('bStart').title=''},60);
+  try{COOP.init()}catch(e){console.error('[boot] coop',e)}
+  }catch(e){bootFail(e);try{requestAnimationFrame(loop)}catch(_){}}
 }
 let last=performance.now(),_shadowTick=0;
 const _loopErr={};
@@ -7870,7 +7903,7 @@ function loop(t){
   else sunL.position.copy(sunDir).multiplyScalar(300).add(camera.position);
   updateSnow(dt);if(window.GFX)GFX.update(dt);});
   safe('uw',underwaterFx);
-  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;warmupShaders(false)}
+  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;try{warmupShaders()}catch(e){console.warn('portal warmup',e)}}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   // phones and tablets: the sun's shadow map (which redraws every chunk that touches the 110 m frustum) is refreshed every other frame, or every frame when moving fast
   if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
