@@ -2,3 +2,4 @@ graphify-out/
 tests/out/
 ext.js
 _in*.js
+t_*.txt

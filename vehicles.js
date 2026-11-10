@@ -14,8 +14,9 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
+  moto:[{p:[0,.55,-.1],pose:'moto'}],                                   // real motorbike: sit lower and further back
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
-const LV_NAMES=['gwagon','lambo','bike','sub'];
+const LV_NAMES=['gwagon','lambo','bike','moto','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
 const SUB_CRUSH=150;
@@ -47,6 +48,11 @@ function seatPose(P,st,dt){
     for(const g of P.legs){g.hp.rotation.x=-.98;g.kn.rotation.x=1.0;g.ft.rotation.x=.35}
     for(const A of P.arms){A.sh.rotation.x=-.9;A.sh.rotation.z=A.s*-.28;A.el.rotation.x=-.6}
     P.idle=0;return}
+  if(st.mode==='moto'){             // motorbike: feet on the pegs, hands out to the bars
+    P.hips.position.y=.24;P.spine.rotation.x=.36;P.head.rotation.x=-.3;
+    for(const g of P.legs){g.hp.rotation.x=-1.05;g.kn.rotation.x=.95;g.ft.rotation.x=.1}
+    for(const A of P.arms){A.sh.rotation.x=-1.05;A.sh.rotation.z=A.s*-.16+steer*.2;A.el.rotation.x=-.4}
+    P.idle=0;return}
   if(st.mode==='bike'){             // leaning on the bars, legs follow the cranks
     const c=st.crank||0;P.hips.position.y=.16;P.spine.rotation.x=.52;P.head.rotation.x=-.42;
     for(const g of P.legs){const k=Math.cos(c+(g.s>0?0:Math.PI));g.hp.rotation.x=-1.12-.42*k;g.kn.rotation.x=1.12+.78*k;g.ft.rotation.x=-.25*k}
@@ -68,7 +74,7 @@ class LiteVehicle{
     this.root=new THREE.Group();this.susp=new THREE.Group();this.body=new THREE.Group();this.root.add(this.susp);this.susp.add(this.body);this.root.userData.lv=this;
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
-    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),sub:()=>this.buildSub()})[kind]();
+    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),sub:()=>this.buildSub()})[kind]();
     this.sync();
   }
   // wheel: tyre, rim with spokes, brake disc and caliper (the caliper does not spin); front wheels steer around piv
@@ -171,6 +177,29 @@ class LiteVehicle{
     this.crank=new THREE.Group();this.crank.position.set(0,.29,-.04);this.root.add(this.crank);
     const ring=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.02,16),ch);ring.rotation.z=Math.PI/2;ring.position.x=.05;this.crank.add(ring);
     for(const s of [1,-1]){xb(this.crank,.03,.33,.03,.09*s,0,0,dk);xb(this.crank,.1,.03,.08,.14*s,.165*s,0,dk)}}
+  // ---------- MOTORBIKE (user request): a real street bike, 500 km/h — same kind of build as the bicycle ----------
+  buildMoto(){const B=this.body,fuel=XM(0xc41e3a,.28,.55),dk=XM(0x14161a,.6,.3),tyre=XM(0x0d0e10,.92),ch=XM(0xb9bec6,.22,.92),lea=XM(0x241c14,.7,.05),
+      lamp=XM(0xfff3c0,.25,0,{emissive:0xffe9a0,emissiveIntensity:.7}),red=XM(0xc01018,.4,0,{emissive:0xc01018,emissiveIntensity:.5}),exh=XM(0x9aa2aa,.3,.9);
+    this.cols=[0xc41e3a,0x14161a,0xb9bec6];this.lampMat=lamp;this.tailMat=red;
+    const RF=.31,RR=.34;                                   // front/rear wheel radius
+    const mkWheel=(r,w)=>{const piv=new THREE.Group(),spin=new THREE.Group();piv.add(spin);
+      const t=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,20),tyre);t.rotation.z=Math.PI/2;t.castShadow=true;spin.add(t);
+      const rim=new THREE.Mesh(new THREE.CylinderGeometry(r*.62,r*.62,w*.7,14),ch);rim.rotation.z=Math.PI/2;spin.add(rim);
+      const disc=new THREE.Mesh(new THREE.CylinderGeometry(r*.5,r*.5,w*.15,16),dk);disc.rotation.z=Math.PI/2;spin.add(disc);return {piv,spin}};
+    const rw=mkWheel(RR,.16);rw.piv.position.set(0,RR,-.72);this.root.add(rw.piv);this.wheels.push({piv:rw.piv,spin:rw.spin,r:RR,front:false});
+    const fw=mkWheel(RF,.12);fw.piv.position.set(0,RF,.78);this.root.add(fw.piv);this.wheels.push({piv:fw.piv,spin:fw.spin,r:RF,front:true});
+    // frame: tank, seat, tail, engine block
+    xloft(B,[[.55,.16,.3,.34,.09],[.28,.19,.42,.5,.1],[-.35,.17,.55,.55,.09],[-.95,.14,.6,.5,.07]],fuel);      // fuel tank + seat base
+    xb(B,.2,.16,.5,0,.35,-.1,dk);xb(B,.26,.1,.34,0,.24,-.12,ch);                                               // engine + sump
+    xb(B,.18,.07,.42,0,.52,-.5,lea);xb(B,.14,.22,.1,0,.62,-.68,red);                                            // seat pad, tail light
+    // forks + clip-on bars (steering pivot at the headstock)
+    const fk=new THREE.Group();fk.position.set(0,.62,.5);this.root.add(fk);
+    xb(fk,.05,.62,.05,.09,-.28,.18,ch);xb(fk,.05,.62,.05,-.09,-.28,.18,ch);xb(fk,.2,.05,.06,0,-.02,0,dk);      // fork legs, crown
+    xb(fk,.62,.03,.04,0,.04,-.04,dk);for(const s of [-1,1])xb(fk,.11,.03,.03,s*.26,.05,-.04,lea);               // bars, grips
+    xb(fk,.12,.09,.16,0,.06,.14,lamp);xb(fk,.05,.2,.05,.06,-.5,.16,exh);                                        // headlamp, front mudguard
+    xb(B,.05,.05,.6,.1,-.05,.28,exh);xb(B,.09,.09,.14,.1,-.02,-.62,exh);                                        // exhaust pipe + muffler
+    // rider footpegs
+    for(const s of [-1,1])xb(B,.08,.03,.1,s*.16,.15,-.28,dk)}
   buildSub(){this.cols=[0xf2c21b,0x23303a,0x66d9ff];
     const spot=(p,t,intensity,angle)=>{const l=new THREE.SpotLight(0xbdeeff,intensity,90,angle,.45,1.5),target=new THREE.Object3D();l.position.set(...p);target.position.set(...t);l.target=target;l.castShadow=false;this.body.add(l,target);return l};
     this.subSpots=[spot([0,1.8,-6*SUB_MODEL_SCALE],[0,1.4,-32*SUB_MODEL_SCALE],3,.48),spot([0,.2,-2*SUB_MODEL_SCALE],[0,-14,-14*SUB_MODEL_SCALE],2.2,.62)];
@@ -224,13 +253,14 @@ class LiteVehicle{
   // tyre grip bleeds the sideways part (handbrake releases it), so power slides and handbrake turns come out naturally.
   step(dt,thr,str,brk,up,sprint){const s=this.spec;if(this.cd>0)this.cd-=dt;dt=Math.min(dt,.05);
     if(this.kind==='sub')return this.stepSub(dt,thr,str,up);
-    const bike=this.kind==='bike',mv=s.max*(bike&&sprint?1.35:1),acc=s.acc*(bike&&sprint?1.5:1);
+    const bike=this.kind==='bike',moto=this.kind==='moto',mv=s.max*(bike&&sprint?1.35:1),acc=s.acc*(bike&&sprint?1.5:1),INV=s.inv?-1:1;   // inv: the touch stick reported steering inverted on the bike (user bug report)
+    str*=INV;
     const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),lx=Math.cos(this.yaw),lz=-Math.sin(this.yaw);
     let vf=this.vx*fx+this.vz*fz,vl=this.vx*lx+this.vz*lz;const sp=Math.abs(vf);
     let a=0;this.brakeOn=false;
     if(thr>0){if(vf<-.8){a=s.brake*thr;this.brakeOn=true}else a=acc*thr*Math.max(.08,1-Math.pow(Math.max(vf,0)/mv,1.7))}       // power falls off towards top speed
     else if(thr<0){if(vf>.8){a=-s.brake*-thr;this.brakeOn=true}else a=-acc*.6*-thr*Math.max(0,1-(-vf)/(mv*.3))}                 // S brakes first, then reverses
-    else{const rr=bike?.3+.025*sp:.5+.0007*sp*sp;a=-Math.sign(vf)*Math.min(sp/Math.max(dt,1e-3),rr)}                           // coasting: rolling + air drag
+    else{const rr=bike?.3+.0002*sp*sp:moto?.25+.0004*sp*sp:.5+.0007*sp*sp;a=-Math.sign(vf)*Math.min(sp/Math.max(dt,1e-3),rr)}   // coasting: rolling + air drag
     a+=9.8*Math.sin(this.pitch)*(bike?.85:.4);                                                                                  // downhill pulls, uphill slows
     if(brk){a-=Math.sign(vf)*Math.min(sp/Math.max(dt,1e-3),s.brake*(bike?.7:.5));this.brakeOn=true}
     vf=Math.max(-mv*.3,Math.min(mv,vf+a*dt));
@@ -238,7 +268,7 @@ class LiteVehicle{
     vl*=Math.exp(-(brk?s.hgrip:s.grip*(1-.45*slide))*dt);
     this.vx=fx*vf+lx*vl;this.vz=fz*vf+lz*vl;
     // steering: the lock shrinks with speed to what the tyres can hold (lateral g limit); the handbrake lets it bite harder
-    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=str*lim;
+    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=str*lim*(bike?0.28:1);   // bike: steer gentler at the new 500 km/h
     this.steerA+=(sa-this.steerA)*Math.min(1,dt*(Math.abs(sa)>=Math.abs(this.steerA)?9:13));
     this.yawRate=vf*Math.tan(this.steerA)/s.wb*(brk&&sp>5?1.25:1);
     this.yaw+=this.yawRate*dt;
@@ -260,13 +290,13 @@ class LiteVehicle{
     // ride height and slope
     const hf=groundAt(this.x+fx*s.len*.4,this.z+fz*s.len*.4,this.y+.6),hb=groundAt(this.x-fx*s.len*.4,this.z-fz*s.len*.4,this.y+.6);
     this.y+=((hf+hb)/2-this.y)*Math.min(1,dt*14);this.pitch+=(-Math.atan((hf-hb)/(s.len*.8))-this.pitch)*Math.min(1,dt*8);
-    const lean=bike?Math.max(-.5,Math.min(.5,-Math.atan(this.yawRate*this.v/9.8)*.95)):0;this.roll+=(lean-this.roll)*Math.min(1,dt*6);
+    const lean=bike||moto?Math.max(-.5,Math.min(.5,-Math.atan(this.yawRate*this.v/9.8)*.95)):0;this.roll+=(lean-this.roll)*Math.min(1,dt*6);
     this.animate(dt);this.sync()}
   scrape(spd){if(spd>7&&this.cd<=0){this.cd=.3;crashSound(spd*.3)}this.vx*=.96;this.vz*=.96}
   stepSub(dt,thr,str,up){const s=this.spec;
     if(thr>0)this.v+=thr*s.acc*dt*(this.v<0?2:1);else if(thr<0)this.v+=thr*s.acc*dt*(this.v>0?2.2:.7);else this.v*=Math.exp(-dt*.45);
     this.v=Math.max(-s.max*.3,Math.min(s.max,this.v));
-    const sa=str*s.steer/(1+Math.abs(this.v)*.07);this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);
+    const sa=str*s.steer/(1+Math.abs(this.v)*(this.kind==='sub'?.16:.07));this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);   // stronger denominator for the 500 km/h sub so it stays steerable
     this.yaw+=this.v*Math.tan(this.steerA)/s.wb*dt;
     const fx=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
     const block=Math.abs(this.v)>.05&&(groundH(px,pz)>SL-.3||groundH(nx,nz)>SL-.3);
@@ -291,6 +321,7 @@ class LiteVehicle{
   // wheels, suspension (nose dives under braking, rolls out of corners), brake lights and headlights
   animate(dt){
     if(this.kind==='bike'){this.pedal+=this.v*dt/(.36*2.2);if(this.crank)this.crank.rotation.x=this.pedal;for(const w of this.wheels){w.spin.rotation.x=this.pedal*2.2;if(w.front)w.piv.rotation.y=this.steerA*1.6}this.lights();return}
+    if(this.kind==='moto'){for(const w of this.wheels){w.spin.rotation.x+=this.v*dt/w.r;if(w.front)w.piv.rotation.y=this.steerA*1.5}this.lights();return}
     for(const w of this.wheels){w.spin.rotation.x+=this.v*dt/w.r;if(w.front)w.piv.rotation.y=this.steerA}
     const al=(this.v-this.vPrev)/Math.max(dt,1e-3);this.vPrev=this.v;this.aLong+=(al-this.aLong)*Math.min(1,dt*6);
     const yr=this.v*Math.tan(this.steerA)/this.spec.wb,tp=Math.max(-.05,Math.min(.05,-this.aLong*.0032)),tr=Math.max(-.06,Math.min(.06,yr*this.v*.0016));

@@ -13,6 +13,11 @@ const PHONE={
     this.root=g;this.screen=screen;this.draw();camera.add(g);g.visible=false;
     let b=document.getElementById('bPhone');if(!b){b=document.createElement('button');b.id='bPhone';b.type='button';b.innerHTML='<i>📱</i><span>Phone</span>';document.body.appendChild(b)}
     b.onclick=()=>this.toggle();
+    // quick-row tile mic/phone: the tile clicks the real (hidden) button, its .on state mirrors the button's
+    const mk=(tid,real)=>{const t=document.getElementById(tid),rb=document.getElementById(real);if(!t||!rb)return;
+      t.onclick=e=>{e.stopPropagation();rb.click()};
+      new MutationObserver(()=>t.classList.toggle('on',rb.classList.contains('on'))).observe(rb,{attributes:true,attributeFilter:['class']})};
+    mk('qrPhone','bPhone');mk('qrMic','bVoice');
     // GTA-V slab: app tiles -> panels (news / clock / bank); the slab mirrors the 3D phone state
     if(!this.gtInit){this.gtInit=1;
       const gt=document.getElementById('gtPhone');
