@@ -39,9 +39,8 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(192px + env(safe-area-inset-top,0px));width:172px;text-align:center;font-size:12px;font-weight:700;background:transparent;border-radius:0;padding:0 0 4px;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.6);border-bottom:0}
 /* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG · MIC · PHONE, five equal tiles */
 #coHud .coRow #bChat{display:none}   /* CHAT lives in the quick row now */
-#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(236px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:172px;z-index:9}
-#qMenu #bBuddy{display:none}
-#quickRow button{flex:1;min-width:0;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.75);border-radius:11px;background:rgba(20,26,38,.78);color:#fff;font-size:17px;line-height:1;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 3px 10px rgba(0,0,0,.34);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit}
+#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(212px + env(safe-area-inset-top,0px));display:flex;gap:6px;width:172px;justify-content:space-between}
+#quickRow button{flex:1;min-width:0;height:34px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(14,18,26,.4);color:#f3f1ea;font-size:15px;line-height:1;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 8px rgba(0,0,0,.25);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit}
 #quickRow button:active{transform:scale(.93);background:rgba(255,255,255,.8);color:#0a0a0a}
 #quickRow button.on{background:rgba(242,193,78,.9);color:#17120a}
 /* GTA-V phone: a vertical slab that slides in from the right edge */
@@ -207,43 +206,28 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #quickRow button.qrTile.on{background:rgba(242,193,78,.9);color:#17120a}
 /* the gtPhone slides out right under the quick row */
 #gtPhone{top:calc(288px + env(safe-area-inset-top,0px))}
-/* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
-#actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:5px;align-items:flex-end}
-#actBtns>button{position:relative;width:48px;height:48px;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:inset 3px 0 0 transparent;transition:background .12s,color .12s,transform .08s}
-#actBtns>button i,#qMenu button i{font-style:normal;display:flex;line-height:0}
-#actBtns>button svg,#qMenu button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-#actBtns>button b{font:700 7px/1 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
-#actBtns>button:active{background:#fff;color:#0a0a0a;transform:scale(.94)}
-#actBtns>button.on{background:var(--sun);color:#111;box-shadow:inset 3px 0 0 #fff}
-#actBtns>button.has::after{content:"";position:absolute;right:11px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(0,0,0,.55)}
-#actBtns>button.has.open{background:var(--sun);color:#111}
-#bView b::before{content:"Camera · "}
 #bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
 #actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
 #actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
 #actBtns>#bJump:active{background:#fff}
 #qMenu{position:absolute;right:calc(100% + 10px);bottom:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;visibility:visible;pointer-events:auto;width:min(280px,44vw)}
 #qMenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;padding:8px 6px;border:1.5px solid rgba(255,255,255,.28);border-radius:12px;background:rgba(14,18,26,.45);color:#e9e6dc;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-align:center;touch-action:none;opacity:1;transform:none;transition:background .12s,color .12s,transform .08s}
-#qMenu button b{font:700 8px/1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;max-width:64px;overflow:hidden;text-overflow:ellipsis}
-#bView b::before{content:''}
-#qMenu button svg{width:17px;height:17px}
-#qMenu button.on{background:rgba(242,193,78,.92);color:#17120a;border-color:rgba(255,255,255,.85)}
-#qMenu button:active{background:#fff;color:#0a0a0a}
-@media (hover:hover){#qMenu button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun)}#actBtns>button:hover:not(.on):not(#bJump){background:rgba(255,255,255,.9);color:#0a0a0a}}
+#qMenu button b{font:700 8px/1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase}
+#qMenu button i{font-size:18px;line-height:1}
+#qMenu button:active{background:#fff;color:#0a0a0a;transform:scale(.97)}
 #heliControls{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(100px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,86px);gap:3px}
-#heliControls button{min-height:44px;padding:0 12px;border:0;border-left:4px solid var(--sun);border-radius:0;background:rgba(0,0,0,.62);color:#e9e6dc;font:700 10.5px/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 10px) 100%,0 100%);touch-action:none}
+#heliControls button{min-height:44px;padding:0 12px;border:0;border-left:4px solid var(--sun);border-radius:0;background:rgba(0,0,0,.62);color:#e9e6dc;font:700 11px/1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 #heliControls button:active{background:#fff;color:#0a0a0a}
-/* the "do it" prompt: yellow slanted bar */
-#bAct{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom,0px));max-width:min(70vw,360px);border:0;border-left:5px solid #fff;border-radius:0;background:var(--sun);color:#111;padding:13px 26px 13px 14px;font:800 12.5px/1.15 var(--f-disp);letter-spacing:.06em;text-transform:uppercase;text-align:left;backdrop-filter:none;-webkit-backdrop-filter:none;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);touch-action:manipulation}
-#bAct:active{background:#fff}
-@media (max-width:640px){#bAct{bottom:calc(145px + env(safe-area-inset-bottom,0px));padding:11px 24px 11px 12px;font-size:11.5px}}
-body #gunFire{right:max(24px,calc(env(safe-area-inset-right) + 24px));bottom:calc(106px + env(safe-area-inset-bottom,0px));width:74px;height:74px;touch-action:none;box-shadow:0 4px 14px rgba(0,0,0,.4)}
-body #gunDet{right:max(108px,calc(env(safe-area-inset-right) + 108px));bottom:calc(122px + env(safe-area-inset-bottom,0px));touch-action:none}
-body #gunBar{left:max(100px,calc(env(safe-area-inset-left) + 100px));transform:none;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 480px);min-width:200px;overflow-x:auto;scrollbar-width:none}body #gunBar button{padding:6px 8px;font-size:11px;line-height:1.1;white-space:nowrap}
+#bAct{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(180px + env(safe-area-inset-bottom,0px));min-width:80px;padding:10px 16px;border:2px solid rgba(255,255,255,.85);border-radius:14px;background:var(--hud-on);color:#1b1204;font:700 10px/1 var(--f-disp);letter-spacing:.05em;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
+#bAct:active{background:#fff;transform:translateY(2px)}
+#joy{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:64vw;height:72vh;touch-action:none;background:radial-gradient(circle at 30% 70%,rgba(255,255,255,.12),transparent 70%);border-radius:22px}
+#joy svg{width:100%;height:100%;display:block}
+#joy .stick{transition:cx .05s,cy .05s}
+#gunBar{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;padding:6px 8px;background:rgba(14,18,26,.45);border:1.5px solid rgba(255,255,255,.28);border-radius:14px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);overflow-x:auto;white-space:nowrap}
 body #gunBar::-webkit-scrollbar{display:none}
 body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-action:manipulation}
 #joy{width:44vw;height:52vh}
-@media (max-height:430px){#actBtns>button{width:44px;height:44px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#heliControls{bottom:calc(84px + env(safe-area-inset-bottom,0px))}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
+@media (max-height:430px){#actBtns>button{width:44px;height:44px}#actBtns{right:max(90px,calc(env(safe-area-inset-right) + 90px))}#actBtns>#bJump{width:66px;height:66px}#heliControls button{padding:0 8px;font-size:9px}#bAct{padding:8px 12px;font-size:9px}#joy{width:40vw;height:44vh}body #gunFire{width:64px;height:64px;bottom:calc(92px + env(safe-area-inset-bottom,0px))}#bAct{bottom:calc(182px + env(safe-area-inset-bottom,0px))}}
 /* ===== in-game HUD — the OLD beloved look (wide slanted glass bars with a juicy blur) restored;
    the v3 rounded-tile override that shrank the bar into a narrow strip is turned OFF. ===== */
 /* the old HUD-v3 tile/flower overrides stay OFF: hudmenu.js draws the glass tiles on two fixed rows itself */
@@ -263,8 +247,6 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bBag{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 8V6a5 5 0 0 1 10 0v2'/%3E%3Crect x='4.5' y='8' width='15' height='13' rx='3'/%3E%3Cpath d='M9 14h6'/%3E%3C/svg%3E")}
 #topBtns button.on,#coHud .coRow button.on{background:var(--sun);color:#111;border-left-color:#fff;text-shadow:none}
 #topBtns button:active,#coHud .coRow button:active,#actBtns>button:active,#qMenu button:active,#heliControls button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
-@media (hover:hover){#topBtns button:hover,#actBtns>button:hover:not(.on):not(#bJump),#qMenu button:hover,#heliControls button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
-  #topBtns button.on:hover{background:var(--sun);color:#111}}
 #topBtns button:focus-visible{outline:2px solid #fff;outline-offset:2px}
 #actBtns{gap:7px}
 #actBtns>button{width:52px;height:52px;border-radius:13px}
@@ -277,6 +259,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bAct:active{background:#fff;transform:translateY(2px)}
 @media (max-height:430px){#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
 </style>
+</style>
 <div id="app">
   <canvas id="c"></canvas>
   <div id="hud" hidden>
@@ -284,7 +267,6 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <canvas id="mini" width="264" height="264"></canvas>
     <div id="homeDir">Home · 0 m</div>
     <div id="quickRow"><button id="qrMap" title="Map">🗺</button><button id="qrChat" title="Chat">💬</button><button id="qrBag" title="Bag">🎒</button><button id="qrMic" title="Mic">🎙</button><button id="qrPhone" title="Phone">📱</button></div>
-    <!-- GTA-V style phone: slides out of the Phone button, apps inside -->
     <div id="gtPhone" hidden>
       <div id="gtTop"><span id="gtClock">12:00</span><span id="gtBat">84%</span></div>
       <div id="gtApps">
@@ -301,7 +283,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <button id="bPhone" type="button" aria-label="Open phone" aria-pressed="false" class="qrMirror" hidden><i>📱</i><span>Phone</span></button>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
-    <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button></div></div>
+    <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="12" height="14" rx="2"/><path d="M10 14h4M8 17h8"/></svg></i><b>Speaker</b></button></div></div>
     <div id="heliControls" hidden><button id="bFlyUp">Up</button><button id="bFlyDown">Down</button><button id="bFlyLeft">&#9664; Left</button><button id="bFlyRight">Right &#9654;</button></div>
     <div id="heliAim" hidden aria-hidden="true"></div>
     <div id="spd" hidden><b id="spdN">0</b><span>km/h</span></div>
@@ -6280,6 +6262,39 @@ const AUD={
     };
     return voice;
   },
+  panner(dest){
+    const p=this.ctx.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=3;p.maxDistance=220;p.rolloffFactor=1.15;p.connect(dest||this.sfx);return p},
+  position(p,x,y,z){const T=this.ctx.currentTime;if(p.positionX){p.positionX.setTargetAtTime(x,T,.04);p.positionY.setTargetAtTime(y,T,.04);p.positionZ.setTargetAtTime(z,T,.04)}else p.setPosition(x,y,z)},
+  machine(kind){
+    if(!this.ok)return null;
+    const c=this.ctx,p=this.panner(),out=c.createGain(),lo=c.createOscillator(),hi=c.createOscillator(),wh=c.createOscillator(),ns=c.createBufferSource(),
+      lf=c.createBiquadFilter(),hf=c.createBiquadFilter(),wf=c.createBiquadFilter(),nf=c.createBiquadFilter(),lg=c.createGain(),hg=c.createGain(),wg=c.createGain(),ng=c.createGain();
+    out.gain.value=0;lo.type=kind==='sub'?'sine':'sawtooth';hi.type='triangle';wh.type='sine';ns.buffer=this.noise;ns.loop=true;
+    lf.type='lowpass';hf.type='lowpass';wf.type='lowpass';nf.type='bandpass';lf.frequency.value=180;hf.frequency.value=700;wf.frequency.value=1300;nf.frequency.value=400;nf.Q.value=.55;
+    lg.gain.value=.72;hg.gain.value=.28;wg.gain.value=.14;ng.gain.value=.28;
+    lo.connect(lf);lf.connect(lg);lg.connect(out);hi.connect(hf);hf.connect(hg);hg.connect(out);wh.connect(wf);wf.connect(wg);wg.connect(out);ns.connect(nf);nf.connect(ng);ng.connect(out);out.connect(p);
+    lo.start();hi.start();wh.start();ns.start();
+    const voice={kind,p,out,lo,hi,wh,lf,hf,wf,nf,lg,hg,wg,ng,sonarAt:0,
+      update(x,y,z,speed,throttle,active,depth,level){
+        const T=c.currentTime,s=Math.min(1,Math.abs(Number(speed)||0)/(kind==='jet'?120:kind==='plane'?95:kind==='heli'?45:kind==='sub'?8:36)),load=Math.max(0,Math.min(1,Math.abs(Number(throttle)||0))),
+          rpm=.18+s*.62+load*.2,under=kind==='sub'&&(depth||0)>4,vol=active?Math.max(0,Math.min(1,level===undefined?1:level))*(kind==='sub'?.085:.075)*(.42+rpm*.58):0;
+        AUD.position(p,Number(x)||0,Number(y)||0,Number(z)||0);
+        const aircraft=kind==='plane'||kind==='jet',base=aircraft?42:kind==='heli'?22:kind==='sub'?19:kind==='boat'?27:30;
+        lo.frequency.setTargetAtTime(base+rpm*(kind==='jet'?110:kind==='plane'?86:kind==='heli'?28:kind==='sub'?12:kind==='boat'?58:112),T,.12);
+        hi.frequency.setTargetAtTime((aircraft?115:kind==='heli'?82:kind==='sub'?32:kind==='boat'?55:65)+rpm*(kind==='jet'?300:kind==='plane'?210:kind==='heli'?95:kind==='sub'?20:kind==='boat'?130:360),T,.12);
+        wh.frequency.setTargetAtTime((aircraft?220:kind==='heli'?150:kind==='sub'?38:kind==='boat'?100:90)+load*(kind==='jet'?2200:kind==='plane'?1250:kind==='heli'?420:kind==='sub'?24:kind==='boat'?480:620)+s*180,T,.1);
+        lf.frequency.setTargetAtTime(under?95:aircraft?500:kind==='heli'?340:kind==='sub'?180:560,T,.18);
+        hf.frequency.setTargetAtTime(under?115:aircraft?1250:kind==='heli'?720:kind==='sub'?180:1100,T,.18);
+        wf.frequency.setTargetAtTime(under?150:kind==='jet'?2500:kind==='plane'?1900:kind==='heli'?850:kind==='sub'?220:1450,T,.18);
+        nf.frequency.setTargetAtTime(under?95:kind==='jet'?1300+load*900:kind==='plane'?800+load*900:kind==='heli'?260+rpm*220:kind==='sub'?115:260+s*700,T,.2);
+        out.gain.setTargetAtTime(vol,T,.16);
+        if(kind==='sub'&&depth>12&&active&&T>=this.sonarAt){
+          this.sonarAt=T+6.5;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(1100,T);o.frequency.exponentialRampToValueAtTime(420,T+.65);g.gain.setValueAtTime(.035,T);g.gain.exponentialRampToValueAtTime(.0001,T+.7);o.connect(g);g.connect(p);o.start(T);o.stop(T+.72)}
+      },
+      dispose(){for(const s of [lo,hi,wh,ns])try{s.stop()}catch(e){}for(const n of [lo,hi,wh,ns,lf,hf,wf,nf,lg,hg,wg,ng,out,p])try{n.disconnect()}catch(e){}}
+    };
+    return voice;
+  },
   impulse(sec,decay){const c=this.ctx,n=c.sampleRate*sec,b=c.createBuffer(2,n,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,decay)}return b},
   noiseBuf(sec){const c=this.ctx,n=c.sampleRate*sec,b=c.createBuffer(1,n,c.sampleRate),d=b.getChannelData(0);let last=0;for(let i=0;i<n;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=w*.6+last*2.5}return b},
   setScene(t,s){this.time=t;this.season=s},
@@ -6745,27 +6760,25 @@ function applyTextureAnisotropy(){
   });
 }
 // WebGL compiles a program the first time a material is actually drawn, which produced the
-// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Push every
-// program through the compiler while the loading overlay is still up.
-function warmupShaders(unhideAll){
+// multi-hundred-millisecond hitch on entering an apartment or turning onto new props. Compile
+// programs without un-hiding everything (that doubled GPU memory and could stall mobile Safari).
+function warmupShaders(){
   if(!renderer||!scene||!camera)return;
-  let forced=null;
-  if(unhideAll){
-    forced=[];
-    scene.traverse(o=>{if(o.isMesh&&o.visible===false){o.visible=true;forced.push(o)}});
-    if(typeof PORTAL!=='undefined'&&PORTAL&&PORTAL.built)for(const n in PORTAL.built){const g=PORTAL.built[n]&&PORTAL.built[n].grp;if(g&&!g.visible){g.visible=true;forced.push(g)}}
-  }
   const prevTone=renderer.toneMapping;
+  let rt=null,prevRT=null;
   try{
     camera.updateMatrixWorld(true);
-    renderer.compile(scene,camera);
-    const rt=new THREE.WebGLRenderTarget(8,8,{depthBuffer:true,stencilBuffer:false});
-    const prevRT=renderer.getRenderTarget();
-    renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.setRenderTarget(prevRT);
-    rt.dispose();
-  }catch(e){console.error('shader warmup failed',e)}
-  renderer.toneMapping=prevTone;
-  if(forced)for(const o of forced)o.visible=false;
+    // compile() may touch every material; keep it best-effort and never block gameplay startup.
+    if(typeof renderer.compile==='function')renderer.compile(scene,camera);
+  }catch(e){console.warn('shader compile warmup',e)}
+  try{
+    rt=new THREE.WebGLRenderTarget(2,2,{depthBuffer:true,stencilBuffer:false});
+    prevRT=renderer.getRenderTarget();
+    renderer.setRenderTarget(rt);
+    renderer.render(scene,camera);
+  }catch(e){console.warn('shader render warmup',e)}
+  try{if(rt){renderer.setRenderTarget(prevRT);rt.dispose()}}catch(e){}
+  try{renderer.toneMapping=prevTone}catch(e){}
   if(typeof cityLodT!=='undefined')cityLodT=0;
 }
 function applyQuality(){
@@ -7788,6 +7801,7 @@ function adaptLowDrawCalls(){
 // startup timing per phase (ms since navigation), readable as window.BOOT_T when tuning load time on iPad
 const bootMark=n=>{(window.BOOT_T=window.BOOT_T||[]).push([n,Math.round(performance.now())])};
 async function boot(){
+  const bootFail=e=>{console.error('[boot]',e);try{const b=$('bStart');if(b){b.disabled=false;b.textContent='Play (limited)';b.title=String(e&&e.message||e||'boot error')}}catch(_){} };
   try{COOP.initMenu()}catch(e){console.error('coop menu',e)}
   try{GUN.build()}catch(e){console.error('guns build',e)}
   try{BR.init()}catch(e){console.error('br init',e)}
@@ -7798,6 +7812,7 @@ async function boot(){
     await Promise.all([decodeData(),fontsReady]);
   }catch(e){$('bStart').textContent='Couldn\'t load the map';console.error(e);return}
   bootMark('Painting textures…');$('bStart').textContent='Painting textures…';await new Promise(r=>requestAnimationFrame(()=>r()));
+  try{
   genTextures();genSignAtlas();genProductAtlas();
   setupRenderer();
   scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xbcd0dc,.0026);
@@ -7825,18 +7840,18 @@ async function boot(){
   try{BUDDY.init()}catch(e){console.error('buddy',e)}
   bootMark('scene');applyQuality();applyTime();bootMark('chunks');
   const h=PLACES[0];teleportRaw(h.x,h.z,h.yaw,0);PLR.root.visible=true;PLR.root.position.set(player.x,player.y,player.z);PLR.root.rotation.y=player.yaw;
-  bootMark('Compiling shaders…');$('bStart').textContent='Compiling shaders…';await new Promise(r=>requestAnimationFrame(()=>r()));
-  // unhiding every interior to compile it doubles GPU memory for a moment — too much for mobile Safari
-  warmupShaders(!MOBILE);
-  buildPlaceList();
+  try{buildPlaceList()}catch(e){console.error('[boot] places',e)}
   window.addEventListener('resize',onResize);
-  setupInput();
-  if((typeof SPK!=='undefined')&&SPK)SPK.init(scene);
-  VOICE.init();
-  PHONE.init();
-  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';
+  try{setupInput()}catch(e){console.error('[boot] input',e)}
+  try{if((typeof SPK!=='undefined')&&SPK)SPK.init(scene)}catch(e){console.error('[boot] speaker',e)}
+  try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
+  try{if(typeof PHONE!=='undefined'&&PHONE&&PHONE.init)PHONE.init()}catch(e){console.error('[boot] phone',e)}
+  bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
-  COOP.init();
+  $('bStart').title='Starting…';
+  setTimeout(()=>{try{warmupShaders()}catch(e){console.warn('[boot] shader warmup',e)}$('bStart').title=''},60);
+  try{COOP.init()}catch(e){console.error('[boot] coop',e)}
+  }catch(e){bootFail(e);try{requestAnimationFrame(loop)}catch(_){}}
 }
 let last=performance.now(),_shadowTick=0;
 const _loopErr={};
@@ -7886,7 +7901,7 @@ function loop(t){
   else sunL.position.copy(sunDir).multiplyScalar(300).add(camera.position);
   updateSnow(dt);if(window.GFX)GFX.update(dt);});
   safe('uw',underwaterFx);
-  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;warmupShaders(false)}
+  if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;try{warmupShaders()}catch(e){console.warn('portal warmup',e)}}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   // phones and tablets: the sun's shadow map (which redraws every chunk that touches the 110 m frustum) is refreshed every other frame, or every frame when moving fast
   if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
