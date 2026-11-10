@@ -157,6 +157,33 @@ Files: `soviet.js`, `khru.js`, `kstyle.js`, `flats.js`, `modern.js`, `houses.js`
 - AUDIO / MULTIPLAYER: Added shared Web Audio HRTF positional voices for local and remote cars, boats, aircraft, helicopters and submarines; engine character changes with speed/throttle. Built-in speaker playback is sent immediately via the existing presence packets and peers resync from the sender timestamp, including when restarting the same track. User-selected local files are not shared.
   ASSET STATUS: Added CC0 replacement slots and licensing notes under `assets/audio/`; no recordings are included or loaded, so current engine sounds remain procedural approximations.
   VERIFIED: `node --check` on changed scripts, manifest JSON parse, `git diff --check`, and headless browser tests `t_final.js`, `t_audio.js`, `t_coop.js`, `t_coop2.js`, `t_heli_peer.js` completed without console errors. Not verified on real iPad or between physical devices.
+- 2026-11-09 (user mega-request: HUD, moto, 500 km/h, magistral, bugs) — WORKING TREE, not yet committed.
+  HUD (index.html + hudmenu.js): the left stack is now SQUARE 48x48 Garage-style tiles (icon over a tiny label, dot when on);
+    Battle Royale + Hide & Seek are OUT of the stack (they live behind Modes only — HUDM.adopt returns early for them); MODES button stays.
+    #quickRow: now MAP·CHAT·BAG·MIC·PHONE as 5 equal tiles in one row right under the minimap; the minimap grew 132→172 px;
+    bVoice/bPhone are hidden qrMirror proxies (position left:-9999px); phone.js wires qrPhone→bPhone.click and qrMic→bVoice.click with a class MutationObserver for .on.
+    The dark strip above the mic came from the old #bVoice absolute style — it is gone with the move into the row.
+    #coHud moved below the new row; gtPhone slides out under the tiles.
+  VEHICLES (vehicles.js + index.html): NEW 'moto' LiteVehicle (red street bike: wheels with forks/clip-on bars, tank/seat/tail xloft,
+    exhaust, pegs; pose 'moto'; parked in the yard, in GAR.LIST, toast keys). LV_SPECS: bike max 139 m/s (≈500 km/h, acc 70, drag 0.0002·v²),
+    moto max 139 m/s (acc 80), sub max 139 m/s (acc 60, steering denominator strengthened 0.07→0.16 so it stays controllable).
+    bike steering multiplied by 0.28 in the lean/steer path (it used to snap at speed).
+  BIKE STEERING INVERSION (user: 'pull left, goes right'): s.inv flips the stick contribution in LiteVehicle.step — bike only.
+  SUBMARINE FREE LOOK (index.html EXT.stepCamera): the auto-yaw-follow now waits 1.2 s (cam.autoT) unless the yaw error is >2.4 rad;
+    you can look and steer wherever you want, the camera re-centres only after you look near the heading again.
+  FIRE FROM ANY VEHICLE (index.html GUN): canFire() no longer blocks on EXT/MARINE/PLN/HELI, only portals/tram/seats/scooter; hold() dropped player.scoot.
+  BOARDING BUG (user: 'press Ride and nothing happens'): the INTERACT cond blocked on player.scoot && MARINE.free(); now blocks only on GAR.on
+    (while the garage overlay is open). EXT.summon likewise. Riding while on the kick-scooter is still possible now (auto-dismount on enter).
+  MAGISTRAL (index.html EXT.buildMagistral, called from EXT.init): a straight causeway from the Velykyi Fontan mooring to ISL.dock:
+    FLAT deck 2.2 m over the sea with smooth 40 m ramps, one merged asphalt strip (120 segments, vertex colours), dashed white centre line
+    (InstancedMesh, 1/18 m), two guard rails, a PLACES pin 'Magistral' + MAP_MAJOR. ~25 km run at 500 km/h ≈ 3 min.
+  IPAD AUTO-ZOOM (index.html): dblclick preventer + capture-phase touchstart/end preventDefault when touches>1 on the canvas,
+    plus document-level gesturestart/change/end preventDefault; buttons get -webkit-touch-callout:none. The game's own two-finger
+    camera pinch is kept (handled separately by pointer events).
+  TESTS: tests/t_fixbatch.js added (HUD tiles, quick row, phone tile opens the phone, magistral ground, moto/bike/sub speeds,
+    summon+board the bike, fire-on-vehicle, sub free look). Run: node tests/harness.js tests/t_fixbatch.js
+  NOT DONE / NOT VERIFIED: real iPad run; the magistral drives only in the game sense (no traffic on it); co-op does not sync the moto;
+    the still-open items from §5.A/§5.B below.
 - VOICE / STREAMING RADIO: Added opt-in microphone capture with mute control, room-code MQTT signaling for WebRTC offers/answers/ICE, HRTF proximity playback and muffling for indoor/vehicle states. Added a URL input and provider embeds for YouTube, Spotify, SoundCloud and Yandex Music, plus direct HTTPS audio; URL and start/pause time are shared over presence.
   LIMITS: WebRTC requires the MQTT room-code transport and STUN only (no TURN relay); some NATs will fail and peer addresses may be exposed. Provider autoplay/seek and iOS playback are restricted by those services/browser policy; only YouTube and SoundCloud expose useful embed commands, embeds are not 3D-routed, and unknown links (including the unspecified “LIner”) are shared as external links without playback control. Not yet verified on physical iPad or real peers.
   VERIFIED: final runs of `t_voice.js` and `t_final.js`, plus `t_audio.js`, `t_coop.js`, `t_coop2.js`, `t_heli_peer.js`, all completed without console errors. `t_voice.js` validates provider URLs, safe URL constraints, signaling dispatch, mocked WebRTC offer/answer/ICE and shared playback state; the mic-control screenshot was visually inspected. Not tested on actual iPad, with real remote media providers, or between physical players.

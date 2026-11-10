@@ -23,6 +23,8 @@
 }
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;background:#0b1b22;color:var(--chalk);font-family:var(--f-body);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+/* iPad: a tap on HUD buttons must never zoom or double-tap-zoom the page */
+button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #app{position:fixed;inset:0}
 #c{position:absolute;inset:0;width:100%;height:100%;display:block}
 button{font-family:var(--f-body);color:var(--chalk);background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -33,13 +35,13 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #district{position:absolute;left:max(16px,env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top,0px));pointer-events:none;display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 #dName{font-family:var(--f-disp);font-weight:800;font-size:20px;letter-spacing:.02em}
 #dSub{font-size:12px;color:var(--chalk);opacity:.85;letter-spacing:.06em;text-transform:uppercase}
-#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:132px;height:132px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
-#homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(152px + env(safe-area-inset-top,0px));width:132px;text-align:center;font-size:12px;font-weight:700;background:transparent;border-radius:0;padding:0 0 4px;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.6);border-bottom:0}
-/* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG (phone and mic stay below) */
+#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:172px;height:172px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
+#homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(192px + env(safe-area-inset-top,0px));width:172px;text-align:center;font-size:12px;font-weight:700;background:transparent;border-radius:0;padding:0 0 4px;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.6);border-bottom:0}
+/* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG · MIC · PHONE, five equal tiles */
 #coHud .coRow #bChat{display:none}   /* CHAT lives in the quick row now */
-#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(196px + env(safe-area-inset-top,0px));display:flex;gap:5px;width:132px;z-index:9}
+#quickRow{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(236px + env(safe-area-inset-top,0px));display:grid;grid-template-columns:repeat(5,1fr);gap:4px;width:172px;z-index:9}
 #qMenu #bBuddy{display:none}
-#quickRow button{flex:1;min-width:0;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.75);border-radius:11px;background:rgba(20,26,38,.78);color:#fff;font-size:18px;line-height:1;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 3px 10px rgba(0,0,0,.34);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit}
+#quickRow button{flex:1;min-width:0;height:40px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid rgba(255,255,255,.75);border-radius:11px;background:rgba(20,26,38,.78);color:#fff;font-size:17px;line-height:1;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 3px 10px rgba(0,0,0,.34);touch-action:manipulation;transition:transform .08s,background .12s;font-family:inherit}
 #quickRow button:active{transform:scale(.93);background:rgba(255,255,255,.8);color:#0a0a0a}
 #quickRow button.on{background:rgba(242,193,78,.9);color:#17120a}
 /* GTA-V phone: a vertical slab that slides in from the right edge */
@@ -200,13 +202,11 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #topBtns button:active,#coHud .coRow button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
 @media (hover:hover){#topBtns button:hover{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}}
 #topBtns button:focus-visible{outline:0;background:#fff;color:#0a0a0a;border-left-color:var(--sun)}
-#bVoice{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(290px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
-#bVoice i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
-#bVoice.on{background:var(--hud-on);color:#17120a}
-#bVoice:disabled{opacity:.55}
-#bPhone{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(350px + env(safe-area-inset-top,0px));z-index:8;min-width:58px;min-height:54px;padding:7px 10px;border:1.5px solid var(--hud-rim);border-radius:14px;background:var(--hud-bg);color:#fff;font:700 11px/1.1 var(--f-disp);box-shadow:0 3px 12px #0008;touch-action:manipulation}
-#bPhone i{display:block;font-style:normal;font-size:20px;margin-bottom:3px}
-#bPhone.on{background:var(--hud-on);color:#17120a}
+/* mic + phone live in #quickRow as square tiles; the real buttons are hidden proxies (qrMirror) kept by their scripts */
+#bVoice,#bPhone{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;padding:0;border:0}
+#quickRow button.qrTile.on{background:rgba(242,193,78,.9);color:#17120a}
+/* the gtPhone slides out right under the quick row */
+#gtPhone{top:calc(288px + env(safe-area-inset-top,0px))}
 /* bottom right: jump (big), run and garage always there, everything else behind the "more" button as a GTA-style list */
 #actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:5px;align-items:flex-end}
 #actBtns>button{position:relative;width:48px;height:48px;padding:0;border:0;border-radius:0;background:rgba(0,0,0,.56);color:#e9e6dc;backdrop-filter:none;-webkit-backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;touch-action:none;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:inset 3px 0 0 transparent;transition:background .12s,color .12s,transform .08s}
@@ -251,7 +251,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #topBtns{display:contents}
 :is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:15px;height:15px;margin-right:8px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
-#coHud{top:calc(190px + env(safe-area-inset-top,0px))}
+#coHud{top:calc(290px + env(safe-area-inset-top,0px))}   /* under the quick row (the map grew to 172 px) */
 #bMap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z'/%3E%3Ccircle cx='12' cy='10' r='2.3'/%3E%3C/svg%3E")}
 #bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8'/%3E%3C/svg%3E")}
 #bRain{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 15.5a4.5 4.5 0 1 1 1-8.9 5.5 5.5 0 0 1 10.4 2A3.5 3.5 0 0 1 17.5 15.5z'/%3E%3Cpath d='M8.5 18.5l-1 2M12.5 18.5l-1 2M16.5 18.5l-1 2'/%3E%3C/svg%3E")}
@@ -283,7 +283,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="district"><span id="dName">Tairove</span><span id="dSub">Odesa</span></div>
     <canvas id="mini" width="264" height="264"></canvas>
     <div id="homeDir">Home · 0 m</div>
-    <div id="quickRow"><button id="qrMap" title="Map">🗺</button><button id="qrChat" title="Chat">💬</button><button id="qrBag" title="Bag">🎒</button><button id="qrBuddy" title="Friend">🐾</button></div>
+    <div id="quickRow"><button id="qrMap" title="Map">🗺</button><button id="qrChat" title="Chat">💬</button><button id="qrBag" title="Bag">🎒</button><button id="qrMic" title="Mic">🎙</button><button id="qrPhone" title="Phone">📱</button></div>
     <!-- GTA-V style phone: slides out of the Phone button, apps inside -->
     <div id="gtPhone" hidden>
       <div id="gtTop"><span id="gtClock">12:00</span><span id="gtBat">84%</span></div>
@@ -297,8 +297,8 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
     <div id="coHud" hidden><div class="coRow"><button id="bFriends" hidden>👥 0</button><button id="bChat">💬 Chat</button></div><div id="coList" hidden></div></div>
     <div id="chatBox" hidden><input id="chatIn" maxlength="80" placeholder="Say something… (Enter)" autocomplete="off"><button id="chatSend">Send</button></div>
     <div id="topBtns"><button id="bMap">Map</button><button id="bTime">Day</button><button id="bRain" title="Rain on/off (R)">Rain</button><button id="bSnow" title="Snowfall on/off">Snow</button><button id="bFog" title="Fog on/off">Fog</button><button id="bMenu">Menu</button></div>
-    <button id="bVoice" type="button" aria-label="Enable voice chat" aria-pressed="false"><i>🎙️</i><span>Mic off</span></button>
-    <button id="bPhone" type="button" aria-label="Open phone" aria-pressed="false"><i>📱</i><span>Phone</span></button>
+    <button id="bVoice" type="button" aria-label="Enable voice chat" aria-pressed="false" class="qrMirror" hidden><i>🎙️</i><span>Mic off</span></button>
+    <button id="bPhone" type="button" aria-label="Open phone" aria-pressed="false" class="qrMirror" hidden><i>📱</i><span>Phone</span></button>
     <div id="joy"><div id="joyBase"><div id="joyKnob"></div></div><div id="joyHint">Drag to walk</div></div>
     <button id="bAct" hidden>Action</button>
     <div id="actBtns"><button id="bQuick" aria-label="More actions" aria-expanded="false"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg></i><b>More</b></button><button id="bCar"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 16.5h-.8a1.3 1.3 0 0 1-1.3-1.3v-2.4c0-.8.5-1.4 1.3-1.6l2-.5 1.8-3.5h8.8l1.8 3.5 2 .5c.8.2 1.3.8 1.3 1.6v2.4a1.3 1.3 0 0 1-1.3 1.3h-.8M9.4 16.5h5.2"/><circle cx="7" cy="16.8" r="2.2"/><circle cx="17" cy="16.8" r="2.2"/></svg></i><b>Garage</b></button><button id="bRun"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="14.5" cy="4.6" r="1.8"/><path d="M13 8.5 11 14M13 8.5 9.4 9.6 8 12.4M13 8.5l3.6 1.6 2-1.6M11 14l3.6 1.6-1 4.4M11 14l-3 3-3.6-.6"/></svg></i><b>Run</b></button><button id="bJump"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 13 6-6 6 6M6 19l6-6 6 6"/></svg></i><b>Jump</b></button><div id="qMenu"><button id="bScoot"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M8 18h9M18.4 16 15.6 5M12.8 5h5.2"/></svg></i><b>Scooter</b></button><button id="bView"><i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="12" height="10" rx="2"/><path d="m15 11 6-3.5v9L15 13"/></svg></i><b>3rd</b></button><button id="bHeli"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h17M12 5v3"/><rect x="5" y="8" width="11" height="7" rx="3.5"/><path d="M16 11h5.5M21.5 8.5v5M5.5 18.5h11M8 15v3.5M13 15v3.5"/></svg></i><b>Heli</b></button><button id="bEmote"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2.2"/><path d="M12 8v6.5M12 10 6.5 6.5M12 10l5.5-3.5M12 14.5 8.5 21M12 14.5l3.5 6.5"/></svg></i><b>Emote</b></button><button id="bSpk"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></i><b>Music</b></button></div></div>
@@ -7669,8 +7669,20 @@ function setupInput(){
   addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'&&e.pointerId===jid)jend(e)},true);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});addEventListener('blur',resetStick);
   const cameraTouches=new Map();let pinchDistance=0;
+  // iPad/iOS: a fast double-tap used to trigger the system page zoom and there was no way back — kill it with a
+  // touch-action lock on the canvas plus a dedicated double-tap preventer (the game's own camera-zoom via
+  // two-finger pinch is KEPT, it is a different gesture handled below).
+  cv.addEventListener('dblclick',e=>e.preventDefault());
+  for(const [ev,p] of [['touchstart',{passive:false}],['touchend',{passive:false}],['touchcancel',{passive:false}]])cv.addEventListener(ev,e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{capture:true});
+  document.addEventListener('gesturestart',e=>e.preventDefault());
+  document.addEventListener('gesturechange',e=>e.preventDefault());
+  document.addEventListener('gestureend',e=>e.preventDefault());
+  let lastCamTap=0,lastCamX=0,lastCamY=0;
   cv.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse')return;
+    const now=performance.now();
+    if(cameraTouches.size===0&&now-lastCamTap<300&&Math.hypot(e.clientX-lastCamX,e.clientY-lastCamY)<40){e.preventDefault()}   // swallow the second tap of a double-tap
+    else{lastCamTap=now;lastCamX=e.clientX;lastCamY=e.clientY}
     cameraTouches.set(e.pointerId,[e.clientX,e.clientY]);cv.setPointerCapture(e.pointerId);
     if(cameraTouches.size===2){const [a,b]=[...cameraTouches.values()];pinchDistance=Math.hypot(a[0]-b[0],a[1]-b[1]);TOUCH_LOOK.active=false;TOUCH_LOOK.id=null;return}
     if(cameraTouches.size===1){TOUCH_LOOK.active=true;TOUCH_LOOK.id=e.pointerId;TOUCH_LOOK.x=e.clientX;TOUCH_LOOK.y=e.clientY}
@@ -8653,7 +8665,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   aimRay(){camera.updateMatrixWorld(true);const o=camera.position.clone(),d=new THREE.Vector3();camera.getWorldDirection(d);d.normalize();return {o,d}},
   // in a boat / car the aim follows the camera, never the vehicle's yaw
   muzzle(){const inV=MARINE.cur||DRIVE.on||EXT.cur,y=inV?cam.yaw:player.yaw;return new THREE.Vector3(player.x+Math.sin(y)*.7,player.y+(inV?1.7:1.25),player.z+Math.cos(y)*.7)},
-  canFire(){return this.armed&&!this.down&&!PORTAL.cur&&!RIDE.on&&!player.sit},
+  canFire(){return this.armed&&!this.down&&!PORTAL.cur&&!RIDE.on&&!player.sit&&!player.scoot},   // armed from ANY vehicle: EXT/MARINE/PLN/HELI do not block
   peersAlive(){const out=[];for(const R of COOP.peers.values()){const s=R.st,g=s&&s.g;if(!s||!s.in||!g||!g.a||(g.h!==undefined&&g.h<=0))continue;if((s.zn||'')!==COOP.zone())continue;out.push(R)}return out},
   // closest hit of a ray with any armed remote player; returns {R,t,head}
   raycast(o,d,max){let best=null;
@@ -8761,7 +8773,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     FX.update(dt);
     // weapon in hand, local player + everybody else
     if(this.aimT>0)this.aimT-=dt;
-    this.hold(PLR,this.w,this.armed&&!this.down&&!PORTAL.cur&&!this.noHold);
+    this.hold(PLR,this.w,this.armed&&!this.down&&!PORTAL.cur&&!this.noHold&&!player.scoot);
     if(this.armed&&this.held&&WEAPONS[this.w].auto)this.fire();
     for(const R of COOP.peers.values()){const g=R.st&&R.st.g;if(R.P){if(g&&g.ax)R.P._ap=Math.asin(Math.max(-1,Math.min(1,g.ax[1])));this.hold(R.P,g?(g.w|0):0,!!(g&&g.a&&R.P.root.visible))}}
     this.scan();
@@ -9371,8 +9383,9 @@ setInterval(()=>{if(started&&!document.hidden){WALLET.earn(500);toast('+₴500',
 const LV_SPECS={
   gwagon:{name:'G-Wagon',len:4.6,wb:2.85,max:34,acc:9,brake:22,steer:.52,lat:10.5,grip:6,hgrip:2.8,r:1.25},
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
-  bike:{name:'bicycle',len:1.8,wb:1.05,max:28,acc:9,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45},
-  sub:{name:'submarine',len:SUB_MODEL_LENGTH,wb:9.6,max:28,acc:9,steer:.45,lat:6,grip:4,hgrip:4,r:3}};   // every vehicle tops 100 km/h (28 m/s) and gets there quickly
+  bike:{name:'bicycle',len:1.8,wb:1.05,max:139,acc:70,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45,inv:1},   // user: 500 km/h; inv=1 fixes the joystick steering inversion (drag left went right)
+  moto:{name:'motorbike',len:1.9,wb:1.45,max:139,acc:80,brake:26,steer:.6,lat:13,grip:9,hgrip:2.6,r:.5},   // real motorbike, also 500 km/h at the user's request
+  sub:{name:'submarine',len:SUB_MODEL_LENGTH,wb:9.6,max:139,acc:60,steer:.45,lat:6,grip:4,hgrip:4,r:3}};   // bike/sub at 500 km/h (139 m/s) at the user's request
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 // depth gauge while piloting the submarine
 function depthHud(d,on,damage){let e=document.getElementById('depthHud');if(!e){if(!on)return;e=document.createElement('div');e.id='depthHud';e.style.cssText='position:fixed;left:50%;top:13%;transform:translateX(-50%);padding:7px 16px;border-radius:10px;background:rgba(8,28,40,.66);color:#9fe7ff;font:700 15px/1 system-ui,sans-serif;letter-spacing:.1em;z-index:5;pointer-events:none;white-space:nowrap';document.body.appendChild(e)}
@@ -9503,7 +9516,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   },
   enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=v;v.loadModel();v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=true;LVSND.start(v.kind);
-    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Q dive · E rise · B walk inside · F exit':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
+    const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='moto'?'W gas · S brake · A/D steer · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Q dive · E rise · B walk inside · F exit':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
     toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+(v.kind==='sub'?'':' · E to get off')+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':v.kind==='sub'?' · pilot + co-op passenger seats':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
   leave(v,destroyed){if(this.cur!==v)return;this.cur=null;v.setCabinView(false);v.cabinWalk=false;const reticle=$('subReticle');if(reticle)reticle.remove();depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
@@ -9559,7 +9572,11 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       v.root.updateMatrixWorld(true);const p=this._subCameraPos.set(v.cabinPos[0],v.cabinPos[1]+.45,v.cabinPos[2]).applyMatrix4(v.body.matrixWorld);
       camera.position.copy(p);const cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);camera.lookAt(p.x+Math.sin(cam.yaw)*cp,p.y+sp,p.z+Math.cos(cam.yaw)*cp);
       cam.x=p.x;cam.y=p.y;cam.z=p.z;cam.init=true;PLR.root.visible=false;return}
-    if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?2.6:.8))}
+    // user request: the camera must NOT drag your gaze around while driving (esp. the submarine) — the
+    // auto-centre only re-engages after 1.2 s of looking straight-ish, otherwise you look wherever you want.
+    if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;const drift=Math.abs(dy);
+      cam.autoT=(drift>2.4)?1.2:Math.max(0,(cam.autoT||0)-dt);
+      if(cam.autoT<=0)cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?2.6:.8))}
     const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(1+Math.min(.3,Math.abs(v.v)*.008)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
     const ty=v.y+(sub?.6:v.kind==='bike'?1.3:1.45);let d=dist;
     if(!sub)for(let s=1.5;s<=dist;s+=.4){const px=v.x-Math.sin(cam.yaw)*cp*s,py=ty+sp*s,pz=v.z-Math.cos(cam.yaw)*cp*s;if(insideAny(px,pz,.25,py)||py<groundH(px,pz)+.3){d=Math.max(1.5,s-.4);break}}
@@ -9568,7 +9585,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(v.x+Math.sin(v.yaw)*2,ty,v.z+Math.cos(v.yaw)*2)},
   // bring a vehicle to the player: land ones 6 m ahead on solid ground, the submarine into deep water within 40 m
   summon(kind){const v=this.veh.find(q=>q.kind===kind);if(!v)return toast('Not available','');
-    if(this.cur||!MARINE.free()||player.scoot){toast('Get off first','then summon a vehicle');return}
+    if(this.cur||GAR.on||player.scoot){toast('Get off first','then summon a vehicle');return}
     if(v.dead){v.revive()}v.repair();v.v=0;v.steerA=0;
     if(kind==='sub'){const m=this.nearestMooring();if(!m){toast('No mooring found','');return}
       v.x=m.sub[0];v.z=m.sub[1];v.yaw=m.sub[2];v.home=m.sub.slice();v.y=SL+SUB_SURF;v.halt();v.sync();
@@ -9579,7 +9596,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(!best){toast('No room here','move to an open street and try again');return}
     v.x=best[0];v.z=best[1];v.yaw=best[2];v.y=lvGround(v.x,v.z);v.halt();v.sync();toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1)+' ready','press E to get in')},
   addVehicle(kind,x,z,yaw){const v=new LiteVehicle(kind,x,z,yaw);v.home=[x,z,yaw];scene.add(v.root);this.veh.push(v);
-    INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&MARINE.free()&&!player.scoot&&(kind!=='sub'||!SWIM.on||EXT.nearHatch(v)),fn:()=>kind==='sub'&&SWIM.on?EXT.boardFromSwim(v):EXT.enter(v)});return v},
+    INTERACT.push({get x(){return v.x},get z(){return v.z},r:kind==='bike'?2.4:kind==='sub'?10:3.8,get label(){return (kind==='bike'||kind==='moto'?'Ride the ':kind==='sub'?'Board the ':'Drive the ')+v.spec.name},cond:()=>!v.dead&&!EXT.cur&&!GAR.on&&(kind!=='sub'||!SWIM.on||EXT.nearHatch(v)),fn:()=>kind==='sub'&&SWIM.on?EXT.boardFromSwim(v):EXT.enter(v)});return v},
   init(world){
     const ab=$('qMenu')||$('actBtns'),HI=p=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
     for(const [id,ic,tx,type] of [['bBoat',HI('<path d="M3 15h18l-2.6 4H5.6zM12 4v10M12 5l6 8h-6"/>'),'Boat','boat'],['bJet',HI('<path d="M3 18c3 2 6 2 9 0s6-2 9 0M5 14h9l2.5-3.5H20M16.5 10.5 15.5 7h2.4"/>'),'Jet ski','jetski']]){const b=document.createElement('button');b.id=id;b.innerHTML='<i>'+ic+'</i><b>'+tx+'</b>';b.hidden=true;b.onclick=()=>MARINE.spawnNear(type);ab.appendChild(b)}
@@ -9590,8 +9607,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     ANIM.push(dt=>EXT.tick(dt));
     // land vehicles parked on level ground in the yard, a short walk from where you spawn
     const h=PLACES.find(p=>p.id==='home');
-    if(h){const spots=this.parkSpots(h.x,h.z,3);
-      [['bike',0],['lambo',1],['gwagon',2]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
+    if(h){const spots=this.parkSpots(h.x,h.z,4);
+      [['bike',0],['moto',1],['lambo',2],['gwagon',3]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
         let best=h.yaw,bd=-1;   // park facing the longest free runway
         for(const a of [h.yaw,h.yaw+Math.PI,h.yaw+Math.PI/2,h.yaw-Math.PI/2]){let d=0;while(d<40&&!insideAny(c[0]+Math.sin(a)*(d+3),c[1]+Math.cos(a)*(d+3),1.4,gy+.6))d+=2;if(d>bd){bd=d;best=a}}
         this.addVehicle(kind,c[0],c[1],best)})}
@@ -9600,6 +9617,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     {const m=this.moorings[0];if(m)this.addVehicle('sub',m.sub[0],m.sub[1],m.sub[2])}
     try{this.buildIsland(world)}catch(e){console.error('island',e)}
     try{PRIVOZ.build(world)}catch(e){console.error('privoz',e)}
+    // ----- MAGISTRAL: the highway bridge from the city shore to Jungle Island (user request) -----
+    try{this.buildMagistral(world)}catch(e){console.error('magistral',e)}
     // sea / terrain intersection mask: bias the sea plane back in depth (kills shoreline and under-floor z-fighting) and drop it
     // entirely inside interiors that have no sea view, so it can never show through their floors. SL itself is untouched.
     for(const m of [seaMesh,seaNear])if(m){m.material.polygonOffset=true;m.material.polygonOffsetFactor=2;m.material.polygonOffsetUnits=4;m.material.needsUpdate=true}
@@ -9636,6 +9655,39 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       return h+(bed-h)*(1-sm((u-uEnd)/8))*(1-sm((Math.abs(v)-HW)/9))*sm(u/1.5)}});
     const px=S[0]+ux*6.5,pz=S[1]+uz*6.5,m={name,S,dir:f.dir,sub:[px,pz,Math.atan2(-uz,ux)],uEnd};this.moorings.push(m);
     PLACES.push({id:'sub'+this.moorings.length,name:'Submarine · '+name,sub:'moored off the sand',x:S[0]-ux*1.2,z:S[1]-uz*1.2,yaw:Math.atan2(ux,uz)});return m},
+  // ----- the MAGISTRAL: a straight causeway bridge city → Jungle Island, wide enough for 500 km/h (user request) -----
+  magistral:null,
+  buildMagistral(world){
+    // start: the shore near the Velykyi Fontan mooring; end: the jungle island dock
+    const S=this.moorings[0]?this.moorings[0].S:[1567,273];
+    const T=ISL.dock||[24850,-7850];
+    const x0=S[0],z0=S[1],x1=T[0],z1=T[1],len=Math.hypot(x1-x0,z1-z0),ux=(x1-x0)/len,uz=(z1-z0)/len;
+    const HW=11;                                          // half-width: a proper magistral, two wide lanes each way
+    const sm=q=>{q=Math.max(0,Math.min(1,q));return q*q*(3-2*q)};
+    // flatten the terrain along the whole line to a low bridge deck (FLAT → walking, cars and the camera all agree)
+    FLAT.push({x:(x0+x1)/2,z:(z0+z1)/2,R:len/2+60,fn:(x,z,h)=>{
+      const rx=x-x0,rz=z-z0,u=rx*ux+rz*uz,v=-rx*uz+rz*ux;
+      if(u<-40||u>len+30||Math.abs(v)>HW+16)return h;
+      const deck=SL+2.2;                                  // deck 2.2 m over the sea, gentle ramps at both ends
+      const w=sm((u+40)/40)*(1-sm((u-len-10)/20))*(1-sm((Math.abs(v)-HW)/14));
+      return h+(Math.max(h,deck)-h)*w}});
+    // the road surface: one big strip mesh along the whole length (dark asphalt), vertex colours
+    const segs=120,step=len/segs,verts=[],cols=[],idx=[];const n=segs+1;
+    for(let i=0;i<n;i++){const u=i*step,cx=x0+ux*u,cz=z0+uz*u,y=SL+2.24;
+      verts.push(cx-uz*HW,y,cz+ux*HW, cx+uz*HW,y,cz-ux*HW);cols.push(.2,.2,.22,.2,.2,.22)}
+    for(let i=0;i<segs;i++){const a=i*2;idx.push(a,a+2,a+3,a,a+3,a+1)}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+    g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.setIndex(idx);g.computeVertexNormals();
+    const road=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92}));road.receiveShadow=true;world.add(road);
+    // white dashed centre line (cheap InstancedMesh) + guard rails on both edges
+    const nD=Math.floor(len/18),dash=new THREE.InstancedMesh(new THREE.BoxGeometry(.35,.02,6),new THREE.MeshBasicMaterial({color:0xffffff}),nD),dm=new THREE.Object3D();
+    for(let i=0;i<nD;i++){const u=10+i*18;dm.position.set(x0+ux*u,SL+2.26,z0+uz*u);dm.rotation.y=Math.atan2(ux,uz);dm.updateMatrix();dash.setMatrixAt(i,dm.matrix)}
+    dash.frustumCulled=false;world.add(dash);
+    for(const s of [-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.25,1.1,len),XM(0x5a6068,.5,.6));
+      rail.position.set(x0+ux*len/2-uz*s*(HW+.4),SL+2.75,z0+uz*len/2+ux*s*(HW+.4));rail.rotation.y=Math.atan2(ux,uz);world.add(rail)}
+    PLACES.push({id:'magistral',name:'Magistral',sub:'the highway to Jungle Island · flat out',x:x0+ux*30,z:z0+uz*30,yaw:Math.atan2(ux,uz)});
+    try{MAP_MAJOR.add('magistral')}catch(e){}
+    this.magistral={x0,z0,x1,z1,len,HW}},
   buildMoorings(){
     this.makeMooring('Velykyi Fontan',1567,273,[.990,.139]);
     for(const [name,id] of [['Arkadia','arkadia'],['Lanzheron','lanz']]){const q=PLACES.find(p=>p.name&&p.name.toLowerCase().indexOf(id==='lanz'?'lanzheron':'arkadia')>=0);if(q)this.makeMooring(name,q.x,q.z)}},
