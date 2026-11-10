@@ -7705,8 +7705,10 @@ function setupInput(){
   };
   cv.addEventListener('pointerup',tend);cv.addEventListener('pointercancel',tend);
   $('bRun').onclick=()=>{player.run=!player.run;$('bRun').classList.toggle('on',player.run)};
-  $('bJump').addEventListener('pointerdown',e=>{if(HELI.on)inp.k.ArrowUp=true;else inp.jump=true;if(DRIVE.on)inp.hb=true;e.preventDefault()});
   for(const ev of ['pointerup','pointercancel','pointerleave'])$('bJump').addEventListener(ev,()=>{inp.hb=false;inp.k.ArrowUp=false;inp.jump=false});
+  {const jb=$('bJump');
+    jb.addEventListener('touchstart',e=>{if(HELI.on)inp.k.ArrowUp=true;else inp.jump=true;if(DRIVE.on)inp.hb=true;e.preventDefault()},{passive:false});
+    for(const ev of ['touchend','touchcancel'])jb.addEventListener(ev,()=>{inp.hb=false;inp.k.ArrowUp=false;inp.jump=false},{passive:false})}
   const setCollective=value=>e=>{HELI.liftInput=value;e.preventDefault()};
   for(const [id,value] of [['bFlyUp',1],['bFlyDown',-1]]){
     const b=$(id);b.addEventListener('pointerdown',setCollective(value));
@@ -8823,6 +8825,11 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     // FIRE is its own pointer: the finger that holds it never interferes with the stick finger (move / gas) or the look finger
     let fid=null;    const dn=e=>{if(fid!==null)return;fid=e.pointerId;try{ui.fire.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault();this.held=true;ui.ret.classList.add('aim');this.fire()},up=e=>{if(e.pointerId!==fid)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};
     ui.fire.addEventListener('pointerdown',dn);ui.fire.addEventListener('pointerup',up);ui.fire.addEventListener('pointercancel',up);ui.fire.addEventListener('lostpointercapture',up);
+    // iOS Safari: with one finger already on the joystick the SECOND finger's pointer events on this button can be
+    // swallowed — drive FIRE with raw touch events too, whichever arrives first wins (user report 2026-11-09)
+    const tDn=e=>{if(fid!==null)return;const t=e.changedTouches&&e.changedTouches[0];if(!t)return;fid=-1;e.preventDefault();this.held=true;ui.ret.classList.add('aim');this.fire()};
+    const tUp=e=>{if(fid!==-1)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};
+    ui.fire.addEventListener('touchstart',tDn,{passive:false});ui.fire.addEventListener('touchend',tUp,{passive:false});ui.fire.addEventListener('touchcancel',tUp,{passive:false});
     ui.det=mk('button','gunDet');ui.det.onclick=()=>this.detonate();ui.det.hidden=true;
     ui.hudw=mk('div','gunHud');ui.wn=document.createElement('div');ui.hp=document.createElement('i');const hb=document.createElement('div');hb.className='hpb';hb.appendChild(ui.hp);ui.kd=document.createElement('div');ui.hudw.append(ui.wn,hb,ui.kd);
     ui.board=mk('div','gunBoard');ui.down=mk('div','gunDown');ui.down.textContent='You were tagged — respawning…';ui.down.hidden=true;
