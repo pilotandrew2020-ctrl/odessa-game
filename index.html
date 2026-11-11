@@ -32,10 +32,10 @@ button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
 button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #hud{position:absolute;inset:0;pointer-events:none}
 #hud>*{pointer-events:auto}
-#district{position:absolute;left:max(16px,env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top,0px));pointer-events:none;display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 8px rgba(0,0,0,.55)}
+#district{position:absolute;left:calc(max(12px,env(safe-area-inset-left)) + 218px);top:calc(12px + env(safe-area-inset-top,0px));pointer-events:none;display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 #dName{font-family:var(--f-disp);font-weight:800;font-size:20px;letter-spacing:.02em}
 #dSub{font-size:12px;color:var(--chalk);opacity:.85;letter-spacing:.06em;text-transform:uppercase}
-#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:172px;height:172px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:none}
+#mini{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top,0px));width:172px;height:172px;border-radius:50%;border:2px solid rgba(245,241,232,.7);box-shadow:0 4px 18px rgba(0,0,0,.35);pointer-events:auto;cursor:pointer;touch-action:manipulation}   /* tap the round map to open the big map */
 #homeDir{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(192px + env(safe-area-inset-top,0px));width:172px;text-align:center;font-size:12px;font-weight:700;background:transparent;border-radius:0;padding:0 0 4px;pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 6px rgba(0,0,0,.6);border-bottom:0}
 /* compact iOS glass row under the mini-map / Home line: MAP · CHAT · BAG · MIC · PHONE, five equal tiles */
 #coHud .coRow #bChat{display:none}   /* CHAT lives in the quick row now */
@@ -205,20 +205,23 @@ button.on{background:var(--sun);color:var(--ink);border-color:var(--sun)}
 #bVoice,#bPhone{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;padding:0;border:0}
 #quickRow button.qrTile.on{background:rgba(242,193,78,.9);color:#17120a}
 /* the gtPhone slides out right under the quick row */
-#gtPhone{top:calc(288px + env(safe-area-inset-top,0px))}
+#gtPhone{top:calc(300px + env(safe-area-inset-top,0px))}
 #bCar.on b{font-size:0}#bCar.on b::after{content:"Exit";font-size:7px}
 #actBtns>#bJump{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:78px;height:78px;border-radius:50%;clip-path:none;background:rgba(242,193,78,.88);color:#111;box-shadow:inset 0 0 0 2px rgba(255,255,255,.85);gap:2px}
 #actBtns>#bJump svg{width:30px;height:30px;stroke-width:2}
 #actBtns>#bJump:active{background:#fff}
-#qMenu{position:absolute;right:calc(100% + 10px);bottom:0;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;visibility:visible;pointer-events:auto;width:min(280px,44vw)}
-#qMenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;padding:8px 6px;border:1.5px solid rgba(255,255,255,.28);border-radius:12px;background:rgba(14,18,26,.45);color:#e9e6dc;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);text-align:center;touch-action:none;opacity:1;transform:none;transition:background .12s,color .12s,transform .08s}
-#qMenu button b{font:700 8px/1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase}
-#qMenu button i{font-size:18px;line-height:1}
-#qMenu button:active{background:#fff;color:#0a0a0a;transform:scale(.97)}
+/* Scooter / Camera / Heli / Emote / Music / Spawn: the same square tiles as Garage and Run, in a 4-wide grid right above the Jump button (clear of the weapon bar and FIRE) */
+#qMenu{position:absolute;right:-88px;bottom:calc(100% + 40px);display:grid;grid-template-columns:repeat(4,52px);gap:6px;justify-content:end;visibility:visible;pointer-events:auto}
+#qMenu button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:52px;height:52px;min-width:0;padding:0;border:1.5px solid rgba(255,255,255,.75);border-radius:13px;background:rgba(0,0,0,.56);color:#e9e6dc;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 3px 10px rgba(0,0,0,.34);text-align:center;touch-action:manipulation;opacity:1;transform:none;transition:background .12s,color .12s,transform .08s}
+#qMenu button b{font:800 7px/1 var(--f-disp);letter-spacing:.1em;text-transform:uppercase}
+#qMenu button i{display:flex;line-height:0}
+#qMenu button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#qMenu button.on{background:rgba(242,193,78,.9);color:#17120a}
+#qMenu button:active{background:#fff;color:#0a0a0a;transform:scale(.94)}
 #heliControls{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(100px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,86px);gap:3px}
 #heliControls button{min-height:44px;padding:0 12px;border:0;border-left:4px solid var(--sun);border-radius:0;background:rgba(0,0,0,.62);color:#e9e6dc;font:700 11px/1 var(--f-disp);letter-spacing:.05em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 #heliControls button:active{background:#fff;color:#0a0a0a}
-#bAct{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(180px + env(safe-area-inset-bottom,0px));min-width:80px;padding:10px 16px;border:2px solid rgba(255,255,255,.85);border-radius:14px;background:var(--hud-on);color:#1b1204;font:700 10px/1 var(--f-disp);letter-spacing:.05em;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
+#bAct{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(236px + env(safe-area-inset-bottom,0px));min-width:80px;padding:10px 16px;border:2px solid rgba(255,255,255,.85);border-radius:14px;background:var(--hud-on);color:#1b1204;font:700 10px/1 var(--f-disp);letter-spacing:.05em;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
 #bAct:active{background:#fff;transform:translateY(2px)}
 #joy{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom,0px));width:64vw;height:72vh;touch-action:none;background:radial-gradient(circle at 30% 70%,rgba(255,255,255,.12),transparent 70%);border-radius:22px}
 #joy svg{width:100%;height:100%;display:block}
@@ -235,7 +238,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #topBtns{display:contents}
 :is(#bMap,#bTime,#bRain,#bSnow,#bFog,#bMenu,#bGun,#bBR,#bHS,#bBag)::before{content:"";flex:none;width:15px;height:15px;margin-right:8px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat;filter:drop-shadow(0 1px 0 rgba(0,0,0,.5))}
 #bBR{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E")}
-#coHud{top:calc(290px + env(safe-area-inset-top,0px))}   /* under the quick row (the map grew to 172 px) */
+#coHud{top:calc(124px + env(safe-area-inset-top,0px))}   /* friends / chat row: right under the tile stack in the top-left corner */
 #bMap{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z'/%3E%3Ccircle cx='12' cy='10' r='2.3'/%3E%3C/svg%3E")}
 #bTime{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8'/%3E%3C/svg%3E")}
 #bRain{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 15.5a4.5 4.5 0 1 1 1-8.9 5.5 5.5 0 0 1 10.4 2A3.5 3.5 0 0 1 17.5 15.5z'/%3E%3Cpath d='M8.5 18.5l-1 2M12.5 18.5l-1 2M16.5 18.5l-1 2'/%3E%3C/svg%3E")}
@@ -257,7 +260,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #heliControls button{border-radius:11px;border-left-width:1.5px}
 #bAct{clip-path:none;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:var(--hud-on);color:#1b1204;padding:12px 20px 12px 14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
 #bAct:active{background:#fff;transform:translateY(2px)}
-@media (max-height:430px){#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
+@media (max-height:430px){#qMenu{grid-template-columns:repeat(4,46px);right:-80px;bottom:calc(100% + 30px)}#qMenu button{width:46px;height:46px}#bAct{bottom:calc(200px + env(safe-area-inset-bottom,0px))}#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
 </style>
 </style>
 <div id="app">
@@ -7350,7 +7353,9 @@ function stepCamera(dt){
     camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(lp),ey+Math.sin(lp),ez+Math.cos(cam.yaw)*Math.cos(lp));PLR.root.visible=false;return}
   PLR.root.visible=true;
   if(PLR.headNode&&PLR.headNode.visible!==PLR.headVis)PLR.headNode.visible=PLR.headVis;
-  const sd=started?CAMV.side*Math.max(0,Math.min(1,(d-.9)/1.2)):0,sx=-Math.cos(cam.yaw)*sd,sz=Math.sin(cam.yaw)*sd;     // over the shoulder: camera and target slide to the right so the avatar stands left of centre
+  // armed in the default third-person view: slide over the shoulder (like Fortnite) so the avatar does not sit under the crosshair; the aim ray moves with the camera, so shots still go where the crosshair is
+  const wantSide=CAMV.side||((typeof GUN!=='undefined'&&GUN.armed&&CAMV.mode===0)?.9:0);cam.sideS=(cam.sideS||0)+(wantSide-(cam.sideS||0))*Math.min(1,dt*8);
+  const sd=started?cam.sideS*Math.max(0,Math.min(1,(d-.9)/1.2)):0,sx=-Math.cos(cam.yaw)*sd,sz=Math.sin(cam.yaw)*sd;     // over the shoulder: camera and target slide to the right so the avatar stands left of centre
   const wx=tx+sx+dx*d,wy=ty+dy*d,wz=tz+sz+dz*d;
   if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}   // a NaN in the smoothed position would stick for ever (black screen)
   const k=Math.min(1,dt*12);cam.x+=(wx-cam.x)*k;cam.y+=(wy-cam.y)*k;cam.z+=(wz-cam.z)*k;
@@ -7741,7 +7746,7 @@ function setupInput(){
     ab.classList.remove('open');if(qb)qb.remove();          // remove the MORE tile itself, keep the handlers of the real buttons
     new MutationObserver(()=>{for(const b of qm.querySelectorAll('button')){if(b.id==='bBoat'||b.id==='bJet'||b.id==='bBuddy'){if(!b.hidden)b.hidden=true;continue}if(b.hidden)b.hidden=false}}).observe(qm,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
     for(const b of qm.querySelectorAll('button')){if(b.id==='bBoat'||b.id==='bJet'||b.id==='bBuddy'){b.hidden=true;continue}b.hidden=false}}
-  $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
+  $('bMap').onclick=openMap;$('mini').onclick=openMap;$('mapClose').onclick=closeMap;     // the round mini-map is a button too
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
   $('bMenu').onclick=()=>{started=false;COOP.push(true);$('menu').hidden=false;$('hud').hidden=true;$('bStart').textContent='Continue'};
   $('mapMe').onclick=()=>mapFly(player.x,player.z,.35);
@@ -8523,7 +8528,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     P._gp={w,cls:W.cls||(W.melee?'melee':(w===4||w===6)?'tube':w===3?'smg':'pistol'),aim:me?(this.isAiming()?1:.15):.6,ap:me?this.aimPitch():(P._ap||0),slash:me?this.slash:0,draw:W.draw}},
   // ---------- ADS: holding Fire (or F) smoothly zooms the camera (75 -> 45 FOV) and centres the reticle ----------
   aimPitch(){return Math.max(-.5,Math.min(.8,-(cam.pitch-.2)*.9))},
-  adsShow(on){const r=document.getElementById('gunReticle');if(r){r.hidden=!on;r.classList.toggle('aim',on)}},
+  adsShow(on){const r=document.getElementById('gunReticle');if(r){r.hidden=!this.armed;r.classList.toggle('aim',on)}},   // the crosshair is on the whole time a weapon is out (Fortnite); holding Fire only tightens it
   ads(){return this.isAiming()},
   isAiming(){
     if(!started||this.down||this.noHold||PORTAL.cur)return false;
@@ -8702,6 +8707,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     if(W.tac){this.cd=W.cd;this.shots++;TAC.launch();this.push();return}
     this.cd=W.cd;this.shots++;const {o,d}=this.aimRay();
     d.x+=(Math.random()-.5)*W.spread;d.y+=(Math.random()-.5)*W.spread;d.z+=(Math.random()-.5)*W.spread;d.normalize();
+    // a rocket leaves the tube, not the camera: aim it at the point the crosshair is on (first wall / ground / player along the camera ray), otherwise it flies parallel to the view and lands beside the target
+    if(W.rocket){const wd=this.wallDist(o,d,250),hr=this.raycast(o,d,wd),tg=o.clone().addScaledVector(d,hr?hr.t:wd).sub(this.muzzle());if(tg.lengthSq()>4)d.copy(tg.normalize())}
     this.last.ax=d.x;this.last.az=d.z;this.last.ay2=d.y;
     const m=this.muzzle();if(W.rocket){FX.init();FX.launch()}else{this.sfx(W.auto?'uzi':this.w===1?'deagle':this.w===2?'magnum':'shot',1);this.muzzleFlash(m.x,m.y,m.z,d.x,d.y,d.z,this.w===1||this.w===2);this.rec=1;if(PLR._gs)PLR._gs.rec=1}
     if(W.rocket){const nk=!!W.nuke,start=m.clone().addScaledVector(d,1.25),mesh=this.rocketMesh(nk),host=typeof PASS!=='undefined'&&PASS.host?PASS.hostObj(COOP.peers.get(PASS.host)):null,owner=typeof HELI!=='undefined'&&HELI.on?'heli-me':(host&&host.kind==='heli'?'heli-'+PASS.host:(typeof PLN!=='undefined'&&PLN.cur?'plane-'+PLN.cur.id:null));mesh.position.copy(start);mesh.lookAt(start.clone().add(d));this.rockets.push({p:start,d:d.clone(),t:0,nuke:nk,mesh,tp:0,W,owner});
@@ -8821,11 +8828,12 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
 #gunDet{position:absolute;right:max(278px,calc(env(safe-area-inset-right) + 278px));bottom:calc(142px + env(safe-area-inset-bottom,0px));height:44px;border-radius:14px;background:#f2c14e;color:#0b1b22;font-weight:800;padding:0 14px;z-index:6}
 #gunHud{position:absolute;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));min-width:170px;text-align:center;z-index:6;pointer-events:none;color:#fff;font:600 13px system-ui}
 #gunHud .hpb{height:9px;border-radius:5px;background:rgba(0,0,0,.45);overflow:hidden;margin:4px 0}#gunHud .hpb i{display:block;height:100%;width:100%}
-#gunBoard{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(200px + env(safe-area-inset-top,0px));min-width:130px;background:rgba(11,27,34,.6);border-radius:10px;padding:6px 8px;color:#fff;font:600 12px system-ui;z-index:5;pointer-events:none}
+#gunBoard{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(256px + env(safe-area-inset-top,0px));min-width:130px;background:rgba(11,27,34,.6);border-radius:10px;padding:6px 8px;color:#fff;font:600 12px system-ui;z-index:5;pointer-events:none}
 #gunBoard div{display:flex;justify-content:space-between;gap:10px}#gunBoard .me{color:#f2c14e}
 #gunVig{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(216,69,58,0) 45%,rgba(216,69,58,.85) 100%);opacity:0;pointer-events:none;z-index:5;transition:opacity .08s}
 #gunReticle{position:absolute;left:50%;top:50%;width:32px;height:32px;transform:translate(-50%,-50%);z-index:6;pointer-events:none}
-#gunReticle i{position:absolute;background:#fff;box-shadow:0 1px 3px #000;transition:all .12s}
+#gunReticle::after{content:"";position:absolute;left:14px;top:14px;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.75),0 0 4px rgba(0,0,0,.6)}
+#gunReticle i{position:absolute;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.7),0 1px 3px #000;transition:all .12s}
 #gunReticle i:nth-child(1),#gunReticle i:nth-child(2){width:2px;height:9px;left:15px}
 #gunReticle i:nth-child(1){top:0}#gunReticle i:nth-child(2){bottom:0}
 #gunReticle i:nth-child(3),#gunReticle i:nth-child(4){height:2px;width:9px;top:15px}
