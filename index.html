@@ -248,7 +248,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #topBtns button.on,#coHud .coRow button.on{background:var(--sun);color:#111;border-left-color:#fff;text-shadow:none}
 #topBtns button:active,#coHud .coRow button:active,#actBtns>button:active,#qMenu button:active,#heliControls button:active{background:#fff;color:#0a0a0a;border-left-color:var(--sun);transform:translateX(3px)}
 #topBtns button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-#actBtns{gap:7px}
+#actBtns{position:absolute;right:max(104px,calc(env(safe-area-inset-right) + 104px));bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:7px;align-items:flex-end}   /* lost in a layout merge: without it the panel sat top-left and #qMenu (right:100%) was off-screen */
 #actBtns>button{width:52px;height:52px;border-radius:13px}
 #actBtns>button b{font:800 7px/1 var(--f-disp);letter-spacing:.1em}
 #actBtns>button.has::after{right:7px;top:6px;box-shadow:0 0 0 2px rgba(10,16,30,.85)}
@@ -7739,7 +7739,7 @@ function setupInput(){
   bind('bEmote',()=>{if(typeof POSE!=='undefined')POSE.wheel()});
   {const ab=$('actBtns'),qb=$('bQuick'),qm=$('qMenu');       // the MORE button is gone: its hidden buttons are moved out into the visible grid (CSS below)
     ab.classList.remove('open');if(qb)qb.remove();          // remove the MORE tile itself, keep the handlers of the real buttons
-    new MutationObserver(()=>{for(const b of qm.querySelectorAll('button')){if(b.id==='bBoat'||b.id==='bJet'||b.id==='bBuddy'){b.hidden=true;continue}if(b.hidden)b.hidden=false}}).observe(qm,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
+    new MutationObserver(()=>{for(const b of qm.querySelectorAll('button')){if(b.id==='bBoat'||b.id==='bJet'||b.id==='bBuddy'){if(!b.hidden)b.hidden=true;continue}if(b.hidden)b.hidden=false}}).observe(qm,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
     for(const b of qm.querySelectorAll('button')){if(b.id==='bBoat'||b.id==='bJet'||b.id==='bBuddy'){b.hidden=true;continue}b.hidden=false}}
   $('bMap').onclick=openMap;$('mapClose').onclick=closeMap;
   $('bTime').onclick=cycleTime;$('bRain').onclick=()=>{if(window.GFX)GFX.toggleWeather('rain')};$('bSnow').onclick=()=>{if(window.GFX)GFX.toggleWeather('snow')};$('bFog').onclick=()=>{if(window.GFX)GFX.toggleWeather('fog')};
