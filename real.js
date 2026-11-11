@@ -94,6 +94,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     for(const k of ['HairParted','HairBuzzed','HairLong','HairBuns'])sh(k,false);
     if(hs!=='bald'&&!hat)sh(hmap[hs]||'HairParted',true);
     sh('Beard',o.bd==='beard');
+    if(typeof LOOK!=='undefined')LOOK.paint(R,mat,P,o);     // look.js: the capybara tee print and your face photo
   },
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
   mount(P,R){const SC=this.SC,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
