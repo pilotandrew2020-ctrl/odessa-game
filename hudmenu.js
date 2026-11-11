@@ -18,7 +18,13 @@ const HUDM={
   bar:null,rows:null,ready:false,
   css(){if(document.getElementById('hudmCss'))return;const st=document.createElement('style');st.id='hudmCss';st.textContent=`
 #topBtns{display:contents}   /* the old bar/popovers are gone: hudmenu.js places a compact tile stack */
-#hudmStack{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(118px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:9;max-width:88vw}
+#hudmStack{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(10px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:5px;z-index:9;max-width:88vw}
+/* the Modes menu: Battle Royale / Hide & Seek / Jet Ski Rider live here, opened by the Modes tile, right under the tile stack */
+#modesPanel{position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(120px + env(safe-area-inset-top,0px));z-index:41;display:flex;flex-direction:column;gap:5px;min-width:200px;padding:8px;border:1.5px solid rgba(255,255,255,.3);border-radius:14px;background:rgba(10,12,16,.62);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+#modesPanel[hidden]{display:none}
+#modesPanel button{position:relative;display:block;width:100%;min-height:42px;border:0;border-left:3px solid var(--sun);border-radius:6px;background:rgba(0,0,0,.55);color:#e9e6dc;padding:12px 16px 12px 12px;font:700 11px/1 var(--f-disp);letter-spacing:.07em;text-transform:uppercase;white-space:nowrap;text-align:left;touch-action:manipulation;clip-path:none}
+#modesPanel button.on{background:var(--sun);color:#111}
+#modesPanel button:active{background:#fff;color:#0a0a0a}
 #hudmStack .hmRow{display:flex;gap:4px}
 /* square Garage-style tiles: icon on top, tiny label under it, 48x48 like #actBtns>button */
 #hudmStack button{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:48px;height:48px;padding:0;border:1.5px solid rgba(255,255,255,.75);border-radius:13px;background:rgba(0,0,0,.56);color:#e9e6dc;font:800 7px/1 var(--f-disp);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 3px 10px rgba(0,0,0,.34);touch-action:manipulation;text-shadow:0 1px 0 rgba(0,0,0,.4);overflow:hidden}
@@ -41,6 +47,7 @@ const HUDM={
   rank(id){const i=this.ROW1.concat(this.ROW2,this.ROW3).indexOf(id);return i<0?99:i},
   // put a bar button into its fixed row / right quick row (buttons are MOVED, not recreated)
   adopt(btn){if(!btn||btn.tagName!=='BUTTON'||!this.ready)return;const id=btn.id;if(id==='bModes')return;
+    if(this.MODES.includes(id)){if(btn.parentNode!==this.panel)this.panel.appendChild(btn);return}     // Battle Royale / Hide & Seek / Jet Ski Rider: only inside the Modes menu
     if(id==='bMenu'){btn.textContent='MENU'}
     if(this.RIGHT.includes(id)){const row=document.getElementById('quickRow');const anchor={bMap:'qrMap',bBag:'qrBag',bChat:'qrChat'}[id];
       const slot=anchor&&document.getElementById(anchor);
@@ -58,13 +65,10 @@ const HUDM={
     document.getElementById('hud').appendChild(this.stack);this.ready=true;
     // MODES: one live mode -> just toggle it; two -> a tiny panel with only the mode buttons
     const modes=document.createElement('button');modes.id='bModes';modes.textContent='Modes';modes.title='Game modes: Battle Royale, Hide & Seek';
-    modes.onclick=e=>{e.stopPropagation();const ids=this.MODES.map(id=>document.getElementById(id)).filter(Boolean);
-      if(ids.length===1){ids[0].click();return}
-      let p=document.getElementById('modesPanel');
-      if(!p){p=document.createElement('div');p.id='modesPanel';p.hidden=true;p.style.cssText='position:absolute;left:max(12px,env(safe-area-inset-left));top:calc(84px + env(safe-area-inset-top,0px));z-index:41;display:flex;flex-direction:column;gap:6px;min-width:150px;padding:8px;border:1.5px solid rgba(255,255,255,.3);border-radius:14px;background:rgba(10,12,16,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)';
-        document.getElementById('hud').appendChild(p)}
-      if(p.hidden){p.innerHTML='';ids.forEach(b=>{b.classList.add('mini');p.appendChild(b)});p.hidden=false;modes.classList.add('on')}
-      else{ids.forEach(b=>this.stack.appendChild(b));p.hidden=true;modes.classList.remove('on')}};
+    const panel=this.panel=document.createElement('div');panel.id='modesPanel';panel.hidden=true;document.getElementById('hud').appendChild(panel);
+    modes.onclick=e=>{e.stopPropagation();panel.hidden=!panel.hidden;modes.classList.toggle('on',!panel.hidden)};
+    panel.addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(()=>{panel.hidden=true},0)});     // choosing a mode closes the menu
+    document.addEventListener('pointerdown',e=>{if(!panel.hidden&&!panel.contains(e.target)&&!modes.contains(e.target))panel.hidden=true},true);     // a tap anywhere else closes it
     this.rows[0].appendChild(modes);
     {const qb=document.createElement('button');qb.id='bPolish';this.syncPolish=()=>{qb.textContent='GFX '+(typeof S!=='undefined'&&S.polish==='max'?'MAX':'LITE')};this.syncPolish();qb.title='Visual polish: Lite / Max';qb.textContent='GFX LITE';qb.onclick=()=>{if(typeof S==='undefined')return;S.polish=S.polish==='max'?'lite':'max';try{if(typeof saveS==='function')saveS()}catch(e){}this.syncPolish();if(typeof applyTime==='function')applyTime()};bar.appendChild(qb)}
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
@@ -73,7 +77,7 @@ const HUDM={
     // buttons that scripts append to the old bar from now on get adopted too
     new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1&&n.parentNode===bar)this.adopt(n)}).observe(bar,{childList:true});
     // MODES lights up while a mode is running
-    setInterval(()=>{const on=this.MODES.some(id=>{const b=document.getElementById(id);return b&&b.classList.contains('on')});modes.classList.toggle('on',on)},500);
+    setInterval(()=>{const on=this.MODES.some(id=>{const b=document.getElementById(id);return b&&b.classList.contains('on')});modes.classList.toggle('on',on||!this.panel.hidden)},500);
     return true}
 };
 (function(){const go=()=>{if(!HUDM.init())setTimeout(go,100)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go()})();
