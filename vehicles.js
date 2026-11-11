@@ -14,9 +14,16 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  moto:[{p:[0,.42,-.5],pose:'moto'}],                                  // on the seat pad (centre z -.5, top y .56), not on the tank: hips = root + .24 in the pose below
+  moto:[{p:[0,.5,-.4],pose:'moto'}],                                   // Ducati MotoGP seat: hips = root + .24 in the pose below
+  gtr:[{p:[.37,.22,-.2],pose:'drive'},{p:[-.37,.22,-.2],pose:'drive'}],   // Nissan GT-R: driver on the left (+x) and one passenger
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
-const LV_NAMES=['gwagon','lambo','bike','moto','sub'];
+const LV_NAMES=['gwagon','lambo','bike','moto','sub','gtr'];   // append only: the index goes over the network (co-op presence)
+// real models (Sketchfab, see assets/CREDITS.md). Wheels are pivot nodes inside the GLB: [node name, steers, tyre radius]. The procedural body below is the fallback / placeholder until the file arrives
+const LV_GLB={
+  moto:{url:'assets/models/vehicles/ducati.glb',wheels:[['wheel_front',true,.292],['wheel_rear',false,.326]]},
+  gtr:{url:'assets/models/vehicles/gtr.glb',wheels:[['wheel_fl',true,.34],['wheel_fr',true,.34],['wheel_rl',false,.34],['wheel_rr',false,.34]]}};
+const LV_GLB_CACHE={};
+function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
 const SUB_CRUSH=150;
@@ -74,9 +81,29 @@ class LiteVehicle{
     this.root=new THREE.Group();this.susp=new THREE.Group();this.body=new THREE.Group();this.root.add(this.susp);this.susp.add(this.body);this.root.userData.lv=this;
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
-    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),sub:()=>this.buildSub()})[kind]();
+    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),sub:()=>this.buildSub()})[kind]();
+    this.glbPending=!!LV_GLB[kind];this.glbDone=false;
     this.sync();
+    if(this.glbPending&&this.proxy)this.attachGLB();   // garage display / a friend's vehicle: load now; parked ones load when the player gets near (EXT.tick)
   }
+  // invisible box of the GT-R's size: the garage measures the vehicle right after building it, the real model arrives a moment later
+  buildGtrPlaceholder(){this.cols=[0xb01820,0x111111,0xc9ccd2];const m=new THREE.Mesh(new THREE.BoxGeometry(1.9,1.3,4.7),new THREE.MeshBasicMaterial({visible:false}));m.position.y=.65;this.body.add(m);this.placeholder=true}
+  // swap in the real GLB: wheels become pivot nodes (the front ones steer, all spin), lamps get night glow
+  attachGLB(){const def=LV_GLB[this.kind];if(!def||this.glbDone||this.glbLoading)return;this.glbLoading=true;
+    loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;
+      const m=g.scene.clone(true);
+      for(const c of [...this.body.children])this.body.remove(c);
+      for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
+      this.wheels=[];
+      for(const [name,front,r] of def.wheels){const node=m.getObjectByName(name);if(!node)continue;
+        const piv=new THREE.Group();piv.position.copy(node.position);node.position.set(0,0,0);node.parent.remove(node);piv.add(node);this.root.add(piv);this.wheels.push({piv,spin:node,r,front});}
+      m.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.material=o.material.clone();const n=o.material.name||'';
+        if(o.material.metalness>.55)o.material.metalness=.55;if(o.material.roughness<.3)o.material.roughness=.3;   // the open world has no studio reflections: full metal would render dark grey
+        o.material.envMapIntensity=1;
+        if(/red_galass/i.test(n)){o.material.emissive=new THREE.Color(0xff1a22);this.tailMat=o.material}
+        else if(/Light_glass|LightC/i.test(n)){o.material.emissive=new THREE.Color(0xfff3c0);this.lampMat=o.material}});
+      this.body.add(m);this.placeholder=false;this.glbDone=true;this.glbPending=false;   // no sync() here: the garage places the root itself
+    }).catch(e=>{this.glbLoading=false;console.error('[vehicle] GLB load failed:',def.url,e)})}
   // wheel: tyre, rim with spokes, brake disc and caliper (the caliper does not spin); front wheels steer around piv
   wheel(x,y,z,r,w,front,o){o=o||{};const piv=new THREE.Group();piv.position.set(x,y,z);const spin=new THREE.Group();piv.add(spin);const sg=x>=0?1:-1;
     const tyre=XM(0x101113,.93),rimM=XM(o.rim||0xb9bec6,.22,.92),dark=XM(0x26282c,.5,.7),cal=XM(o.caliper||0xc4161c,.4,.3);
@@ -227,7 +254,8 @@ class LiteVehicle{
     this.school=new THREE.InstancedMesh(fishGeo,XM(0x8dd9df,.55,.08,{emissive:0x15353a}),this.schoolData.length);
     this.school.castShadow=false;this.school.receiveShadow=false;this.body.add(this.school);this.schoolDummy=new THREE.Object3D();
     this.modelLoaded=false;this.modelLoading=false}
-  loadModel(){if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
+  loadModel(){if(LV_GLB[this.kind]){this.attachGLB();return}
+    if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
     loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;
       const fit=new THREE.Group();fit.rotation.y=-Math.PI/2;m.rotation.y=Math.PI;fit.add(m);fit.updateMatrixWorld(true);
       const size=new THREE.Box3().setFromObject(fit).getSize(new THREE.Vector3());
@@ -324,7 +352,7 @@ class LiteVehicle{
   // wheels, suspension (nose dives under braking, rolls out of corners), brake lights and headlights
   animate(dt){
     if(this.kind==='bike'){this.pedal+=this.v*dt/(.36*2.2);if(this.crank)this.crank.rotation.x=this.pedal;for(const w of this.wheels){w.spin.rotation.x=this.pedal*2.2;if(w.front)w.piv.rotation.y=this.steerA*1.6}this.lights();return}
-    if(this.kind==='moto'){for(const w of this.wheels){w.spin.rotation.x+=this.v*dt/w.r;if(w.front)w.piv.rotation.y=this.steerA*1.5}this.lights();return}
+    if(this.kind==='moto'){for(const w of this.wheels){w.spin.rotation.x+=this.v*dt/w.r;if(w.front)w.piv.rotation.y=this.steerA*(this.glbDone?.8:1.5)}this.lights();return}
     for(const w of this.wheels){w.spin.rotation.x+=this.v*dt/w.r;if(w.front)w.piv.rotation.y=this.steerA}
     const al=(this.v-this.vPrev)/Math.max(dt,1e-3);this.vPrev=this.v;this.aLong+=(al-this.aLong)*Math.min(1,dt*6);
     const yr=this.v*Math.tan(this.steerA)/this.spec.wb,tp=Math.max(-.05,Math.min(.05,-this.aLong*.0032)),tr=Math.max(-.06,Math.min(.06,yr*this.v*.0016));

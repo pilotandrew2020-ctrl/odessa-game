@@ -4758,7 +4758,10 @@ function toggleCar(){
     for(const side of [1,-1,0]){for(const back of [0,2,-2,4]){const x=player.x-Math.cos(yaw)*2.6*side+Math.sin(yaw)*back,z=player.z+Math.sin(yaw)*2.6*side+Math.cos(yaw)*back;
       if(!carFits(x,z,yaw))continue;best=[x,z];break}if(best)break}
     if(!best){toast('No room for the car','move to an open spot');return}
-    const mine=S.myCar&&CAR_DEFS[S.myCar.type]?S.myCar:null;   // a car bought at the dealer replaces the hatch
+    const mine=S.myCar&&S.myCar.type!==4&&CAR_DEFS[S.myCar.type]?S.myCar:null;   // a car bought at the dealer replaces the everyday car; type 4 was the old red Sport hatch
+    if(!mine){   // the everyday car is the Nissan GT-R now (a lite vehicle): bring it here and get in
+      const g=typeof EXT!=='undefined'&&EXT.veh.find(q=>q.kind==='gtr');
+      if(g){EXT.summon('gtr');if(!EXT.cur&&Math.hypot(g.x-player.x,g.z-player.z)<14)EXT.enter(g);return}}
     c=DRIVE.car={x:best[0],z:best[1],y:groundAt(best[0],best[1],player.y+1),yaw,pitch:0,roll:0,type:mine?mine.type:4,col:mine?mine.col:PCAR_COL};
   }
   DRIVE.on=true;DRIVE.v=0;DRIVE.vx=DRIVE.vz=DRIVE.w=0;DRIVE.steer=0;DRIVE.vy=0;DRIVE.sy=DRIVE.sv=DRIVE.gv=DRIVE.aL=DRIVE.po=DRIVE.bk=0;c.bank=c.sy=0;
@@ -9418,6 +9421,7 @@ const LV_SPECS={
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
   bike:{name:'bicycle',len:1.8,wb:1.05,max:139,acc:70,brake:16,steer:.65,lat:12,grip:10,hgrip:3,r:.45,inv:1},   // user: 500 km/h; inv=1 fixes the joystick steering inversion (drag left went right)
   moto:{name:'motorbike',len:1.9,wb:1.45,max:139,acc:80,brake:26,steer:.6,lat:13,grip:9,hgrip:2.6,r:.5},   // real motorbike, also 500 km/h at the user's request
+  gtr:{name:'Nissan GT-R',len:4.7,wb:2.6,max:62,acc:17,brake:34,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},   // replaces the old red Sport hatch as the everyday car
   sub:{name:'submarine',len:SUB_MODEL_LENGTH,wb:9.6,max:139,acc:60,steer:.45,lat:6,grip:4,hgrip:4,r:3}};   // bike/sub at 500 km/h (139 m/s) at the user's request
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 // depth gauge while piloting the submarine
@@ -9541,7 +9545,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       const gy=Math.max(groundH(d.m.position.x,d.m.position.z),SL);if(d.m.position.y<gy+.05){d.m.position.y=gy+.05;d.v.y*=-.35;d.v.x*=.6;d.v.z*=.6;d.w.multiplyScalar(.6)}
       if(d.t>2.4)d.m.scale.multiplyScalar(Math.max(0,1-dt*2.5));if(d.t>3.2){d.on=false;d.m.visible=false}}
     for(let i=this.fires.length-1;i>=0;i--){const f=this.fires[i];f.t+=dt;const k=f.t/.7;f.m.scale.setScalar(f.r*(.4+k*1.6));f.m.material.opacity=Math.max(0,.9*(1-k));if(k>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();this.fires.splice(i,1)}}
-    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(v.kind==='sub'&&!v.dead&&Math.hypot(v.x-player.x,v.z-player.z)<1000)v.loadModel();
+    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(!v.dead&&((v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<1000)||(v.glbPending&&Math.hypot(v.x-player.x,v.z-player.z)<300)))v.loadModel();
       if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL+SUB_SURF+Math.sin(UNI.uTime.value*1.1+v.x)*.05;v.sync()}
       else if(v!==this.cur&&!v.dead&&v.lights)v.lights()}
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
@@ -9640,8 +9644,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     ANIM.push(dt=>EXT.tick(dt));
     // land vehicles parked on level ground in the yard, a short walk from where you spawn
     const h=PLACES.find(p=>p.id==='home');
-    if(h){const spots=this.parkSpots(h.x,h.z,4);
-      [['bike',0],['moto',1],['lambo',2],['gwagon',3]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
+    if(h){const spots=this.parkSpots(h.x,h.z,5);
+      [['bike',0],['moto',1],['lambo',2],['gwagon',3],['gtr',4]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
         let best=h.yaw,bd=-1;   // park facing the longest free runway
         for(const a of [h.yaw,h.yaw+Math.PI,h.yaw+Math.PI/2,h.yaw-Math.PI/2]){let d=0;while(d<40&&!insideAny(c[0]+Math.sin(a)*(d+3),c[1]+Math.cos(a)*(d+3),1.4,gy+.6))d+=2;if(d>bd){bd=d;best=a}}
         this.addVehicle(kind,c[0],c[1],best)})}
