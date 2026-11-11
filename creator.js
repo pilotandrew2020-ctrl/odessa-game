@@ -13,7 +13,7 @@ const CH_JEANS=[['Blue denim',0x7ea3cc,0xb9d0e8],['Dark denim',0x2f4468,0x4a6088
   ['Khaki',0x7a7a48,0x9a9a60],['Red',0xb02a2a,0xf2f2f2],['White',0xe8e6e0,0xffffff],['Navy',0x23386b,0x3a5090],['Brown',0x6a4630,0x8a6448]];
 const CH_SHOE=[['White',0xf6f6f2,0xf08a24],['Black',0x1c1c1e,0xeeeeee],['Red',0xc23a35,0xf6f6f2],['Blue',0x2a6fd8,0xf6f6f2],['Neon',0x2ad1ff,0xff3aa0],['Brown',0x6a4630,0x2a1a10],
   ['Grey',0x9a9ca0,0xf6f6f2],['Yellow',0xe8c93a,0x222222]];
-const CH_TOPS=['T-shirt','Striped tee','Overshirt','Hoodie','Jacket','Tank top'],CH_TS_ID=['tee','sailor','over','hood','jacket','tank'];
+const CH_TOPS=['T-shirt','Striped tee','Overshirt','Hoodie','Jacket','Tank top','Capybara tee'],CH_TS_ID=['tee','sailor','over','hood','jacket','tank','capy'];   // append only: the index goes over the network
 const CH_BOTS=['Jeans','Shorts','Skirt','Joggers'],CH_BS_ID=['jeans','shorts','skirt','jogger'];
 const CH_SHOES=['Sneakers','Boots','Chunky'],CH_SS_ID=['sneaker','boot','chunky'];
 const CH_HAIRS=['Swept','Short','Buzz cut','Long','Bun','Ponytail','Mohawk','Curly','Bald'],CH_HS_ID=['swept','short','buzz','long','bun','pony','mohawk','curly','bald'];
@@ -23,7 +23,7 @@ const CH_NECK=['None','Scarf','Chain','Bow tie'],CH_NK_ID=['none','scarf','chain
 const CH_BACK=['None','Crossbody bag','Backpack'],CH_BK_ID=['none','bag','pack'];
 const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble','mous','beard'];
 // code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
-const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,6,16,4,10,3,8,6,5,16,4,3,2, 2],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic
+const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,7,16,4,10,3,8,6,5,16,4,3,2, 2],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
   load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
     const SHARP=[3,3,1,1,3,4,2,0,1,0,1,1,0,2,2,0,0];     // the short-lived "sharp guy" default: anyone who saved it goes back to the blond with blue eyes
@@ -35,7 +35,9 @@ const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,6
     const o={skin:CH_SKIN[a[0]],iris:CH_EYE[a[1]][1],bd:CH_BD_ID[a[2]],hs:CH_HS_ID[a[3]],hair:H[1],hair2:H[2],brow:H[3],ts,bs:CH_BS_ID[a[7]],jeans:J[1],cuff:J[2],
       ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:a[17]===0};   // friends' codes use the realistic body as well (it used to be only your own avatar)
     if(ts==='sailor'){o.shirt=0xf3f1ec;o.tee1='#f4f4f0';o.tee2='#'+C[1].toString(16).padStart(6,'0')}
+    else if(ts==='capy'){o.ts='tee';o.capy=true;o.shirt=0xf3f1ec}     // printed in real.js / look.js; the classic body just shows a plain white tee
     else{o.shirt=C[1];if(ts==='over'){o.tee1='#f4f4f0';o.tee2='#1d2f6a'}}
+    if(own&&typeof LOOK!=='undefined')LOOK.opts(o);       // your own face photo (never sent to friends)
     return o},
   random(){const r=n=>Math.floor(Math.random()*n),p=(n,z)=>Math.random()<z?0:1+r(n-1);
     return [r(10),r(6),p(4,.65),r(9),r(12),r(6),r(16),r(4),r(10),r(3),r(8),p(6,.4),p(5,.6),r(16),p(4,.7),p(3,.5),r(2)]}};
@@ -147,6 +149,7 @@ const CHT=[ // tabs → rows: k = index in the code, sw = colour swatches [name,
   {n:'Bottom',f:'legs',slot:'bottom',rows:[{l:'Style',k:7,ch:CH_BOTS},{l:'Colour',k:8,sw:CH_JEANS.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Shoes',f:'feet',slot:'shoes',rows:[{l:'Style',k:9,ch:CH_SHOES},{l:'Colour',k:10,sw:CH_SHOE.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Glasses',f:'head',rows:[{l:'Frames',k:11,ch:CH_GLASS}]},
+  {n:'Face photo',f:'head',photo:1,rows:[]},
   {n:'Extras',f:'full',rows:[{l:'Hat',k:12,ch:CH_HATS},{l:'Accessory colour',k:13,sw:CH_CLOTH.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])},{l:'Neckwear',k:14,ch:CH_NECK},{l:'On your back',k:15,ch:CH_BACK},{l:'In hand',k:16,ch:['Nothing','Lemonade can']}]}];
 const CH_LOOKS=[['Classic',null],['Navy',[3,3,0, 3,3, 2,4, 0,2, 0,1, 1, 0,2, 0,1,1]],['Red',[5,3,0, 1,4, 2,6, 0,5, 0,5, 1, 0,2, 0,1,1]],['Forest',[1,0,0, 4,5, 2,10, 0,1, 0,3, 1, 0,2, 0,1,1]],
   ['Skater',[2,3,1, 1,2, 3,3, 3,2, 2,1, 0, 2,6, 0,2,0]],['Sailor',[3,0,0, 1,3, 1,4, 0,8, 0,1, 0, 3,1, 3,0,0]],['Street',[4,5,2, 2,4, 4,2, 0,2, 2,4, 2, 1,8, 2,0,0]],['Summer',[2,1,0, 3,0, 0,9, 1,4, 0,0, 3, 3,0, 0,1,0]]];
@@ -171,6 +174,7 @@ const CREATOR={on:false,mode:'play',done:false,built:false,tab:0,yaw:.5,tYaw:.5,
   free(slot){const L=typeof S!=='undefined'&&S&&S.look;if(!L)return;if(slot)delete L[slot];else for(const k of Object.keys(L))delete L[k];try{saveS()}catch(e){}},
   pick(i,quiet){this.tab=i;const T=CHT[i];this.focus=T.f;[...this.tabs.children].forEach((b,j)=>b.classList.toggle('on',j===i));this.renderPanel();this.dirty=true},
   renderPanel(){const T=CHT[this.tab],P=this.panel;P.innerHTML='';this.el('h3',null,T.n.toUpperCase(),P);
+    if(T.photo){this.rows=[];if(typeof LOOK!=='undefined')LOOK.panel(P,this);return}
     for(const r of T.rows){
       if(r.pre){const g=this.el('div','crLooks',null,P);CH_LOOKS.forEach(([n,a])=>{const b=this.el('button','crChip',n,g);b.onclick=()=>{CHAR.cur=CHAR.clean(a||CHAR.def);this.free();this.change()}});continue}
       const row=this.el('div','crRow',null,P),hd=this.el('div','crHd',null,row);this.el('span',null,r.l,hd);const val=this.el('b',null,'',hd);
