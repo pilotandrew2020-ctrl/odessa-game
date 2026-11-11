@@ -3,3 +3,4 @@ tests/out/
 ext.js
 _in*.js
 t_*.txt
+node_modules/
