@@ -184,7 +184,7 @@ function sky(P,st,dt){const w=P.sky===1;P.hips.position.y=P.hipY;
 // ---------------------------------------------------------------- the layer
 function layer(P,st,dt){
   if(!(dt>0))return;
-  const m=st&&st.mode;if(m==='drive'||m==='suv'||m==='bike'||m==='sit'||m==='scoot')return;
+  const m=st&&st.mode;if(m==='drive'||m==='suv'||m==='bike'||m==='bike2'||m==='moto'||m==='sit'||m==='scoot')return;
   if(P._gw2){if(P._gp&&P._gp.cls==='dual')P._gw2.visible=!(P.emo||P.drk||P.rch||P.sky);else unpair(P)}
   if(P.sky){W=1;sky(P,st,dt);return}
   const E=P.emo;
