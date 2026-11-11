@@ -14,7 +14,7 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  moto:[{p:[0,.55,-.1],pose:'moto'}],                                   // real motorbike: sit lower and further back
+  moto:[{p:[0,.42,-.5],pose:'moto'}],                                  // on the seat pad (centre z -.5, top y .56), not on the tank: hips = root + .24 in the pose below
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
 const LV_NAMES=['gwagon','lambo','bike','moto','sub'];
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
@@ -49,9 +49,9 @@ function seatPose(P,st,dt){
     for(const A of P.arms){A.sh.rotation.x=-.9;A.sh.rotation.z=A.s*-.28;A.el.rotation.x=-.6}
     P.idle=0;return}
   if(st.mode==='moto'){             // motorbike: feet on the pegs, hands out to the bars
-    P.hips.position.y=.24;P.spine.rotation.x=.36;P.head.rotation.x=-.3;
-    for(const g of P.legs){g.hp.rotation.x=-1.05;g.kn.rotation.x=.95;g.ft.rotation.x=.1}
-    for(const A of P.arms){A.sh.rotation.x=-1.05;A.sh.rotation.z=A.s*-.16+steer*.2;A.el.rotation.x=-.4}
+    P.hips.position.y=.24;P.spine.rotation.x=.85;P.head.rotation.x=-.8;      // sport-bike tuck: leaning forward onto the bars
+    for(const g of P.legs){g.hp.rotation.x=-1.0;g.kn.rotation.x=1.5;g.ft.rotation.x=.2}
+    for(const A of P.arms){A.sh.rotation.x=-.25;A.sh.rotation.z=A.s*-.16+steer*.2;A.el.rotation.x=-.3}
     P.idle=0;return}
   if(st.mode==='bike'){             // leaning on the bars, legs follow the cranks
     const c=st.crank||0;P.hips.position.y=.16;P.spine.rotation.x=.52;P.head.rotation.x=-.42;
@@ -268,9 +268,12 @@ class LiteVehicle{
     vl*=Math.exp(-(brk?s.hgrip:s.grip*(1-.45*slide))*dt);
     this.vx=fx*vf+lx*vl;this.vz=fz*vf+lz*vl;
     // steering: the lock shrinks with speed to what the tyres can hold (lateral g limit); the handbrake lets it bite harder
-    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=str*lim*(bike?0.28:1);   // bike: steer gentler at the new 500 km/h
+    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=moto?str*.5/(1+sp/45):str*lim*(bike?0.28:1);   // bike: steer gentler at the new 500 km/h; moto: the front wheel visibly turns less the faster it goes
     this.steerA+=(sa-this.steerA)*Math.min(1,dt*(Math.abs(sa)>=Math.abs(this.steerA)?9:13));
-    this.yawRate=vf*Math.tan(this.steerA)/s.wb*(brk&&sp>5?1.25:1);
+    if(moto){   // arcade steering for the 500 km/h bike: a real tyre-grip limit made it impossible to turn above ~30 m/s. Turn rate is set directly: ~2.7 rad/s when pulling away, ~0.6 rad/s flat out, never zero
+      const yMax=(2.4/(1+sp/18)+.35)*(brk&&sp>5?1.2:1)*Math.min(1,sp/1.2),tgt=str*yMax*(vf>=-.5?1:-1);
+      this.yawRate+=(tgt-this.yawRate)*Math.min(1,dt*10)}
+    else this.yawRate=vf*Math.tan(this.steerA)/s.wb*(brk&&sp>5?1.25:1);
     this.yaw+=this.yawRate*dt;
     // move, sliding along walls instead of stopping dead; head-on hits and other vehicles hurt
     const spd=Math.hypot(this.vx,this.vz),nx=this.x+this.vx*dt,nz=this.z+this.vz*dt,sg=vf>=0?1:-1;
