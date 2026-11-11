@@ -44,7 +44,7 @@ const PHONE={
   },
   ui(){const b=document.getElementById('bPhone');if(b){b.classList.toggle('on',this.open);b.setAttribute('aria-pressed',String(this.open));b.setAttribute('aria-label',this.open?'Put phone away':'Open phone')}
     // the GTA-V style slab slides out of / back into the right edge alongside the 3D hand phone
-    const g=document.getElementById('gtPhone');if(g)g.classList.toggle('show',this.open)},
+    const g=document.getElementById('gtPhone');if(g){if(this.open)g.hidden=false;g.classList.toggle('show',this.open)}},   // index.html ships it `hidden` (display:none): it must be un-hidden or the slab never shows
   toggle(){
     this.open=!this.open;this.root.visible=true;this.t=this.open?0:1;this.ui();
     if(typeof COOP!=='undefined')COOP.push(true)
