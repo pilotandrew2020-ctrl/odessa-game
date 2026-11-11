@@ -3,7 +3,7 @@
 // meshes (so the paint shader works); the Lamborghini, G-Wagon, bicycle and submarine are real LiteVehicles built for display only.
 const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,hold:0,zoom:1,spanC:2,wmC:4,yC:.6,drag:null,_t:0,
   LIST:[
-    {id:'c4',car:4,name:'Sport hatch',sub:'Low and quick · the classic first ride',st:[4,4,2],col:0xc0262d},
+    {id:'gtr',lite:'gtr',name:'Nissan GT-R',sub:'LB★WORKS widebody · the everyday car',st:[5,4,2]},
     {id:'c0',car:0,name:'Family sedan',sub:'A comfortable three-box saloon',st:[3,3,3]},
     {id:'c1',car:1,name:'City hatchback',sub:'Short, light and easy to park',st:[3,4,2]},
     {id:'c2',car:2,name:'SUV',sub:'Tall, wide and roomy',st:[3,2,4]},
@@ -130,7 +130,8 @@ const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,h
   take(){const e=this.cur;if(!e)return;UIS.go();this.close();
     try{S.garId=e.id;if(e.car!==undefined)S.myCar={type:e.car,col:this.colOf(e)};saveS()}catch(x){}
     if(DRIVE.on)exitCar();
-    if(e.car!==undefined){DRIVE.car=null;toggleCar()}else EXT.summon(e.lite)},
+    if(e.car!==undefined){DRIVE.car=null;toggleCar()}
+    else{EXT.summon(e.lite);if(e.lite==='gtr'){const g=EXT.veh.find(q=>q.kind==='gtr');if(g&&!EXT.cur&&Math.hypot(g.x-player.x,g.z-player.z)<14)EXT.enter(g)}}},   // the everyday car: you get straight in, as with the old hatch
   frame(t){const dt=Math.min(.05,this._t?(t-this._t)/1000:.016);this._t=t;
     if(!this.drag&&performance.now()-this.hold>3000)this.tYaw+=dt*.6;     // the turntable keeps turning when nobody drags
     this.yaw+=(this.tYaw-this.yaw)*Math.min(1,dt*8);this.turn.rotation.y=this.yaw;
