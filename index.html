@@ -4141,7 +4141,7 @@ function makePlayer(o){o=o||{};
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.006,6,16),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.5}));ring.rotation.y=Math.PI/2;ring.position.x=.121;spk.add(ring);
   spk.position.set(0,-.3,.02);arms[1].el.add(spk);spk.visible=false;
   const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,sipClock:0,sipNext:300+Math.random()*300,accH,accS};
-  if((o.real||o.booba)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
+  if((o.real||o.booba||o.nolik)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
   return P;
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
@@ -9448,6 +9448,9 @@ const LV_SPECS={
   bike:{name:'bicycle',len:1.8,wb:1.05,max:139,acc:70,brake:16,steer:.65,lat:12,grip:16,hgrip:3,r:.45},   // user: 500 km/h; arcade yaw rate in LiteVehicle.step (grip 16: the bike follows its heading, no sideways slide)
   moto:{name:'motorbike',len:1.9,wb:1.45,max:139,acc:80,brake:26,steer:.6,lat:13,grip:9,hgrip:2.6,r:.5},   // real motorbike, also 500 km/h at the user's request
   gtr:{name:'Nissan GT-R',len:4.7,wb:2.6,max:62,acc:17,brake:34,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},   // replaces the old red Sport hatch as the everyday car
+  p911:{name:'Porsche 911 Turbo',len:4.28,wb:2.27,max:56,acc:13,brake:30,steer:.5,lat:14,grip:8,hgrip:2.4,r:1.25},   // 1975 "930" (Sketchfab, Lexyc16)
+  p918:{name:'Porsche 918 Spyder',len:4.65,wb:2.73,max:90,acc:24,brake:40,steer:.5,lat:17,grip:9.5,hgrip:2.4,r:1.3},   // 2015 (Sketchfab, vecarz)
+  db9:{name:'Aston Martin DB9',len:4.7,wb:2.74,max:66,acc:17,brake:34,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},   // 2005 coupe, right-hand drive (Sketchfab)
   sub:{name:'submarine',len:SUB_MODEL_LENGTH,wb:9.6,max:139,acc:60,steer:.45,lat:6,grip:4,hgrip:4,r:3}};   // bike/sub at 500 km/h (139 m/s) at the user's request
 const XM=(c,r,m,e)=>Watercraft.mat(c,r,m,e);
 // depth gauge while piloting the submarine
@@ -9671,8 +9674,8 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     ANIM.push(dt=>EXT.tick(dt));
     // land vehicles parked on level ground in the yard, a short walk from where you spawn
     const h=PLACES.find(p=>p.id==='home');
-    if(h){const spots=this.parkSpots(h.x,h.z,5);
-      [['bike',0],['moto',1],['lambo',2],['gwagon',3],['gtr',4]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
+    if(h){const spots=this.parkSpots(h.x,h.z,8);
+      [['bike',0],['moto',1],['lambo',2],['gwagon',3],['gtr',4],['p911',5],['p918',6],['db9',7]].forEach(([kind,i])=>{const s=spots[i]||spots[0]||[h.x+8,h.z+8],c=collide(s[0],s[1],2.4,groundH(s[0],s[1])+.6),gy=lvGround(c[0],c[1]);
         let best=h.yaw,bd=-1;   // park facing the longest free runway
         for(const a of [h.yaw,h.yaw+Math.PI,h.yaw+Math.PI/2,h.yaw-Math.PI/2]){let d=0;while(d<40&&!insideAny(c[0]+Math.sin(a)*(d+3),c[1]+Math.cos(a)*(d+3),1.4,gy+.6))d+=2;if(d>bd){bd=d;best=a}}
         this.addVehicle(kind,c[0],c[1],best)})}

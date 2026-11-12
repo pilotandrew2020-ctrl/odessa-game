@@ -1,0 +1,4 @@
+{"src":"src/porsche_911_930_turbo_1975.glb","out":"out/p911.glb",
+ "scale":1.262,"origin":[-1.09,-1.57,0.18],"maxTex":512,"bodyTris":16000,"wheelTris":700,"maxWheelPart":0.7,
+ "wheels":[["wheel_fl",-0.45,-1.32,1.08,0.27,0.15],["wheel_fr",-1.73,-1.32,1.08,0.27,0.15],["wheel_rl",-0.45,-1.32,-0.72,0.27,0.15],["wheel_rr",-1.73,-1.32,-0.72,0.27,0.15]],
+ "rename":{"Material.013":"Light_glass","Material.006":"red_galass"}}

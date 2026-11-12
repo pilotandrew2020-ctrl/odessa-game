@@ -1,0 +1,4 @@
+{"src":"src/porsche_918_spyder_2015.glb","out":"out/p918.glb",
+ "scale":1,"origin":[0,0,0.29],"maxTex":512,"bodyTris":20000,"err":0.08,"minGroup":16,"wheelTris":1000,"maxWheelPart":0.8,
+ "wheels":[["wheel_fl",0.83,0.35,1.66,0.35,0.17],["wheel_fr",-0.83,0.35,1.66,0.35,0.17],["wheel_rl",0.79,0.37,-1.08,0.365,0.19],["wheel_rr",-0.79,0.37,-1.08,0.365,0.19]],
+ "rename":{"Glass_Bumped":"Light_glass","Window_Glass_Red":"red_galass"}}

@@ -31,5 +31,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_hub` | Games hub (`games.html`) and 5 mini-games (`2048`, `snake`, `memory`, `gull`, `quiz`) |
 | `t_perf` | Render performance benchmark across 4 camera spots (city street, beach, island, flat) |
 | `t_airport_stream` | Airport staged load, resource/collision cleanup on exit, and duplicate-free re-entry |
+| `t_booba`, `t_nolik` | Booba / Nolik as body types (creator chip, 22 bones move, no hat or glasses, bicycle, back to Realistic) |
+| `t_cars` | Porsche 911 Turbo, Porsche 918 Spyder, Aston Martin DB9: GLB loads, 4 wheel pivots, real size, driver seat, drive / steer, Garage; `CARSHOT=1` saves screenshots of the player seated |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.

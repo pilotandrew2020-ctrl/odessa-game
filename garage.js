@@ -4,6 +4,9 @@
 const GAR={on:false,idx:0,built:false,cache:{},cols:{},cur:null,yaw:.6,tYaw:.6,hold:0,zoom:1,spanC:2,wmC:4,yC:.6,drag:null,_t:0,
   LIST:[
     {id:'gtr',lite:'gtr',name:'Nissan GT-R',sub:'LB★WORKS widebody · the everyday car',st:[5,4,2]},
+    {id:'p911',lite:'p911',name:'Porsche 911 Turbo',sub:'The 1975 "930" with the big whale-tail',st:[4,3,2]},
+    {id:'p918',lite:'p918',name:'Porsche 918 Spyder',sub:'Hybrid hypercar · the fastest car here',st:[5,5,2]},
+    {id:'db9',lite:'db9',name:'Aston Martin DB9',sub:'British grand tourer · right-hand drive',st:[4,4,2]},
     {id:'c0',car:0,name:'Family sedan',sub:'A comfortable three-box saloon',st:[3,3,3]},
     {id:'c1',car:1,name:'City hatchback',sub:'Short, light and easy to park',st:[3,4,2]},
     {id:'c2',car:2,name:'SUV',sub:'Tall, wide and roomy',st:[3,2,4]},

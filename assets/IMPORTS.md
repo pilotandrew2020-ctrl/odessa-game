@@ -25,11 +25,15 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `models/cyclops_subnautica.glb` | Naudaff3D on Sketchfab | CC-BY-4.0 | `vehicles.js` submarine (9.4 MB, 324,781 triangles; loaded on demand) |
 | `models/cricri.glb` | supplied by the project owner (FBX + textures, `twin-engine-airplane-colomban-cri-cri.zip`) | not stated in the archive; the owner confirmed on 2026-11-03 that they may use it (terms not recorded) | `planes.js` `PM.loadLight()/buildLight()` — the light plane (`plane.js` kind `light`, spawn menu). 21.9k tris (over the ~5k guideline; one model, spawned on demand), 903 KB, textures 1024/512 px; lazy loaded when the plane is first spawned |
 | `textures/bark_platanus.jpg` | Poly Haven "Bark Platanus" (1k diffuse, https://polyhaven.com/a/bark_platanus) | CC0 | tree trunk/branch texture (`MATS.bark` in `index.html`, loaded after start, lightened on a canvas) |
+| `models/vehicles/p911.glb` | Sketchfab "Porsche 911 (930) Turbo 1975" by Lexyc16 | CC-BY-4.0 | `vehicles.js` `LV_GLB.p911`, garage + yard (21k tris, 972 KB, loaded when the car is near / shown) |
+| `models/vehicles/p918.glb` | Sketchfab "Porsche 918 Spyder 2015" by vecarz | CC-BY-4.0 | `vehicles.js` `LV_GLB.p918` (29k tris, 1.7 MB) |
+| `models/vehicles/db9.glb` | Sketchfab "2005 Aston Martin DB9 Coupe" by OUTPISTON | CC-BY-NC-SA-4.0 (non-commercial, share-alike) | `vehicles.js` `LV_GLB.db9`, right-hand drive (41k tris incl. interior, 3.2 MB) |
 | `models/trees/tree_maple_hi.glb` / `tree_maple_lo.glb` | Sketchfab "Maple Tree" by evolveduk | CC-BY-4.0 | `trees.js` `GLBT`: broadleaf trees within ~90 m (desktop, `hi`: 3.5k tris, 293 KB) / ~60 m (phones and Low quality, `lo`: 1.7k tris, 141 KB); far trees stay procedural; one `InstancedMesh` for trunk + one for leaves |
 | `models/trees/tree_spruce_hi.glb` / `tree_spruce_lo.glb` | Sketchfab "Spruce" by evolveduk | CC-BY-4.0 | `trees.js` `GLBT`: conifers (old species slot 4); 1.8k / 0.6k tris, 165 / 66 KB |
 | `models/trees/tree_snow.glb` | Sketchfab "Snow Trees Pack LOWPOLY" by EFX | CC-BY-4.0 | `trees.js` `GLBT`, winter only: `snowtree`, `bare`, `deadhero`, `deadwide`, `bush` nodes (card trees, 113 tris in all, 288 KB) |
 | `models/props/bench.glb` | Sketchfab "Bench" by Spark | CC-BY-4.0 | `trees.js` `BENCH`: nodes `bench` (1.8k tris) and `bin` (450 tris, alpha-tested); instanced for every bench `propBench2()` makes in a chunk or in the static world (125 KB) |
 | `models/avatar/Booba.glb` | Sketchfab "Booba Cartoon" by usmangill | CC-BY-4.0 (the character itself is not) | `real.js` body type "Booba" (22 bones under the Man.glb names, 3.9k tris, 293 KB, loaded when picked) and `trees.js` `BOOBA` (the yard NPC) |
+| `models/avatar/Nolik.glb` | Sketchfab "nolik" by KitLover | CC-BY-4.0 (the character itself is not) | `real.js` body type "Nolik" (22 bones under the Man.glb names, 12k tris, 620 KB, loaded when picked; swing limited by `REAL.BOD.nolik.lim`) |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.
 
