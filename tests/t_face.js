@@ -28,6 +28,11 @@ exports.run = async (page, h) => {
       const f = LOOK.face; out[name] = { want: skin, skin: f.skin, hair: f.hair, med: f.med, v: f.v, hasImg: !!f.img };
       box.remove();
     }
+    // a circle dragged over the edge of the photo: the fill colour outside the picture must not count as skin
+    {const c = document.createElement('canvas'); c.width = 400; c.height = 600; const g = c.getContext('2d'); g.fillStyle = '#7aa0c8'; g.fillRect(0, 0, 400, 600); g.fillStyle = '#4a2f1d'; g.beginPath(); g.ellipse(40, 250, 150, 190, 0, 0, 6.283); g.fill();
+      g.fillStyle = '#e8bf9f'; g.beginPath(); g.ellipse(40, 300, 115, 150, 0, 0, 6.283); g.fill(); g.fillStyle = '#2a1c14'; g.beginPath(); g.arc(100, 290, 8, 0, 6.283); g.fill();
+      const im = new Image(); await new Promise(ok => { im.onload = ok; im.src = c.toDataURL('image/png') });
+      LOOK.setFromImage(im, { cx: 40, cy: 300, R: 150, rot: 0 }); const f = LOOK.face; out.edge = { want: '#e8bf9f', skin: f.skin, hair: f.hair, med: f.med, v: f.v, hasImg: !!f.img }; }
     return out;
   });
   const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));

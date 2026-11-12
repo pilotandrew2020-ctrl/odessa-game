@@ -73,7 +73,7 @@ const GLBT={ready:false,loading:false,near:0,show:true,K:{},all:[],
 // ---------- park benches ----------
 const BENCH={ready:false,failed:false,loading:false,show:true,own:new Map(),dirty:true,lx:1e9,lz:1e9,bench:null,bin:null,
   // propBench2() calls this with the prop batch P it is drawing into; only batches that announce themselves (P.bn=[]) are handled here
-  add(P,x,y,z,ry){if(!P.bn||this.failed)return false;P.bn.push(x,y,z,ry);return true},
+  add(P,x,y,z,ry){if(!P.bn||this.failed||!this.ready)return false;P.bn.push(x,y,z,ry);return true},   // not ready (yet / failed): the box bench of propBench2 is drawn, nothing is registered, so nothing can vanish
   reg(id,list){if(list&&list.length){this.own.set(id,list);this.dirty=true}},
   rm(id){if(this.own.delete(id))this.dirty=true},
   load(){if(this.loading)return;this.loading=true;
@@ -123,3 +123,4 @@ const BOOBA={root:null,placed:false,st:'idle',wait:2,t:0,tx:0,tz:0,ax:0,az:0,vy:
     R.position.y+=(gy-R.position.y)*Math.min(1,dt*12);
     const m=R.children[0];m.position.y=(this.hopY||0)+(moving?Math.abs(Math.sin(this.t*7))*.05:0);m.rotation.z=moving?Math.sin(this.t*7)*.09:0;m.scale.setScalar(1+Math.sin(this.t*2.2)*.012)}
 };
+BENCH.load();   // start the (125 KB) bench file as soon as this script runs, long before the static world and the first chunks are built

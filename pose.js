@@ -66,7 +66,17 @@ const EM={
   dab:{n:'Dab',loop:0,dur:2.2,f(P,a,t){const G=P.arms[1],S=P.arms[0];
     HY(P,-.04);R3(P.spine,.1,.25,-.18);R3(P.head,.45,.3,.3);
     R3(G.sh,-2.25,0,G.s*.5);R3(G.el,-.04);grip(P,1,'flat');R3(S.sh,-1.95,0,-S.s*.45);R3(S.el,-2.35);grip(P,0,'bar');
-    P.legs.forEach(g=>{R3(g.hp,-.1,0,g.s*.12);R3(g.kn,.2)})}}
+    P.legs.forEach(g=>{R3(g.hp,-.1,0,g.s*.12);R3(g.kn,.2)})}},
+  // The scene from Titanic (2026-11-12). quiet: no dance beat; hold: not cut off after 14 s. Pick "arms out" and the friend (Misha, or whoever stands there) holds you from behind;
+  // pick "hold" and he stands in front with his arms out. A real co-op friend just picks the other half, 0.36 m apart, facing the same way (BUDDY.titanic places Misha).
+  tfront:{n:'Titanic · arms out',loop:1,quiet:1,hold:1,f(P,a,t){const br=Math.sin(t*1.3)*.012,wind=Math.sin(t*.9)*.03;
+    HY(P,.01);R3(P.spine,-.1+br,0,0);R3(P.hips,0,0,0);R3(P.head,-.22,wind,0);
+    P.arms.forEach(A=>{R3(A.sh,.14,0,A.s*(1.42+br*2));R3(A.el,-.05)});grip(P,0,'flat');grip(P,1,'flat');
+    P.legs.forEach(g=>{R3(g.hp,0,0,g.s*.04);R3(g.kn,.02);R3(g.ft,0)})}},
+  thold:{n:'Titanic · hold',loop:1,quiet:1,hold:1,f(P,a,t){const br=Math.sin(t*1.3)*.012;
+    HY(P,0);R3(P.spine,.07+br,0,0);R3(P.hips,0,0,0);R3(P.head,-.1,.28,.14);
+    P.arms.forEach(A=>{R3(A.sh,-.72,0,-A.s*.2);R3(A.el,-.7)});grip(P,0,'flat');grip(P,1,'flat');
+    P.legs.forEach(g=>{R3(g.hp,0,0,g.s*.05);R3(g.kn,.02);R3(g.ft,0)})}}
 };
 const IDS=Object.keys(EM);
 
@@ -189,7 +199,7 @@ function layer(P,st,dt){
   if(P.sky){W=1;sky(P,st,dt);return}
   const E=P.emo;
   if(E){E.t+=dt;const def=EM[E.id];
-    if(!def||(!def.loop&&E.t>def.dur+.25)||E.t>14||(P===PLR&&(st.spd||0)>1.2)){POSE.stop(P)}
+    if(!def||(!def.loop&&E.t>def.dur+.25)||(E.t>14&&!def.hold)||(P===PLR&&(st.spd||0)>1.2)){POSE.stop(P)}
     else{const fi=ease(E.t/.2),fo=def.loop?1:ease((def.dur+.25-E.t)/.25);W=Math.min(fi,fo);
       P.can.visible=false;if(P._gw)P._gw.visible=false;def.f(P,E.t*2*PI*1.0667,E.t);W=1;return}}
   if(P.drk){W=1;if(P.drk.t>=P.drk.dur){POSE.endDrink(P)}else{drink(P,st,dt);return}}
@@ -232,8 +242,8 @@ const POSE={EM,IDS,CLS,layer,
   // sip from the Pepsi can in the left hand, randomly (cooldown 5-10 min). Same rig as the jar drink.
   canT:0,canNext:0,canCur:0,canCool(){return 300+Math.random()*300},canSip(P,dt){this.canT-=dt||0;if(this.canT<=0&&!this.canCur&&P&&P===PLR&&P.can&&P.can.visible&&!P.emo&&!P.drk&&!P.rch&&!(typeof GUN!=='undefined'&&GUN.held)&&!(typeof BR!=='undefined'&&BR.on)){this.canCur=1.6;this.canT=0;POSE.startDrink(P,1.6,P.can)}
     if(this.canCur>0){this.canCur-=dt||0;if(this.canCur<=0&&!P.drk){this.canCur=0;this.canT=this.canCool()}}},
-  emote(P,id,mine){if(!P||!EM[id])return;if(P.sky)return;P.emo={id,t:0};P.drk=null;P.rch=null;if(mine&&P===PLR){beat(true);POSE.cur=id;try{COOP.push(true)}catch(e){}}},
-  stop(P){if(!P||!P.emo)return;P.emo=null;free(P);if(P.can&&P===PLR)P.can.visible=true;if(P===PLR){beat(false);POSE.cur=null;try{COOP.push(true)}catch(e){}}},
+  emote(P,id,mine){if(!P||!EM[id])return;if(P.sky)return;P.emo={id,t:0};P.drk=null;P.rch=null;if(mine&&P===PLR){if(!EM[id].quiet)beat(true);POSE.cur=id;try{COOP.push(true)}catch(e){}if(EM[id].hold&&typeof BUDDY!=='undefined')BUDDY.titanic(id)}},
+  stop(P){if(!P||!P.emo)return;P.emo=null;free(P);if(P.can&&P===PLR)P.can.visible=true;if(P===PLR){beat(false);POSE.cur=null;try{COOP.push(true)}catch(e){}if(typeof BUDDY!=='undefined'&&BUDDY.tit)BUDDY.titanicEnd()}},
   startDrink(P,dur,jar,liq,liq0){P.emo=null;P.rch=null;P.drk={t:0,dur,jar,liq,liq0};if(P.can)P.can.visible=false},
   endDrink(P){if(!P.drk)return;const d=P.drk;P.drk=null;if(d.jar&&d.jar.parent)d.jar.parent.remove(d.jar);free(P);if(P._gw)P._gw.visible=true},
   reachDown(P,dur){if(P.emo)return;P.rch={t:0,dur:dur||.6}},

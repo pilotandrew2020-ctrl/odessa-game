@@ -4,9 +4,13 @@
    the free seat; on the yacht, the train and the airliner he sits next to you (or on the nearest free seat) and stands up when you do.
    Co-op friends need nothing of this: the same seats and bench halves work for them.
    =================================================================================================== */
-const BUDDY={on:false,P:null,x:0,y:0,z:0,yaw:0,spd:0,sit:null,seat:null,mpPlat:null,bl:null,t:0,say:0,reset:false,name:'Misha',
+const BUDDY={tit:null,on:false,P:null,x:0,y:0,z:0,yaw:0,spd:0,sit:null,seat:null,mpPlat:null,bl:null,t:0,say:0,reset:false,name:'Misha',
   LINES:['This is great!','Where to next?','Look at that view!','I could stay here all day.','Nice ride!','Careful with the animals…','Let\'s take the yacht to the island!','Can we fly the jet?'],
   toggle(){if(this.on)this.remove();else this.spawn()},
+  // the Titanic emotes of pose.js: Misha takes the other half of the scene (behind you when you stand with your arms out, in front of you when you hold)
+  titanic(id){const peers=typeof COOP!=='undefined'&&COOP.online&&COOP.online()&&COOP.peers&&[...COOP.peers.values()].some(R=>R.has&&Math.hypot(R.x-player.x,R.z-player.z)<3);
+    if(!this.on&&!peers)this.spawn();if(this.on)this.tit={role:id==='tfront'?'back':'front',t:0,at:false}},
+  titanicEnd(){if(this.tit&&this.P&&this.P.emo)POSE.stop(this.P);this.tit=null},
   spawn(){if(this.on||!started)return;const P=this.P=makePlayer(npcOpts());P.root.traverse(m=>{if(m.isMesh){m.castShadow=true;m.frustumCulled=false}});try{mergeAvatar(P.root)}catch(e){}scene.add(P.root);
     this.on=true;this.reset=true;this.bl=null;this.sit=null;this.seat=null;this.update(.016);toast(this.name+' joins you','he follows you · sits next to you · rides along (More → Friend to send him away)');this.btn(true)},
   remove(){if(!this.on)return;this.release();scene.remove(this.P.root);this.P=null;this.on=false;toast(this.name+' leaves','');this.btn(false)},
@@ -31,6 +35,13 @@ const BUDDY={on:false,P:null,x:0,y:0,z:0,yaw:0,spd:0,sit:null,seat:null,mpPlat:n
       if(!MP.seat&&this.seat){this.seat.who=null;this.seat=null}
       if(this.seat){const s=this.seat;o.lx=s.x;o.lz=s.z;o.ly=s.y;P.root.visible=true;const w=MP.toWorld(Pl,s.x,s.y,s.z,MP._v);this.x=w.x;this.y=w.y;this.z=w.z;P.root.position.copy(w);
         const q=MP._q.copy(Pl.root.quaternion).multiply(MP._q2.setFromAxisAngle(MP._Y,s.yaw||0));P.root.quaternion.copy(q);animPlayer(P,{spd:0,mode:'sit'},dt);return}
+      if(this.tit){const T=this.tit,pe=PLR.emo,live=pe&&(pe.id==='tfront'||pe.id==='thold');
+        if(!live||MP.seat)this.titanicEnd();
+        else{const sg=T.role==='back'?-1:1,gx=MP.lx+Math.sin(MP.yawL)*.36*sg,gz=MP.lz+Math.cos(MP.yawL)*.36*sg,ddx=gx-o.lx,ddz=gz-o.lz,dd=Math.hypot(ddx,ddz),want=T.role==='back'?'thold':'tfront';
+          if(dd>.9){tx=gx;tz=gz}
+          else{const k=Math.min(1,dt*5);o.lx+=ddx*k;o.lz+=ddz*k;if(o.fy!==null&&o.fy!==undefined)o.ly+=(o.fy-o.ly)*Math.min(1,dt*14);let dy=MP.yawL-(this.lyaw||0);while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;this.lyaw=(this.lyaw||0)+dy*Math.min(1,dt*6);
+            if(dd<.12&&(!P.emo||P.emo.id!==want))POSE.emote(P,want);
+            const w=MP.toWorld(Pl,o.lx,o.ly,o.lz,MP._v);this.x=w.x;this.y=w.y;this.z=w.z;P.root.position.copy(w);P.root.quaternion.copy(MP._q.copy(Pl.root.quaternion).multiply(MP._q2.setFromAxisAngle(MP._Y,this.lyaw)));animPlayer(P,{spd:0,mode:'walk'},dt);return}}}
       // follow the player in the platform frame
       if(tx===undefined){const a=MP.yawL+2.4;tx=MP.lx+Math.sin(a)*1.2;tz=MP.lz+Math.cos(a)*1.2}
       const dx=tx-o.lx,dz=tz-o.lz,d=Math.hypot(dx,dz);if(d>6)speed=5.5;let moved=0;
@@ -48,6 +59,15 @@ const BUDDY={on:false,P:null,x:0,y:0,z:0,yaw:0,spd:0,sit:null,seat:null,mpPlat:n
       if(this.sit){this.x=tx;this.z=tz;this.y=ty;this.place(P,tx,ty,tz,b.ry,'sit',dt);return}
       return}
     this.sit=null;
+    // ---- the Titanic scene: stand 0.36 m behind (or in front of) the player, facing the same way, and play the other half of the pose ----
+    if(this.tit){const T=this.tit,pe=PLR.emo,live=pe&&(pe.id==='tfront'||pe.id==='thold');
+      if(!live||player.sit||player.spd>1.4){this.titanicEnd()}
+      else{const sg=T.role==='back'?-1:1,fx=Math.sin(player.yaw),fz=Math.cos(player.yaw),tx=player.x+fx*.36*sg,tz=player.z+fz*.36*sg,d=Math.hypot(tx-this.x,tz-this.z),want=T.role==='back'?'thold':'tfront';
+        if(d>.9){this.walk(tx,tz,dt,Math.min(6.5,1.5+d*1.5));this.y+=(groundAt(this.x,this.z,this.y+1)-this.y)*Math.min(1,dt*14);this.place(P,this.x,this.y,this.z,this.yaw,'walk',dt,this.spd);return}
+        // the last step is a plain slide (no obstacle push-back: the rail may be right there), then both stand still in the pose
+        const k=Math.min(1,dt*5);this.x+=(tx-this.x)*k;this.z+=(tz-this.z)*k;this.spd*=.6;let dy=player.yaw-this.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;this.yaw+=dy*Math.min(1,dt*6);
+        this.y+=(player.y-this.y)*Math.min(1,dt*10);if(d<.12&&(!P.emo||P.emo.id!==want))POSE.emote(P,want);
+        this.place(P,this.x,this.y,this.z,this.yaw,'walk',dt,this.spd);return}}
     // ---- walking beside the player ----
     const a=player.yaw+2.4+(this.say>0?0:0),tx=player.x+Math.sin(a)*1.5,tz=player.z+Math.cos(a)*1.5,d=Math.hypot(tx-this.x,tz-this.z);
     if(d>26){this.x=player.x+Math.sin(a)*2;this.z=player.z+Math.cos(a)*2;this.y=groundAt(this.x,this.z,player.y+1)}

@@ -63,17 +63,18 @@ const LOOK={
     const e1=[(eL0[0]-ccx)*k+N/2,(eL0[1]-ccy)*k+N/2],e2=[(eR0[0]-ccx)*k+N/2,(eR0[1]-ccy)*k+N/2],dd=d*k,rc=[(ring.cx-ccx)*k+N/2,(ring.cy-ccy)*k+N/2],Rc=R*k;
     const A=g.getImageData(0,0,N,N),a=A.data;
     // per pixel: ring-local coordinates (u right, v down, the ring's own tilt removed), oval distance, luma, chroma
-    const U=new Float32Array(N*N),V=new Float32Array(N*N),E=new Float32Array(N*N),Y=new Float32Array(N*N),CB=new Float32Array(N*N),CR=new Float32Array(N*N);
+    const U=new Float32Array(N*N),V=new Float32Array(N*N),E=new Float32Array(N*N),Y=new Float32Array(N*N),CB=new Float32Array(N*N),CR=new Float32Array(N*N),OUT=new Uint8Array(N*N);   // OUT: this texel lies outside the photo (the circle was dragged over its edge): the fill colour must not count as skin
     for(let y=0,i=0;y<N;y++)for(let x=0;x<N;x++,i++){const dx=x-rc[0],dy=y-rc[1],u=dx*cs+dy*sn,v=-dx*sn+dy*cs;U[i]=u/Rc;V[i]=v/Rc;E[i]=Math.hypot(u/(.8*Rc),v/Rc);
+      const sx=ccx-side/2+x/k,sy=ccy-side/2+y/k;if(sx<0||sy<0||sx>=img.width||sy>=img.height)OUT[i]=1;
       const r=a[i*4],gg=a[i*4+1],b=a[i*4+2];Y[i]=.299*r+.587*gg+.114*b;CB[i]=128-.1687*r-.3313*gg+.5*b;CR[i]=128+.5*r-.4187*gg-.0813*b}
     // feature zones (kept from the photo): the two eyes, the brows, the nose, the mouth; everything else that is not skin-coloured is painted over
     const zone=(u,v,cx,cy,rx,ry)=>{const q=Math.hypot((u-cx)/rx,(v-cy)/ry);return q<=1?1:q>=1.35?0:1-(q-1)/.35};
     const feat=i=>Math.max(zone(U[i],V[i],-.35,-.38,.24,.15),zone(U[i],V[i],.35,-.38,.24,.15),zone(U[i],V[i],-.33,-.52,.28,.09),zone(U[i],V[i],.33,-.52,.28,.09),zone(U[i],V[i],0,.1,.17,.28),zone(U[i],V[i],0,.47,.34,.16));
-    const FZ=new Float32Array(N*N);for(let i=0;i<N*N;i++)FZ[i]=feat(i);
+    const FZ=new Float32Array(N*N);for(let i=0;i<N*N;i++)FZ[i]=OUT[i]?0:feat(i);
     // skin tone: median of the skin-coloured pixels in the inner part of the oval, outside the feature zones
     const med=(arr)=>{arr.sort((p,q)=>p-q);return arr[arr.length>>1]};
     let sr=[],sg=[],sb=[],all=[];
-    for(let i=0;i<N*N;i+=2){if(E[i]>.62)continue;const f=FZ[i];if(f>.05)continue;const r=a[i*4],gg=a[i*4+1],b=a[i*4+2];all.push([r,gg,b,Y[i]]);
+    for(let i=0;i<N*N;i+=2){if(E[i]>.62||OUT[i])continue;const f=FZ[i];if(f>.05)continue;const r=a[i*4],gg=a[i*4+1],b=a[i*4+2];all.push([r,gg,b,Y[i]]);
       if(CB[i]>=77&&CB[i]<=127&&CR[i]>=133&&CR[i]<=173&&Y[i]>40&&Y[i]<245){sr.push(r);sg.push(gg);sb.push(b)}}
     let skin;
     if(sr.length>all.length*.12)skin=[med(sr),med(sg),med(sb)];
@@ -83,7 +84,7 @@ const LOOK={
     const sY=.299*skin[0]+.587*skin[1]+.114*skin[2],sCb=128-.1687*skin[0]-.3313*skin[1]+.5*skin[2],sCr=128+.5*skin[0]-.4187*skin[1]-.0813*skin[2];
     // how skin-like each pixel is (chroma distance to the median, a darkness/brightness window)
     const SK=new Float32Array(N*N);
-    for(let i=0;i<N*N;i++){const dc=Math.hypot(CB[i]-sCb,CR[i]-sCr),lr=Y[i]/sY;let w=1-Math.min(1,Math.max(0,(dc-9)/17));if(lr<.5)w*=Math.max(0,(lr-.28)/.22);else if(lr>1.5)w*=Math.max(0,1-(lr-1.5)/.4);
+    for(let i=0;i<N*N;i++){const dc=Math.hypot(CB[i]-sCb,CR[i]-sCr),lr=Y[i]/sY;let w=OUT[i]?0:1-Math.min(1,Math.max(0,(dc-9)/17));if(lr<.5)w*=Math.max(0,(lr-.28)/.22);else if(lr>1.5)w*=Math.max(0,1-(lr-1.5)/.4);
       // forehead above the brows and the temples are where hair (often skin-coloured: brown, blond) gets in: only keep pixels about as bright as the skin there
       if(V[i]<-.6||Math.abs(U[i])>.55){const q=Math.abs(lr-1);w*=q<.16?1:q>.34?0:1-(q-.16)/.18}
       SK[i]=w}
@@ -114,7 +115,7 @@ const LOOK={
     const hex=v=>'#'+v.map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
     // hair: a patch just above the oval, read from the ORIGINAL picture; if it is skin-coloured (bald / short) or the bright background, leave the avatar's own hair colour
     let hair=null;{const og=document.createElement('canvas');og.width=og.height=N;const gg2=og.getContext('2d',{willReadFrequently:true});gg2.drawImage(img,ccx-side/2,ccy-side/2,side,side,0,0,N,N);const O=gg2.getImageData(0,0,N,N).data;
-      const px=[];for(let i=0;i<N*N;i+=3){if(Math.abs(U[i])>.55||V[i]<-1.32||V[i]>-.98)continue;px.push(i)}
+      const px=[];for(let i=0;i<N*N;i+=3){if(OUT[i]||Math.abs(U[i])>.55||V[i]<-1.32||V[i]>-.98)continue;px.push(i)}
       let skinish=0,hr=[],hg=[],hb=[];for(const i of px){const r=O[i*4],gg=O[i*4+1],b=O[i*4+2],y=.299*r+.587*gg+.114*b,cb=128-.1687*r-.3313*gg+.5*b,cr=128+.5*r-.4187*gg-.0813*b;
         if(Math.hypot(cb-sCb,cr-sCr)<12&&Math.abs(y-sY)<45)skinish++;else{hr.push(r);hg.push(gg);hb.push(b)}}
       if(px.length&&skinish/px.length<.5&&hr.length>20){const h3=[med(hr),med(hg),med(hb)],l=.299*h3[0]+.587*h3[1]+.114*h3[2];if(l<225&&Math.hypot(h3[0]-skin[0],h3[1]-skin[1],h3[2]-skin[2])>40)hair=hex(h3.map(x=>x*1.1))}}

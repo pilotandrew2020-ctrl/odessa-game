@@ -19,10 +19,10 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   SCB:1,urlB:'assets/models/avatar/Booba.glb',tplB:null,stB:0,
   load(){if(this.st)return;this.st=1;
     try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(false);
-        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
+        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;this.wait=this.wait.filter(w=>w[1].booba);console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
   loadB(){if(this.stB)return;this.stB=1;
     try{new THREE.GLTFLoader().load(this.urlB,g=>{this.tplB=g.scene;this.stB=2;this.flush(true);
-        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.stB=3;console.warn('[real] Booba failed to load',e)})}catch(e){this.stB=3;console.warn('[real]',e)}},
+        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.stB=3;this.wait=this.wait.filter(w=>!w[1].booba);console.warn('[real] Booba failed to load',e)})}catch(e){this.stB=3;console.warn('[real]',e)}},
   flush(booba){const keep=[];for(const [P,o] of this.wait.splice(0)){if(!!o.booba!==booba){keep.push([P,o]);continue}if(P.root&&!P.realOff)this.attach(P,o)}for(const w of keep)this.wait.push(w)},
   ready(){return this.st===2},
   // a skinned clone that owns its skeleton (Object3D.clone shares it in r128)
@@ -36,7 +36,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         t=[parseInt(k.slice(1,3),16),parseInt(k.slice(3,5),16),parseInt(k.slice(5,7),16)];
       for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];if(b>r+22&&b>gg+6){const f=.3+((r+gg+b)/3/255)*1.55;p[i]=Math.min(255,t[0]*f);p[i+1]=Math.min(255,t[1]*f);p[i+2]=Math.min(255,t[2]*f)}}
       g.putImageData(d,0,0);const T=new THREE.CanvasTexture(cv);T.flipY=false;T.encoding=THREE.sRGBEncoding;T.anisotropy=4;return this.eyeTex[k]=T}catch(e){return null}},
-  attach(P,o){if(!P||!P.root)return;const BO=!!o.booba,tpl=BO?this.tplB:this.tpl;if(!tpl){this.wait.push([P,o]);BO?this.loadB():this.load();return}
+  attach(P,o){if(!P||!P.root)return;const BO=!!o.booba,tpl=BO?this.tplB:this.tpl;if(!tpl){if((BO?this.stB:this.st)===3)return;   // that file failed to load: keep the classic body, queue nothing (a failed load used to keep every rebuilt avatar alive in `wait`)
+      this.wait.push([P,o]);BO?this.loadB():this.load();return}
     if(P.real)this.detach(P);
     const M=this.clone(tpl),SC=BO?this.SCB:this.SC,B=[],byN={},par=[],kind=[];
     M.scale.setScalar(SC);M.name='realBody';P.root.add(M);M.updateMatrixWorld(true);
@@ -72,7 +73,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
       if(o3.name==='Body'||o3.name==='Eyes')R[o3.name]=o3;o3.userData.real=1});
     this.paint(R,P,o);
     // the procedural body is hidden, held things and head/neck/back extras stay (moved onto the new bones below)
-    for(const c of (BO?[P.can,P.speaker]:[P.can,P.speaker].concat(P.accH||[],P.accS||[])))if(c)c.userData.keep=1;   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
+    for(const c of [P.can,P.speaker])if(c)c.userData.keep=1;
+    for(const c of (P.accH||[]).concat(P.accS||[]))if(c)c.userData.keep=BO?0:1;     // set on EVERY attach: an avatar that was Realistic and becomes Booba (creator) must not keep the old flag   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
     R.hidden=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;R.hidden.push(c)}});
     P.real=R;R.o=o;this.mount(P,R);
     // pose now, so the first frame is right even if the caller never ticks
