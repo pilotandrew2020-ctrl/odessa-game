@@ -1,0 +1,26 @@
+<!doctype html><meta charset=utf-8><body>
+<script src="lib/three.min.js"></script><script src="lib/GLTFLoader.js"></script>
+<script>
+window.bake=async(url,angDeg,fwdDeg)=>{
+  const gl=await new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,undefined,no));
+  const root=gl.scene;root.updateMatrixWorld(true);
+  const bones={};root.traverse(o=>{if(o.isBone)bones[o.name]=o});
+  const rotWorld=(bone,axis,ang)=>{bone.updateWorldMatrix(true,false);const pq=new THREE.Quaternion();if(bone.parent)bone.parent.getWorldQuaternion(pq);const wq=new THREE.Quaternion();bone.getWorldQuaternion(wq);
+    const R=new THREE.Quaternion().setFromAxisAngle(axis,ang);const nq=R.multiply(wq);bone.quaternion.copy(pq.clone().invert().multiply(nq));bone.updateMatrixWorld(true)};
+  const Z=new THREE.Vector3(0,0,1),X=new THREE.Vector3(1,0,0);
+  const L=bones['Shoulder_L_0112'],Rr=bones['Shoulder_R_0128'];
+  // report left/right world positions of wrists to know which side is which
+  const wp=n=>{const v=new THREE.Vector3();bones[n].getWorldPosition(v);return v.toArray().map(x=>+x.toFixed(3))};
+  const before={L:wp('Wrist_L_0114'),R:wp('Wrist_R_0130')};
+  const a=angDeg*Math.PI/180,f=fwdDeg*Math.PI/180;
+  const sgn=before.L[0]>before.R[0]?1:-1;   // +1: the L arm is on +x
+  rotWorld(L,Z,-sgn*a);rotWorld(Rr,Z,sgn*a);
+  rotWorld(L,X,f);rotWorld(Rr,X,f);   // a little forward
+  root.updateMatrixWorld(true);
+  const out=[];const P=new THREE.Vector3();
+  root.traverse(o=>{if(!o.isMesh)return;const g=o.geometry;const pos=g.attributes.position,uv=g.attributes.uv;const n=pos.count;const arr=new Array(n*3);
+    if(o.isSkinnedMesh){o.skeleton.update();for(let i=0;i<n;i++){o.boneTransform(i,P);P.applyMatrix4(o.matrixWorld);arr[i*3]=P.x;arr[i*3+1]=P.y;arr[i*3+2]=P.z}}
+    else{for(let i=0;i<n;i++){P.fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld);arr[i*3]=P.x;arr[i*3+1]=P.y;arr[i*3+2]=P.z}}
+    out.push({name:o.name,skinned:!!o.isSkinnedMesh,mat:o.material.name,pos:arr,uv:uv?Array.from(uv.array):null,idx:Array.from(g.index.array)})});
+  return {before,out,sgn}};
+</script>

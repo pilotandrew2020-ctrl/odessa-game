@@ -281,8 +281,7 @@ class LiteVehicle{
   // tyre grip bleeds the sideways part (handbrake releases it), so power slides and handbrake turns come out naturally.
   step(dt,thr,str,brk,up,sprint){const s=this.spec;if(this.cd>0)this.cd-=dt;dt=Math.min(dt,.05);
     if(this.kind==='sub')return this.stepSub(dt,thr,str,up);
-    const bike=this.kind==='bike',moto=this.kind==='moto',mv=s.max*(bike&&sprint?1.35:1),acc=s.acc*(bike&&sprint?1.5:1),INV=s.inv?-1:1;   // inv: the touch stick reported steering inverted on the bike (user bug report)
-    str*=INV;
+    const bike=this.kind==='bike',moto=this.kind==='moto',mv=s.max*(bike&&sprint?1.35:1),acc=s.acc*(bike&&sprint?1.5:1);   // 2026-11-12: the old `inv` flag steered the bicycle MIRRORED (A / stick-right turned it left, measured in the browser); it steers like the cars now
     const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw),lx=Math.cos(this.yaw),lz=-Math.sin(this.yaw);
     let vf=this.vx*fx+this.vz*fz,vl=this.vx*lx+this.vz*lz;const sp=Math.abs(vf);
     let a=0;this.brakeOn=false;
@@ -296,9 +295,12 @@ class LiteVehicle{
     vl*=Math.exp(-(brk?s.hgrip:s.grip*(1-.45*slide))*dt);
     this.vx=fx*vf+lx*vl;this.vz=fz*vf+lz*vl;
     // steering: the lock shrinks with speed to what the tyres can hold (lateral g limit); the handbrake lets it bite harder
-    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=moto?str*.5/(1+sp/45):str*lim*(bike?0.28:1);   // bike: steer gentler at the new 500 km/h; moto: the front wheel visibly turns less the faster it goes
+    const aMax=s.lat*(brk?1.35:1),lim=Math.min(s.steer,Math.atan(aMax*s.wb/(vf*vf+1))),sa=moto?str*.5/(1+sp/45):bike?str*.5/(1+sp/40):str*lim;   // bike: steer gentler at the new 500 km/h; moto: the front wheel visibly turns less the faster it goes
     this.steerA+=(sa-this.steerA)*Math.min(1,dt*(Math.abs(sa)>=Math.abs(this.steerA)?9:13));
-    if(moto){   // arcade steering for the 500 km/h bike: a real tyre-grip limit made it impossible to turn above ~30 m/s. Turn rate is set directly: ~2.7 rad/s when pulling away, ~0.6 rad/s flat out, never zero
+    if(bike){   // arcade steering for the bicycle too (it does 500 km/h): the old tyre-grip limit gave ~0.2 rad/s at speed, so it could hardly turn. ~3.4 rad/s when pulling away, ~1.2 rad/s at 100 m/s, a slow pivot when standing; the handbrake bites 25% harder
+      const yMax=(3.2/(1+sp/14)+.8)*(brk&&sp>5?1.25:1)*Math.min(1,.3+sp/2.5),tgt=str*yMax*(vf>=-.5?1:-1);
+      this.yawRate+=(tgt-this.yawRate)*Math.min(1,dt*13)}
+    else if(moto){   // arcade steering for the 500 km/h bike: a real tyre-grip limit made it impossible to turn above ~30 m/s. Turn rate is set directly: ~2.7 rad/s when pulling away, ~0.6 rad/s flat out, never zero
       const yMax=(2.4/(1+sp/18)+.35)*(brk&&sp>5?1.2:1)*Math.min(1,sp/1.2),tgt=str*yMax*(vf>=-.5?1:-1);
       this.yawRate+=(tgt-this.yawRate)*Math.min(1,dt*10)}
     else this.yawRate=vf*Math.tan(this.steerA)/s.wb*(brk&&sp>5?1.25:1);

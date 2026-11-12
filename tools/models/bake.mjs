@@ -1,0 +1,10 @@
+import {chromium} from 'playwright';
+import fs from 'fs';
+const [ang,fwd,outp]=process.argv.slice(2);
+const b=await chromium.launch({args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+const p=await b.newPage();p.on('console',m=>console.log('console',m.text().slice(0,200)));p.on('pageerror',e=>console.log('pageerr',e.message));
+await p.goto('http://localhost:8766/bake.html');
+const r=await p.evaluate(([a,f])=>bake('up/booba_cartoon.glb',+a,+f),[ang,fwd]);
+console.log('wrists before',JSON.stringify(r.before),'sgn',r.sgn);
+for(const m of r.out)console.log(m.name,m.skinned,m.mat,m.pos.length/3,'verts',m.idx.length/3,'tris');
+fs.writeFileSync(outp,JSON.stringify(r.out));await b.close();
