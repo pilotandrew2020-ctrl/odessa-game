@@ -80,25 +80,41 @@ function hsKit(E,S,L){
   K.stand=(x,z,ry)=>{if(S.standGlb&&window.FD)return FD.stand(E,K,S,x,z,ry);bx(x,z,ry,0,.28,.2,.46,.56,.4,wood,5);cy(x,z,ry,0,.56,.2,.07,.05,.12,'#d8c9a8',1);bx(x,z,ry,0,.78,.2,.26,.22,.26,'#ffe9bd',3)};
   K.wardrobe=(x,z,ry,w)=>{w=w||2;bx(x,z,ry,0,1.15,.3,w,2.3,.6,wood,5);const n=Math.max(2,Math.round(w/.55));for(let i=1;i<n;i++)bx(x,z,ry,-w/2+i*w/n,1.15,.61,.02,2.1,.02,'#1d130b',0);for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*w/n;bx(x,z,ry,u+w/n*.42,1.1,.62,.03,.3,.03,'#d8c07a',6)}ob(x,z,ry,0,.3,w/2,.3)};
   K.desk=(x,z,ry,w)=>{K.table(x,z,ry,w||1.5,.7,.76);bx(x,z,ry,0,.82,-.05,.6,.4,.04,'#101114',1);bx(x,z,ry,0,.84,-.04,.55,.34,.01,'#2a8ad0',8);bx(x,z,ry,0,.78,.2,.45,.02,.15,'#22252a',0);K.chair(...(()=>{const p=loc(x,z,ry)(0,.8);return [p[0],p[1],ry+Math.PI]})(),'#2a2d32')};
+  // 2026-11-12: sinks and basins used to be a dark / white SLAB laid on the worktop at the same height as its top (z-fighting: the textures shook) and had no depth. Now the worktop has a real hole and the bowl
+  // a floor and four walls below it (K.bowl). u,v = centre of the opening in the run's frame, w x d its size, top = the worktop's top face
+  K.top=(x,z,ry,cu,w,v0,v1,y,th,col,mat,H)=>{   // a worktop slab (centre cu, width w, from v0 to v1) with the rectangular hole H={u,v,w,d} cut out of it
+    const hl=H.u-H.w/2,hr=H.u+H.w/2,hb=H.v-H.d/2,hf=H.v+H.d/2,l=cu-w/2,r=cu+w/2;
+    bx(x,z,ry,(l+hl)/2,y,(v0+v1)/2,hl-l,th,v1-v0,col,mat);bx(x,z,ry,(hr+r)/2,y,(v0+v1)/2,r-hr,th,v1-v0,col,mat);
+    bx(x,z,ry,H.u,y,(v0+hb)/2,H.w,th,hb-v0,col,mat);bx(x,z,ry,H.u,y,(hf+v1)/2,H.w,th,v1-hf,col,mat)};
+  K.bowl=(x,z,ry,H,top,depth,col)=>{const f=top-depth,t=.016;
+    bx(x,z,ry,H.u,f+t/2,H.v,H.w,t,H.d,col,6);                                                          // floor
+    bx(x,z,ry,H.u-H.w/2+t/2,f+depth/2,H.v,t,depth,H.d,col,6);bx(x,z,ry,H.u+H.w/2-t/2,f+depth/2,H.v,t,depth,H.d,col,6);   // sides
+    bx(x,z,ry,H.u,f+depth/2,H.v-H.d/2+t/2,H.w,depth,t,col,6);bx(x,z,ry,H.u,f+depth/2,H.v+H.d/2-t/2,H.w,depth,t,col,6);   // wall side / room side
+    cy(x,z,ry,H.u,f+t+.003,H.v,.035,.035,.006,'#4a4f55',6);                                          // the drain
+    const rm=.014;for(const sg of [-1,1]){bx(x,z,ry,H.u+sg*(H.w/2+rm/2),top+.004,H.v,rm,.008,H.d+rm*2,'#c3c9cf',6);bx(x,z,ry,H.u,top+.004,H.v+sg*(H.d/2+rm/2),H.w,.008,rm,'#c3c9cf',6)}};   // a steel rim around the opening
   // kitchen run along a wall (back at (x,z), facing ry): items [type,width]; fridge, cabinets, sink, stove (with hood)
   K.kitchen=(x,z,ry,items,wall)=>{let u=0,kc=null;const tot=items.reduce((a,i)=>a+i[1],0);u=-tot/2;const cab=wall||'#e8e4da';if(window.FD)FD.splash(E,K,S,x,z,ry,0,tot);
     for(const [kind,w] of items){const c=u+w/2;u+=w;
       if(kind==='fridge'){const p=loc(x,z,ry)(c,0);actFridge(E,p[0],p[1],ry,w-.04,{body:'#e2e5e8'})}   // a real one: the door opens (acts.js)
-      else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33);
+      else{if(kind==='sink'){const H={u:c,v:.34,w:Math.min(w*.62,.9),d:.36},t=.02;   // hollow carcass (the bowl hangs in it), worktop with a hole
+          bx(x,z,ry,c,.03,.32,w-.02,.04,.62,cab,5);bx(x,z,ry,c-(w-.02)/2+t/2,.43,.32,t,.86,.62,cab,5);bx(x,z,ry,c+(w-.02)/2-t/2,.43,.32,t,.86,.62,cab,5);bx(x,z,ry,c,.43,.63,w-.02,.86,t,cab,5);
+          K.top(x,z,ry,c,w,-.01,.65,.88,.05,'#2d2d30',7,H);K.bowl(x,z,ry,H,.905,.2,'#aab0b6');ob(x,z,ry,c,.32,w/2,.33)}
+        else{bx(x,z,ry,c,.43,.32,w-.02,.86,.62,kind==='stove'?'#2a2d32':cab,kind==='stove'?6:5);bx(x,z,ry,c,.88,.32,w,.05,.66,'#2d2d30',7);ob(x,z,ry,c,.32,w/2,.33)}
         if(kind==='cab'){if(kc===null)kc=c;for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}
         if(kind==='stove'){{const bp=loc(x,z,ry)(c+.2,.16),sp=loc(x,z,ry)(c,.95);KIT.cook(E,{x:bp[0],z:bp[1],y:INT_Y+.93,sx:sp[0],sz:sp[1]})}for(const a of [-1,1])for(const b of [0,1])cy(x,z,ry,c+a*.2,.905,.16+b*.28,.09,.09,.015,'#111',1,14);bx(x,z,ry,c,.42,.64,w*.8,.5,.02,'#08090b',2);bx(x,z,ry,c,1.9,.28,w*.9,.1,.5,'#9aa0a6',6);bx(x,z,ry,c,2.3,.2,.25,.8,.22,'#9aa0a6',6)}
-        if(kind==='sink'){bx(x,z,ry,c,.9,.34,w*.7,.03,.42,'#aab0b6',6);bx(x,z,ry,c,.89,.34,w*.62,.05,.34,'#6a7076',6);cy(x,z,ry,c,.9,.12,.02,.02,.42,'#c8ccd0',6);bx(x,z,ry,c,1.29,.2,.03,.03,.17,'#c8ccd0',6);const t=loc(x,z,ry)(c,.04);K.tap(t[0],t[1],ry,'Run the tap',1.23,true);/* a tall gooseneck: room for a kettle under it */for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
+        if(kind==='sink'){cy(x,z,ry,c,.9,.12,.02,.02,.42,'#c8ccd0',6);bx(x,z,ry,c,1.29,.2,.03,.03,.17,'#c8ccd0',6);const t=loc(x,z,ry)(c,.04);K.tap(t[0],t[1],ry,'Run the tap',1.23,true);/* a tall gooseneck: room for a kettle under it */for(const s of [-1,1])bx(x,z,ry,c+s*w*.22,.43,.64,w*.4,.7,.02,'#d8d2c4',5);bx(x,z,ry,c,1.75,.2,w-.02,.7,.34,cab,5)}}}
     // an electric kettle on the first free worktop
     if(kc!==null&&items.some(i=>i[0]==='sink')){const p=loc(x,z,ry)(kc,.3),st=loc(x,z,ry)(kc,1.0);actKettle(E,p[0],.905,p[1],ry,{stand:st,reach:.8})}};
   // a tap with a thin jet of water that runs for a few seconds when used
-  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,drink?.4:.26,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));const p=loc(x,z,ry)(0,.08),jf=drink?.17:0;
-    m.position.set(ox+p[0]+Math.sin(ry)*jf,INT_Y+(y||.95)-.15,oz+p[1]+Math.cos(ry)*jf);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
+  K.tap=(x,z,ry,label,y,drink)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(.013,.016,drink?.54:.34,6),new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.85}));const p=loc(x,z,ry)(0,.08),jf=drink?.17:0;
+    m.position.set(ox+p[0]+Math.sin(ry)*jf,INT_Y+(y||.95)-(drink?.24:.2),oz+p[1]+Math.cos(ry)*jf);m.visible=false;E.grp.add(m);const t={m,until:0};HSTATE.cur.taps.push(t);const q=loc(x,z,ry)(0,.75);
     if(label==='Run the bath'){E.act(q[0],q[1],1.5,label,()=>{t.until=HSTATE.t+3.2;toast('You run the bath','');if(window.AUD)AUD.beep()});return t}
     // basins: really wash your hands (and at the kitchen sink pour a glass of water) — see acts.js
     // you turn the tap on yourself, wash your hands in front of you, and turn it off again (kitchen.js)
     const L=loc(x,z,ry),a=L(0,.75);KIT.sink(E,{t,wx:ox+p[0],wz:oz+p[1],y:INT_Y+(y||.95),cy:INT_Y+(drink?.905:.91),ry,drink,stand:[ox+a[0],oz+a[1]]});
     return t};
-  K.vanity=(x,z,ry,w)=>{w=w||1.0;bx(x,z,ry,0,.42,.27,w,.84,.5,wood,5);bx(x,z,ry,0,.86,.27,w+.04,.05,.54,'#f4f6f7',7);bx(x,z,ry,0,.89,.3,w*.62,.03,.38,'#dfe6ea',1);cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
+  K.vanity=(x,z,ry,w)=>{w=w||1.0;const H={u:0,v:.3,w:w*.6,d:.34},tw=.02;bx(x,z,ry,0,.03,.27,w,.04,.5,wood,5);bx(x,z,ry,-w/2+tw/2,.42,.27,tw,.84,.5,wood,5);bx(x,z,ry,w/2-tw/2,.42,.27,tw,.84,.5,wood,5);bx(x,z,ry,0,.42,.51,w,.84,tw,wood,5);   // hollow carcass
+    K.top(x,z,ry,0,w+.04,-.01,.55,.86,.05,'#f4f6f7',7,H);K.bowl(x,z,ry,H,.885,.17,'#e3e9ed');cy(x,z,ry,0,.9,.1,.02,.02,.22,'#c8ccd0',6);bx(x,z,ry,0,1.62,.03,w*.85,.95,.03,'#cfe6f2',6);bx(x,z,ry,0,1.62,.015,w*.85+.1,1.05,.02,wood,5);
     for(const s of [-1,1])bx(x,z,ry,s*w*.25,.4,.54,w*.4,.7,.02,'#e8e0d0',5);ob(x,z,ry,0,.27,w/2,.27);const t=loc(x,z,ry)(0,.12);K.tap(t[0],t[1],ry,'Wash your hands',1.08)};
   K.toilet=(x,z,ry)=>{bx(x,z,ry,0,.2,.35,.38,.4,.55,'#f6f7f8',1);bx(x,z,ry,0,.62,.14,.42,.4,.22,'#f6f7f8',1);bx(x,z,ry,0,.43,.38,.4,.05,.5,'#e4e7ea',1);bx(x,z,ry,0,.66,.06,.1,.03,.03,'#9aa0a6',6);ob(x,z,ry,0,.35,.25,.4)};
   K.tub=(x,z,ry,len)=>{len=len||1.7;bx(x,z,ry,0,.29,.4,len,.58,.8,'#f6f7f8',1);bx(x,z,ry,0,.57,.4,len-.2,.03,.6,'#9fd6ea',8);cy(x,z,ry,len/2-.1,.58,.78,.02,.02,.2,'#c8ccd0',6);ob(x,z,ry,0,.4,len/2,.42);const p=loc(x,z,ry)(0,1.05);K.tap(...(()=>{const a=loc(x,z,ry)(len/2-.1,.72);return [a[0],a[1],ry]})(),'Run the bath',.84)};

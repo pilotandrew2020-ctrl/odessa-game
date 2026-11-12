@@ -1,0 +1,5 @@
+{"src":"src/steve_minecraft.glb","out":"out/Steve.glb","static":true,"height":1.8,"armDeg":5,"flat":true,"nearest":true,"texPx":512,"tris":200,"noSimp":["."],
+ "parts":{"Object_4":"Head","Object_6":"spine_02","Object_8":"upperarm_l","Object_12":"upperarm_r","Object_14":"thigh_l","Object_10":"thigh_r"},
+ "joints":{"pelvis":[0,2,0],"spine_01":[0,2.7,0],"spine_02":[0,3.5,0],"spine_03":[0,4.3,0],"neck_01":[0,5,0],"Head":[0,5.2,0],
+  "clavicle_l":[0.5,4.9,0],"upperarm_l":[1.5,5,0],"lowerarm_l":[1.5,3.5,0],"hand_l":[1.5,2.1,0],"thigh_l":[0.5,2,0],"calf_l":[0.5,0.5,0],"foot_l":[0.5,-0.85,0],"ball_l":[0.5,-1,0.5],
+  "clavicle_r":[-0.5,4.9,0],"upperarm_r":[-1.5,5,0],"lowerarm_r":[-1.5,3.5,0],"hand_r":[-1.5,2.1,0],"thigh_r":[-0.5,2,0],"calf_r":[-0.5,0.5,0],"foot_r":[-0.5,-0.85,0],"ball_r":[-0.5,-1,0.5]}}

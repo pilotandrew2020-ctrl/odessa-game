@@ -1,0 +1,35 @@
+{
+ "src": "src/mrbeast.glb",
+ "out": "out/MrBeast.glb",
+ "height": 1.9,
+ "armDeg": 14,
+ "texPx": 512,
+ "tris": 14000,
+ "keep": {
+  "pelvis": "^pelvis_\\d+$",
+  "spine_01": "^spine_01_\\d+$",
+  "spine_02": "^spine_03_\\d+$",
+  "spine_03": "^spine_05_\\d+$",
+  "neck_01": "^neck_01_\\d+$",
+  "Head": "^head_\\d+$",
+  "clavicle_l": "^clavicle_l_\\d+$",
+  "upperarm_l": "^upperarm_l_\\d+$",
+  "lowerarm_l": "^lowerarm_l_\\d+$",
+  "hand_l": "^hand_l_\\d+$",
+  "thigh_l": "^thigh_l_\\d+$",
+  "calf_l": "^calf_l_\\d+$",
+  "foot_l": "^foot_l_\\d+$",
+  "ball_l": "^ball_l_\\d+$",
+  "clavicle_r": "^clavicle_r_\\d+$",
+  "upperarm_r": "^upperarm_r_\\d+$",
+  "lowerarm_r": "^lowerarm_r_\\d+$",
+  "hand_r": "^hand_r_\\d+$",
+  "thigh_r": "^thigh_r_\\d+$",
+  "calf_r": "^calf_r_\\d+$",
+  "foot_r": "^foot_r_\\d+$",
+  "ball_r": "^ball_r_\\d+$"
+ },
+ "noSimp": [
+  "hair"
+ ]
+}
