@@ -20,7 +20,7 @@ export function parts(doc){
         if(T){T.getElement(i,v);uv[i*2]=v[0];uv[i*2+1]=v[1]}}
       const idx=I?Uint32Array.from(I.getArray()):Uint32Array.from({length:n},(_,i)=>i);
       const mat=p.getMaterial();
-      out.push({node:node.getName(),mat:mat&&mat.getName(),alphaMode:mat&&mat.getAlphaMode(),cutoff:mat&&mat.getAlphaCutoff(),ds:mat&&mat.getDoubleSided(),tex:mat&&mat.getBaseColorTexture(),pos,nrm,uv,idx,hasN:!!N})}}
+      out.push({m:mat,node:node.getName(),mat:mat&&mat.getName(),alphaMode:mat&&mat.getAlphaMode(),cutoff:mat&&mat.getAlphaCutoff(),ds:mat&&mat.getDoubleSided(),tex:mat&&mat.getBaseColorTexture(),pos,nrm,uv,idx,hasN:!!N})}}
   return out}
 export function bounds(p){const b=[1e9,1e9,1e9,-1e9,-1e9,-1e9];for(let i=0;i<p.pos.length;i+=3)for(let k=0;k<3;k++){b[k]=Math.min(b[k],p.pos[i+k]);b[k+3]=Math.max(b[k+3],p.pos[i+k])}return b}
 // connected components over triangles by shared vertex index (after position+uv weld)

@@ -1,0 +1,4 @@
+{"src":"src/2005_aston_martin_db9_coupe.glb","out":"out/db9.glb",
+ "scale":1,"origin":[0,-0.16,0.015],"maxTex":512,"bodyTris":15000,"err":0.1,"minGroup":16,"wheelTris":900,"maxWheelPart":1.0,"axleRe":"wheel_wheel_tire",
+ "wheels":[["wheel_fl",0.79,0.18,1.39,0.335,0.19],["wheel_fr",-0.79,0.18,1.39,0.335,0.19],["wheel_rl",0.79,0.17,-1.36,0.335,0.19],["wheel_rr",-0.79,0.17,-1.36,0.335,0.19]],
+ "rename":{"head_light":"Light_glass","detail_glass_red":"red_galass"}}

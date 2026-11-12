@@ -16,4 +16,8 @@ node bake_rig.mjs 72 8 booba_rig.json && node mk_booba_rig.mjs     # out/booba_r
 # surface weights (nolik_weights.py: geodesic distance over the mesh + a rule for the arms, which are fused to the torso), and write the skinned GLB:
 SRC=src node nolik_decimate.mjs 12000 && python3 -I nolik_weights.py nolik_12000.json nolik_w.json && SRC=src node mk_nolik_rig.mjs     # out/nolik_rig.glb -> assets/models/avatar/Nolik.glb
 ```
+# Cars (2026-11-12: Porsche 911 Turbo, Porsche 918 Spyder, Aston Martin DB9): mk_car.mjs bakes the node transforms, cuts the four wheels out by a spatial rule (a triangle inside a wheel cylinder
+# goes to that wheel, which handles meshes holding both wheels of an axle), re-centres each wheel on its own pivot node (wheel_fl/fr/rl/rr), puts the car on the ground facing +z,
+# decimates every material group separately (meshopt, UV seams kept) and shrinks the textures. car_*.json holds the numbers (scale, origin, wheel centres, lamp material renames):
+node mk_car.mjs car_p911.json && node mk_car.mjs car_p918.json && node mk_car.mjs car_db9.json     # out/{p911,p918,db9}.glb -> assets/models/vehicles/
 Triangle counts, texture sizes and the colour quantisation are the numbers at the top of each `mk_*.mjs` call. Rendering check used: a bare three.js page with `lib/GLTFLoader.js` and Playwright screenshots.

@@ -16,12 +16,18 @@ const LV_SEATS={
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
   moto:[{p:[0,.5,-.4],pose:'moto'}],                                   // Ducati MotoGP seat: hips = root + .24 in the pose below
   gtr:[{p:[.37,.22,-.2],pose:'drive'},{p:[-.37,.22,-.2],pose:'drive'}],   // Nissan GT-R: driver on the left (+x) and one passenger
+  p911:[{p:[.36,.22,-.42],pose:'drive'},{p:[-.36,.22,-.42],pose:'drive'}],   // Porsche 911 Turbo (1975): the cabin sits far back
+  p918:[{p:[.33,.2,-.3],pose:'drive'},{p:[-.33,.2,-.3],pose:'drive'}],       // Porsche 918 Spyder
+  db9:[{p:[-.37,.24,-.36],pose:'drive'},{p:[.37,.24,-.36],pose:'drive'}],    // Aston Martin DB9 is right-hand drive: the driver (first seat) is on -x
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
-const LV_NAMES=['gwagon','lambo','bike','moto','sub','gtr'];   // append only: the index goes over the network (co-op presence)
+const LV_NAMES=['gwagon','lambo','bike','moto','sub','gtr','p911','p918','db9'];   // append only: the index goes over the network (co-op presence)
 // real models (Sketchfab, see assets/CREDITS.md). Wheels are pivot nodes inside the GLB: [node name, steers, tyre radius]. The procedural body below is the fallback / placeholder until the file arrives
 const LV_GLB={
   moto:{url:'assets/models/vehicles/ducati.glb',wheels:[['wheel_front',true,.292],['wheel_rear',false,.326]]},
-  gtr:{url:'assets/models/vehicles/gtr.glb',wheels:[['wheel_fl',true,.34],['wheel_fr',true,.34],['wheel_rl',false,.34],['wheel_rr',false,.34]]}};
+  gtr:{url:'assets/models/vehicles/gtr.glb',wheels:[['wheel_fl',true,.34],['wheel_fr',true,.34],['wheel_rl',false,.34],['wheel_rr',false,.34]]},
+  p911:{url:'assets/models/vehicles/p911.glb',wheels:[['wheel_fl',true,.315],['wheel_fr',true,.315],['wheel_rl',false,.315],['wheel_rr',false,.315]]},
+  p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
+  db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
 const LV_GLB_CACHE={};
 function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
@@ -81,13 +87,13 @@ class LiteVehicle{
     this.root=new THREE.Group();this.susp=new THREE.Group();this.body=new THREE.Group();this.root.add(this.susp);this.susp.add(this.body);this.root.userData.lv=this;
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
-    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),sub:()=>this.buildSub()})[kind]();
+    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),p911:()=>this.buildGtrPlaceholder(1.76,1.28,4.28),p918:()=>this.buildGtrPlaceholder(2.06,1.18,4.65),db9:()=>this.buildGtrPlaceholder(2.02,1.29,4.7),sub:()=>this.buildSub()})[kind]();
     this.glbPending=!!LV_GLB[kind];this.glbDone=false;
     this.sync();
     if(this.glbPending&&this.proxy)this.attachGLB();   // garage display / a friend's vehicle: load now; parked ones load when the player gets near (EXT.tick)
   }
-  // invisible box of the GT-R's size: the garage measures the vehicle right after building it, the real model arrives a moment later
-  buildGtrPlaceholder(){this.cols=[0xb01820,0x111111,0xc9ccd2];const m=new THREE.Mesh(new THREE.BoxGeometry(1.9,1.3,4.7),new THREE.MeshBasicMaterial({visible:false}));m.position.y=.65;this.body.add(m);this.placeholder=true}
+  // invisible box of the car's size (GT-R by default; the Porsches and the DB9 pass theirs): the garage measures the vehicle right after building it, the real model arrives a moment later
+  buildGtrPlaceholder(w,h,l){w=w||1.9;h=h||1.3;l=l||4.7;this.cols=[0xb01820,0x111111,0xc9ccd2];const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),new THREE.MeshBasicMaterial({visible:false}));m.position.y=h/2;this.body.add(m);this.placeholder=true}
   // swap in the real GLB: wheels become pivot nodes (the front ones steer, all spin), lamps get night glow
   attachGLB(){const def=LV_GLB[this.kind];if(!def||this.glbDone||this.glbLoading)return;this.glbLoading=true;
     loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;
