@@ -41,9 +41,13 @@ function islCell(ix,iz){const hs=islHash(ix*7+13,iz*11+5);const h2=islHash(ix*3+
   return {x,z,y:hr,kind,s,r:kind===0?.45*s+.15:kind===1?.3:kind===3?.7*s:kind===4?.3:0,rot:h3*6.283,h4}}
 const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
   // trunks, rocks (collision only for kinds 0,1,3)
-  blocked(x,z,m){if((x-ISL.cx)**2+(z-ISL.cz)**2>3500*3500)return false;const ix=Math.floor(x/ISL_CELL),iz=Math.floor(z/ISL_CELL);
-    for(let j=iz-1;j<=iz+1;j++)for(let i=ix-1;i<=ix+1;i++){const c=islCell(i,j);if(c&&c.r>0){const d=(x-c.x)**2+(z-c.z)**2,rr=c.r+m;if(d<rr*rr)return true}}
-    const o=ISL.solids;if(o)for(const b of o){if(Math.abs(x-b.x)<b.hw+m&&Math.abs(z-b.z)<b.hd+m&&(b.y1===undefined||true))return true}return false},
+  // y (optional, the underside of the thing that moves): trees and rocks only block below their own top. Without it the helicopter / planes were stopped by an
+  // invisible wall over every palm, trunk and boulder of the island at ANY altitude (owner: "lots of barriers when flying a helicopter over the jungle island")
+  // top above the ground of a cell's obstacle, from the same scales rebuildVeg() draws it with (tree 22 m * s * (.9+.3 h4), palm 12 m * s * (.8+.5 h4), rock 1.8 m * s * 1.1, bamboo 12.5 m * (.8+.5 h4))
+  top(c){return c.kind===0?22*c.s*(.9+.3*c.h4):c.kind===1?12*c.s*(.8+.5*c.h4):c.kind===3?2*c.s:c.kind===4?12.5*(.8+.5*c.h4):0},
+  blocked(x,z,m,y){if((x-ISL.cx)**2+(z-ISL.cz)**2>3500*3500)return false;const ix=Math.floor(x/ISL_CELL),iz=Math.floor(z/ISL_CELL);
+    for(let j=iz-1;j<=iz+1;j++)for(let i=ix-1;i<=ix+1;i++){const c=islCell(i,j);if(c&&c.r>0){const d=(x-c.x)**2+(z-c.z)**2,rr=c.r+m;if(d<rr*rr){if(y!==undefined&&y>groundH(c.x,c.z)+this.top(c)+.8)continue;return true}}}
+    const o=ISL.solids;if(o)for(const b of o){if(Math.abs(x-b.x)<b.hw+m&&Math.abs(z-b.z)<b.hd+m){if(y!==undefined&&y>groundH(b.x,b.z)+(b.top||5)+.8)continue;return true}}return false},
   tiles:new Map(),veh:null,last:[1e9,1e9],built:false,
   init(world){
     // landing beach on the west coast + the yacht's anchorage 150 m off it; temple and pond placed relative to the landing
@@ -154,7 +158,7 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     mb.build(g,{canvas:M.canvas,canvasR:M.canvasR,stone:M.stone,coal:M.coal,fire:M.fire,crate:M.crate,barrel:M.barrel,wood:M.wood,sign:M.sign});
     // fire light + flame sprite that flickers
     const l=new THREE.PointLight(0xff9a40,0,24,2);l.position.set(0,1.4,4);g.add(l);this.fireL=l;
-    ISL.solids.push({x:bx+14-5,z:bz-3,hw:1.3,hd:1.2},{x:bx+14+4.5,z:bz-5.5,hw:1.3,hd:1.2},{x:bx+14-2.6,z:bz+2.2,hw:.9,hd:.6},{x:bx+14+2.6,z:bz-1.5,hw:.4,hd:.4})},
+    ISL.solids.push({x:bx+14-5,z:bz-3,hw:1.3,hd:1.2,top:1.9},{x:bx+14+4.5,z:bz-5.5,hw:1.3,hd:1.2,top:1.9},{x:bx+14-2.6,z:bz+2.2,hw:.9,hd:.6,top:1.1},{x:bx+14+2.6,z:bz-1.5,hw:.4,hd:.4,top:1.2})},   // tents 1.75 m, crates / barrel about 1 m: `top` lets a low-flying helicopter clear them
   // ---------- ruined stepped temple on the plateau ----------
   buildTemple(){const T=ISL.temple,g=new THREE.Group();g.position.set(T.x,SL+T.h,T.z);this.root.add(g);this.tmp=g;const mb=new MB(),M=this.M;
     // five tiers, steps up the +x face, a shrine on top, broken columns round the plaza

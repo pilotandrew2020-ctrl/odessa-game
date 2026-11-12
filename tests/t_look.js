@@ -9,7 +9,7 @@ exports.run = async (page, h) => {
     g.fillStyle = '#9ab'; g.fillRect(0, 0, 800, 600); g.fillStyle = '#d9a58f'; g.beginPath(); g.ellipse(400, 330, 200, 260, 0, 0, 6.283); g.fill();
     g.fillStyle = '#222'; for (const x of [320, 480]) { g.beginPath(); g.arc(x, 280, 18, 0, 6.283); g.fill() }
     const im = new Image(); await new Promise(res => { im.onload = res; im.src = cv.toDataURL() });
-    LOOK.setFromImage(im, [320, 280], [480, 280]);
+    LOOK.setFromImage(im, { cx: 400, cy: 330, R: 200, rot: 0 });
     const had = LOOK.has(), skin = LOOK.face && LOOK.face.skin;
     CHAR.cur[5] = 6; CHAR.save(); WARDROBE.apply();
     await new Promise(res => setTimeout(res, 1500));
