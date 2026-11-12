@@ -33,5 +33,9 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_airport_stream` | Airport staged load, resource/collision cleanup on exit, and duplicate-free re-entry |
 | `t_booba`, `t_nolik` | Booba / Nolik as body types (creator chip, 22 bones move, no hat or glasses, bicycle, back to Realistic) |
 | `t_cars` | Porsche 911 Turbo, Porsche 918 Spyder, Aston Martin DB9: GLB loads, 4 wheel pivots, real size, driver seat, drive / steer, Garage; `CARSHOT=1` saves screenshots of the player seated |
+| `t_speed` | fast driving (`KIND=gtr\|p918\|moto`, `START=<place id>`, `Q=`, `SECS=`; use `IPAD=1`): chunk streaming slices, live chunks, scene objects / textures growth (a leak shows as growth in steady state) |
+| `t_tris`, `t_mem` | what a frame costs: triangles of the main and the shadow pass per category (map-wide meshes are never culled), and the estimated texture / geometry memory with the biggest items (`RENDER=<s>` draws real frames first) |
+| `t_ref` | reference screenshots with a frozen clock for before / after checks of performance changes (`SHOTS=<dir>`, compare with `python3 -I tools/imgdiff.py <dirA> <dirB>`) |
+| `t_br` | Battle Royale smoke test on the tablet caps (bots, match state, work per frame) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
