@@ -12,5 +12,8 @@ python3 -I fixbench.py src/bench.glb work/bench_raw.glb && node fixbench.mjs && 
 # Booba is skinned: bake_rig.html poses the arms down, reduces the 204-bone rig to the 22 bones real.js drives (renamed to the Man.glb names) and remaps the skin weights;
 # serve this folder + lib/ + the original on one origin (bake_rig.html expects lib/ and up/booba_cartoon.glb), then:
 node bake_rig.mjs 72 8 booba_rig.json && node mk_booba_rig.mjs     # out/booba_rig.glb -> assets/models/avatar/Booba.glb; also needs tex/booba_2.png (image 2 of the original GLB)
+# Nolik (a 59 MB, 1M-triangle Tripo mesh with no skeleton): rotate it to face +z, weld, decimate to 12k triangles, then rig it by hand-placed joints (nolik_joints.py) and
+# surface weights (nolik_weights.py: geodesic distance over the mesh + a rule for the arms, which are fused to the torso), and write the skinned GLB:
+SRC=src node nolik_decimate.mjs 12000 && python3 -I nolik_weights.py nolik_12000.json nolik_w.json && SRC=src node mk_nolik_rig.mjs     # out/nolik_rig.glb -> assets/models/avatar/Nolik.glb
 ```
 Triangle counts, texture sizes and the colour quantisation are the numbers at the top of each `mk_*.mjs` call. Rendering check used: a bare three.js page with `lib/GLTFLoader.js` and Playwright screenshots.

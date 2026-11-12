@@ -14,16 +14,19 @@
    The classic look stays available (Body → "Classic" in the character creator).
    =================================================================================================== */
 const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeTex:{},
-  // 2026-11-12: a second template, the cartoon creature "Booba" (Character -> Body -> Booba): the same 22 bones under the Man.glb names (pelvis, spine_01..03, neck_01, Head,
-  // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), 1.25 m tall, no clothes, so everything below (poses, seats, feet on the ground) works unchanged
-  SCB:1,urlB:'assets/models/avatar/Booba.glb',tplB:null,stB:0,
+  // 2026-11-12: more bodies (Character -> Body -> Booba / Nolik): cartoon creatures with the same 22 bones under the Man.glb names (pelvis, spine_01..03, neck_01, Head,
+  // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
+  // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
+  BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1,tpl:null,st:0},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}}},
+  kind(o){return o.booba?'booba':o.nolik?'nolik':null},
   load(){if(this.st)return;this.st=1;
-    try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(false);
-        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;this.wait=this.wait.filter(w=>w[1].booba);console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
-  loadB(){if(this.stB)return;this.stB=1;
-    try{new THREE.GLTFLoader().load(this.urlB,g=>{this.tplB=g.scene;this.stB=2;this.flush(true);
-        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.stB=3;this.wait=this.wait.filter(w=>!w[1].booba);console.warn('[real] Booba failed to load',e)})}catch(e){this.stB=3;console.warn('[real]',e)}},
-  flush(booba){const keep=[];for(const [P,o] of this.wait.splice(0)){if(!!o.booba!==booba){keep.push([P,o]);continue}if(P.root&&!P.realOff)this.attach(P,o)}for(const w of keep)this.wait.push(w)},
+    try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(null);
+        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;this.wait=this.wait.filter(w=>this.kind(w[1]));console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
+  loadX(k){const b=this.BOD[k];if(b.st)return;b.st=1;
+    try{new THREE.GLTFLoader().load(b.url,g=>{b.tpl=g.scene;b.st=2;this.flush(k);
+        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{b.st=3;this.wait=this.wait.filter(w=>this.kind(w[1])!==k);console.warn('[real] '+k+' failed to load',e)})}catch(e){b.st=3;console.warn('[real]',e)}},
+  flush(k){const keep=[];for(const [P,o] of this.wait.splice(0)){if(this.kind(o)!==k){keep.push([P,o]);continue}if(P.root&&!P.realOff)this.attach(P,o)}for(const w of keep)this.wait.push(w)},
   ready(){return this.st===2},
   // a skinned clone that owns its skeleton (Object3D.clone shares it in r128)
   clone(src){const root=src.clone(true),by={};root.traverse(o=>{if(o.isBone)by[o.name]=o});
@@ -36,10 +39,10 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         t=[parseInt(k.slice(1,3),16),parseInt(k.slice(3,5),16),parseInt(k.slice(5,7),16)];
       for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];if(b>r+22&&b>gg+6){const f=.3+((r+gg+b)/3/255)*1.55;p[i]=Math.min(255,t[0]*f);p[i+1]=Math.min(255,t[1]*f);p[i+2]=Math.min(255,t[2]*f)}}
       g.putImageData(d,0,0);const T=new THREE.CanvasTexture(cv);T.flipY=false;T.encoding=THREE.sRGBEncoding;T.anisotropy=4;return this.eyeTex[k]=T}catch(e){return null}},
-  attach(P,o){if(!P||!P.root)return;const BO=!!o.booba,tpl=BO?this.tplB:this.tpl;if(!tpl){if((BO?this.stB:this.st)===3)return;   // that file failed to load: keep the classic body, queue nothing (a failed load used to keep every rebuilt avatar alive in `wait`)
-      this.wait.push([P,o]);BO?this.loadB():this.load();return}
+  attach(P,o){if(!P||!P.root)return;const K=this.kind(o),BO=!!K,B0=K?this.BOD[K]:null,tpl=K?B0.tpl:this.tpl;if(!tpl){if((K?B0.st:this.st)===3)return;   // that file failed to load: keep the classic body, queue nothing (a failed load used to keep every rebuilt avatar alive in `wait`)
+      this.wait.push([P,o]);K?this.loadX(K):this.load();return}
     if(P.real)this.detach(P);
-    const M=this.clone(tpl),SC=BO?this.SCB:this.SC,B=[],byN={},par=[],kind=[];
+    const M=this.clone(tpl),SC=K?B0.sc:this.SC,B=[],byN={},par=[],kind=[];
     M.scale.setScalar(SC);M.name='realBody';P.root.add(M);M.updateMatrixWorld(true);
     // bones, parents before children
     const walk=(n,p)=>{let pi=p;if(n.isBone){pi=B.length;B.push(n);byN[n.name]=pi;par.push(p)}for(const c of n.children)walk(c,pi)};
@@ -48,7 +51,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     for(let i=0;i<n;i++){bindL.push(B[i].quaternion.clone());Qw.push(new THREE.Quaternion());D.push(new THREE.Quaternion());
       tm.identity();for(let o2=B[i];o2&&o2!==M;o2=o2.parent){o2.updateMatrix();tm.premultiply(o2.matrix)}
       const h=new THREE.Vector3();tm.decompose(h,tq,ts);Hb.push(h);bindW.push(tq.clone())}
-    const R={M,B,n,par,kind,bindL,bindW,Hb,Qw,D,idx:byN,sides:[],sc:SC,booba:BO};
+    const R={M,B,n,par,kind,bindL,bindW,Hb,Qw,D,idx:byN,sides:[],sc:SC,booba:K==='booba',nolik:K==='nolik',nh:BO,lim:K?B0.lim:null};
     // which procedural joint steers which bone (kind codes: 1 pelvis, 2/3/4 spine, 5 neck, 6 head, 7 clavicle, 8 upper arm, 9 forearm, 10 hand, 11 thigh, 12 calf, 13 foot, 20+ fingers)
     for(let i=0;i<n;i++)kind.push(0);
     const set=(nm,k)=>{const i=byN[nm];if(i!==undefined)kind[i]=k;return i};
@@ -108,7 +111,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
   mount(P,R){const SC=R.sc,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
     const wrap=(bi,off,sc)=>{const w=new THREE.Object3D();const iq=R.bindW[bi].clone().invert();w.quaternion.copy(iq);w.position.copy(off.clone().applyQuaternion(iq));w.scale.setScalar(sc/SC);R.B[bi].add(w);R.wr=(R.wr||[]).concat([w]);return w};
-    const headExtras=R.booba?[]:(P.accH||[]),spineExtras=R.booba?[]:(P.accS||[]);
+    const headExtras=R.nh?[]:(P.accH||[]),spineExtras=R.nh?[]:(P.accS||[]);
     if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02,.004),.76);for(const c of headExtras)w.add(c)}
     if(spineExtras.length){const ks=.9,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
     // the can and the speaker sit in the hands: the wrapper's origin is the wrist
@@ -134,6 +137,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
       if(A){const Wsh=RT.f.copy(Ws).multiply(A.sh.quaternion),Wel=RT.g.copy(Wsh).multiply(A.el.quaternion),Whd=RT.h.copy(Wel).multiply(A.hand.quaternion);
         D[S.cl].copy(Ws).multiply(RT.e.copy(RQ1).slerp(RT.i.copy(Ws).invert().multiply(Wsh),.12));
         D[S.ua].copy(Wsh);D[S.la].copy(Wel);D[S.ha].copy(Whd);
+        if(R.lim){const q=R.lim;D[S.ua].copy(Ws).slerp(Wsh,q.ua);D[S.la].copy(D[S.ua]).multiply(RT.e.copy(RQ1).slerp(A.el.quaternion,q.la));D[S.ha].copy(D[S.la])}     // a limited swing (see BOD.lim)
         const rg=A.hand.userData&&A.hand.userData.rig;
         if(rg){const c=rg.cur;
           for(const f of S.fing){const k=c[f.f];let a;
@@ -143,6 +147,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         else for(const f of S.fing)D[f.i].copy(Whd)}
       if(G){const Whp=RT.f.copy(Wh).multiply(G.hp.quaternion),Wkn=RT.g.copy(Whp).multiply(G.kn.quaternion),Wft=RT.h.copy(Wkn).multiply(G.ft.quaternion);
         D[S.th].copy(Whp);D[S.ca].copy(Wkn);D[S.ft].copy(Wft);
+        if(R.lim){const q=R.lim;D[S.th].copy(Wh).slerp(Whp,q.th);D[S.ca].copy(D[S.th]).multiply(RT.e.copy(RQ1).slerp(G.kn.quaternion,q.ca))}     // the foot keeps the procedural world tilt (flat on the ground)
         // procedural sole height
         RV.a.copy(G.hp.position).applyQuaternion(Wh).add(hp);RV.a.add(RV.b.copy(G.kn.position).applyQuaternion(Whp));RV.a.add(RV.b.copy(G.ft.position).applyQuaternion(Wkn));
         const y0=R.sole[0];RV.b.set(0,y0,R.sole[1]).applyQuaternion(Wft);if(RV.a.y+RV.b.y<lowP)lowP=RV.a.y+RV.b.y;RV.b.set(0,y0,R.sole[2]).applyQuaternion(Wft);if(RV.a.y+RV.b.y<lowP)lowP=RV.a.y+RV.b.y}}
@@ -164,7 +169,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     solve();
     // pelvis moves in its parent's frame
     {const p=par[ip];RV.a.set(hp.x/SC,dy,hp.z/SC);if(p>=0)RV.a.applyQuaternion(RT.a.copy(Qw[p]).invert());B[ip].position.copy(R.p0||(R.p0=B[ip].position.clone())).add(RV.a)}
-    if(lw>.02){this.armIK(P,R,lw);solve()}
+    if(lw>.02&&!R.lim){this.armIK(P,R,lw);solve()}
   },
   // while an act is on (acts.js sets P._leanW), the classic arm has already reached the target for ITS shoulder; the GLB shoulder sits higher, so aim the GLB upper arm and forearm at the classic wrist
   // (two-bone solve in root space, elbow bending the way the classic elbow does); held props and the soap foam ride on the classic hand, which is now where the GLB hand is

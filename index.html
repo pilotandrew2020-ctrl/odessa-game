@@ -4141,7 +4141,7 @@ function makePlayer(o){o=o||{};
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.006,6,16),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.5}));ring.rotation.y=Math.PI/2;ring.position.x=.121;spk.add(ring);
   spk.position.set(0,-.3,.02);arms[1].el.add(spk);spk.visible=false;
   const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,sipClock:0,sipNext:300+Math.random()*300,accH,accS};
-  if((o.real||o.booba)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
+  if((o.real||o.booba||o.nolik)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
   return P;
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
