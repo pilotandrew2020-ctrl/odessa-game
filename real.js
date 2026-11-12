@@ -14,9 +14,16 @@
    The classic look stays available (Body → "Classic" in the character creator).
    =================================================================================================== */
 const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeTex:{},
+  // 2026-11-12: a second template, the cartoon creature "Booba" (Character -> Body -> Booba): the same 22 bones under the Man.glb names (pelvis, spine_01..03, neck_01, Head,
+  // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), 1.25 m tall, no clothes, so everything below (poses, seats, feet on the ground) works unchanged
+  SCB:1,urlB:'assets/models/avatar/Booba.glb',tplB:null,stB:0,
   load(){if(this.st)return;this.st=1;
-    try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;const w=this.wait.splice(0);for(const [P,o] of w)if(P.root&&!P.realOff)this.attach(P,o);
+    try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(false);
         if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
+  loadB(){if(this.stB)return;this.stB=1;
+    try{new THREE.GLTFLoader().load(this.urlB,g=>{this.tplB=g.scene;this.stB=2;this.flush(true);
+        if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.stB=3;console.warn('[real] Booba failed to load',e)})}catch(e){this.stB=3;console.warn('[real]',e)}},
+  flush(booba){const keep=[];for(const [P,o] of this.wait.splice(0)){if(!!o.booba!==booba){keep.push([P,o]);continue}if(P.root&&!P.realOff)this.attach(P,o)}for(const w of keep)this.wait.push(w)},
   ready(){return this.st===2},
   // a skinned clone that owns its skeleton (Object3D.clone shares it in r128)
   clone(src){const root=src.clone(true),by={};root.traverse(o=>{if(o.isBone)by[o.name]=o});
@@ -29,9 +36,9 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         t=[parseInt(k.slice(1,3),16),parseInt(k.slice(3,5),16),parseInt(k.slice(5,7),16)];
       for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];if(b>r+22&&b>gg+6){const f=.3+((r+gg+b)/3/255)*1.55;p[i]=Math.min(255,t[0]*f);p[i+1]=Math.min(255,t[1]*f);p[i+2]=Math.min(255,t[2]*f)}}
       g.putImageData(d,0,0);const T=new THREE.CanvasTexture(cv);T.flipY=false;T.encoding=THREE.sRGBEncoding;T.anisotropy=4;return this.eyeTex[k]=T}catch(e){return null}},
-  attach(P,o){if(!P||!P.root)return;if(!this.tpl){this.wait.push([P,o]);this.load();return}
+  attach(P,o){if(!P||!P.root)return;const BO=!!o.booba,tpl=BO?this.tplB:this.tpl;if(!tpl){this.wait.push([P,o]);BO?this.loadB():this.load();return}
     if(P.real)this.detach(P);
-    const M=this.clone(this.tpl),SC=this.SC,B=[],byN={},par=[],kind=[];
+    const M=this.clone(tpl),SC=BO?this.SCB:this.SC,B=[],byN={},par=[],kind=[];
     M.scale.setScalar(SC);M.name='realBody';P.root.add(M);M.updateMatrixWorld(true);
     // bones, parents before children
     const walk=(n,p)=>{let pi=p;if(n.isBone){pi=B.length;B.push(n);byN[n.name]=pi;par.push(p)}for(const c of n.children)walk(c,pi)};
@@ -40,7 +47,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     for(let i=0;i<n;i++){bindL.push(B[i].quaternion.clone());Qw.push(new THREE.Quaternion());D.push(new THREE.Quaternion());
       tm.identity();for(let o2=B[i];o2&&o2!==M;o2=o2.parent){o2.updateMatrix();tm.premultiply(o2.matrix)}
       const h=new THREE.Vector3();tm.decompose(h,tq,ts);Hb.push(h);bindW.push(tq.clone())}
-    const R={M,B,n,par,kind,bindL,bindW,Hb,Qw,D,idx:byN,sides:[]};
+    const R={M,B,n,par,kind,bindL,bindW,Hb,Qw,D,idx:byN,sides:[],sc:SC,booba:BO};
     // which procedural joint steers which bone (kind codes: 1 pelvis, 2/3/4 spine, 5 neck, 6 head, 7 clavicle, 8 upper arm, 9 forearm, 10 hand, 11 thigh, 12 calf, 13 foot, 20+ fingers)
     for(let i=0;i<n;i++)kind.push(0);
     const set=(nm,k)=>{const i=byN[nm];if(i!==undefined)kind[i]=k;return i};
@@ -61,11 +68,11 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     const mats={},get=nm=>mats[nm];
     M.traverse(o3=>{if(!o3.isMesh)return;o3.frustumCulled=false;o3.castShadow=true;o3.receiveShadow=false;
       const m=o3.material=mats[o3.material.name]||(mats[o3.material.name]=o3.material.clone());m.side=THREE.FrontSide;m.metalness=0;m.envMapIntensity=.5;
-      if(m.name==='shirt'||m.name==='jeans'||m.name==='cuff'||m.name==='brow')m.side=THREE.DoubleSide;
+      if(m.name==='shirt'||m.name==='jeans'||m.name==='cuff'||m.name==='brow'||BO)m.side=THREE.DoubleSide;
       if(o3.name==='Body'||o3.name==='Eyes')R[o3.name]=o3;o3.userData.real=1});
     this.paint(R,P,o);
     // the procedural body is hidden, held things and head/neck/back extras stay (moved onto the new bones below)
-    for(const c of [P.can,P.speaker].concat(P.accH||[],P.accS||[]))if(c)c.userData.keep=1;
+    for(const c of (BO?[P.can,P.speaker]:[P.can,P.speaker].concat(P.accH||[],P.accS||[])))if(c)c.userData.keep=1;   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
     R.hidden=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;R.hidden.push(c)}});
     P.real=R;R.o=o;this.mount(P,R);
     // pose now, so the first frame is right even if the caller never ticks
@@ -97,9 +104,9 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     if(typeof LOOK!=='undefined')LOOK.paint(R,mat,P,o);     // look.js: the capybara tee print and your face photo
   },
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
-  mount(P,R){const SC=this.SC,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
+  mount(P,R){const SC=R.sc,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
     const wrap=(bi,off,sc)=>{const w=new THREE.Object3D();const iq=R.bindW[bi].clone().invert();w.quaternion.copy(iq);w.position.copy(off.clone().applyQuaternion(iq));w.scale.setScalar(sc/SC);R.B[bi].add(w);R.wr=(R.wr||[]).concat([w]);return w};
-    const headExtras=P.accH||[],spineExtras=P.accS||[];
+    const headExtras=R.booba?[]:(P.accH||[]),spineExtras=R.booba?[]:(P.accS||[]);
     if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02,.004),.76);for(const c of headExtras)w.add(c)}
     if(spineExtras.length){const ks=.9,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
     // the can and the speaker sit in the hands: the wrapper's origin is the wrist
@@ -107,7 +114,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
       if(!items.length)continue;const w=wrap(S.ha,new THREE.Vector3(0,0,0),1);for(const it of items){const p=it.position.clone();w.add(it);it.position.set(p.x,p.y+.205-.02,p.z)}}
   },
   // ---- every frame: copy the procedural pose onto the bones
-  tick(P,st,dt){const R=P.real;if(!R||!R.M)return;const SC=this.SC,Hb=R.Hb,Qw=R.Qw,D=R.D,B=R.B,n=R.n,kind=R.kind,bindL=R.bindL,bindW=R.bindW,par=R.par;
+  tick(P,st,dt){const R=P.real;if(!R||!R.M)return;const SC=R.sc,Hb=R.Hb,Qw=R.Qw,D=R.D,B=R.B,n=R.n,kind=R.kind,bindL=R.bindL,bindW=R.bindW,par=R.par;
     const Wh=RT.a.copy(P.hips.quaternion),Ws=RT.b.copy(Wh).multiply(P.spine.quaternion),Wd=RT.c.copy(Ws).multiply(P.head.quaternion);
     const rel=RT.d.copy(Wh).invert().multiply(Ws);
     // deltas of the single bones
@@ -159,7 +166,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   },
   // while an act is on (acts.js sets P._leanW), the classic arm has already reached the target for ITS shoulder; the GLB shoulder sits higher, so aim the GLB upper arm and forearm at the classic wrist
   // (two-bone solve in root space, elbow bending the way the classic elbow does); held props and the soap foam ride on the classic hand, which is now where the GLB hand is
-  armIK(P,R,lw){const SC=this.SC,Hb=R.Hb,D=R.D,B=R.B,root=P.root;root.updateMatrixWorld(true);
+  armIK(P,R,lw){const SC=R.sc,Hb=R.Hb,D=R.D,B=R.B,root=P.root;root.updateMatrixWorld(true);
     const Ws=RT.b.copy(P.hips.quaternion).multiply(P.spine.quaternion);
     for(const S of R.sides){const A=S.arm;if(!A)continue;
       const Wsh=RK.q1.copy(Ws).multiply(A.sh.quaternion),Wel=RK.q2.copy(Wsh).multiply(A.el.quaternion);

@@ -29,7 +29,7 @@ GLB files under `assets/models/<category>/`, licence lines in `CREDITS.md`.
 | `models/trees/tree_spruce_hi.glb` / `tree_spruce_lo.glb` | Sketchfab "Spruce" by evolveduk | CC-BY-4.0 | `trees.js` `GLBT`: conifers (old species slot 4); 1.8k / 0.6k tris, 165 / 66 KB |
 | `models/trees/tree_snow.glb` | Sketchfab "Snow Trees Pack LOWPOLY" by EFX | CC-BY-4.0 | `trees.js` `GLBT`, winter only: `snowtree`, `bare`, `deadhero`, `deadwide`, `bush` nodes (card trees, 113 tris in all, 288 KB) |
 | `models/props/bench.glb` | Sketchfab "Bench" by Spark | CC-BY-4.0 | `trees.js` `BENCH`: nodes `bench` (1.8k tris) and `bin` (450 tris, alpha-tested); instanced for every bench `propBench2()` makes in a chunk or in the static world (125 KB) |
-| `models/booba.glb` | Sketchfab "Booba Cartoon" by usmangill | CC-BY-4.0 (the character itself is not) | `trees.js` `BOOBA` (243 KB, 4.3k tris, static pose) |
+| `models/avatar/Booba.glb` | Sketchfab "Booba Cartoon" by usmangill | CC-BY-4.0 (the character itself is not) | `real.js` body type "Booba" (22 bones under the Man.glb names, 3.9k tris, 293 KB, loaded when picked) and `trees.js` `BOOBA` (the yard NPC) |
 
 Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the holder group exists at once, the mesh is attached when the file arrives.
 

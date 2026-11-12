@@ -1,0 +1,35 @@
+<!doctype html><meta charset=utf-8><body>
+<script src="lib/three.min.js"></script><script src="lib/GLTFLoader.js"></script>
+<script>
+// Booba: pose the arms down, reduce the 204-bone rig to the 22 bones the game's REAL.tick drives (renamed to the Man.glb names), remap the skin weights onto them,
+// and return the posed (new bind pose) vertices + the rigid bone world matrices for the exporter.
+const KEEP={pelvis:'Pivot_011',spine_01:'Spine1_032',spine_02:'Spine2_034',spine_03:'Chest_035',neck_01:'Neck_036',Head:'Head_037',
+  clavicle_l:'Scapula_L_0111',upperarm_l:'Shoulder_L_0112',lowerarm_l:'Elbow_L_0113',hand_l:'Wrist_L_0114',thigh_l:'Hip_L_012',calf_l:'Knee_L_013',foot_l:'Ankle_L_014',ball_l:'Toes_L_015',
+  clavicle_r:'Scapula_R_0127',upperarm_r:'Shoulder_R_0128',lowerarm_r:'Elbow_R_0129',hand_r:'Wrist_R_0130',thigh_r:'Hip_R_022',calf_r:'Knee_R_023',foot_r:'Ankle_R_024',ball_r:'Toes_R_025'};
+const ORDER=Object.keys(KEEP);   // parents before children
+window.bakeRig=async(url,armDeg,fwdDeg)=>{
+  const gl=await new Promise((ok,no)=>new THREE.GLTFLoader().load(url,ok,undefined,no));const root=gl.scene;root.updateMatrixWorld(true);
+  const bones={};root.traverse(o=>{if(o.isBone)bones[o.name]=o});
+  const rotWorld=(bone,axis,ang)=>{bone.updateWorldMatrix(true,false);const pq=new THREE.Quaternion();if(bone.parent)bone.parent.getWorldQuaternion(pq);const wq=new THREE.Quaternion();bone.getWorldQuaternion(wq);
+    const R=new THREE.Quaternion().setFromAxisAngle(axis,ang);const nq=R.multiply(wq);bone.quaternion.copy(pq.clone().invert().multiply(nq));bone.updateMatrixWorld(true)};
+  const Z=new THREE.Vector3(0,0,1),X=new THREE.Vector3(1,0,0),a=armDeg*Math.PI/180,f=fwdDeg*Math.PI/180;
+  rotWorld(bones[KEEP.upperarm_l],Z,-a);rotWorld(bones[KEEP.upperarm_r],Z,a);rotWorld(bones[KEEP.upperarm_l],X,f);rotWorld(bones[KEEP.upperarm_r],X,f);
+  root.updateMatrixWorld(true);
+  // which kept bone owns every original bone: the nearest kept ancestor (or itself); everything above the pelvis -> pelvis
+  const rev={};for(const [k,v] of Object.entries(KEEP))rev[v]=k;
+  const owner=b=>{for(let o=b;o;o=o.parent){if(rev[o.name])return rev[o.name]}return 'pelvis'};
+  const out=[];
+  root.traverse(o=>{if(!o.isMesh)return;const g=o.geometry,P=g.attributes.position,n=P.count,pos=new Array(n*3),J=new Array(n*4).fill(0),W=new Array(n*4).fill(0);const v=new THREE.Vector3();
+    if(o.isSkinnedMesh){o.skeleton.update();const si=g.attributes.skinIndex,sw=g.attributes.skinWeight,sb=o.skeleton.bones;
+      for(let i=0;i<n;i++){o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;
+        const acc={};for(let k=0;k<4;k++){const w=sw.array[i*4+k];if(w<=0)continue;const nm=owner(sb[si.array[i*4+k]]);acc[nm]=(acc[nm]||0)+w}
+        const ent=Object.entries(acc).sort((p,q)=>q[1]-p[1]).slice(0,4);const tot=ent.reduce((t,e)=>t+e[1],0)||1;
+        ent.forEach(([nm,w],k)=>{J[i*4+k]=ORDER.indexOf(nm);W[i*4+k]=w/tot})}}
+    else{const hb=owner(o.parent);for(let i=0;i<n;i++){v.fromBufferAttribute(P,i).applyMatrix4(o.matrixWorld);pos[i*3]=v.x;pos[i*3+1]=v.y;pos[i*3+2]=v.z;J[i*4]=ORDER.indexOf(hb);W[i*4]=1}}
+    out.push({name:o.name,skinned:!!o.isSkinnedMesh,mat:o.material.name,pos,uv:g.attributes.uv?Array.from(g.attributes.uv.array):null,idx:Array.from(g.index.array),J,W})});
+  // rigid bone world transforms (position + rotation; the scale of the source rig is dropped)
+  const bonesOut=ORDER.map(nm=>{const b=bones[KEEP[nm]];const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3();b.matrixWorld.decompose(p,q,s);
+    let par=null;for(let o=b.parent;o;o=o.parent){if(rev[o.name]){par=rev[o.name];break}}
+    return {name:nm,parent:par,p:p.toArray(),q:q.toArray(),s:s.toArray()}});
+  return {meshes:out,bones:bonesOut,order:ORDER}};
+</script>

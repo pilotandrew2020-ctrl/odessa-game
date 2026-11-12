@@ -41,9 +41,12 @@ function islCell(ix,iz){const hs=islHash(ix*7+13,iz*11+5);const h2=islHash(ix*3+
   return {x,z,y:hr,kind,s,r:kind===0?.45*s+.15:kind===1?.3:kind===3?.7*s:kind===4?.3:0,rot:h3*6.283,h4}}
 const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
   // trunks, rocks (collision only for kinds 0,1,3)
-  blocked(x,z,m){if((x-ISL.cx)**2+(z-ISL.cz)**2>3500*3500)return false;const ix=Math.floor(x/ISL_CELL),iz=Math.floor(z/ISL_CELL);
-    for(let j=iz-1;j<=iz+1;j++)for(let i=ix-1;i<=ix+1;i++){const c=islCell(i,j);if(c&&c.r>0){const d=(x-c.x)**2+(z-c.z)**2,rr=c.r+m;if(d<rr*rr)return true}}
-    const o=ISL.solids;if(o)for(const b of o){if(Math.abs(x-b.x)<b.hw+m&&Math.abs(z-b.z)<b.hd+m&&(b.y1===undefined||true))return true}return false},
+  // y (optional, the underside of the thing that moves): trees and rocks only block below their own top. Without it the helicopter / planes were stopped by an
+  // invisible wall over every palm, trunk and boulder of the island at ANY altitude (owner: "lots of barriers when flying a helicopter over the jungle island")
+  TOPS:[20,11,0,2.2,0],   // top above the ground per cell kind (0 jungle tree, 1 palm, 2 bush, 3 rock, 4 small) times the cell's scale s
+  blocked(x,z,m,y){if((x-ISL.cx)**2+(z-ISL.cz)**2>3500*3500)return false;const ix=Math.floor(x/ISL_CELL),iz=Math.floor(z/ISL_CELL);
+    for(let j=iz-1;j<=iz+1;j++)for(let i=ix-1;i<=ix+1;i++){const c=islCell(i,j);if(c&&c.r>0){const d=(x-c.x)**2+(z-c.z)**2,rr=c.r+m;if(d<rr*rr){if(y!==undefined&&y>groundH(c.x,c.z)+this.TOPS[c.kind]*c.s+.8)continue;return true}}}
+    const o=ISL.solids;if(o)for(const b of o){if(Math.abs(x-b.x)<b.hw+m&&Math.abs(z-b.z)<b.hd+m){if(y!==undefined&&y>groundH(b.x,b.z)+(b.top||5)+.8)continue;return true}}return false},
   tiles:new Map(),veh:null,last:[1e9,1e9],built:false,
   init(world){
     // landing beach on the west coast + the yacht's anchorage 150 m off it; temple and pond placed relative to the landing

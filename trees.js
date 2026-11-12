@@ -93,8 +93,8 @@ const BENCH={ready:false,failed:false,loading:false,show:true,own:new Map(),dirt
 
 // ---------- Booba ----------
 const BOOBA={root:null,placed:false,st:'idle',wait:2,t:0,tx:0,tz:0,ax:0,az:0,vy:0,hop:0,
-  load(){GLB_FETCH('assets/models/booba.glb').then(g=>{const r=new THREE.Group(),m=g.scene;
-      m.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;o.receiveShadow=true;const mt=o.material;mt.metalness=0;mt.roughness=.8;mt.side=THREE.DoubleSide;if(mt.map){mt.alphaTest=.5;mt.map.anisotropy=4}});
+  load(){GLB_FETCH('assets/models/avatar/Booba.glb').then(g=>{const r=new THREE.Group(),m=g.scene;   // the same file as the Booba body type of the character creator (rest pose = arms down)
+      m.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;o.castShadow=true;o.receiveShadow=true;const mt=o.material;mt.metalness=0;mt.roughness=.8;mt.side=THREE.DoubleSide;if(mt.map){mt.alphaTest=.5;mt.map.anisotropy=4}});
       r.add(m);r.visible=false;scene.add(r);this.root=r;
       INTERACT.push({get x(){return BOOBA.root.position.x},get z(){return BOOBA.root.position.z},r:2.6,label:'Pet Booba',
         cond:()=>BOOBA.placed&&BOOBA.root.visible&&!PORTAL.cur&&!player.sit&&!player.scoot&&!DRIVE.on,fn:()=>BOOBA.pet()});
