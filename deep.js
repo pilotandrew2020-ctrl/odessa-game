@@ -21,7 +21,7 @@ const DEEP={dive:0,rise:0,cell:18,R:5,last:'',built:false,grp:null,chests:[],fis
 #deepPad.touch{bottom:calc(88px + env(safe-area-inset-bottom));gap:14px}
 #deepPad.touch button{width:82px;height:82px;border:3px solid #e8f8ff;font-size:13px;background:rgba(0,42,66,.94);box-shadow:0 3px 14px rgba(0,0,0,.55)}
 #deepPad.sub button{width:88px;height:88px;border:3px solid #e8f8ff;font-size:14px;background:rgba(0,42,66,.94);box-shadow:0 3px 14px rgba(0,0,0,.55)}
-#deepPad button.hold{background:#f2c14e;color:#1b1204}
+#deepPad button.hold{background:#38e4d0;color:#04252b}
 #deepAir{position:fixed;right:18px;top:214px;z-index:34;width:140px;display:none;font:800 10px/1 var(--f-disp,inherit);letter-spacing:.12em;color:#cfeaff;text-transform:uppercase}
 #deepAir.on{display:block}
 #deepAir i{display:block;height:8px;margin-top:5px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden}

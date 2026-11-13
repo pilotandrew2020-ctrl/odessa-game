@@ -48,7 +48,7 @@ const PHONE={
 #phn .body{flex:1;min-height:0;position:relative;overflow:hidden}
 #phn .pg{position:absolute;inset:0;display:flex;flex-direction:column;animation:phnIn .32s cubic-bezier(.2,.9,.3,1);overflow:hidden}
 @keyframes phnIn{from{opacity:0;transform:translateX(26px) scale(.98)}to{opacity:1;transform:none}}
-#phn .home{position:relative;flex:none;height:22px;display:flex;justify-content:center;align-items:center}#phn .home i{width:96px;height:5px;border-radius:3px;background:rgba(255,255,255,.55);cursor:pointer}
+#phn .home{position:relative;flex:none;height:34px;margin-top:-6px;display:flex;justify-content:center;align-items:center;touch-action:none;cursor:grab}#phn .home i{width:116px;height:5px;border-radius:3px;background:rgba(255,255,255,.7);box-shadow:0 0 10px rgba(255,255,255,.25);transition:width .15s,background .15s}#phn .home:active i{width:140px;background:#fff}
 #phn h2{margin:2px 16px 8px;font:800 22px system-ui;letter-spacing:-.3px}
 #phn .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 6px;padding:8px 14px}
 #phn .app{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:none;color:inherit;font:600 11px system-ui;cursor:pointer}
@@ -60,19 +60,19 @@ const PHONE={
 #phn .row img,#phn .row .av{width:48px;height:48px;border-radius:10px;object-fit:cover;background:#26364d;display:grid;place-items:center;font-size:24px;flex:none}
 #phn .row .t{flex:1;min-width:0}#phn .row .t b{display:block;font:650 13px system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#phn .row .t span{opacity:.65;font-size:11px}
 #phn .x{border:0;background:none;color:#fff;opacity:.5;font-size:16px;padding:6px;cursor:pointer}
-#phn .btn{border:0;border-radius:14px;padding:10px 14px;background:#f2c14e;color:#201606;font:800 13px system-ui;cursor:pointer}#phn .btn.g{background:rgba(255,255,255,.14);color:#fff}
+#phn .btn{border:0;border-radius:14px;padding:10px 14px;background:#38e4d0;color:#04252b;font:800 13px system-ui;cursor:pointer}#phn .btn.g{background:rgba(255,255,255,.14);color:#fff}
 #phn .add{display:flex;gap:6px;padding:0 12px 8px}#phn .add input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(0,0,0,.28);color:#fff;font:14px system-ui;padding:9px 11px;-webkit-user-select:text;user-select:text}
 #phn .mini{display:flex;align-items:center;gap:10px;margin:0 10px 6px;padding:7px 10px;border-radius:16px;background:rgba(255,255,255,.18);cursor:pointer}#phn .mini img{width:38px;height:38px;border-radius:8px;object-fit:cover}#phn .mini b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:650 12px system-ui}
 #phn .np{align-items:center;padding:0 18px 6px;text-align:center}#phn .cover{width:min(178px,56%);aspect-ratio:1;border-radius:20px;object-fit:cover;background:#26364d;box-shadow:0 18px 40px rgba(0,0,0,.5);margin:6px 0 10px;transition:transform .4s cubic-bezier(.2,1.3,.4,1)}#phn .cover.pl{transform:scale(1.04)}
 #phn .np h3{margin:0;font:800 16px/1.2 system-ui;max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}#phn .np small{opacity:.65}
-#phn input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:rgba(255,255,255,.22);outline:none;margin:10px 0 2px}#phn input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#f2c14e;box-shadow:0 0 0 4px rgba(242,193,78,.25)}
+#phn input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:rgba(255,255,255,.22);outline:none;margin:10px 0 2px}#phn input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#38e4d0;box-shadow:0 0 0 4px rgba(56,228,208,.25)}
 #phn .tm{display:flex;justify-content:space-between;width:100%;font-size:11px;opacity:.75;font-variant-numeric:tabular-nums}
-#phn .ctl{display:flex;justify-content:center;align-items:center;gap:10px;margin:8px 0}#phn .ctl button{width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:16px;cursor:pointer}#phn .ctl .pp{width:58px;height:58px;background:#f2c14e;color:#201606;font-size:22px}#phn .ctl .on{background:rgba(242,193,78,.45)}
+#phn .ctl{display:flex;justify-content:center;align-items:center;gap:10px;margin:8px 0}#phn .ctl button{width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;font-size:16px;cursor:pointer}#phn .ctl .pp{width:58px;height:58px;background:#38e4d0;color:#04252b;font-size:22px}#phn .ctl .on{background:rgba(56,228,208,.45)}
 #phn .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:6px 24px}#phn .pad button{height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.13);color:#fff;font:600 20px system-ui;cursor:pointer}#phn .pad button small{display:block;font-size:8px;letter-spacing:2px;opacity:.6;margin-top:-4px}
 #phn .num{min-height:38px;text-align:center;font:300 28px/38px system-ui;letter-spacing:1px}
-#phn .tabs{display:flex;gap:6px;padding:0 12px 8px}#phn .tabs button{flex:1;border:0;border-radius:11px;padding:7px 0;background:rgba(255,255,255,.1);color:#fff;font:700 12px system-ui;cursor:pointer}#phn .tabs .on{background:#f2c14e;color:#201606}
+#phn .tabs{display:flex;gap:6px;padding:0 12px 8px}#phn .tabs button{flex:1;border:0;border-radius:11px;padding:7px 0;background:rgba(255,255,255,.1);color:#fff;font:700 12px system-ui;cursor:pointer}#phn .tabs .on{background:#38e4d0;color:#04252b}
 #phn .calling{align-items:center;justify-content:space-between;padding:34px 20px 22px;text-align:center;background:linear-gradient(#17314d,#0b1220)}
-#phn .ring{position:relative;width:104px;height:104px;border-radius:50%;background:#26364d;display:grid;place-items:center;font-size:52px;margin:12px 0}#phn .ring:before,#phn .ring:after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(242,193,78,.65);animation:phnRing 1.6s infinite ease-out}#phn .ring:after{animation-delay:.8s}#phn .ring.live:before,#phn .ring.live:after{border-color:rgba(98,214,125,.6)}
+#phn .ring{position:relative;width:104px;height:104px;border-radius:50%;background:#26364d;display:grid;place-items:center;font-size:52px;margin:12px 0}#phn .ring:before,#phn .ring:after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(56,228,208,.65);animation:phnRing 1.6s infinite ease-out}#phn .ring:after{animation-delay:.8s}#phn .ring.live:before,#phn .ring.live:after{border-color:rgba(98,214,125,.6)}
 @keyframes phnRing{from{transform:scale(1);opacity:.9}to{transform:scale(1.7);opacity:0}}
 #phn .end{width:62px;height:62px;border-radius:50%;border:0;background:#e5484d;color:#fff;font-size:26px;cursor:pointer}
 #phn canvas.sn{display:block;margin:4px auto;border-radius:14px;background:#0d1b12;touch-action:none}
@@ -85,10 +85,17 @@ const PHONE={
     document.body.appendChild(d);
     d.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a){e.stopPropagation();this.act(a.dataset.a,a.dataset.v,a)}});
     d.addEventListener('keydown',e=>{e.stopPropagation()});d.addEventListener('pointerdown',e=>e.stopPropagation());d.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});d.addEventListener('wheel',e=>e.stopPropagation());
+    // the home bar works like an iPhone's: drag it up and the phone follows your finger and leaves (release past ~70 px or with a flick); a tap on it goes back to the home screen
+    const hm=d.querySelector('.home');let y0=0,dy=0,t0=0,drag=false;
+    hm.addEventListener('pointerdown',e=>{drag=true;y0=e.clientY;t0=performance.now();dy=0;try{hm.setPointerCapture(e.pointerId)}catch(x){}d.style.transition='none';e.preventDefault()});
+    hm.addEventListener('pointermove',e=>{if(!drag)return;dy=Math.min(0,e.clientY-y0);d.style.transform='translateY('+dy+'px) scale('+(1+dy/2600)+')';d.style.opacity=String(Math.max(.25,1+dy/520))});
+    const end=()=>{if(!drag)return;drag=false;const v=-dy/Math.max(1,performance.now()-t0);d.style.transition='';d.style.transform='';d.style.opacity='';
+      if(dy<-70||(dy<-26&&v>.45))this.toggle();else if(Math.abs(dy)<6&&this.screen!=='home')this.go('home')};
+    hm.addEventListener('pointerup',end);hm.addEventListener('pointercancel',end);
     this.go('home')},
   // ---------------------------------------------------------------------------------------------------- open / close / frame
   toggle(){this.open=!this.open;const d=document.getElementById('phn');if(!d)return;
-    if(this.open){d.classList.remove('hide');void d.offsetWidth;d.classList.add('show');this.go(this.screen==='calling'?'calling':'home');if(typeof AUD!=='undefined'&&AUD&&AUD.menuUi)try{AUD.menuUi('clk')}catch(e){}}
+    if(this.open){d.classList.remove('hide');void d.offsetWidth;d.classList.add('show');if(!this._hint){this._hint=1;try{if(!localStorage.getItem('odessa_phone_hint')){localStorage.setItem('odessa_phone_hint','1');if(typeof toast==='function')toast('Phone','Drag the bar at the bottom up to put it away')}}catch(e){}}this.go(this.screen==='calling'?'calling':'home');if(typeof AUD!=='undefined'&&AUD&&AUD.menuUi)try{AUD.menuUi('clk')}catch(e){}}
     else{d.classList.add('hide');d.classList.remove('show');this.snakeStop()}
     this.ui();if(typeof COOP!=='undefined')COOP.push(true)},
   ui(){const b=document.getElementById('bPhone');if(b){b.classList.toggle('on',this.open);b.setAttribute('aria-pressed',String(this.open));b.setAttribute('aria-label',this.open?'Put phone away':'Open phone')}},
@@ -115,7 +122,7 @@ const PHONE={
         <div style="display:flex;gap:18px;align-items:center"><button class="btn g" data-a="mute" style="border-radius:50%;width:50px;height:50px;padding:0">🔇</button><button class="end" data-a="hang" aria-label="End call">📞</button><button class="btn g" data-a="spkr" style="border-radius:50%;width:50px;height:50px;padding:0">🔊</button></div></div>`},
       snake:()=>`<div class="pg"><h2>Snake</h2><div style="text-align:center;font-size:12px;opacity:.8">Score <b id="phnSc">0</b> · Best <b id="phnBest">${+localStorage.getItem('odessa_snake_best')||0}</b></div><canvas class="sn" id="phnSn" width="256" height="256"></canvas>
         <div class="dp"><span></span><button data-a="sd" data-v="0,-1">▲</button><span></span><button data-a="sd" data-v="-1,0">◀</button><button data-a="sd" data-v="0,1">▼</button><button data-a="sd" data-v="1,0">▶</button></div></div>`,
-      news:()=>`<div class="pg"><h2>News</h2><div class="pad2"><p><b style="color:#f2c14e">PATCH NOTES</b></p><p>${e(this.news)}</p></div></div>`,
+      news:()=>`<div class="pg"><h2>News</h2><div class="pad2"><p><b style="color:#38e4d0">PATCH NOTES</b></p><p>${e(this.news)}</p></div></div>`,
       clock:()=>`<div class="pg"><h2>Clock</h2><div class="pad2"><div class="wid"><b>${this.time(1)}</b><span>${new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())}</span></div>${typeof S!=='undefined'?`<div class="kv"><span>Season</span><b>${e(S.season||'')}</b></div><div class="kv"><span>Time of day</span><b>${e(S.time||'')}</b></div>`:''}</div></div>`,
       bank:()=>`<div class="pg"><h2>Bank</h2><div class="pad2"><div class="wid"><span>Balance</span><b>${typeof WALLET!=='undefined'?e(WALLET.fmt()):'₴0'}</b></div></div></div>`};
     if(quiet&&name==='clock'){const w=b.querySelector('.wid b');if(w){w.textContent=this.time(1);return}}
@@ -197,7 +204,7 @@ const PHONE={
     const s=this.snake={N,C,g,cv,body:[[8,8],[7,8],[6,8]],dir:[1,0],next:[1,0],food:[12,8],score:0,over:false,best:+localStorage.getItem('odessa_snake_best')||0,speed:140};
     const place=()=>{do{s.food=[(Math.random()*N)|0,(Math.random()*N)|0]}while(s.body.some(b=>b[0]===s.food[0]&&b[1]===s.food[1]))};
     const draw=()=>{g.fillStyle='#0d1b12';g.fillRect(0,0,cv.width,cv.height);g.fillStyle='rgba(255,255,255,.04)';for(let i=0;i<N;i++)for(let j=0;j<N;j++)if((i+j)%2)g.fillRect(i*C,j*C,C,C);
-      g.fillStyle='#f2c14e';g.beginPath();g.arc(s.food[0]*C+C/2,s.food[1]*C+C/2,C/2-2,0,7);g.fill();
+      g.fillStyle='#38e4d0';g.beginPath();g.arc(s.food[0]*C+C/2,s.food[1]*C+C/2,C/2-2,0,7);g.fill();
       s.body.forEach((b,i)=>{g.fillStyle=i?'#3fb950':'#7ee787';g.fillRect(b[0]*C+1,b[1]*C+1,C-2,C-2)});
       if(s.over){g.fillStyle='rgba(0,0,0,.6)';g.fillRect(0,0,cv.width,cv.height);g.fillStyle='#fff';g.font='700 22px system-ui';g.textAlign='center';g.fillText('Game over',cv.width/2,cv.height/2-4);g.font='13px system-ui';g.fillText('tap to play again',cv.width/2,cv.height/2+20)}};
     const step=()=>{if(s.over)return;s.dir=s.next;const h=[s.body[0][0]+s.dir[0],s.body[0][1]+s.dir[1]];

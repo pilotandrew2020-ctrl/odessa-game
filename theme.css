@@ -1,0 +1,91 @@
+/* theme.css — the HUD look "neon glass" (2026-11-13): dark glass tiles with a thin light rim, one aqua accent that glows on the active state (no flat yellow fills), a round glass Jump button with an accent ring,
+   an accent gradient for the one primary action (#bAct). Loaded after the inline styles; the rules use !important because hudmenu.js / br.js / pose.js ... inject their own look later. No backdrop-filter in the game
+   (see body.live in index.html): the tiles are opaque gradients, which is also what the iPad can draw without re-blurring the whole frame. */
+:root{--ac:#38e4d0;--ac2:#2f8bff;--acInk:#04252b;--rim:rgba(255,255,255,.17);
+  --tile:linear-gradient(180deg,rgba(38,52,74,.92),rgba(13,20,33,.95));
+  --tileOn:linear-gradient(180deg,rgba(56,228,208,.38),rgba(36,118,170,.5));
+  --glow:0 0 0 1px rgba(56,228,208,.7),0 0 16px rgba(56,228,208,.42)}
+
+/* every tile / pill of the in-game HUD */
+html body :is(#hudmStack button,#qMenu button,#actBtns>button:not(#bJump),#gunBar button,#quickRow button,#heliControls button){
+  background:var(--tile)!important;border:1px solid var(--rim)!important;color:#e3edf1!important;text-shadow:none!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -12px 18px rgba(0,0,0,.28),0 6px 14px rgba(0,0,0,.45)!important;
+  transition:transform .09s,filter .12s,box-shadow .15s,background .15s}
+html body :is(#hudmStack button,#qMenu button,#actBtns>button:not(#bJump),#gunBar button,#quickRow button,#heliControls button).on{
+  background:var(--tileOn)!important;border-color:rgba(56,228,208,.8)!important;color:#effffc!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),var(--glow),0 6px 14px rgba(0,0,0,.4)!important}
+html body :is(#hudmStack button,#qMenu button,#actBtns>button:not(#bJump),#gunBar button,#quickRow button,#heliControls button):active{
+  transform:scale(.93)!important;filter:brightness(1.35)!important;background:var(--tile)!important;color:#fff!important;border-color:rgba(56,228,208,.9)!important}
+html body :is(#hudmStack button,#quickRow button,#qMenu button){border-radius:14px!important}
+html body #quickRow button{border-radius:999px!important}
+html body #hudmStack button::after{background:var(--ac)!important;box-shadow:0 0 8px var(--ac)!important}
+
+/* Jump: a round glass button with an accent ring instead of the orange orb */
+html body #actBtns>#bJump{background:radial-gradient(circle at 50% 24%,rgba(125,243,227,.55),rgba(20,84,104,.94) 58%,rgba(8,20,32,.98))!important;
+  border:2px solid rgba(125,243,227,.92)!important;color:#f2fffd!important;
+  box-shadow:0 0 0 5px rgba(56,228,208,.13),0 0 24px rgba(56,228,208,.5),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -14px 20px rgba(0,0,0,.3),0 10px 22px rgba(0,0,0,.5)!important}
+html body #actBtns>#bJump:active{transform:scale(.92)!important;filter:brightness(1.3)!important;background:radial-gradient(circle at 50% 24%,rgba(160,255,244,.7),rgba(24,110,128,.96) 60%,rgba(8,20,32,.98))!important}
+html body #actBtns>#bJump b{color:#d8fffa}
+
+/* the primary action button (Open / Enter / Sit ...) */
+html body #bAct{background:linear-gradient(180deg,#62f2e0,#1aaebd)!important;color:var(--acInk)!important;border:1px solid rgba(255,255,255,.6)!important;border-radius:16px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 0 20px rgba(56,228,208,.5),0 8px 18px rgba(0,0,0,.45)!important}
+html body #bAct:active{transform:scale(.95)!important;filter:brightness(1.12)!important;background:linear-gradient(180deg,#8ff7ea,#25c4d1)!important}
+
+/* the round map: a thin accent ring with a dark halo */
+html body #mini{border:2px solid rgba(56,228,208,.78)!important;box-shadow:0 0 0 4px rgba(8,16,26,.72),0 0 18px rgba(56,228,208,.28),0 10px 22px rgba(0,0,0,.5)!important}
+html body #homeDir{color:#e9f6f8}
+
+/* the weapon bar, the pickup prompt and the like keep the same glass */
+html body #gunBar{background:rgba(10,16,26,.78)!important;border:1px solid var(--rim)!important;border-radius:16px!important}
+html body #gunBar button.on{font-weight:800}
+html body #gunBoard:empty{display:none!important}
+html body #gunBoard{background:rgba(10,16,26,.78)!important;border:1px solid var(--rim)}
+
+html body ::selection{background:rgba(56,228,208,.4)}
+html body input[type=range]{accent-color:var(--ac)}
+
+/* ===== the speaker player (markup in index.html, state in speaker.js) ===== */
+html body #spk{width:min(440px,calc(100vw - 28px))!important;max-height:calc(100vh - 28px);overflow:auto;padding:14px 16px 16px!important;gap:12px!important;border-radius:26px!important;
+  background:linear-gradient(160deg,rgba(26,46,72,.98),rgba(8,13,23,.99))!important;border:1px solid var(--rim)!important;box-shadow:0 26px 64px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.13)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;scrollbar-width:none}
+html body #spk::-webkit-scrollbar{display:none}
+html body #spk .spkTop b{font:800 11px/1 var(--f-disp);letter-spacing:.22em;text-transform:uppercase;color:var(--ac)}
+html body #spk #spkClose{width:34px;height:34px;padding:0;border-radius:50%;font-size:18px;line-height:1;background:rgba(255,255,255,.08)!important;border:1px solid var(--rim)!important}
+.spkNow{display:flex;gap:16px;align-items:center}
+.spkCover{position:relative;flex:none;width:116px;aspect-ratio:1;border-radius:20px;overflow:hidden;background:radial-gradient(circle at 28% 18%,#3b9db4,#12304a 62%,#0a1624);box-shadow:0 14px 30px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.14);transition:transform .45s cubic-bezier(.2,1.3,.4,1)}
+.spkCover.pl{transform:scale(1.03)}
+.spkCover::before{content:"♪";position:absolute;inset:0;display:grid;place-items:center;font-size:46px;color:rgba(255,255,255,.35)}
+.spkCover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.spkCover .eq{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;justify-content:center;align-items:flex-end;gap:4px;padding:0 0 8px;background:linear-gradient(transparent,rgba(0,0,0,.6))}
+.spkCover .eq i{width:5px;height:6px;border-radius:2px;background:var(--ac);box-shadow:0 0 6px rgba(56,228,208,.7)}
+.spkCover.pl .eq i{animation:spkEq .9s ease-in-out infinite}.spkCover.pl .eq i:nth-child(2){animation-delay:-.3s;animation-duration:.7s}.spkCover.pl .eq i:nth-child(3){animation-delay:-.55s;animation-duration:1.05s}.spkCover.pl .eq i:nth-child(4){animation-delay:-.15s;animation-duration:.8s}.spkCover.pl .eq i:nth-child(5){animation-delay:-.7s}
+@keyframes spkEq{0%,100%{height:5px}50%{height:22px}}
+.spkInfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.spkInfo h3{margin:0;font:800 16px/1.2 var(--f-disp);color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.spkInfo small{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.spkSeek{display:flex;align-items:center;gap:8px;margin-top:8px;font:600 11px/1 system-ui;color:var(--muted);font-variant-numeric:tabular-nums}.spkSeek input{flex:1;min-width:0}
+html body #spk input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:3px;background:rgba(255,255,255,.2);outline:none;margin:0}
+html body #spk input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(56,228,208,.35),0 2px 6px rgba(0,0,0,.5)}
+html body #spk input[type=range]:disabled::-webkit-slider-thumb{background:#6c7d86;box-shadow:none}
+.spkCtl{display:flex;justify-content:space-between;align-items:center;gap:6px}
+html body #spk .spkCtl button{width:42px;height:42px;padding:0;border-radius:50%;font:700 13px/1 var(--f-body);color:#e3edf1;background:var(--tile)!important;border:1px solid var(--rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 4px 10px rgba(0,0,0,.4)}
+html body #spk .spkCtl button:active{transform:scale(.92);filter:brightness(1.3)}
+html body #spk .spkCtl button.on{background:var(--tileOn)!important;border-color:rgba(56,228,208,.8)!important;box-shadow:var(--glow)}
+html body #spk .spkCtl .pp{width:66px;height:66px;font-size:26px;color:var(--acInk);background:linear-gradient(180deg,#62f2e0,#1aaebd)!important;border:1px solid rgba(255,255,255,.6)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 0 22px rgba(56,228,208,.5),0 8px 18px rgba(0,0,0,.45)}
+.spkVolRow{display:flex;align-items:center;gap:10px;font-size:15px}.spkVolRow input{flex:1}
+html body #spk #spkLink input{background:rgba(255,255,255,.07);border:1px solid var(--rim);border-radius:14px}
+html body #spk #spkLink button,html body #spk .filebtn,html body #spk #spkCarry{border-radius:14px;background:var(--tile)!important;border:1px solid var(--rim)!important;color:#e3edf1}
+html body #spk #spkLink button{background:linear-gradient(180deg,#62f2e0,#1aaebd)!important;color:var(--acInk)!important;font-weight:800;border-color:rgba(255,255,255,.55)!important}
+html body #spk #spkStream{border-radius:16px;background:#000;box-shadow:0 0 0 1px var(--rim)}
+html body #spk #spkStream iframe{height:150px}
+.spkH{font:800 10px/1 var(--f-disp);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:2px 2px -4px}
+#spkLib,#spkList{display:flex;flex-direction:column;gap:6px;max-height:26vh;overflow:auto;scrollbar-width:none}
+.spkRow,html body #spk #spkList button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;border-radius:14px;background:rgba(255,255,255,.06)!important;border:1px solid transparent!important;color:#eaf2f4;font:600 13px/1.25 var(--f-body)}
+.spkRow.cur{border-color:rgba(56,228,208,.7)!important;background:rgba(56,228,208,.12)!important}
+.spkRow img,.spkRow i{width:42px;height:42px;border-radius:10px;object-fit:cover;flex:none;background:#1f3550;display:grid;place-items:center;font-style:normal;font-size:20px}
+.spkRow span{min-width:0;flex:1}.spkRow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:650}.spkRow small{color:var(--muted);font-size:10px;letter-spacing:.1em}
+.spkEmpty{margin:0;color:var(--muted);font-size:12px;padding:4px 2px}
+html body #spk #spkList button.del{width:auto;padding:6px 10px;flex:none}
+html body #actBtns>#bJump svg,html body #actBtns>#bJump svg *{stroke:#eafffc!important;fill:none!important}
+html body #actBtns>#bJump i{filter:drop-shadow(0 0 6px rgba(56,228,208,.7))}
+html body #spk #spkName{font-size:0}html body #spk #spkName::before{content:"Odesa Speaker";font:800 11px/1 var(--f-disp);letter-spacing:.22em;text-transform:uppercase;color:var(--ac)}

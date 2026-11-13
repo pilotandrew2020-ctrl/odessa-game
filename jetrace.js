@@ -54,7 +54,7 @@
       ctx.fill();
 
       // Yellow neon outline for chevron
-      ctx.strokeStyle = '#f2c14e';
+      ctx.strokeStyle = '#38e4d0';
       ctx.lineWidth = 4;
       ctx.stroke();
     }
@@ -149,25 +149,25 @@
       st.id = 'jrCss';
       st.textContent = `
 #jrHud{position:absolute;inset:0;pointer-events:none;z-index:45;font-family:var(--f-disp,sans-serif)}
-#jrTop{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(10,18,24,.82);border:1.5px solid rgba(242,193,78,.45);border-radius:16px;padding:8px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#jrTop{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;gap:12px;background:rgba(10,18,24,.82);border:1.5px solid rgba(56,228,208,.45);border-radius:16px;padding:8px 18px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
 .jrItem{display:flex;flex-direction:column;align-items:center}
 .jrLbl{font-size:9px;color:#a9bcc2;letter-spacing:.12em;text-transform:uppercase}
 .jrVal{font-size:16px;font-weight:800;color:#f5f1e8;font-variant-numeric:tabular-nums}
-#jrComboVal{color:#f2c14e}
+#jrComboVal{color:#38e4d0}
 #jrSpdVal{color:#76d7ea}
 #jrNitroBar{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:min(60vw,280px);height:12px;border-radius:6px;background:rgba(10,18,24,.8);border:1px solid rgba(255,255,255,.3);overflow:hidden;pointer-events:none}
-#jrNitroFill{height:100%;width:100%;background:linear-gradient(90deg,#f2994a,#f2c14e);transition:width .1s}
-#jrBoostBtn{position:absolute;right:max(24px,env(safe-area-inset-right));bottom:calc(105px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#f2994a,#f2c14e);color:#111;font-weight:900;font-size:13px;border:2px solid #fff;box-shadow:0 4px 18px rgba(242,153,74,.6);display:none;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+#jrNitroFill{height:100%;width:100%;background:linear-gradient(90deg,#2f8bff,#38e4d0);transition:width .1s}
+#jrBoostBtn{position:absolute;right:max(24px,env(safe-area-inset-right));bottom:calc(105px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#2f8bff,#38e4d0);color:#111;font-weight:900;font-size:13px;border:2px solid #fff;box-shadow:0 4px 18px rgba(242,153,74,.6);display:none;align-items:center;justify-content:center;pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 #jrBoostBtn:active{transform:scale(.95)}
 #jrEndModal{position:absolute;inset:0;background:rgba(8,16,22,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;pointer-events:auto;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:50}
 #jrEndModal[hidden]{display:none}
-#jrEndBox{background:rgba(15,26,35,.9);border:2px solid #f2c14e;border-radius:20px;padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;box-shadow:0 12px 40px rgba(0,0,0,.7);max-width:min(90vw,380px)}
-#jrEndTitle{font-size:22px;font-weight:900;color:#f2c14e;letter-spacing:.05em}
+#jrEndBox{background:rgba(15,26,35,.9);border:2px solid #38e4d0;border-radius:20px;padding:24px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;box-shadow:0 12px 40px rgba(0,0,0,.7);max-width:min(90vw,380px)}
+#jrEndTitle{font-size:22px;font-weight:900;color:#38e4d0;letter-spacing:.05em}
 .jrRow{display:flex;justify-content:space-between;width:100%;font-size:14px;color:#f5f1e8}
 .jrBtns{display:flex;gap:14px;width:100%;margin-top:6px}
 .jrBtns button{flex:1;padding:12px;font-size:14px;border-radius:12px}
 #jrBtnExit{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3)}
-#jrBtnRetry{background:var(--sun,#f2c14e);color:#111;border:1px solid #fff}
+#jrBtnRetry{background:var(--sun,#38e4d0);color:#111;border:1px solid #fff}
       `;
       document.head.appendChild(st);
 
