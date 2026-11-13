@@ -33,11 +33,15 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_airport_stream` | Airport staged load, resource/collision cleanup on exit, and duplicate-free re-entry |
 | `t_booba`, `t_nolik` | Booba / Nolik as body types (creator chip, 22 bones move, no hat or glasses, bicycle, back to Realistic) |
 | `t_cars` | Porsche 911 Turbo, Porsche 918 Spyder, Aston Martin DB9: GLB loads, 4 wheel pivots, real size, driver seat, drive / steer, Garage; `CARSHOT=1` saves screenshots of the player seated |
-| `t_chars` | the owner's character bodies (Steve, MrBeast, Halo, Leon, Ghost): chips, 22 bones, no classic body while a file loads, legs swing; `CHARSHOT=1` screenshots |
+| `t_chars` | the character bodies (Steve, MrBeast, Halo, Leon, Ghost, Walter, Booba, Nolik): chips, 22 bones, no classic body while a file loads, legs swing, foot-skating metric at 1.4 m/s (`OLDGAIT=1`: with the human leg length); `CHARSHOT=1` screenshots |
 | `t_cam` | camera zoom: first-person wheel / pinch changes the field of view; in a car the chase distance follows the zoom, not the speed |
 | `t_phone` | the phone: slide-up, Music (saved links, seek bar from simulated YouTube messages, seek / pause / next), calls (ring, answer, timer, recents, Taxi), Snake, English only; `PHONESHOT=1` screenshots |
 | `t_nav` | the 3D navigation marker: the map's Navigate button (no teleport), beam + HUD pill with distance and arrow, arrival clears it; `NAVSHOT=1` screenshots |
 | `t_potemkin` | walks up and down the Potemkin Stairs at three lateral offsets and reports the longest stretch without progress (`SECS` per run) |
+| `t_frame` | per-stage JS time per frame (`MODE=walk\|br`, `IPAD=1`): wraps `ANIM` stages, `updateCars`, `updatePeds`, `TREES.*`; prints the heaviest by total ms per second |
+| `t_wild` | bad driving (sharp turns, hard stops, pressing into walls) in the old car and a garage vehicle; reports the worst frame and the collide cost |
+| `t_buzz` | audio spectrum probe on `AUD.master` (steady tonal peaks = a buzz), with every layer muted in turn |
+| `t_music` | `BGM` (Odesa FM) rendered offline: level / NaN check; `AUD.engineCar` idle / 50 / 200 km/h, six gears, harmonics, silent when inactive; ducking while the speaker plays; the running-water loop |
 | `t_speed` | fast driving (`KIND=gtr\|p918\|moto`, `START=<place id>`, `Q=`, `SECS=`; use `IPAD=1`): chunk streaming slices, live chunks, scene objects / textures growth (a leak shows as growth in steady state) |
 | `t_tris`, `t_mem` | what a frame costs: triangles of the main and the shadow pass per category (map-wide meshes are never culled), and the estimated texture / geometry memory with the biggest items (`RENDER=<s>` draws real frames first) |
 | `t_ref` | reference screenshots with a frozen clock for before / after checks of performance changes (`SHOTS=<dir>`, compare with `python3 -I tools/imgdiff.py <dirA> <dirB>`) |

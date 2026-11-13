@@ -242,7 +242,7 @@ KIT.poseHands=function(dt){
     this.itemUp(i);h.visible=H.p.y>-.56||H.on===1}};
 
 // ---------- tap, water ----------
-KIT.tapSet=function(sk,on){const t=sk.t;t.on=on;t.until=on?(HSTATE.t||0)+99999:0;if(t.m)t.m.visible=on};
+KIT.tapSet=function(sk,on){const t=sk.t;t.on=on;t.until=on?(HSTATE.t||0)+99999:0;if(t.m)t.m.visible=on;if(window.AUD&&AUD.ok)AUD.water(on?1:0)};   // 2026-11-13: the running-water loop (AUD.water) follows the tap
 // a basin / sink: t = the tap record from K.tap (houses.js), o = {wx,wz (world), y (world, faucet), ry, drink, stand [world x,z]}
 KIT.sink=function(E,o){const t=o.t,sx=o.wx+Math.cos(o.ry)*.3,sz=o.wz-Math.sin(o.ry)*.3,sk={t,E,o,get at(){return KIT.W(E,o.wx,0,o.wz)},valve:()=>this.W(E,o.wx,o.y-.06,o.wz),jet:()=>this.W(E,t.m.position.x,o.cy+.12,t.m.position.z),stand:()=>this.W(E,t.m.position.x,o.cy,t.m.position.z),soapPos:()=>this.W(E,sx,o.cy+.02,sz),sx,sz};
   this.sinks.push(sk);t.on=false;

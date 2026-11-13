@@ -194,14 +194,14 @@ function hsBuild(def,id){
   return {grp,spawn:[ox,oz+1.9],spawnYaw:0,title:def.name,sub:def.cls+' · your house',peds:[],hs,ox,oz,onEnter(){PORTAL.peds=[]}}}
 
 // ---------- per frame: flames, firelight, TV picture, running water (only for the house you are in) ----------
-function hsTick(dt){HSTATE.t=(HSTATE.t||0)+dt;const B=typeof PORTAL!=='undefined'&&PORTAL.cur==='house'?PORTAL.active:null;if(!B||!B.hs)return;const h=B.hs,t=HSTATE.t;
+function hsTick(dt){HSTATE.t=(HSTATE.t||0)+dt;const B=typeof PORTAL!=='undefined'&&PORTAL.cur==='house'?PORTAL.active:null;if(!B||!B.hs){if(HSTATE.wOn){HSTATE.wOn=0;if(window.AUD)AUD.water(0)}return}const h=B.hs,t=HSTATE.t;
   if(player.z<B.oz+.2&&Math.abs(player.x-B.ox)<.8&&!player.sit&&!HSTATE.leaving){HSTATE.leaving=1;PORTAL.exit();setTimeout(()=>{HSTATE.leaving=0},1800)}      // walk out through the front door
   for(const f of h.fires){for(const m of f.flames){const i=m.userData.i;m.visible=f.on;m.scale.set(1+Math.sin(t*9+i*2)*.12,1+Math.sin(t*13+i)*.22,1+Math.cos(t*8+i)*.12)}
     if(f.light)f.light.intensity=f.on?(1.5+Math.sin(t*11)*.25+Math.sin(t*17.3)*.15)*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
   for(const v of h.tvs){v.t+=dt;if(v.on&&!v.ch&&v.t>.22){v.t=0;const g=v.g,s=Math.floor(t*3)%6,cols=['#1a73e8','#e8501a','#2ab06a','#e8c21a','#8a3ad0','#e8e8ee'];g.fillStyle=cols[s];g.fillRect(0,0,160,90);
       for(let i=0;i<7;i++){g.fillStyle=cols[(s+i+2)%6];g.globalAlpha=.55;g.fillRect(((i*23+t*40)%190)-20,8+(i*13)%60,34,16+(i*7)%20);g.globalAlpha=1}g.fillStyle='rgba(255,255,255,.14)';g.fillRect(0,0,160,6);v.tex.needsUpdate=true}
     if(v.light)v.light.intensity=v.on?.9*(typeof indoorAmt!=='undefined'?indoorAmt:1):0}
-  for(const w of h.taps)w.m.visible=HSTATE.t<w.until}
+  {let run=0;for(const w of h.taps){w.m.visible=HSTATE.t<w.until;if(w.m.visible)run=1}if(window.AUD&&AUD.ok&&(run||HSTATE.wOn)){AUD.water(run);HSTATE.wOn=run}}}
 
 // =====================================================================================================
 // exteriors on the island: four different houses (cabin of logs · bright coastal villa · stone-and-timber lodge · modern mansion)

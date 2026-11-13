@@ -17,14 +17,15 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // 2026-11-12: more bodies (Character -> Body -> Booba / Nolik): cartoon creatures with the same 22 bones under the Man.glb names (pelvis, spine_01..03, neck_01, Head,
   // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
   // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
-  BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1,tpl:null,st:0},
-       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}},
+  BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1.24,tpl:null,st:0},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}},
        // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
        steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0},
        mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0},
        halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
        leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
-       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9}}},
+       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9}},
+       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95}}},
   kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
   load(){if(this.st)return;this.st=1;
     try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(null);
@@ -73,6 +74,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
       // sole points of the foot at rest (the heel under and behind the ankle, the ball of the foot), in model space
       const fo=Hb[S.ft],bl=Hb[S.ba];S.hv=new THREE.Vector3(0,-fo.y,-.10-fo.z);S.tv=new THREE.Vector3().subVectors(bl,fo);S.tv.y-=.0152;
       R.sides.push(S)}
+    R.legL=Hb[R.sides[0].th].y*SC;     // hip height above the ground in the bind pose = the leg length the gait is scaled to (animPlayerBase)
     // sole of the classic shoe (to plant the feet where the procedural legs plant them)
     {const ft=P.legs[0].ft,sm=ft.children.find(c=>c.isMesh&&c.geometry&&c.geometry.attributes.position);let y0=-.07,zh=-.04,zt=.14;
       if(sm){sm.geometry.computeBoundingBox();const bb=sm.geometry.boundingBox;y0=bb.min.y;zh=bb.min.z+.03;zt=bb.max.z-.03}
