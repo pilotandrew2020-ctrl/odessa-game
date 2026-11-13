@@ -20,13 +20,13 @@ const KIT={vm:null,hand:[null,null],H:[{},{}],hold:null,act:null,menu:null,chip:
 KIT.css=function(){if(document.getElementById('kitCss'))return;const st=document.createElement('style');st.id='kitCss';st.textContent=`
 #kitMenu{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);z-index:36;display:none;flex-direction:column;gap:6px;min-width:230px;max-width:86vw;padding:10px;border:1.5px solid var(--hud-rim,rgba(255,255,255,.3));border-radius:16px;background:rgba(10,12,16,.84);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 14px 32px rgba(0,0,0,.5);color:#fff}
 #kitMenu.on{display:flex}
-#kitMenu .kh{font:800 10px/1 var(--f-disp,inherit);letter-spacing:.14em;text-transform:uppercase;color:#f2c14e;padding:2px 4px 5px}
+#kitMenu .kh{font:800 10px/1 var(--f-disp,inherit);letter-spacing:.14em;text-transform:uppercase;color:#38e4d0;padding:2px 4px 5px}
 #kitMenu button,#kitChip button{font:700 13px/1.1 var(--f-disp,inherit);color:#fff;text-align:left;padding:12px 14px;border:1.5px solid rgba(255,255,255,.28);border-radius:11px;background:rgba(255,255,255,.08);cursor:pointer;touch-action:manipulation}
-#kitMenu button:active,#kitChip button:active{background:#f2c14e;color:#1b1204}
+#kitMenu button:active,#kitChip button:active{background:#38e4d0;color:#04252b}
 #kitMenu button i{font-style:normal;opacity:.55;margin-right:9px}
 #kitChip{position:fixed;left:50%;bottom:12%;transform:translateX(-50%);z-index:35;display:none;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--hud-rim,rgba(255,255,255,.3));border-radius:14px;background:rgba(10,12,16,.78);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font:700 12px/1 var(--f-disp,inherit)}
 #kitChip.on{display:flex}
-#kitChip b{color:#f2c14e;margin-right:2px;font-weight:800}
+#kitChip b{color:#38e4d0;margin-right:2px;font-weight:800}
 #kitChip button{padding:10px 12px}`;document.head.appendChild(st)};
 KIT.dom=function(){if(this.menu)return;this.css();
   const m=document.createElement('div');m.id='kitMenu';document.body.appendChild(m);this.menu=m;

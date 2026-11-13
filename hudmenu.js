@@ -31,7 +31,7 @@ const HUDM={
 #hudmStack button::before{content:"";flex:none;width:21px;height:21px;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
 #hudmStack button::after{content:"";position:absolute;left:7px;top:6px;width:6px;height:6px;border-radius:50%;background:var(--sun);box-shadow:0 0 0 2px rgba(10,16,30,.85);opacity:0;transition:opacity .12s}
 #hudmStack button.on::after{opacity:1}
-#hudmStack button.on{background:rgba(242,193,78,.9);color:#17120a}
+#hudmStack button.on{background:rgba(56,228,208,.9);color:#04252b}
 #hudmStack button:active{transform:scale(.94);background:rgba(255,255,255,.85);color:#0a0a0a}
 @media (max-height:430px){#hudmStack button{width:44px;height:44px}}
 #hudmStack #bModes{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='3.5' width='7' height='7' rx='2'/%3E%3Crect x='3.5' y='13.5' width='7' height='7' rx='2'/%3E%3Crect x='13.5' y='13.5' width='7' height='7' rx='2'/%3E%3C/svg%3E")}
@@ -43,7 +43,7 @@ const HUDM={
 #hudmStack #bGun{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5'/%3E%3C/svg%3E")}
 #hudmStack #bJobs{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5'/%3E%3C/svg%3E")}
 #hudmStack #bFlight{--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l3 8 6 3-6 3-3 4-3-4-6-3 6-3z'/%3E%3C/svg%3E")}
-#hudmStack button.on,#hudmStack button:active{background:rgba(242,193,78,.9);color:#17120a}`;document.head.appendChild(st)},
+#hudmStack button.on,#hudmStack button:active{background:rgba(56,228,208,.9);color:#04252b}`;document.head.appendChild(st)},
   rank(id){const i=this.ROW1.concat(this.ROW2,this.ROW3).indexOf(id);return i<0?99:i},
   // put a bar button into its fixed row / right quick row (buttons are MOVED, not recreated)
   adopt(btn){if(!btn||btn.tagName!=='BUTTON'||!this.ready)return;const id=btn.id;if(id==='bModes')return;

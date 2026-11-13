@@ -145,7 +145,7 @@ const LOOK={
       g.save();g.fillStyle='rgba(8,14,18,.55)';g.beginPath();g.rect(0,0,W,H);g.save();g.translate(st.x,st.y);g.rotate(st.rot);g.scale(.8,1);g.moveTo(st.R,0);g.arc(0,0,st.R,0,6.283);g.restore();g.fill('evenodd');g.restore();
       g.save();g.translate(st.x,st.y);g.rotate(st.rot);g.lineWidth=3;g.strokeStyle='#f2c14e';g.beginPath();g.ellipse(0,0,.8*st.R,st.R,0,0,6.283);g.stroke();
       g.lineWidth=1.5;g.setLineDash([5,5]);g.beginPath();g.moveTo(-.8*st.R,-.38*st.R);g.lineTo(.8*st.R,-.38*st.R);g.stroke();g.setLineDash([]);
-      g.fillStyle='rgba(242,193,78,.9)';g.beginPath();g.arc(0,0,Math.max(9,st.R*.12),0,6.283);g.fill();g.strokeStyle='#17120a';g.lineWidth=2;g.beginPath();g.arc(0,0,Math.max(9,st.R*.12),0,6.283);g.stroke();g.restore()};
+      g.fillStyle='rgba(56,228,208,.9)';g.beginPath();g.arc(0,0,Math.max(9,st.R*.12),0,6.283);g.fill();g.strokeStyle='#04252b';g.lineWidth=2;g.beginPath();g.arc(0,0,Math.max(9,st.R*.12),0,6.283);g.stroke();g.restore()};
     const at=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height]};
     const clampSt=()=>{st.R=Math.max(M*.08,Math.min(M*.62,st.R));st.x=Math.max(0,Math.min(W,st.x));st.y=Math.max(0,Math.min(H,st.y))};
     cv.addEventListener('pointerdown',e=>{const q=at(e);ptr.set(e.pointerId,q);try{cv.setPointerCapture(e.pointerId)}catch(x){}

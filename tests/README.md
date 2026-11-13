@@ -42,6 +42,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_wild` | bad driving (sharp turns, hard stops, pressing into walls) in the old car and a garage vehicle; reports the worst frame and the collide cost |
 | `t_buzz` | audio spectrum probe on `AUD.master` (steady tonal peaks = a buzz), with every layer muted in turn |
 | `t_music` | `BGM` (Odesa FM) rendered offline: level / NaN check; `AUD.engineCar` idle / 50 / 200 km/h, six gears, harmonics, silent when inactive; ducking while the speaker plays; the running-water loop |
+| `t_ui` | the iPad HUD: no yellow controls, the empty strip under the map is hidden, the phone closes by dragging its home bar up, the speaker player (title, play, seek, saved links); screenshots `ui_hud / ui_phone / ui_speaker` |
 | `t_speed` | fast driving (`KIND=gtr\|p918\|moto`, `START=<place id>`, `Q=`, `SECS=`; use `IPAD=1`): chunk streaming slices, live chunks, scene objects / textures growth (a leak shows as growth in steady state) |
 | `t_tris`, `t_mem` | what a frame costs: triangles of the main and the shadow pass per category (map-wide meshes are never culled), and the estimated texture / geometry memory with the biggest items (`RENDER=<s>` draws real frames first) |
 | `t_ref` | reference screenshots with a frozen clock for before / after checks of performance changes (`SHOTS=<dir>`, compare with `python3 -I tools/imgdiff.py <dirA> <dirB>`) |

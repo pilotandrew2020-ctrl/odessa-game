@@ -19,14 +19,14 @@ function build(){if(st.ui)return;const css=document.createElement('style');css.t
 #brComp.hide{display:none}
 #brElim{position:absolute;left:50%;bottom:34%;transform:translateX(-50%);text-align:center;opacity:0;pointer-events:none;color:#fff;white-space:nowrap}
 #brElim.on{animation:brElim 2.7s ease-out}
-#brElim small{display:block;font:800 11px var(--f-disp,system-ui);letter-spacing:.42em;color:var(--sun,#f2c14e);text-shadow:0 2px 6px #000}
+#brElim small{display:block;font:800 11px var(--f-disp,system-ui);letter-spacing:.42em;color:var(--sun,#38e4d0);text-shadow:0 2px 6px #000}
 #brElim b{display:block;font:900 clamp(24px,5.6vw,38px) var(--f-disp,system-ui);letter-spacing:.06em;text-shadow:0 3px 14px #000;margin:2px 0 4px}
 #brElim b::after{content:'';display:block;height:3px;margin:3px auto 0;width:70%;background:linear-gradient(90deg,transparent,#ff4a3a,transparent)}
 #brElim i{display:inline-block;font:800 11px var(--f-disp,system-ui);font-style:normal;letter-spacing:.14em;padding:3px 10px;border-radius:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25)}
 @keyframes brElim{0%{opacity:0;transform:translateX(-50%) scale(.6)}8%{opacity:1;transform:translateX(-50%) scale(1.14)}14%{transform:translateX(-50%) scale(1)}84%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-14px)}}
 #brTop .bx.bump{animation:brBump .5s}@keyframes brBump{0%{transform:scale(1)}30%{transform:scale(1.28);filter:brightness(1.8)}100%{transform:scale(1)}}
 #brAlt{position:absolute;left:50%;bottom:calc(218px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);text-align:center;color:#fff;opacity:0;transition:opacity .25s;pointer-events:none}#brAlt.on{opacity:1}
-#brAlt b{font:900 clamp(26px,5.4vw,40px) var(--f-disp,system-ui);text-shadow:0 3px 14px #000;letter-spacing:.03em}#brAlt b small{font-size:.38em;margin-left:5px;letter-spacing:.2em;color:var(--sun,#f2c14e)}
+#brAlt b{font:900 clamp(26px,5.4vw,40px) var(--f-disp,system-ui);text-shadow:0 3px 14px #000;letter-spacing:.03em}#brAlt b small{font-size:.38em;margin-left:5px;letter-spacing:.2em;color:var(--sun,#38e4d0)}
 #brAlt em{display:block;font:800 10px var(--f-disp,system-ui);font-style:normal;letter-spacing:.3em;text-shadow:0 2px 6px #000;opacity:.85;margin-top:-4px}
 #brSpd{position:absolute;inset:-25%;pointer-events:none;opacity:0;background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,0) 0 2.2deg,rgba(255,255,255,.7) 2.2deg 2.7deg,rgba(255,255,255,0) 2.7deg 5.3deg,rgba(255,255,255,.35) 5.3deg 5.5deg,rgba(255,255,255,0) 5.5deg 9deg);-webkit-mask-image:radial-gradient(circle at 50% 50%,transparent 30%,#000 82%);mask-image:radial-gradient(circle at 50% 50%,transparent 30%,#000 82%);animation:brWarp .9s linear infinite}
 @keyframes brWarp{from{transform:rotate(0) scale(1)}50%{transform:rotate(2deg) scale(1.06)}to{transform:rotate(0) scale(1)}}`;
@@ -63,7 +63,7 @@ function compass(){const u=st.ui,cv=u.cv;const W=cv.clientWidth|0,H=cv.clientHei
   // fade the strip out at both ends
   c.globalCompositeOperation='destination-in';const g=c.createLinearGradient(0,0,W,0);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.14,'rgba(0,0,0,1)');g.addColorStop(.86,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,W,H);c.globalCompositeOperation='source-over';
   // the centre caret + exact heading
-  c.fillStyle='#f2c14e';c.beginPath();c.moveTo(W/2-5,0);c.lineTo(W/2+5,0);c.lineTo(W/2,6);c.closePath();c.fill()}
+  c.fillStyle='#38e4d0';c.beginPath();c.moveTo(W/2-5,0);c.lineTo(W/2+5,0);c.lineTo(W/2,6);c.closePath();c.fill()}
 
 // ---------------------------------------------------------------- minimap: the bus route and the supply drops (the context is already rotated to the camera)
 const mini0=BR.mini;
@@ -72,7 +72,7 @@ BR.mini=function(x,R,scale){mini0.call(this,x,R,scale);
   if(this.bus&&(this.phase==='bus'||this.phase==='sky')){const b=this.bus,ax=(b.x0-player.x)*scale,az=(b.z0-player.z)*scale,bx=(b.x0+b.dx*b.L-player.x)*scale,bz=(b.z0+b.dz*b.L-player.z)*scale;
     x.strokeStyle='rgba(255,255,255,.85)';x.lineWidth=2;x.setLineDash([7,6]);x.beginPath();x.moveTo(ax,az);x.lineTo(bx,bz);x.stroke();x.setLineDash([]);
     const p=this.busPos(),px=(p.x-player.x)*scale,pz=(p.z-player.z)*scale;x.translate(px,pz);x.rotate(Math.atan2(-b.dx,b.dz)+Math.PI);   // arrow points along the route
-    x.fillStyle='#f2c14e';x.strokeStyle='#0b1b22';x.lineWidth=2.5;x.beginPath();x.moveTo(0,-10);x.lineTo(7,8);x.lineTo(0,4);x.lineTo(-7,8);x.closePath();x.fill();x.stroke()}
+    x.fillStyle='#38e4d0';x.strokeStyle='#0b1b22';x.lineWidth=2.5;x.beginPath();x.moveTo(0,-10);x.lineTo(7,8);x.lineTo(0,4);x.lineTo(-7,8);x.closePath();x.fill();x.stroke()}
   x.restore();
   if(typeof BRDROP!=='undefined'){x.save();for(const q of BRDROP.list()){if(q.opened)continue;let px=(q.x-player.x)*scale,pz=(q.z-player.z)*scale;const l=Math.hypot(px,pz);if(l>R-10){px*=(R-10)/l;pz*=(R-10)/l}
     x.save();x.translate(px,pz);x.rotate(-(cam.yaw+Math.PI));x.fillStyle='#4aa3ff';x.strokeStyle='#fff';x.lineWidth=2;x.fillRect(-7,-7,14,14);x.strokeRect(-7,-7,14,14);x.fillStyle='#fff';x.fillRect(-1.2,-4,2.4,5);x.fillRect(-1.2,2,2.4,2.4);x.restore()}x.restore()}}
