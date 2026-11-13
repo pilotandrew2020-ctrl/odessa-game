@@ -7,7 +7,7 @@
 // PHONE.init() (boot), PHONE.toggle() (the Phone button), PHONE.tick(dt) every frame, PHONE.open (read by the co-op state). Everything is built here; index.html only keeps the old #gtPhone markup, removed on init.
 const PHONE={
   open:false,t:0,screen:'home',root:null,
-  news:'Patch notes: Battle Royale mode, online modes, the Bowling club, a redrawn Tairove map, new character bodies (Steve, MrBeast, Halo, Leon, Ghost) and a phone with music, calls and Snake.',
+  news:'Patch notes: Battle Royale mode, online modes, the Bowling club, a redrawn Tairove map, new character bodies (Steve, MrBeast, Halo, Leon, Ghost, Walter) and a phone with music, calls and Snake.',
   CONTACTS:[
     {n:'Mom',e:'👩',num:'+380 48 700 11 22',say:['Hello sweetheart! Are you eating properly?','Come over for dinner tonight, I made borscht!','Put on a hat, it is cold outside!']},
     {n:'Misha',e:'🧸',num:'+380 67 555 01 01',say:['Hey, I am right behind you!','Want to go to the beach? I will bring snacks.']},

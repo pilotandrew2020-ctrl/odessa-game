@@ -4253,9 +4253,12 @@ function animPlayerBase(P,st,dt){
   // (the old phase rate gave ~1.3 m per step at a walk and ~4 m at a run while the legs only swung ~0.6 m). rb blends walk -> run smoothly (no jump at 2.8 m/s).
   const ws=P.ws=(P.ws||0)+(walkF-(P.ws||0))*(1-Math.exp(-dt*8));   // eased, so starting and stopping blends instead of snapping
   const rb=Math.max(0,Math.min(1,(sp-2.6)/1.8)),rb2=rb*rb*(3-2*rb),run=rb2>.5;
-  const th=(.28+.22*Math.min(1,sp/2.25))*(1-rb2)+(.62+.16*Math.min(1,Math.max(0,(sp-2.8)/4)))*rb2;     // hip swing (rad)
-  const SL=Math.max(.35,2*.9*Math.sin(th));                                                              // step length (m)
-  P.phase+=dt*Math.PI*Math.min(sp/SL,3.9);                                                               // 2 steps per cycle; a sprint cadence cap of ~3.9 steps/s
+  // 2026-11-13: the gait follows the LEG LENGTH of the body that is worn (real.js R.legL, 0.9 m for the classic rig): Booba's legs are 0.3 m and Nolik's 0.16 m, so with the human step they skated; now short legs
+  // swing a little wider, take short steps at a higher cadence, tall bodies (Halo, MrBeast) take longer, slower steps, and the bounce scales with the leg
+  const kL=Math.max(.2,Math.min(1.3,((P.real&&P.real.legL)||.9)/.9));
+  const th=Math.min(.9,((.28+.22*Math.min(1,sp/2.25))*(1-rb2)+(.62+.16*Math.min(1,Math.max(0,(sp-2.8)/4)))*rb2)*(1+.45*Math.max(0,1-kL)));     // hip swing (rad)
+  const SL=Math.max(.35*kL,2*.9*kL*Math.sin(th));                                                        // step length (m)
+  P.phase+=dt*Math.PI*Math.min(sp/SL,3.9+2.6*Math.max(0,1-kL));                                                               // 2 steps per cycle; a sprint cadence cap of ~3.9 steps/s
   const ph=P.phase;const amp=ws;
   if(st.mode==='air'){
     for(const g of P.legs){g.hp.rotation.x=g.s>0?-.7:.25;g.kn.rotation.x=g.s>0?1.1:.5;g.ft.rotation.x=0}
@@ -4274,7 +4277,7 @@ function animPlayerBase(P,st,dt){
     if(carry&&A.s>0){A.sh.rotation.x=-.25-Math.sin(q)*amp*.2;A.el.rotation.x=-.6}
     if(A.s<0&&!run&&P.can&&P.can.visible){A.sh.rotation.x=-.18-Math.sin(q)*swA*.55;A.el.rotation.x=-.8-.12*Math.sin(q+.4)*ws}}   // holding the can: it still swings with the stride (and only while there is a can in the hand)
   const idle=1-walkF;
-  P.hips.position.y=HY+Math.abs(Math.cos(ph))*(.03+.04*rb2)*amp-.05*rb2+idle*Math.sin(performance.now()*.002)*.005;
+  P.hips.position.y=HY+Math.abs(Math.cos(ph))*(.03+.04*rb2)*amp*Math.min(1,kL)-.05*rb2*Math.min(1,kL)+idle*Math.sin(performance.now()*.002)*.005;
   P.spine.rotation.x=.03*ws*(1-rb2)+.19*rb2;P.head.rotation.x=-.12*rb2;
   // a real gait: the pelvis turns one way and the chest the other, the hips roll with each step, the head stays level, and the body breathes when standing
   {const sw=Math.sin(ph)*(1+.5*rb2)*Math.min(1,amp);P.hips.rotation.y=sw*.07;P.hips.rotation.z=Math.sin(ph)*.03*amp;P.spine.rotation.y=-sw*.13;P.spine.rotation.z=-Math.sin(ph)*.02*amp;P.head.rotation.y=sw*.06;P.hips.position.x=Math.sin(ph)*.012*amp*(1-rb2);

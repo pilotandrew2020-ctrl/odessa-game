@@ -23,8 +23,8 @@ const CH_NECK=['None','Scarf','Chain','Bow tie'],CH_NK_ID=['none','scarf','chain
 const CH_BACK=['None','Crossbody bag','Backpack'],CH_BK_ID=['none','bag','pack'];
 const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble','mous','beard'];
 // code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
-const CHAR_BODY_K=[null,null,'booba','nolik','steve','mrbeast','halo','leon','ghost'];
-const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,7,16,4,10,3,8,6,5,16,4,3,2, 9],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic, 2 Booba, 3 Nolik, 4 Steve, 5 MrBeast, 6 Halo, 7 Leon, 8 Ghost (real.js BOD; CHAR_BODY_K below)
+const CHAR_BODY_K=[null,null,'booba','nolik','steve','mrbeast','halo','leon','ghost','walter'];
+const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,9,12,7,16,4,10,3,8,6,5,16,4,3,2, 10],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic, 2 Booba, 3 Nolik, 4 Steve, 5 MrBeast, 6 Halo, 7 Leon, 8 Ghost, 9 Walter (real.js BOD; CHAR_BODY_K below)
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
   load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
     const SHARP=[3,3,1,1,3,4,2,0,1,0,1,1,0,2,2,0,0];     // the short-lived "sharp guy" default: anyone who saved it goes back to the blond with blue eyes
@@ -144,7 +144,7 @@ const CHP={
 // ---------------------------------------------------------------- the 3D window
 const CHT=[ // tabs → rows: k = index in the code, sw = colour swatches [name,hex], ch = text chips
   {n:'Looks',f:'full',rows:[{pre:1}]},
-  {n:'Body',f:'full',rows:[{l:'Body type',k:17,ch:['Realistic','Classic','Booba','Nolik','Steve','MrBeast','Halo','Leon','Ghost']},{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
+  {n:'Body',f:'full',rows:[{l:'Body type',k:17,ch:['Realistic','Classic','Booba','Nolik','Steve','MrBeast','Halo','Leon','Ghost','Walter']},{l:'Skin tone',k:0,sw:CH_SKIN.map(c=>[c,c])},{l:'Eyes',k:1,sw:CH_EYE.map(e=>[e[0],e[1]])},{l:'Facial hair',k:2,ch:CH_BEARD}]},
   {n:'Hair',f:'head',slot:'hair',rows:[{l:'Style',k:3,ch:CH_HAIRS},{l:'Colour',k:4,sw:CH_HAIR.map(h=>[h[0],'#'+h[1].toString(16).padStart(6,'0')])}]},
   {n:'Top',f:'torso',slot:'top',rows:[{l:'Style',k:5,ch:CH_TOPS},{l:'Colour',k:6,sw:CH_CLOTH.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
   {n:'Bottom',f:'legs',slot:'bottom',rows:[{l:'Style',k:7,ch:CH_BOTS},{l:'Colour',k:8,sw:CH_JEANS.map(c=>[c[0],'#'+c[1].toString(16).padStart(6,'0')])}]},
