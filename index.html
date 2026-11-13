@@ -436,6 +436,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="spray.js"></script>
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
+<script src="nav.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -7501,6 +7502,8 @@ function updateLampUniforms(){
 }
 const EXTRA_LAMPS=[];
 function updateIndoor(dt){
+  // depth precision: inside an interior the view is short, so a 1.5x nearer near plane and a far plane just past the sky dome (2500 m) give ~2.8x finer depth steps (z-fighting of coplanar furniture / tiles)
+  {const wn=PORTAL.cur?.15:.1,wf=PORTAL.cur?2700:5000;if(camera.near!==wn||camera.far!==wf){camera.near=wn;camera.far=wf;camera.updateProjectionMatrix()}}
   let cur=null;for(const r of INDOORS){if(r.test(player.x,player.z,player.y)){cur=r;break}}
   if(cur!==curIndoor){const prev=curIndoor;curIndoor=cur;if((typeof AUD!=='undefined')&&AUD)AUD.setIndoor(cur?cur.name:null);if(cur&&cur.enter)cur.enter();if(!cur)toast('','')
     // flats, shops and rooms are walked in first person; the chase-camera distance comes back when you step outside (halls and the opera keep the chase view)
@@ -7964,6 +7967,7 @@ async function boot(){
   try{if((typeof SPK!=='undefined')&&SPK)SPK.init(scene)}catch(e){console.error('[boot] speaker',e)}
   try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
   try{if(typeof PHONE!=='undefined'&&PHONE&&PHONE.init)PHONE.init()}catch(e){console.error('[boot] phone',e)}
+  try{if(typeof NAV!=='undefined'&&NAV&&NAV.init)NAV.init()}catch(e){console.error('[boot] nav',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
