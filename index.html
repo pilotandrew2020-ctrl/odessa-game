@@ -261,6 +261,12 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 #bAct{clip-path:none;border:2px solid rgba(255,255,255,.92);border-radius:14px;background:var(--hud-on);color:#1b1204;padding:12px 20px 12px 14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #9a5e0c,0 10px 22px rgba(0,0,0,.38);text-shadow:none}
 #bAct:active{background:#fff;transform:translateY(2px)}
 @media (max-height:430px){#qMenu{grid-template-columns:repeat(4,46px);right:-80px;bottom:calc(100% + 30px)}#qMenu button{width:46px;height:46px}#bAct{bottom:calc(200px + env(safe-area-inset-bottom,0px))}#actBtns>button{width:46px;height:46px}#actBtns>#bJump{width:68px;height:68px}#topBtns button{padding:6px 10px 6px 8px}}
+/* 2026-11-13: backdrop-filter over a live WebGL canvas makes iOS Safari blur - and keep an offscreen copy of - the canvas behind EVERY such element on every frame; the global `button` rule alone gave ~30 HUD
+   buttons that (more in a Battle Royale match). In game it is off everywhere, the glass backgrounds are a little more opaque instead. */
+body.live *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+body.live #quickRow button:not(.on),body.live #gunBar{background:rgba(14,18,26,.68)}
+body.live #topBtns button:not(.on),body.live #coHud .coRow button:not(.on){background:rgba(0,0,0,.66)}
+body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 </style>
 </style>
 <div id="app">
@@ -437,6 +443,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
+<script src="music.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -4764,7 +4771,7 @@ function randPerson(){const w=S.season==='winter';const fem=Math.random()<.5;con
 function spawnPed(px,pz,near){
   const ri=randomSegNear(px,pz,near?15:70,near?140:190,false);if(ri<0)return null;
   const dir=Math.random()<.5?1:-1;const s=segInfo(ri,dir);
-  return Object.assign(randPerson(),{ri,dir,s:Math.random()*s.L,side:Math.random()<.5?1:-1,jit:Math.random(),speed:1.05+Math.random()*.5,phase:Math.random()*6,x:s.ax,y:0,z:s.az,yaw:0,moving:true,wait:0,pose:'walk'});
+  return Object.assign(randPerson(),{ri,dir,s:Math.random()*s.L,side:Math.random()<.5?1:-1,jit:Math.random(),speed:1.05+Math.random()*.5,phase:Math.random()*6,x:s.ax,y:0,z:s.az,yaw:0,moving:true,wait:0,stuck:0,pose:'walk'});
 }
 function pedOffset(ri,side,jit){const k=D.wOf[ri],c=D.wcls[k],f=D.wfl[k];
   if(f===1)return side*(HW[c]+SW[c]-1.5)*jit;if(c<=1)return side*(HW[c]+SW[c]*(.35+.4*jit));if(c===2)return side*(HW[c]+.55);return side*.45*jit}
@@ -4787,8 +4794,11 @@ function updatePeds(dt,player,maxN){
     if(insideAny(p.x,p.z,.3,p.y)){
       p.ri=prev.ri;p.dir=prev.dir;p.s=prev.s;p.x=prev.x;p.z=prev.z;
       p.wait=Math.max(p.wait||0,.5);p.moving=false;
+      // 2026-11-13: a pedestrian stuck inside a collider ran collide() (up to ~120 insideAny calls, ~0.5 ms) EVERY frame: in a Battle Royale match that was 8.7 ms of every frame (26x a normal frame).
+      // After 3 frames inside, it is dropped and a new one spawns elsewhere.
+      if(++p.stuck>3){PEDS.splice(i,1);continue}
       const [sx,sz]=collide(p.x,p.z,.3,p.y);p.x=sx;p.z=sz;
-    }
+    }else p.stuck=0;
     const ty=p.moving?Math.atan2(s.tx,s.tz):(dp<4?Math.atan2(dpx,dpz):p.yaw);let dy=ty-p.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;p.yaw+=dy*Math.min(1,dt*5);
   }
   // talker groups near player (standing, chatting)
@@ -6294,14 +6304,16 @@ const AUD={
     this.sfx=c.createGain();this.sfx.gain.value=.9;this.sfx.connect(this.master);
     this.amb=c.createGain();this.amb.gain.value=.8;this.amb.connect(this.master);
     this.mus=c.createGain();this.mus.gain.value=.8;this.mus.connect(this.master);
+    this.veh=c.createGain();this.veh.gain.value=1;this.veh.connect(this.master);   // engines, tyres, wind of cars / planes / boats: stays audible when the ambience and the footsteps are ducked under your own music
     // reverb
     this.rev=c.createConvolver();this.rev.buffer=this.impulse(2.8,2.2);this.revG=c.createGain();this.revG.gain.value=0;this.rev.connect(this.revG);this.revG.connect(this.master);
     this.noise=this.noiseBuf(3);
     const loop=(type,f,q,g)=>{const s=c.createBufferSource();s.buffer=this.noise;s.loop=true;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const gn=c.createGain();gn.gain.value=0;s.connect(fl);fl.connect(gn);gn.connect(this.amb);s.start();return {fl,gn}};
     this.city=loop('lowpass',320,.5);this.wind=loop('bandpass',700,.4);this.sea=loop('lowpass',900,.3);this.chat=loop('bandpass',650,2.5);this.hum=loop('lowpass',140,1);
-      // car voices
-      this.carV=[0,1,2].map(()=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=40;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=380;const g=c.createGain();g.gain.value=0;const p=this.panner(this.sfx);
-        o.connect(f);f.connect(g);g.connect(p);o.start();return {o,f,g,p}});
+      // traffic voices: a soft triangle engine and tyre / road noise (no sawtooth drone)
+      this.carV=[0,1,2].map(()=>{const o=c.createOscillator();o.type='triangle';o.frequency.value=48;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=300;const g=c.createGain();g.gain.value=0;const p=this.panner(this.veh);
+        const ns=c.createBufferSource();ns.buffer=this.noise;ns.loop=true;ns.playbackRate.value=.8+Math.random()*.4;const nf=c.createBiquadFilter();nf.type='lowpass';nf.frequency.value=700;const ng=c.createGain();ng.gain.value=0;
+        o.connect(f);f.connect(g);g.connect(p);ns.connect(nf);nf.connect(ng);ng.connect(p);o.start();ns.start();return {o,f,g,p,nf,ng}});
     // scooter whine
     // electric scooter: a quiet low motor hum (no rising whine, nothing like a siren) + soft tyre noise
     this.sc={o:c.createOscillator(),g:c.createGain()};this.sc.o.type='triangle';const sf=c.createBiquadFilter();sf.type='lowpass';sf.frequency.value=380;this.sc.o.connect(sf);sf.connect(this.sc.g);this.sc.g.gain.value=0;this.sc.g.connect(this.sfx);this.sc.o.start();
@@ -6364,7 +6376,35 @@ const AUD={
   panner(dest){
     const p=this.ctx.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=3;p.maxDistance=220;p.rolloffFactor=1.15;p.connect(dest||this.sfx);return p},
   position(p,x,y,z){const T=this.ctx.currentTime;if(p.positionX){p.positionX.setTargetAtTime(x,T,.04);p.positionY.setTargetAtTime(y,T,.04);p.positionZ.setTargetAtTime(z,T,.04)}else p.setPosition(x,y,z)},
+  // 2026-11-13: a car engine instead of three detuned oscillators droning at 30-140 Hz (the "buzz"): a harmonic-rich tone at the FIRING frequency (6 cylinders) through a lowpass that opens with revs and throttle and a
+  // moving exhaust resonance, a soft sub, intake noise that follows the throttle, a faint gearbox whine, road and wind noise that follow the speed, six gears (revs fall at every upshift) and exhaust pops when you lift off.
+  engineCar(){const c=this.ctx,p=this.panner(this.veh||this.sfx),out=c.createGain();out.gain.value=0;out.connect(p);
+    const N=30,re=new Float32Array(N),im=new Float32Array(N);for(let n=1;n<N;n++)im[n]=(n%2?1:.5)/Math.pow(n,1.4);
+    const wave=c.createPeriodicWave(re,im),mk=()=>{const o=c.createOscillator();o.setPeriodicWave(wave);return o},o1=mk(),o2=mk(),sub=c.createOscillator();sub.type='sine';
+    const g1=c.createGain(),g2=c.createGain(),gs=c.createGain(),f1=c.createBiquadFilter(),f2=c.createBiquadFilter();g1.gain.value=.5;g2.gain.value=.36;gs.gain.value=.3;f1.type='lowpass';f1.Q.value=1.1;f2.type='peaking';f2.Q.value=1.3;f2.gain.value=5;
+    o1.connect(g1);o2.connect(g2);g1.connect(f1);g2.connect(f1);f1.connect(f2);f2.connect(out);sub.connect(gs);gs.connect(out);
+    const noise=(rate,type,f,q,dest)=>{const s=c.createBufferSource();s.buffer=this.noise;s.loop=true;s.playbackRate.value=rate;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(dest);return {s,fl,g}};
+    const ik=noise(1,'bandpass',700,.9,out),rd=noise(.7,'lowpass',800,.5,out),wd=noise(1,'bandpass',900,.5,out),wh=c.createOscillator(),whg=c.createGain();wh.type='sine';whg.gain.value=0;wh.connect(whg);whg.connect(out);
+    for(const s of [o1,o2,sub,wh,ik.s,rd.s,wd.s])s.start();
+    const GM=[11,19,29,40,53,72],cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+    const v={kind:'car',p,out,gear:0,rpm:900,shiftUntil:0,lastThr:0,popAt:0,
+      update(x,y,z,speed,throttle,active,depth,level){const T=c.currentTime,sp=Math.abs(Number(speed)||0),load=cl(Math.abs(Number(throttle)||0),0,1),lv=level===undefined?1:cl(Number(level)||0,0,1);
+        AUD.position(p,Number(x)||0,Number(y)||0,Number(z)||0);
+        let g=v.gear;while(g<GM.length-1&&sp>GM[g]*.94)g++;while(g>0&&sp<GM[g-1]*.6)g--;if(g!==v.gear){if(g>v.gear)v.shiftUntil=T+.22;v.gear=g}
+        const lo=g?GM[g-1]*.55:0;let rpm=900+cl((sp-lo)/(GM[g]-lo),0,1.05)*5200;if(sp<1.5)rpm=900+load*2600;if(T<v.shiftUntil)rpm-=950;rpm=Math.max(850,rpm);
+        const f0=rpm/60*3,rn=(rpm-850)/5500;   // 3 firing pulses per revolution
+        o1.frequency.setTargetAtTime(f0,T,.05);o2.frequency.setTargetAtTime(f0*1.004,T,.05);sub.frequency.setTargetAtTime(f0*.5,T,.05);
+        f1.frequency.setTargetAtTime(520+rpm*.3+load*1500,T,.08);f2.frequency.setTargetAtTime(240+rpm*.13,T,.08);
+        ik.fl.frequency.setTargetAtTime(600+rpm*.25,T,.1);ik.g.gain.setTargetAtTime((.01+.07*load)*(.4+rn),T,.1);
+        rd.fl.frequency.setTargetAtTime(650+sp*22,T,.2);rd.g.gain.setTargetAtTime(Math.min(1,sp/24)*.1,T,.2);
+        wd.fl.frequency.setTargetAtTime(700+sp*28,T,.2);wd.g.gain.setTargetAtTime(Math.pow(Math.min(1,sp/46),2)*.22,T,.2);
+        wh.frequency.setTargetAtTime(cl(rpm/60*9,200,1400),T,.1);whg.gain.setTargetAtTime(sp>3?.01*Math.min(1,sp/30)*(.3+load):0,T,.15);
+        if(v.lastThr>.6&&load<.15&&rpm>3200&&T>v.popAt){v.popAt=T+.9;AUD.burst(700,140,.06,.13,'bandpass',1.2,p);for(let i=0;i<2;i++)setTimeout(()=>{if(AUD.ok)AUD.burst(500+Math.random()*400,120,.05,.08,'bandpass',1.2,p)},90+Math.random()*220)}
+        v.lastThr=load;out.gain.setTargetAtTime(active?lv*.12*(.38+.4*rn+.45*load):0,T,.14)},
+      dispose(){for(const s of [o1,o2,sub,wh,ik.s,rd.s,wd.s])try{s.stop()}catch(e){}for(const n of [o1,o2,sub,wh,ik.s,rd.s,wd.s,g1,g2,gs,f1,f2,ik.fl,ik.g,rd.fl,rd.g,wd.fl,wd.g,whg,out,p])try{n.disconnect()}catch(e){}}};
+    return v},
   machine(kind){
+    if(kind==='car'&&this.ok)return this.engineCar();
     if(!this.ok)return null;
     const c=this.ctx,p=this.panner(),out=c.createGain(),lo=c.createOscillator(),hi=c.createOscillator(),wh=c.createOscillator(),ns=c.createBufferSource(),
       lf=c.createBiquadFilter(),hf=c.createBiquadFilter(),wf=c.createBiquadFilter(),nf=c.createBiquadFilter(),lg=c.createGain(),hg=c.createGain(),wg=c.createGain(),ng=c.createGain();
@@ -6409,12 +6449,20 @@ const AUD={
   jump(){this.burst(1200,400,.08,.12,'bandpass',1)},land(){this.burst(900,150,.12,.22,'lowpass',.7)},
   beep(){this.tone(1320,1320,.12,.15,'square');this.tone(1760,1760,.12,.12,'square',null,.14)},
   scoot(on){this.scootOn=on},
+  // running water: a looped, softly modulated noise (hiss band + a lower body + a babble LFO); on = 0 / 1 (houses.js calls it every frame with "is a tap running")
+  water(on){if(!this.ok)return;const c=this.ctx,T=c.currentTime;
+    if(!this.wat){const mk=(f,q,type)=>{const s=c.createBufferSource();s.buffer=this.noise;s.loop=true;s.playbackRate.value=.9+Math.random()*.3;const fl=c.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(this.sfx);s.start(c.currentTime,Math.random()*2);return {fl,g}};
+      const hiss=mk(3800,.6,'bandpass'),body=mk(900,.8,'bandpass'),lfo=c.createOscillator(),lg=c.createGain();lfo.frequency.value=7.5;lg.gain.value=.012;lfo.connect(lg);lg.connect(body.g.gain);lfo.start();this.wat={hiss,body}}
+    const k=on?1:0;this.wat.hiss.g.gain.setTargetAtTime(k*.05,T,k?.08:.12);this.wat.body.g.gain.setTargetAtTime(k*.035,T,k?.08:.12)},
   chatter(d){this.chatLvl=d<16?Math.max(0,1-d/16):0},
   update(dt){
     if(!this.ok)return;const c=this.ctx,T=c.currentTime;
     const day=this.time==='day',night=this.time==='night',win=this.season==='winter',ind=this.indoor;
     const sd=sdAt(player.x,player.z);const seaNear=Math.max(0,1-Math.max(0,sd)/260);
     const out=ind?.12:1;
+    // your own music (speaker / phone) is playing: only it and the vehicles stay audible - the ambience (birds, sea, wind, city, chatter) goes away and the footsteps / UI / effects drop
+    const mOn=typeof SPK!=='undefined'&&SPK&&SPK.playing?1:0;this.dk=(this.dk||0)+(mOn-(this.dk||0))*Math.min(1,dt*2.2);
+    this.amb.gain.setTargetAtTime(.8*(1-.97*this.dk),T,.25);this.sfx.gain.setTargetAtTime(.9*(1-.6*this.dk),T,.25);
     let nCars=0;for(const k of CARS)if(Math.hypot(k.x-player.x,k.z-player.z)<120)nCars++;
     // no constant low rumble over the map: the city bed is only a whisper and cars are heard only when they are close
     this.city.gn.gain.setTargetAtTime(out*Math.min(.012,nCars*.0012)*(night?.7:1),T,.8);
@@ -6432,9 +6480,10 @@ const AUD={
     this.crickT-=dt;if(this.crickT<=0){this.crickT=.25+Math.random()*.4;if(!ind&&night&&!win){for(let i=0;i<3;i++)this.tone(4400,4300,.03,.008,'sine',this.amb,i*.05)}}
     // cars: three nearest
     const near=CARS.map(k=>[Math.hypot(k.x-camera.position.x,k.z-camera.position.z),k]).sort((a,b)=>a[0]-b[0]).slice(0,3);
-    this.carV.forEach((v,i)=>{const e=near[i];if(!e||ind){v.g.gain.setTargetAtTime(0,T,.2);return}const [d,k]=e;
+    this.carV.forEach((v,i)=>{const e=near[i];if(!e||ind){v.g.gain.setTargetAtTime(0,T,.2);v.ng.gain.setTargetAtTime(0,T,.2);return}const [d,k]=e;
       const prox=Math.max(0,1-d/34);   // traffic is only audible once it is really close — far streets do not drone
-      v.o.frequency.setTargetAtTime(38+k.v*4.2+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(260+k.v*25,T,.2);v.g.gain.setTargetAtTime(.06*prox*prox*(.3+k.v/14),T,.2);
+      v.o.frequency.setTargetAtTime(46+k.v*4.5+(k.type===3?-6:0),T,.15);v.f.frequency.setTargetAtTime(240+k.v*30,T,.2);v.g.gain.setTargetAtTime(.032*prox*prox*(.25+k.v/18),T,.2);
+      v.nf.frequency.setTargetAtTime(500+k.v*45,T,.2);v.ng.gain.setTargetAtTime(.03*prox*prox*Math.min(1,k.v/9),T,.2);
       this.position(v.p,k.x,k.y||0,k.z)});
     const sps=Math.min(28,player.spd||0);this.sc.o.frequency.setTargetAtTime(58+sps*2.2,T,.25);this.sc.g.gain.setTargetAtTime(this.scootOn&&sps>.3?.022:0,T,.25);
     this.scw.gn.gain.setTargetAtTime(this.scootOn?Math.min(.03,sps*.0025):0,T,.2);this.scw.fl.frequency.setTargetAtTime(320+sps*28,T,.2);
@@ -7968,6 +8017,7 @@ async function boot(){
   try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
   try{if(typeof PHONE!=='undefined'&&PHONE&&PHONE.init)PHONE.init()}catch(e){console.error('[boot] phone',e)}
   try{if(typeof NAV!=='undefined'&&NAV&&NAV.init)NAV.init()}catch(e){console.error('[boot] nav',e)}
+  try{if(typeof BGM!=='undefined'&&BGM&&BGM.init)BGM.init()}catch(e){console.error('[boot] bgm',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -7988,7 +8038,8 @@ function loop(t){
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
-    else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
+    else{if(!(typeof BR!=='undefined'&&BR.on&&(BR.phase==='bus'||BR.phase==='sky'))){updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt)}   // not while 400 m up on the battle bus / in free fall: nothing down there can be reached
+      if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
       TREES.update(player.x,player.z,Qp().trees);TREES.cull();if(typeof BENCH!=='undefined')BENCH.update(player.x,player.z);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
@@ -8037,7 +8088,7 @@ document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{S.season=b.datas
 document.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{if(window.GFX)GFX.setWeather(b.dataset.w)});
 document.querySelectorAll('[data-g]').forEach(b=>{b.classList.toggle('on',b.dataset.g===S.q);b.onclick=()=>{S.q=b.dataset.g;saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));if(renderer){const wantAA=S.q==='high'&&!MOBILE;if(renderer.getContext().getContextAttributes().antialias!==wantAA){location.reload();return}pixelScale=1;applyQuality();applyTime()}}});
 if(TOUCH)$('keysTxt').textContent='Left half of the screen — walk, right half — turn the camera. The yellow button enters buildings and shops, sits on benches or boards the tram. In the car, “Jump” is the handbrake.';
-$('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');AUD.menuUi('clk');return}AUD.menuStop();started=true;$('menu').hidden=true;$('hud').hidden=false;
+$('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('play');AUD.menuUi('clk');return}AUD.menuStop();started=true;document.body.classList.add('live');$('menu').hidden=true;$('hud').hidden=false;
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
   if(!boot.greeted){boot.greeted=true;cam.yaw=player.yaw;toast('Chykalenka St, 59k','formerly Williams St · Tairove')}
   COOP.onStart();if(typeof BR!=='undefined'&&BR.want){BR.want=false;setTimeout(()=>BR.start(),900)}};
