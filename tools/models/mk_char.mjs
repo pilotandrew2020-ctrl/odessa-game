@@ -16,6 +16,9 @@ const C=JSON.parse(fs.readFileSync(process.argv[2]));
 const ORDER=['pelvis','spine_01','spine_02','spine_03','neck_01','Head','clavicle_l','upperarm_l','lowerarm_l','hand_l','thigh_l','calf_l','foot_l','ball_l','clavicle_r','upperarm_r','lowerarm_r','hand_r','thigh_r','calf_r','foot_r','ball_r'];
 const PARENT={pelvis:null,spine_01:'pelvis',spine_02:'spine_01',spine_03:'spine_02',neck_01:'spine_03',Head:'neck_01'};
 for(const s of ['l','r']){Object.assign(PARENT,{['clavicle_'+s]:'spine_03',['upperarm_'+s]:'clavicle_'+s,['lowerarm_'+s]:'upperarm_'+s,['hand_'+s]:'lowerarm_'+s,['thigh_'+s]:'pelvis',['calf_'+s]:'thigh_'+s,['foot_'+s]:'calf_'+s,['ball_'+s]:'foot_'+s})}
+// finger bones (2026-11-13), named like Man.glb's so REAL.attach drives them from the hand rig (curl values of the classic hand): <finger>_0<1-3>_<side>; config "fingers": "src" (the source has them: add them to "keep") or "auto" (static mesh: chains laid out from the hand's geometry)
+const FINGERS=['index','middle','ring','pinky','thumb'];
+if(C.fingers)for(const s of ['l','r'])for(const f of FINGERS)for(let j=1;j<=3;j++){const n=`${f}_0${j}_${s}`;ORDER.push(n);PARENT[n]=j===1?'hand_'+s:`${f}_0${j-1}_${s}`}
 const IDX=Object.fromEntries(ORDER.map((n,i)=>[n,i]));
 // ---- small vector / matrix helpers (column-major 4x4 like glTF)
 const mulV=(m,x,y,z)=>[m[0]*x+m[4]*y+m[8]*z+m[12],m[1]*x+m[5]*y+m[9]*z+m[13],m[2]*x+m[6]*y+m[10]*z+m[14]];
@@ -49,12 +52,27 @@ for(const node of root.listNodes()){const mesh=node.getMesh();if(!mesh)continue;
       const owner=skin?null:(C.parts&&C.parts[node.getName()]);if(owner){for(let i=0;i<n;i++){J[i*4]=IDX[owner];Wt[i*4]=1}}else if(!C.static)for(let i=0;i<n;i++){J[i*4]=0;Wt[i*4]=1}}
     prims.push({name:node.getName(),mat:mn,matObj:mat,pos,uv,idx,J,W:Wt,auto:!!C.static&&!(C.parts&&C.parts[node.getName()])&&!skin})}}
 if(C.static)for(const [bn,p] of Object.entries(C.joints))keptBones[bn]=p.slice();
+// static + fingers "auto": lay the five chains out from the hand's own vertices (the hand is a T-pose hand along +-x, palm down, thumb on the thumbSide of the z axis; numbers in C.fing override)
+const tipOf={};
+if(C.fingers==='auto'){const ts=(C.thumbSide===undefined?1:C.thumbSide),FO=Object.assign({L:.1,wr:.2},C.fing||{});
+  for(const sd of ['l','r']){const Wr=keptBones['hand_'+sd],El=keptBones['lowerarm_'+sd],ax=norm(sub(Wr,El)),pts=[];
+    for(const q of prims){if(!q.auto)continue;for(let i=0;i<q.pos.length;i+=3){const p=[q.pos[i],q.pos[i+1],q.pos[i+2]],d=sub(p,Wr),t=dot(d,ax);if(t<.01||t>.5)continue;const r=len(sub(d,mul(ax,t)));if(r<(C.handR||.11))pts.push([t,p[2],p[1],r])}}
+    if(pts.length<30)throw new Error('hand '+sd+': too few vertices ('+pts.length+')');
+    const q=(a,f)=>{const v=a.slice().sort((x,y)=>x-y);return v[Math.min(v.length-1,Math.floor(v.length*f))]};
+    const L=q(pts.map(p=>p[0]),.985),zs=pts.map(p=>p[1]),zc=(q(zs,.05)+q(zs,.95))/2,Wd=q(zs,.95)-q(zs,.05),yc=pts.reduce((a,p)=>a+p[2],0)/pts.length;
+    const at=(t,zo)=>{const c=add(Wr,mul(ax,t));return [c[0],yc,zc+ts*zo*Wd]};   // point at distance t along the hand, zo = across the hand in widths (thumb side +)
+    const chains={index:[.36,.62,.8,.28],middle:[.36,.62,.8,.09],ring:[.34,.6,.78,-.1],pinky:[.3,.54,.72,-.29]};
+    for(const [f,[t1,t2,t3,zo]] of Object.entries(chains)){const T=[t1*L,t2*L,t3*L];T.forEach((t,j)=>{keptBones[`${f}_0${j+1}_${sd}`]=at(t,zo)});tipOf[`${f}_${sd}`]=at(L,zo)}
+    // thumb: starts low on the thumb side and leaves the hand at an angle (a third of the way forward)
+    [[.1,.42],[.28,.58],[.46,.68]].forEach(([t,zo],j)=>{keptBones[`thumb_0${j+1}_${sd}`]=at(t*L,zo)});tipOf['thumb_'+sd]=at(.66*L,.78);
+    console.log('fingers',sd,'hand length',L.toFixed(3),'width',Wd.toFixed(3),'pts',pts.length)}}
 for(const bn of ORDER)if(!keptBones[bn])throw new Error('no joint for '+bn);
 // ---- static: weights from the distance to the bone segments
 if(C.static){const J=keptBones,seg=[];const tip=(a,b,k)=>add(J[a],mul(sub(J[a],J[b]),-k));   // point beyond a, continuing b->a... tip(a,b,k) = a + (a-b)*k
   const ext=(a,b,k)=>add(J[a],mul(sub(J[a],J[b]),k));
   seg.push(['pelvis',J.pelvis,J.spine_01],['spine_01',J.spine_01,J.spine_02],['spine_02',J.spine_02,J.spine_03],['spine_03',J.spine_03,J.neck_01],['neck_01',J.neck_01,J.Head],['Head',J.Head,ext('Head','neck_01',1.4)]);
   for(const s of ['l','r']){seg.push(['clavicle_'+s,J.spine_03,J['upperarm_'+s]],['upperarm_'+s,J['upperarm_'+s],J['lowerarm_'+s]],['lowerarm_'+s,J['lowerarm_'+s],J['hand_'+s]],['hand_'+s,J['hand_'+s],ext('hand_'+s,'lowerarm_'+s,.45)],
+    ...(C.fingers?FINGERS.flatMap(f=>{const n=j=>`${f}_0${j}_${s}`,tip=tipOf[f+'_'+s]||ext(n(3),n(2),.9);return [[n(1),J[n(1)],J[n(2)]],[n(2),J[n(2)],J[n(3)]],[n(3),J[n(3)],tip]]}):[]),
     ['thigh_'+s,J['thigh_'+s],J['calf_'+s]],['calf_'+s,J['calf_'+s],J['foot_'+s]],['foot_'+s,J['foot_'+s],J['ball_'+s]],['ball_'+s,J['ball_'+s],ext('ball_'+s,'foot_'+s,.7)])}
   const dseg=(p,a,b)=>{const ab=sub(b,a),t=Math.max(0,Math.min(1,dot(sub(p,a),ab)/(dot(ab,ab)||1)));return len(sub(p,add(a,mul(ab,t))))};
   const H=Math.max(...prims.map(q=>{let m=-1e9;for(let i=1;i<q.pos.length;i+=3)m=Math.max(m,q.pos[i]);return m}))-Math.min(...prims.map(q=>{let m=1e9;for(let i=1;i<q.pos.length;i+=3)m=Math.min(m,q.pos[i]);return m})),eps=.012*H,pw=C.pow||3;
@@ -72,7 +90,9 @@ const armA=(C.armDeg===undefined?14:C.armDeg)*Math.PI/180;
 const xf={};   // per kept bone: function applied to a vertex weighted to it
 for(const s of ['l','r']){const S=keptBones['upperarm_'+s],E=keptBones['lowerarm_'+s],Wr=keptBones['hand_'+s],out=Math.sign(S[0]-keptBones.pelvis[0])||1;
   const tgt=[out*Math.sin(armA),-Math.cos(armA),0],R1=fromTo(sub(E,S),tgt),T1=v=>add(R1(sub(v,S)),S),E1=T1(E),W1=T1(Wr),R2=fromTo(sub(W1,E1),tgt),T2=v=>add(R2(sub(T1(v),E1)),E1);
-  xf['upperarm_'+s]=T1;xf['lowerarm_'+s]=T2;xf['hand_'+s]=T2;keptBones['lowerarm_'+s]=E1;keptBones['hand_'+s]=T2(Wr)}
+  xf['upperarm_'+s]=T1;xf['lowerarm_'+s]=T2;xf['hand_'+s]=T2;keptBones['lowerarm_'+s]=E1;
+  if(C.fingers)for(const f of FINGERS)for(let j=1;j<=3;j++){const n=`${f}_0${j}_${s}`;xf[n]=T2;keptBones[n]=T2(keptBones[n])}
+  keptBones['hand_'+s]=T2(Wr)}
 for(const q of prims){const n=q.pos.length/3;for(let i=0;i<n;i++){const p=[q.pos[i*3],q.pos[i*3+1],q.pos[i*3+2]];let r=[0,0,0],ws=0;
   for(let k=0;k<4;k++){const w=q.W[i*4+k];if(w<=0)continue;const f=xf[ORDER[q.J[i*4+k]]];const t=f?f(p):p;r=add(r,mul(t,w));ws+=w}
   q.pos.set(ws?mul(r,1/ws):p,i*3)}}

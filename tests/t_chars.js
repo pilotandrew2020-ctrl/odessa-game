@@ -27,9 +27,20 @@ exports.run = async (page, h) => {
     const R = await ev(() => ({ n: PLR.real.n, tris: (() => { let t = 0; PLR.real.M.traverse(o => { if (o.isMesh) t += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3 }); return Math.round(t) })(), visibleExtras: (() => { const R = PLR.real, held = [PLR.can, PLR.speaker]; let n = 0; const inside = (o, top) => { for (let p = o; p; p = p.parent) if (p === top) return true; return false };
         PLR.root.traverse(o => { if (!o.isMesh) return; let vis = true; for (let p = o; p && p !== PLR.root.parent; p = p.parent) if (!p.visible) vis = false; if (!vis) return; if (inside(o, R.M) || held.some(q => q && inside(o, q))) return; n++ }); return n })() }));
     console.log(name, JSON.stringify(R));
-    assert.strictEqual(R.n, 22, name + ': bone count'); assert.strictEqual(R.visibleExtras, 0, name + ': hat / glasses / classic body still visible');
+    assert(R.n === 22 || R.n === 52, name + ': bone count ' + R.n); assert.strictEqual(R.visibleExtras, 0, name + ': hat / glasses / classic body still visible');
     const sw = await ev(() => { const B = PLR.real.B, i = PLR.real.idx.thigh_l; animPlayer(PLR, { spd: 5, mode: 'walk' }, .03); const q0 = B[i].quaternion.clone(); let mx = 0; for (let k = 0; k < 40; k++) { animPlayer(PLR, { spd: 5, mode: 'walk' }, .03); mx = Math.max(mx, q0.angleTo(B[i].quaternion)) } return mx });
     assert(sw > .15, name + ': the legs do not swing (' + sw + ')');
+    // fingers (2026-11-13): the five bodies with hands have 15 finger bones per hand that follow the classic hand's curl (hdGrip), so the hand closes around a phone / can / weapon
+    if (['steve', 'booba', 'nolik'].indexOf(name) < 0) {
+      const fg = await ev(() => { const R = PLR.real, B = R.B, S = R.sides[0], i = S.fing.find(f => f.j === 2 && f.f === 1).i; PLR.hdHold = [1, 1]; hdGrip(PLR, 0, 'flat'); hdGrip(PLR, 1, 'flat'); for (let k = 0; k < 40; k++) animPlayer(PLR, { spd: 0, mode: 'walk' }, .05); const q0 = B[i].quaternion.clone();
+        hdGrip(PLR, 0, 'bar'); hdGrip(PLR, 1, 'bar'); for (let k = 0; k < 40; k++) animPlayer(PLR, { spd: 0, mode: 'walk' }, .05); return { n: R.sides.map(s => s.fing.length), turn: +q0.angleTo(B[i].quaternion).toFixed(2) } });
+      console.log(name, 'fingers', JSON.stringify(fg)); assert.deepStrictEqual(fg.n, [15, 15], name + ': finger bones'); assert(fg.turn > .6, name + ': the fingers do not close (' + fg.turn + ')');
+      if (process.env.CHARSHOT) { await ev(() => { hdGrip(PLR, 0, 'bar'); hdGrip(PLR, 1, 'bar'); for (let k = 0; k < 40; k++) animPlayer(PLR, { spd: 0, mode: 'walk' }, .05); cam.dist = 1.1; cam.pitch = .1; cam.yaw = player.yaw + Math.PI + .5; cam.init = false }); await h.shot('hand_' + name, 3000) }
+    }
+    // the can in the hand sits at the real wrist (it used to hang ~0.3 m below it)
+    const cd = await ev(() => { PLR.root.updateMatrixWorld(true); const R = PLR.real, S = R.sides.find(q => q.arm === PLR.arms[0]), a = new THREE.Vector3(), b = new THREE.Vector3(); PLR.can.getWorldPosition(a); R.B[S.ha].getWorldPosition(b); return { vis: PLR.can.visible, d: +a.distanceTo(b).toFixed(2) } });
+    console.log(name, 'can to wrist', JSON.stringify(cd)); if (cd.vis) assert(cd.d < .24, name + ': the can is not in the hand (' + cd.d + ' m from the wrist)');
+    await ev(() => { PLR.hdHold = null });
     // foot skating: the foot that is lower (the one on the ground) should travel backwards under the body at the walking speed
     const sk = await ev(() => { const R = PLR.real, SPD = 1.4, dt = 1 / 60, legL0 = R.legL, fl = R.idx.foot_l, fr = R.idx.foot_r; PLR.root.updateMatrixWorld(true); const rec = []; PLR.phase = 0; PLR.ws = 1; if (window.__OLDGAIT) R.legL = .9;
       const pos = b => { const v = R.B[b].getWorldPosition(new THREE.Vector3()); PLR.root.worldToLocal(v); return v };

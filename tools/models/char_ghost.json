@@ -118,5 +118,7 @@
    0.04,
    0.14
   ]
- }
+ },
+ "fingers": "auto",
+ "thumbSide": 1
 }

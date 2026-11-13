@@ -120,5 +120,7 @@
    -1.12,
    0.2
   ]
- }
+ },
+ "fingers": "auto",
+ "thumbSide": 1
 }
