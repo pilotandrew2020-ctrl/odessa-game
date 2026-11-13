@@ -126,8 +126,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02,.004),.76);for(const c of headExtras)w.add(c)}
     if(spineExtras.length){const ks=.9,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
     // the can and the speaker sit in the hands: the wrapper's origin is the wrist
-    for(const S of R.sides){const A=S.arm;if(!A)continue;const items=[];if(P.can&&P.can.parent===A.el)items.push(P.can);if(P.speaker&&P.speaker.parent===A.el)items.push(P.speaker);
-      if(!items.length)continue;const w=wrap(S.ha,new THREE.Vector3(0,0,0),1);for(const it of items){const p=it.position.clone();w.add(it);it.position.set(p.x,p.y+.205-.02,p.z)}}
+    for(const S of R.sides){const A=S.arm;if(!A)continue;const items=[];if(P.can&&(P.can.parent===A.el||P.can.parent===A.hand))items.push(P.can);if(P.speaker&&(P.speaker.parent===A.el||P.speaker.parent===A.hand))items.push(P.speaker);   // 2026-11-13: the can hangs on the hand object (not the elbow) since the hand rig, so it stayed ~0.3 m below the real wrist
+      if(!items.length)continue;const w=wrap(S.ha,new THREE.Vector3(0,0,0),1);for(const it of items){const p=it.position.clone(),fromEl=it.parent===A.el;w.add(it);it.position.set(p.x,fromEl?p.y+.205-.02:p.y,p.z)}}
   },
   // ---- every frame: copy the procedural pose onto the bones
   tick(P,st,dt){const R=P.real;if(!R||!R.M)return;const SC=R.sc,Hb=R.Hb,Qw=R.Qw,D=R.D,B=R.B,n=R.n,kind=R.kind,bindL=R.bindL,bindW=R.bindW,par=R.par;
