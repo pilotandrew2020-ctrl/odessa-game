@@ -436,6 +436,7 @@ body #gunBar button{backdrop-filter:none;-webkit-backdrop-filter:none;touch-acti
 <script src="spray.js"></script>
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
+<script src="nav.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -2043,29 +2044,60 @@ function setTreeInstanceBounds(mesh,points){
     bounds.expandByPoint(p.set(t[0]+5*scale,y+15*scale,t[1]+5*scale))}
   if(points.length)bounds.getBoundingSphere(mesh.geometry.boundingSphere||(mesh.geometry.boundingSphere=new THREE.Sphere()));
 }
-// global instanced manager: all trees of loaded chunks in 2 draw calls per species
-const TREES={chunks:new Map(),meshes:[],dirty:false,cap:new Array(10).fill(0),
-  init(scene){for(let s=0;s<TREE_SP.length;s++){const t=new THREE.InstancedMesh(TREE_SP[s].trunk,MATS.bark,1),l=new THREE.InstancedMesh(TREE_SP[s].leaf,MATS.leaves,1);
-    for(const m of [t,l]){m.frustumCulled=true;m.castShadow=true;m.receiveShadow=true;m.count=0;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m)}
-    l.setColorAt(0,new THREE.Color(1,1,1));l.customDepthMaterial=LEAF_DEPTH;this.meshes[s]={t,l}}},
+// global instanced manager: all trees of loaded chunks, 2 draw calls per species and distance class.
+// Two classes per species: CASTERS (inside the sun's shadow box around the player, cast shadows, drawn whichever way the camera looks: a tree behind you still shadows the ground in front) and the REST (cast no shadow: the sun's shadow map only
+// covers ~55 m around the player, so a far tree's shadow was never visible, yet it was drawn into the shadow pass; and only the instances inside the widened camera frustum are
+// drawn). Before, every tree of the whole ring (260-380 m) was drawn twice every frame in all directions: 250-400k triangles in the main pass and as much in the shadow pass.
+const TREE_KEYS=[['t','trunk',true],['l','leaf',true],['tf','trunk',false],['lf','leaf',false]];
+const TREES={chunks:new Map(),meshes:[],master:[],dirty:false,capK:[],cullT:0,cullSig:null,cullForce:false,
+  mk(s,k,part,cast,cap){const m=new THREE.InstancedMesh(TREE_SP[s][part],part==='trunk'?MATS.bark:MATS.leaves,cap);m.frustumCulled=true;m.castShadow=cast;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if(part==='leaf'){m.setColorAt(0,new THREE.Color(1,1,1));m.customDepthMaterial=LEAF_DEPTH}   // the colour buffer is sized by count: allocate it BEFORE count goes to 0
+    m.count=0;return m},
+  init(scene){for(let s=0;s<TREE_SP.length;s++){const ms={};this.capK[s]={};for(const [k,part,cast] of TREE_KEYS){ms[k]=this.mk(s,k,part,cast,1);this.capK[s][k]=1;scene.add(ms[k])}this.meshes[s]=ms}},
   add(id,pts){this.chunks.set(id,pts);this.dirty=true},
   remove(id){if(this.chunks.delete(id))this.dirty=true},
+  all(){const a=[];for(const ms of this.meshes)for(const [k] of TREE_KEYS)a.push(ms[k]);return a},
   update(px,pz,maxD){if(!this.dirty&&this.lastSeason===S.season&&(this.lastX!==undefined&&Math.hypot(px-this.lastX,pz-this.lastZ)<30))return;this.dirty=false;this.lastX=px;this.lastZ=pz;this.lastSeason=S.season;
     const lists=TREE_SP.map(()=>[]);const md2=maxD*maxD;const gl=typeof GLBT!=='undefined'&&GLBT.ready;if(gl)GLBT.begin(maxD);const n2=gl?GLBT.near*GLBT.near:0;   // trees.js: within ~90 m the real GLB trees, further out the cheap procedural ones
-    for(const pts of this.chunks.values())for(const p of pts){const dx=p[0]-px,dz=p[1]-pz,d2=dx*dx+dz*dz;if(d2<md2){if(d2<n2&&GLBT.take(p))continue;(lists[p[2]]||lists[3]).push(p)}}
+    for(const pts of this.chunks.values())for(const p of pts){const dx=p[0]-px,dz=p[1]-pz,d2=dx*dx+dz*dz;if(d2<md2){if(gl&&GLBT.take(p,d2>=n2))continue;(lists[p[2]]||lists[3]).push(p)}}
     if(gl)GLBT.flush();
     const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),Sv=new THREE.Vector3(),T=new THREE.Vector3(),E=new THREE.Euler(),C=new THREE.Color();
-    for(let s=0;s<TREE_SP.length;s++){const L=lists[s],ms=this.meshes[s];
-      if(L.length>this.cap[s]){const cap=Math.ceil(L.length*1.3)+16;for(const k of ['t','l']){const old=ms[k];const m=new THREE.InstancedMesh(old.geometry,old.material,cap);m.frustumCulled=true;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-          if(k==='l'){m.setColorAt(0,C.setRGB(1,1,1));m.customDepthMaterial=LEAF_DEPTH}scene.remove(old);old.dispose&&old.dispose();scene.add(m);ms[k]=m}this.cap[s]=cap}
+    for(let s=0;s<TREE_SP.length;s++){const L=lists[s],ms=this.meshes[s];let Mx=this.master[s];
+      // master copy of every instance (matrix, leaf colour, centre, radius); cull() copies the wanted ones into the InstancedMeshes
+      if(!Mx||Mx.cap<L.length){const cap=Math.ceil(L.length*1.3)+16;Mx=this.master[s]={cap,n:0,m:new Float32Array(cap*16),c:new Float32Array(cap*3),x:new Float32Array(cap),y:new Float32Array(cap),z:new Float32Array(cap),r:new Float32Array(cap)}}
       L.forEach((p,i)=>{const [x,z,sp,sc]=p;const h=((x*12.9898+z*78.233)%1+1)%1;E.set(0,h*6.28,0);Q.setFromEuler(E);Sv.set(sc*(.9+h*.2),sc,sc*(.9+h*.2));T.set(x,p[4]!==undefined?p[4]:groundH(x,z)-.05,z);if(p[4]===undefined)p[4]=T.y;M.compose(T,Q,Sv);
-        ms.t.setMatrixAt(i,M);ms.l.setMatrixAt(i,M);const cs=TREE_COL[sp];const c=cs[(h*cs.length)|0];const v=.88+h*.24;
+        M.toArray(Mx.m,i*16);const cs=TREE_COL[sp];const c=cs[(h*cs.length)|0];const v=.88+h*.24;
         const W=S.season==='winter'&&sp!==4,tint=W?(TREE_COL_W[Math.min(sp,2)]||.36):0;
-        C.setRGB(THREE.MathUtils.lerp(c[0]*v,.76,tint),THREE.MathUtils.lerp(c[1]*v,.79,tint),THREE.MathUtils.lerp(c[2]*v,.84,tint));ms.l.setColorAt(i,C)});
-      ms.t.count=ms.l.count=L.length;ms.t.instanceMatrix.needsUpdate=ms.l.instanceMatrix.needsUpdate=true;
-      // Three r128 culls the source geometry, not world-space instance transforms.
-      setTreeInstanceBounds(ms.t,L);setTreeInstanceBounds(ms.l,L);
-      if(ms.l.instanceColor)ms.l.instanceColor.needsUpdate=true}}};
+        C.setRGB(THREE.MathUtils.lerp(c[0]*v,.76,tint),THREE.MathUtils.lerp(c[1]*v,.79,tint),THREE.MathUtils.lerp(c[2]*v,.84,tint));Mx.c[i*3]=C.r;Mx.c[i*3+1]=C.g;Mx.c[i*3+2]=C.b;
+        Mx.x[i]=x;Mx.z[i]=z;Mx.y[i]=T.y+7*sc;Mx.r[i]=11*sc});
+      Mx.n=L.length;
+      // Three r128 culls the source geometry, not world-space instance transforms: the shared geometry's sphere covers every instance, the real culling is cull()
+      for(const [k] of TREE_KEYS)setTreeInstanceBounds(ms[k],L)}
+    this.cull(true)},
+  // copy the instances that matter right now into the InstancedMeshes (cheap: a few thousand plane tests); called every frame, works only when the camera / player / sun moved or turned.
+  // CASTERS (mesh 't'/'l', cast shadows): the instances inside the sun's shadow box (+-sr in light space around the player: exactly what the shadow pass can see), drawn whichever way the
+  // camera looks. The rest (mesh 'tf'/'lf', no shadow) are drawn only inside the widened camera frustum.
+  cull(force){const Mx0=this.master;if(!Mx0.length||!camera)return;const now=performance.now(),cam=camera;
+    camera.updateMatrixWorld();const e=cam.matrixWorld.elements,shOn=!!(renderer.shadowMap.enabled&&sunL.castShadow),sig=[e[12],e[14],e[8],e[10],player.x,player.z,sunDir.x*50,sunDir.z*50,shOn?1:0,e[9],cam.fov,e[13]];const o=this.cullSig;
+    if(!force&&!this.cullForce&&o){if(now-this.cullT<50)return;const dp=Math.hypot(sig[0]-o[0],sig[1]-o[1]),dd=sig[2]*o[2]+sig[3]*o[3];   // forward (x,z) is nearly unit when the camera is level; only the heading matters here
+      if(dp<3&&Math.hypot(sig[2],sig[3])*Math.hypot(o[2],o[3])-dd<.003&&Math.hypot(sig[4]-o[4],sig[5]-o[5])<6&&Math.abs(sig[6]-o[6])+Math.abs(sig[7]-o[7])<.5&&sig[8]===o[8]&&Math.abs(sig[9]-o[9])<.04&&Math.abs(sig[10]-o[10])<2&&Math.abs(sig[11]-o[11])<4)return}   // heading, pitch, field of view (ADS zoom), height (helicopter), sun and shadows
+    this.cullT=now;this.cullSig=sig;this.cullForce=false;
+    const P=cam.projectionMatrix.clone(),W=1.6;P.elements[0]/=W;P.elements[5]/=W;   // frustum 60 % wider (tangent): trees at the screen edge are already there when you turn
+    const fr=this._fr||(this._fr=new THREE.Frustum());fr.setFromProjectionMatrix(this._pm=(this._pm||new THREE.Matrix4()).multiplyMatrices(P,cam.matrixWorldInverse));
+    const pl=fr.planes,sr=shOn?Qp().sr:-1e9,SRx=_SR.x,SRy=_SR.y,SRz=_SR.z,SVx=_SV.x,SVy=_SV.y,SVz=_SV.z,Tx=_ST.x,Ty=_ST.y,Tz=_ST.z;
+    if(typeof GLBT!=='undefined'&&GLBT.ready)GLBT.cullFar(pl,{on:shOn,sr,Rx:SRx,Ry:SRy,Rz:SRz,Vx:SVx,Vy:SVy,Vz:SVz,Tx,Ty,Tz});
+    for(let s=0;s<TREE_SP.length;s++){const Mx=Mx0[s],ms=this.meshes[s];if(!Mx)continue;let nn=0,nf=0;
+      if(!Mx.k||Mx.k.length<Mx.cap)Mx.k=new Uint8Array(Mx.cap);const K=Mx.k;
+      for(let i=0;i<Mx.n;i++){const x=Mx.x[i],y=Mx.y[i],z=Mx.z[i],r=Mx.r[i];let c=0;
+        if(shOn){const dx=x-Tx,dy=y-Ty,dz=z-Tz;if(Math.abs(dx*SRx+dy*SRy+dz*SRz)<sr+r&&Math.abs(dx*SVx+dy*SVy+dz*SVz)<sr+r)c=1}
+        if(!c){c=2;for(let k=0;k<6;k++){const q=pl[k];if(q.normal.x*x+q.normal.y*y+q.normal.z*z+q.constant<-r){c=0;break}}}
+        K[i]=c;if(c===1)nn++;else if(c===2)nf++}
+      for(const [k,part,cast] of TREE_KEYS){const need=cast?nn:nf;if(need>this.capK[s][k]){const cap=Math.ceil(need*1.3)+16,old=ms[k],m=this.mk(s,k,part,cast,cap);scene.remove(old);old.dispose&&old.dispose();scene.add(m);ms[k]=m;this.capK[s][k]=cap}}
+      let a=0,b=0;const mt=ms.t.instanceMatrix.array,ml=ms.l.instanceMatrix.array,cl=ms.l.instanceColor.array,mtf=ms.tf.instanceMatrix.array,mlf=ms.lf.instanceMatrix.array,clf=ms.lf.instanceColor.array;
+      for(let i=0;i<Mx.n;i++){const c=K[i];if(!c)continue;const sub=Mx.m.subarray(i*16,i*16+16),col=Mx.c.subarray(i*3,i*3+3);
+        if(c===1){mt.set(sub,a*16);ml.set(sub,a*16);cl.set(col,a*3);a++}else{mtf.set(sub,b*16);mlf.set(sub,b*16);clf.set(col,b*3);b++}}
+      ms.t.count=ms.l.count=a;ms.tf.count=ms.lf.count=b;
+      ms.t.instanceMatrix.needsUpdate=ms.l.instanceMatrix.needsUpdate=ms.tf.instanceMatrix.needsUpdate=ms.lf.instanceMatrix.needsUpdate=true;ms.l.instanceColor.needsUpdate=ms.lf.instanceColor.needsUpdate=true}}};
 const TREE_CLEAR=[];let _tcLen=-1,_tcGrid=null;
 function treeClear(x,z){   // spatial hash over the (x,z,r) triples: parks add thousands of them along their footpaths
   if(_tcLen!==TREE_CLEAR.length){_tcLen=TREE_CLEAR.length;_tcGrid=new Map();for(let i=0;i<TREE_CLEAR.length;i+=3){const cx=TREE_CLEAR[i],cz=TREE_CLEAR[i+1],r=TREE_CLEAR[i+2];
@@ -2242,10 +2274,12 @@ function txtCanvas(lines,opt){
   lines.forEach((l,i)=>{const sz=(opt.sizes&&opt.sizes[i])||opt.size||56;let fs=sz;const fam=(opt.font||'"Golos Text",Arial,sans-serif'),wt=(opt.weight||'700');x.font=wt+' '+fs+'px '+fam;const mw=W*.94;let tw=x.measureText(l).width;if(tw>mw){fs=Math.floor(fs*mw/tw);x.font=wt+' '+fs+'px '+fam}x.fillText(l,W/2,H*(i+1)/(n+1)+(opt.dy||0))});
   return cv;
 }
-function labelSprite(lines,opt){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
+// a plate / label canvas is painted once: after the GPU has the pixels the CPU copy (a 512x128..1024x512 canvas each, hundreds of them) is let go. Texture.image stays `undefined`: three keeps using the uploaded copy.
+function freeAfterUpload(tex){tex.onUpdate=()=>{tex.image=undefined;tex.onUpdate=null}}
+function labelSprite(lines,opt){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;freeAfterUpload(tex);
   const m=new THREE.SpriteMaterial({map:tex,depthTest:opt&&opt.depthTest===false?false:true,transparent:true,fog:false,toneMapped:false});
   const s=new THREE.Sprite(m);const k=(opt&&opt.scale)||1;s.scale.set(k*cv.width/cv.height,k,1);return s}
-function plateMesh(lines,opt,w,h,emis){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+function plateMesh(lines,opt,w,h,emis){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;freeAfterUpload(tex);
   const mat=new THREE.MeshStandardMaterial({map:tex,roughness:.5});if(emis){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=tex;mat.emissiveIntensity=emis}
   return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat)}
 function geo2xz(lat,lon){return [(lon-HDR.LON0)*HDR.KX,-(lat-HDR.LAT0)*HDR.KZ]}
@@ -2321,6 +2355,24 @@ function beachUmbrellas(P,cx,cz,R){
     P.cyl(x,h,z,.04,.04,2.4,5,sRGB('#dddddd'),1);P.cyl(x,h+2.1,z,1.5,.05,.6,8,cols[n%5],0);P.box(x+1.2,h+.2,z+.3,.7,.25,1.9,rr()*.6,sRGB('#f4f1ea'),0);n++}
 }
 let GRX=null;
+// a static mesh never reads its vertex arrays again once they are on the GPU: let go of the CPU copy right after the upload (the landmark tiles + the chunk meshes were held twice).
+// The bounding sphere / box are computed first (culling, Box3.setFromObject). Never use this on a geometry that is edited, raycast or cloned later.
+function dropCpuCopy(g){if(!g.boundingSphere)g.computeBoundingSphere();if(!g.boundingBox)g.computeBoundingBox();
+  const f=function(){this.array=null};for(const k in g.attributes)g.attributes[k].onUpload(f);if(g.index)g.index.onUpload(f)}
+// split an indexed geometry into square tiles of `size` metres by triangle centroid (x,z); every attribute is copied as it is (Float32). Returns the tile geometries.
+function tileGeometry(geo,size){
+  const idx=geo.index.array,names=Object.keys(geo.attributes),P=geo.attributes.position.array,nv=P.length/3,tiles=new Map();
+  for(let t=0;t<idx.length;t+=3){const a=idx[t]*3,b=idx[t+1]*3,c=idx[t+2]*3;
+    const k=Math.floor((P[a]+P[b]+P[c])/3/size)*100003+Math.floor((P[a+2]+P[b+2]+P[c+2])/3/size);let L=tiles.get(k);if(!L)tiles.set(k,L=[]);L.push(t)}
+  const stamp=new Int32Array(nv),map=new Int32Array(nv),out=[];let id=0;
+  for(const L of tiles.values()){id++;let n=0;const ni=new Uint32Array(L.length*3),ov=new Uint32Array(L.length*3);let w=0;
+    for(const t of L)for(let k=0;k<3;k++){const v=idx[t+k];if(stamp[v]!==id){stamp[v]=id;map[v]=n;ov[n++]=v}ni[w++]=map[v]}
+    const g=new THREE.BufferGeometry();
+    for(const nm of names){const src=geo.attributes[nm],sz=src.itemSize,arr=new Float32Array(n*sz),sa=src.array;
+      for(let k=0;k<n;k++){const v=ov[k]*sz,o=k*sz;for(let q=0;q<sz;q++)arr[o+q]=sa[v+q]}
+      g.setAttribute(nm,new THREE.BufferAttribute(arr,sz))}
+    g.setIndex(new THREE.BufferAttribute(n>65535?ni:Uint16Array.from(ni),1));g.computeBoundingSphere();out.push(g)}
+  return out}
 async function buildAllLandmarks(scene){
   // flat pads under places that must be level (the real relief blends into them)
   addFlat(HOME.cx,HOME.cz,72,40);
@@ -2343,7 +2395,7 @@ async function buildAllLandmarks(scene){
   if(Sg.n)grp.add(new THREE.Mesh(Sg.build(),MATS.signs));
   if(GRX.n){const m=new THREE.Mesh(GRX.build(),MATS.ground);m.receiveShadow=true;grp.add(m)}
   TREES.add('static',EXTRA_TREES.map(([x,z,t,sc])=>[x,z,t>=0&&t<=4?treeVar(t,x,z):3,sc]));if(typeof BENCH!=='undefined')BENCH.reg('static',P.bn);
-  bakeStatic(grp,0);
+  bakeStatic(grp,0,200);   // 200 m tiles, see bakeStatic
   return grp;
 }
 let LANDMARK_GRP=null;
@@ -3150,8 +3202,10 @@ function buildOpera(grp,G,P,Sg,GR){
   const lb=labelSprite(['Opera House'],{w:640,h:120,size:60,color:'#fff',bg:'rgba(10,30,40,.55)',round:30,scale:4.4});const lp=F.P(-50,0);lb.position.set(lp[0],y0+38,lp[1]);grp.add(lb);
   bakeStatic(grp,from0);
 }
-// merge static child meshes (by material) into one mesh each -> far fewer draw calls
-function bakeStatic(root,from){
+// merge static child meshes (by material) into one mesh each -> far fewer draw calls. The merge keeps the indices (shared vertices of quads stay shared: about half the vertices
+// of the old non-indexed merge). With `tile` (metres) the result is cut into square tiles instead of ONE mesh: a mesh that spans the whole map can never be frustum-culled, so for
+// the landmark group (props alone: 486k triangles) the main pass and the sun's shadow pass drew every triangle of the city every frame, wherever the player stood.
+function bakeStatic(root,from,tile){
   root.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(root.matrixWorld).invert();
   const buckets=new Map(),rm=[];
   const visit=o=>{if(o.userData.dyn||o.isInstancedMesh||o.isSprite||o.isPoints||o.isLight||Array.isArray(o.material))return;
@@ -3159,12 +3213,19 @@ function bakeStatic(root,from){
       if(!buckets.has(key))buckets.set(key,{mat:o.material,cast:o.castShadow,recv:o.receiveShadow,ro:o.renderOrder,list:[]});buckets.get(key).list.push(o);rm.push(o);return}}
     for(const c of o.children.slice())visit(c)};
   for(const k of root.children.slice(from))visit(k);
-  for(const b of buckets.values()){let n=0;const parts=[];
-    for(const o of b.list){const g=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));parts.push(g);n+=g.attributes.position.count}
-    const G=new THREE.BufferGeometry();
-    for(const name of Object.keys(parts[0].attributes)){const sz=parts[0].attributes[name].itemSize;const arr=new Float32Array(n*sz);let k=0;for(const g of parts){const A=g.attributes[name];arr.set(A.array,k*sz);k+=A.count}G.setAttribute(name,new THREE.BufferAttribute(arr,sz))}
-    for(const g of parts)g.dispose();
-    G.computeBoundingSphere();const m=new THREE.Mesh(G,b.mat);m.castShadow=b.cast;m.receiveShadow=b.recv;m.renderOrder=b.ro;m.matrixAutoUpdate=false;root.add(m)}
+  for(const b of buckets.values()){let n=0,ni=0;
+    for(const o of b.list){const g=o.geometry,c=g.attributes.position.count;n+=c;ni+=g.index?g.index.count:c}
+    const names=Object.keys(b.list[0].geometry.attributes),sz={},arr={},idx=new Uint32Array(ni);
+    for(const nm of names){sz[nm]=b.list[0].geometry.attributes[nm].itemSize;arr[nm]=new Float32Array(n*sz[nm])}
+    let vo=0,io=0;const M=new THREE.Matrix4();
+    for(const o of b.list){const gc=o.geometry.clone();gc.applyMatrix4(M.multiplyMatrices(inv,o.matrixWorld));const c=gc.attributes.position.count;
+      for(const nm of names)arr[nm].set(gc.attributes[nm].array,vo*sz[nm]);
+      if(gc.index){const a=gc.index.array;for(let i=0;i<a.length;i++)idx[io++]=a[i]+vo}else for(let i=0;i<c;i++)idx[io++]=vo+i;
+      vo+=c;gc.dispose()}
+    const G=new THREE.BufferGeometry();for(const nm of names)G.setAttribute(nm,new THREE.BufferAttribute(arr[nm],sz[nm]));
+    G.setIndex(new THREE.BufferAttribute(n>65535?idx:Uint16Array.from(idx),1));
+    for(const g of (tile?tileGeometry(G,tile):[G])){g.computeBoundingSphere();if(tile)dropCpuCopy(g);const m=new THREE.Mesh(g,b.mat);m.castShadow=b.cast;m.receiveShadow=b.recv;m.renderOrder=b.ro;m.matrixAutoUpdate=false;root.add(m)}
+    if(tile)G.dispose()}
   for(const o of rm){o.parent.remove(o);o.geometry.dispose()}
 }
 function liningQuad(g,pa,pb,ya,yb,n){const l=Math.hypot(n[0],n[1])||1;const nn=[n[0]/l,0,n[1]/l];
@@ -4141,7 +4202,7 @@ function makePlayer(o){o=o||{};
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.006,6,16),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.5}));ring.rotation.y=Math.PI/2;ring.position.x=.121;spk.add(ring);
   spk.position.set(0,-.3,.02);arms[1].el.add(spk);spk.visible=false;
   const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,sipClock:0,sipNext:300+Math.random()*300,accH,accS};
-  if((o.real||o.booba||o.nolik)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
+  if((o.real||o.booba||o.nolik||o.bodyK)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
   return P;
 }
 function animPlayer(P,st,dt){animPlayerBase(P,st,dt);if(typeof POSE!=='undefined'&&(P._gp||P.emo||P.drk||P.rch||P.sky))POSE.layer(P,st,dt);if(typeof hdTick==='function')hdTick(P,dt);if(P.real)REAL.tick(P,st,dt)}
@@ -4566,11 +4627,19 @@ function writeCar(t,k,c){
   let q=0;for(const sx of [-1,1])for(const wz of t.wz){_ce.set(c.roll||0,0,0);_cq.setFromEuler(_ce);_cv.set(sx*t.wx,t.wr,wz);_cm2.compose(_cv,_cq,_cs);_cm2.premultiply(_cm);t.wheels.setMatrixAt(k*4+q,_cm2);q++}
 }
 let CAR_FRAME_COUNTS=null;
-function queueCarInstance(c,cnt){if(!c)return;const i=c.type,t=CAR_T[i];if(!t||cnt[i]>=t.cap)return;writeCar(t,cnt[i],c);cnt[i]++}
+// parked / traffic cars: only the ones the camera can see (frustum 30 % wider: placeCars runs before the camera moves) or the sun's shadow box holds are written into the instanced meshes.
+// All ~200 cars within 260 m (1.5k triangles each) were drawn in the main AND the shadow pass, in every direction.
+const _carFr=new THREE.Frustum(),_carM=new THREE.Matrix4(),_carP=new THREE.Matrix4();let _carLB=null;
+function carCullSetup(){const cam=camera;if(!cam||!renderer){_carLB=null;return}
+  _carP.copy(cam.projectionMatrix);_carP.elements[0]/=1.3;_carP.elements[5]/=1.3;_carFr.setFromProjectionMatrix(_carM.multiplyMatrices(_carP,cam.matrixWorldInverse));_carLB={on:!!(renderer.shadowMap.enabled&&sunL.castShadow),sr:Qp().sr+4}}
+function carVisible(c){if(!_carLB)return true;const x=c.x,y=c.y+1,z=c.z;
+  if(_carLB.on){const dx=x-_ST.x,dy=y-_ST.y,dz=z-_ST.z;if(Math.abs(dx*_SR.x+dy*_SR.y+dz*_SR.z)<_carLB.sr&&Math.abs(dx*_SV.x+dy*_SV.y+dz*_SV.z)<_carLB.sr)return true}
+  const pl=_carFr.planes;for(let i=0;i<6;i++){const q=pl[i];if(q.normal.x*x+q.normal.y*y+q.normal.z*z+q.constant<-4)return false}return true}
+function queueCarInstance(c,cnt,force){if(!c)return;const i=c.type,t=CAR_T[i];if(!t||cnt[i]>=t.cap)return;if(!force&&!carVisible(c))return;writeCar(t,cnt[i],c);cnt[i]++}
 function queueCarList(list,cnt){if(!list)return;for(const c of list)queueCarInstance(c,cnt)}
 function placeCars(list,peerList,driven){
   const cnt=CAR_FRAME_COUNTS||(CAR_FRAME_COUNTS=new Uint16Array(CAR_T.length));cnt.fill(0);
-  queueCarList(PARKED_CACHE,cnt);queueCarList(list,cnt);queueCarInstance(driven,cnt);queueCarList(peerList,cnt);
+  carCullSetup();queueCarList(PARKED_CACHE,cnt);queueCarList(list,cnt);queueCarInstance(driven,cnt,true);queueCarList(peerList,cnt);
   for(let i=0;i<CAR_T.length;i++){const t=CAR_T[i];t.mesh.count=cnt[i];t.wheels.count=cnt[i]*4;t.mesh.instanceMatrix.needsUpdate=true;t.wheels.instanceMatrix.needsUpdate=true;if(t.mesh.instanceColor)t.mesh.instanceColor.needsUpdate=true}
 }
 let PARKED_CACHE=[];
@@ -4786,7 +4855,7 @@ function toggleCar(){
       if(g){EXT.summon('gtr');if(!EXT.cur&&Math.hypot(g.x-player.x,g.z-player.z)<14)EXT.enter(g);return}}
     c=DRIVE.car={x:best[0],z:best[1],y:groundAt(best[0],best[1],player.y+1),yaw,pitch:0,roll:0,type:mine?mine.type:4,col:mine?mine.col:PCAR_COL};
   }
-  DRIVE.on=true;DRIVE.v=0;DRIVE.vx=DRIVE.vz=DRIVE.w=0;DRIVE.steer=0;DRIVE.vy=0;DRIVE.sy=DRIVE.sv=DRIVE.gv=DRIVE.aL=DRIVE.po=DRIVE.bk=0;c.bank=c.sy=0;
+  DRIVE.on=true;cam.vz=1;DRIVE.v=0;DRIVE.vx=DRIVE.vz=DRIVE.w=0;DRIVE.steer=0;DRIVE.vy=0;DRIVE.sy=DRIVE.sv=DRIVE.gv=DRIVE.aL=DRIVE.po=DRIVE.bk=0;c.bank=c.sy=0;
   player.x=c.x;player.z=c.z;player.y=c.y;PLR.root.visible=false;
   cam.yaw=c.yaw;if(CAMV.mode!==1&&CAMV.mode!==2)cam.dist=Math.max(cam.dist,6.5);
   $('bCar').classList.add('on');$('spd').hidden=false;
@@ -5231,7 +5300,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
     return `flat:${ent}:${floor}`;
   },
   setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;if(seaNear)seaNear.visible=showWorld;
-    for(const t of TREES.meshes){t.t.visible=showWorld;t.l.visible=showWorld}if(typeof GLBT!=='undefined'){GLBT.setVisible(showWorld);BENCH.setVisible(showWorld)}for(const t of CAR_T){t.mesh.visible=showWorld;t.wheels.visible=showWorld}for(const t of TRAMS)t.mesh.visible=showWorld;if(snowPts)snowPts.visible=showWorld&&S.season==='winter';
+    for(const t of TREES.all())t.visible=showWorld;if(typeof GLBT!=='undefined'){GLBT.setVisible(showWorld);BENCH.setVisible(showWorld)}for(const t of CAR_T){t.mesh.visible=showWorld;t.wheels.visible=showWorld}for(const t of TRAMS)t.mesh.visible=showWorld;if(snowPts)snowPts.visible=showWorld&&S.season==='winter';
     for(const n in this.built){const B=this.built[n];setInteriorGroupVisible(B.grp,!v&&B===this.active)}},
   fail(e,name,f){console.error('[portal] could not open '+name,e);this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);const r=this.ret||PLACES[0];teleportRaw(r.x,r.z,r.yaw);toast('Closed for now','this place failed to open');f.style.opacity=0},
   enter(name,ret,opt){const f=$('fade');f.style.opacity=1;setTimeout(()=>{try{
@@ -6464,6 +6533,7 @@ const SPK={
     else if(media.kind==='yandex'&&media.id.split('/')[0])src='https://music.yandex.ru/iframe/#track/'+media.id;
     if(!src){const a=document.createElement('a');a.href=media.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Open this music link in its service';box.appendChild(a);return}
     const frame=document.createElement('iframe');frame.src=src;frame.title='Shared music player';frame.allow='autoplay; encrypted-media; fullscreen; picture-in-picture';frame.allowFullscreen=true;frame.loading='eager';box.appendChild(frame);this.mediaNode={frame};
+    if(media.kind==='youtube')frame.addEventListener('load',()=>{try{frame.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}});   // phone.js reads currentTime / duration / state from the embed
     if(autoplay&&(media.kind==='youtube'||media.kind==='soundcloud'))for(const wait of [900,1800,3200])setTimeout(()=>{if(this.mediaNode&&this.mediaNode.frame===frame){this.mediaCommand('seekTo',media.kind==='soundcloud'?[age*1000,true]:[age,true]);this.mediaCommand('playVideo',[]) }},wait);
   },
   playLink(raw){
@@ -6780,10 +6850,10 @@ function setupRenderer(){
 }
 let pixelScale=1;const _SL=new THREE.Vector3(),_SU=new THREE.Vector3(),_SR=new THREE.Vector3(),_SV=new THREE.Vector3(),_ST=new THREE.Vector3();
 function applyTextureAnisotropy(){
-  const max=renderer.capabilities.getMaxAnisotropy(),target=S.q==='high'?max:Math.min(2,max),seen=new Set();
+  const max=renderer.capabilities.getMaxAnisotropy(),target=S.q==='high'?(MOBILE?Math.min(4,max):max):Math.min(2,max),seen=new Set();   // 16x on a tablet GPU costs a lot of texture bandwidth for little gain over 4x
   scene.traverse(o=>{const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
     for(const material of materials)for(const key of ['map','normalMap','roughnessMap','metalnessMap','alphaMap','emissiveMap','bumpMap','displacementMap','aoMap','envMap']){
-      const texture=material[key];if(!texture||!texture.isTexture||seen.has(texture))continue;seen.add(texture);
+      const texture=material[key];if(!texture||!texture.isTexture||seen.has(texture))continue;seen.add(texture);if(texture.image===undefined)continue;   // image already freed after upload (plateMesh / labelSprite)
       if(texture.image&&texture.image.data===undefined&&texture.image.depth!==undefined)continue;   // render-target texture (Opera film screen): needsUpdate would make three upload it as an image and throw
       if(texture.anisotropy!==target){texture.anisotropy=target;texture.needsUpdate=true}
     }
@@ -6811,7 +6881,7 @@ function warmupShaders(){
   try{renderer.toneMapping=prevTone}catch(e){}
   if(typeof cityLodT!=='undefined')cityLodT=0;
 }
-function applyQuality(){
+function applyQuality(soft){   // soft: keep the chunks that are built (the automatic step-down must not dispose and rebuild the whole world in a moment that is already slow)
   const q=Qp();
   applyTextureAnisotropy();
   if(S.q!=='low')lowRenderScale=1;
@@ -6833,7 +6903,7 @@ function applyQuality(){
     if(window.GFX)composer.addPass(GFX.gradePass());   // colour grade, sun shafts, vignette, grain (gfx.js)
     fxaaPass=new THREE.ShaderPass(THREE.FXAAShader);fxaaPass.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));composer.addPass(fxaaPass);
   } else composer=null;
-  rebuildAllChunks();
+  if(!soft)rebuildAllChunks();
 }
 function onResize(){
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
@@ -7080,7 +7150,7 @@ function disposeChunk(c){
 // matrix on every frame is pure waste, so bake it once and opt out of the per-frame update.
 function freezeChunkMeshes(id){
   const c=chunks.get(id);if(!c)return;
-  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m){m.matrixAutoUpdate=false;m.updateMatrix()}
+  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m){m.matrixAutoUpdate=false;m.updateMatrix();dropCpuCopy(m.geometry)}
 }
 function rebuildAllChunks(){for(const c of [...chunks.values()])disposeChunk(c);if(started||renderer)updateChunks(0,260)}
 // ms per frame the streamer may spend: little when the frame rate is already low, more when there is time to spare
@@ -7166,7 +7236,7 @@ function teleportRaw(x,z,yaw,syncRadius=MOBILE?150:280){      // phones build le
   if(PORTAL.cur){PORTAL.cur=null;PORTAL.setCity(true);for(const n in PORTAL.built)PORTAL.built[n].grp.visible=false}
   if(typeof DRIVE!=='undefined'&&DRIVE.on){DRIVE.on=false;DRIVE.v=DRIVE.vx=DRIVE.vz=0;$('bCar').classList.remove('on');$('spd').hidden=true;engineOn(false);PLR.root.visible=true}
   player.x=x;player.z=z;player.vx=player.vz=0;player.vy=0;player.air=false;player.sit=null;player.yaw=yaw||0;cam.yaw=player.yaw;cam.init=false;
-  updateChunks(0,syncRadius);player.y=groundAt(x,z,99);
+  ADAPT_GRACE=performance.now()+20000;updateChunks(0,syncRadius);player.y=groundAt(x,z,99);
   if(typeof CARS!=='undefined'){CARS.length=0;PEDS.length=0;updateCars.init=false;updatePeds.init=false}
 }
 function teleport(p){const f=$('fade');f.style.opacity=1;setTimeout(()=>{teleportRaw(p.x,p.z,p.yaw);toast(p.name,p.sub||'');f.style.opacity=0},380)}
@@ -7410,7 +7480,7 @@ function stepCarCamera(dt){
     else{ex=c.x+s*L*.34;ey=c.y+({3:1.65,2:1.45,4:.9}[c.type]||1.0);ez=c.z+co*L*.34}
     const p=CAMV.mode===1?cam.pitch:cam.pitch*.5;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;camera.position.set(ex,ey,ez);
     camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(p),ey+Math.sin(p),ez+Math.cos(cam.yaw)*Math.cos(p));return}
-  const dist=Math.max(6.2,cam.dist)*(1+Math.min(.35,Math.abs(DRIVE.v)*.011));const pitch=Math.max(.1,cam.pitch);
+  const dist=Math.max(6.2,cam.dist)*(cam.vz||1);const pitch=Math.max(.1,cam.pitch);   // 2026-11-12: no longer pulled back by the speed; the pinch zoom (cam.vz) works
   const cp=Math.cos(pitch),sp=Math.sin(pitch);const dx=-Math.sin(cam.yaw)*cp,dy2=sp,dz=-Math.cos(cam.yaw)*cp;
   let d=dist;for(let s=1.5;s<=dist;s+=.4){const px=tx+dx*s,py=ty+dy2*s,pz=tz+dz*s;if(insideAny(px,pz,.25,py)||py<groundAt(px,pz,py)+.3){d=Math.max(1.5,s-.4);break}}
   const wx=tx+dx*d,wy=ty+dy2*d,wz=tz+dz*d;if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}
@@ -7432,6 +7502,8 @@ function updateLampUniforms(){
 }
 const EXTRA_LAMPS=[];
 function updateIndoor(dt){
+  // depth precision: inside an interior the view is short, so a 1.5x nearer near plane and a far plane just past the sky dome (2500 m) give ~2.8x finer depth steps (z-fighting of coplanar furniture / tiles)
+  {const wn=PORTAL.cur?.15:.1,wf=PORTAL.cur?2700:5000;if(camera.near!==wn||camera.far!==wf){camera.near=wn;camera.far=wf;camera.updateProjectionMatrix()}}
   let cur=null;for(const r of INDOORS){if(r.test(player.x,player.z,player.y)){cur=r;break}}
   if(cur!==curIndoor){const prev=curIndoor;curIndoor=cur;if((typeof AUD!=='undefined')&&AUD)AUD.setIndoor(cur?cur.name:null);if(cur&&cur.enter)cur.enter();if(!cur)toast('','')
     // flats, shops and rooms are walked in first person; the chase-camera distance comes back when you step outside (halls and the opera keep the chase view)
@@ -7698,7 +7770,7 @@ function setupInput(){
   cv.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')return;inp.dragging=true;inp.mx=e.clientX;inp.my=e.clientY;cv.setPointerCapture(e.pointerId)});
   cv.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!inp.dragging)return;inp.lookT=performance.now();cam.yaw-=(e.clientX-inp.mx)*.006;cam.pitch=Math.max(-.3,Math.min(1.25,cam.pitch+(e.clientY-inp.my)*.005));inp.mx=e.clientX;inp.my=e.clientY});
   cv.addEventListener('pointerup',()=>{inp.dragging=false});
-  cv.addEventListener('wheel',e=>{cam.dist=Math.max(.25,Math.min(14,cam.dist*Math.exp(e.deltaY*.001)));cam.init=false;e.preventDefault()},{passive:false});
+  cv.addEventListener('wheel',e=>{camZoom(Math.exp(-e.deltaY*.001));e.preventDefault()},{passive:false});
   const jz=$('joy'),jb=$('joyBase'),jk=$('joyKnob');let jid=null,jx0=0,jy0=0;
   // the base is positioned inside the zone (the zone is raised off the bottom edge, its corner is not the screen corner), clamped so the whole ring stays on screen, and rests as a faint ring where the thumb lands
   const jRest=()=>{const r=jz.getBoundingClientRect();if(!r.width)return;jx0=r.left+Math.max(76,r.width*.34);jy0=r.top+r.height*.58;jb.classList.add('rest');jb.style.left=(jx0-r.left)+'px';jb.style.top=(jy0-r.top)+'px';jk.style.transform=''};
@@ -7717,6 +7789,12 @@ function setupInput(){
   for(const ev of ['touchstart','touchend','touchcancel'])addEventListener(ev,e=>{__touchN=e.touches?e.touches.length:0;if(!__touchN)resetStick()},{capture:true,passive:true});
   addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'&&e.pointerId===jid)jend(e)},true);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)resetStick()});addEventListener('blur',resetStick);
+  // pinch / wheel zoom. f > 1 = closer. First person (cam.dist <= .75): the lens zooms (field of view), the head cannot get closer - before, the pinch only moved the camera between .25 and .5 m, i.e. nothing.
+  // In a car the zoom is its own factor (cam.vz) on top of the usual chase distance, and the chase distance no longer grows with the speed.
+  const camZoom=f=>{const inCar=(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')||(typeof DRIVE!=='undefined'&&DRIVE.on);
+    if(inCar){cam.vz=Math.max(.3,Math.min(2.6,(cam.vz||1)/f));cam.init=false;return}
+    if(cam.dist<=.75){cam.fpz=Math.max(1,Math.min(5,(cam.fpz||1)*f));return}
+    cam.dist=Math.max(.25,Math.min(14,cam.dist/f));cam.init=false};
   const cameraTouches=new Map();let pinchDistance=0;
   // iPad/iOS: a fast double-tap used to trigger the system page zoom and there was no way back — kill it with a
   // touch-action lock on the canvas plus a dedicated double-tap preventer (the game's own camera-zoom via
@@ -7741,7 +7819,7 @@ function setupInput(){
     cameraTouches.set(e.pointerId,[e.clientX,e.clientY]);
     if(cameraTouches.size===2){
       const [a,b]=[...cameraTouches.values()],distance=Math.hypot(a[0]-b[0],a[1]-b[1]);
-      if(pinchDistance>0&&distance>0){cam.dist=Math.max(.25,Math.min(14,cam.dist*pinchDistance/distance));cam.init=false}
+      if(pinchDistance>0&&distance>0)camZoom(distance/pinchDistance)
       pinchDistance=distance;return;
     }
     if(!TOUCH_LOOK.active||e.pointerId!==TOUCH_LOOK.id)return;
@@ -7808,6 +7886,8 @@ function toggleScoot(){if(MP.on||(typeof PLN!=='undefined'&&PLN.cur)||(typeof SW
 function cycleTime(){const o=['day','dusk','night'];S.time=o[(o.indexOf(S.time)+1)%3];saveS();applyTime()}
 // ---------- adaptive resolution ----------
 let ftAcc=0,ftN=0,ftT=0,fpsLowT=0;
+// frames right after a teleport / the start of a match / the jump from the bus are slow because the world is being built, not because the quality is too high: no automatic quality step-down then
+let ADAPT_GRACE=0;
 function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;
   if(S.polish==='max'){
     if(dt>1/28)fpsLowT+=dt; else fpsLowT=Math.max(0,fpsLowT-dt*0.5);
@@ -7819,12 +7899,16 @@ function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;
     }
   }else fpsLowT=0;
   if(ftT<2.5)return;const avg=ftAcc/ftN;ftAcc=ftN=ftT=0;
-  if(pixelScale<=.56&&avg>.05&&S.q!=='low'){adaptRes.slow=(adaptRes.slow||0)+1;if(adaptRes.slow>=2){adaptRes.slow=0;S.q=S.q==='high'?'mid':'low';saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));pixelScale=1;applyQuality();applyTime();toast('Graphics lowered','to keep the game smooth');return}}else adaptRes.slow=0;
+  if(pixelScale<=.56&&avg>.05&&S.q!=='low'&&performance.now()>ADAPT_GRACE){adaptRes.slow=(adaptRes.slow||0)+1;if(adaptRes.slow>=2){adaptRes.slow=0;S.q=S.q==='high'?'mid':'low';saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));pixelScale=1;applyQuality(true);applyTime();toast('Graphics lowered','to keep the game smooth');return}}else adaptRes.slow=0;
   // every change reallocates the drawing buffer (a hitch, and on iPad a memory spike): step down quickly, step up only after three calm windows in a row, and never twice within 6 s
   let ns=pixelScale;const now=performance.now();
-  if(avg>.045){adaptRes.calm=0;ns=Math.max(.55,pixelScale-.15)}
-  else if(avg<.022){adaptRes.calm=(adaptRes.calm||0)+1;if(adaptRes.calm>=3){adaptRes.calm=0;ns=Math.min(1,pixelScale+.1)}}
+  // 2026-11-12: it used to step up after every 3 calm windows even when the higher scale was exactly what had just been too slow: a resolution change every ~8 s, each one a drawing-buffer
+  // reallocation (a hitch, and a memory spike on iPad). Now the scale that was too heavy is remembered for 90 s, and every up-then-down cycle doubles the calm time needed.
+  if(avg>.045){adaptRes.calm=0;ns=Math.max(.55,pixelScale-.15);if(ns<pixelScale){adaptRes.bad=pixelScale;adaptRes.badAt=now;if(now-(adaptRes.upAt||0)<30000)adaptRes.need=Math.min(12,(adaptRes.need||3)*2)}}
+  else if(avg<.022){adaptRes.calm=(adaptRes.calm||0)+1;if(adaptRes.calm>=(adaptRes.need||3)){adaptRes.calm=0;const up=Math.min(1,pixelScale+.1);
+    if(!(adaptRes.bad&&up>=adaptRes.bad-.001&&now-adaptRes.badAt<90000)){ns=up;adaptRes.upAt=now}}}
   else adaptRes.calm=0;
+  if(now-(adaptRes.upAt||0)>120000)adaptRes.need=3;
   if(now-(adaptRes.at||0)<6000)ns=pixelScale;
   if(Math.abs(ns-pixelScale)>.01){adaptRes.at=now;pixelScale=ns;const pr=Math.min(window.devicePixelRatio||1,Qp().pr)*pixelScale;renderer.setPixelRatio(pr);renderer.setSize(innerWidth,innerHeight);
     if(composer){composer.setPixelRatio(pr);composer.setSize(innerWidth,innerHeight);if(fxaaPass)fxaaPass.uniforms.resolution.value.set(1/(innerWidth*pr),1/(innerHeight*pr))}}}
@@ -7883,6 +7967,7 @@ async function boot(){
   try{if((typeof SPK!=='undefined')&&SPK)SPK.init(scene)}catch(e){console.error('[boot] speaker',e)}
   try{if(typeof VOICE!=='undefined'&&VOICE&&VOICE.init)VOICE.init()}catch(e){console.error('[boot] voice',e)}
   try{if(typeof PHONE!=='undefined'&&PHONE&&PHONE.init)PHONE.init()}catch(e){console.error('[boot] phone',e)}
+  try{if(typeof NAV!=='undefined'&&NAV&&NAV.init)NAV.init()}catch(e){console.error('[boot] nav',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -7904,7 +7989,7 @@ function loop(t){
     refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt);if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
-      TREES.update(player.x,player.z,Qp().trees);if(typeof BENCH!=='undefined')BENCH.update(player.x,player.z);
+      TREES.update(player.x,player.z,Qp().trees);TREES.cull();if(typeof BENCH!=='undefined')BENCH.update(player.x,player.z);
       if(typeof GRASS_SYS!=='undefined')GRASS_SYS.update(player.x,player.z,Qp().trees)}
     if(typeof SNOW_SYS!=='undefined')SNOW_SYS.update(dt,player.x,player.z);
     if(typeof PED_SPRITES!=='undefined')PED_SPRITES.update(dt,player.x,player.z);
@@ -7924,8 +8009,8 @@ function loop(t){
   safe('phone',()=>{if(typeof PHONE!=='undefined')PHONE.tick(dt)});
   safe('chunks',()=>updateChunks(started?chunkBudget(dt):4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
   safe('cam',()=>stepCamera(dt));
-  safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const target=aim?45:75
-    ;const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<45||camera.fov>75)camera.fov=Math.min(75,Math.max(45,camera.fov));camera.updateProjectionMatrix()}
+  safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
+    const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
   safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
@@ -7941,7 +8026,8 @@ function loop(t){
   if(PORTAL.cur&&!PORTAL._warmed){PORTAL._warmed=1;try{warmupShaders()}catch(e){console.warn('portal warmup',e)}}
   else if(!PORTAL.cur&&PORTAL._warmed)PORTAL._warmed=0;
   // phones and tablets: the sun's shadow map (which redraws every chunk that touches the 110 m frustum) is refreshed every other frame, or every frame when moving fast
-  if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
+  if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;const skyHi=typeof BR!=='undefined'&&BR.on&&(BR.phase==='bus'||BR.phase==='sky');   // 400 m up the sun's shadow box holds nothing the ground could show: do not redraw it
+    if(skyHi)renderer.shadowMap.needsUpdate=false;else if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
   renderer.info.reset();const _shk=(typeof FX!=='undefined'&&FX.ready)?FX.shakeOff(dt):null;if(_shk)camera.position.add(_shk);
   try{if(composer)composer.render();else renderer.render(scene,camera)}finally{if(_shk)camera.position.sub(_shk)}
   safe('lowdc',adaptLowDrawCalls);
@@ -9574,14 +9660,14 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       const gy=Math.max(groundH(d.m.position.x,d.m.position.z),SL);if(d.m.position.y<gy+.05){d.m.position.y=gy+.05;d.v.y*=-.35;d.v.x*=.6;d.v.z*=.6;d.w.multiplyScalar(.6)}
       if(d.t>2.4)d.m.scale.multiplyScalar(Math.max(0,1-dt*2.5));if(d.t>3.2){d.on=false;d.m.visible=false}}
     for(let i=this.fires.length-1;i>=0;i--){const f=this.fires[i];f.t+=dt;const k=f.t/.7;f.m.scale.setScalar(f.r*(.4+k*1.6));f.m.material.opacity=Math.max(0,.9*(1-k));if(k>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();this.fires.splice(i,1)}}
-    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(!v.dead&&((v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<1000)||(v.glbPending&&Math.hypot(v.x-player.x,v.z-player.z)<300)))v.loadModel();
+    for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(!v.dead&&((v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<1000)||(v.glbPending&&Math.hypot(v.x-player.x,v.z-player.z)<150)))v.loadModel();
       if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL+SUB_SURF+Math.sin(UNI.uTime.value*1.1+v.x)*.05;v.sync()}
       else if(v!==this.cur&&!v.dead&&v.lights)v.lights()}
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
     this.seaT-=dt;if(this.seaT<=0){this.seaT=.6;const show=started&&MARINE.free()&&!player.scoot&&!!MARINE.waterNear(40);this.boatBtn.hidden=!show;this.jetBtn.hidden=!show}
   },
   enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
-    this.cur=v;v.loadModel();v.occupied=true;cam.init=false;$('spd').hidden=false;PLR.root.visible=true;LVSND.start(v.kind);
+    this.cur=v;v.loadModel();v.occupied=true;cam.init=false;cam.vz=1;$('spd').hidden=false;PLR.root.visible=true;LVSND.start(v.kind);
     const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='moto'?'W gas · S brake · A/D steer · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Q dive · E rise · B walk inside · F exit':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
     toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+(v.kind==='sub'?'':' · E to get off')+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':v.kind==='sub'?' · pilot + co-op passenger seats':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
@@ -9644,7 +9730,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;const drift=Math.abs(dy);
       cam.autoT=(drift>2.4)?1.2:Math.max(0,(cam.autoT||0)-dt);
       if(cam.autoT<=0)cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?(v.kind==='bike'?4.4:2.6):.8))}   // the bicycle turns fast now: the camera must keep up
-    const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(1+Math.min(.3,Math.abs(v.v)*.008)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
+    const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(sub?1+Math.min(.3,Math.abs(v.v)*.008):(cam.vz||1)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
     const ty=v.y+(sub?.6:v.kind==='bike'?1.3:1.45);let d=dist;
     if(!sub)for(let s=1.5;s<=dist;s+=.4){const px=v.x-Math.sin(cam.yaw)*cp*s,py=ty+sp*s,pz=v.z-Math.cos(cam.yaw)*cp*s;if(insideAny(px,pz,.25,py)||py<groundH(px,pz)+.3){d=Math.max(1.5,s-.4);break}}
     const wx=v.x-Math.sin(cam.yaw)*cp*d,wz=v.z-Math.cos(cam.yaw)*cp*d,wy=Math.max(ty+sp*d,groundH(wx,wz)+.5);

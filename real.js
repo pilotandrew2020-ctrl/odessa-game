@@ -18,8 +18,14 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
   // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
   BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1,tpl:null,st:0},
-       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}}},
-  kind(o){return o.booba?'booba':o.nolik?'nolik':null},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}},
+       // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
+       steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0},
+       mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0},
+       halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
+       leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
+       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9}}},
+  kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
   load(){if(this.st)return;this.st=1;
     try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(null);
         if(typeof CREATOR!=='undefined'&&CREATOR.on)CREATOR.dirty=true},undefined,e=>{this.st=3;this.wait=this.wait.filter(w=>this.kind(w[1]));console.warn('[real] body failed to load',e)})}catch(e){this.st=3;console.warn('[real]',e)}},
@@ -39,7 +45,10 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
         t=[parseInt(k.slice(1,3),16),parseInt(k.slice(3,5),16),parseInt(k.slice(5,7),16)];
       for(let i=0;i<p.length;i+=4){const r=p[i],gg=p[i+1],b=p[i+2];if(b>r+22&&b>gg+6){const f=.3+((r+gg+b)/3/255)*1.55;p[i]=Math.min(255,t[0]*f);p[i+1]=Math.min(255,t[1]*f);p[i+2]=Math.min(255,t[2]*f)}}
       g.putImageData(d,0,0);const T=new THREE.CanvasTexture(cv);T.flipY=false;T.encoding=THREE.sRGBEncoding;T.anisotropy=4;return this.eyeTex[k]=T}catch(e){return null}},
-  attach(P,o){if(!P||!P.root)return;const K=this.kind(o),BO=!!K,B0=K?this.BOD[K]:null,tpl=K?B0.tpl:this.tpl;if(!tpl){if((K?B0.st:this.st)===3)return;   // that file failed to load: keep the classic body, queue nothing (a failed load used to keep every rebuilt avatar alive in `wait`)
+  unhide(P){if(P.preHid){for(const c of P.preHid)c.visible=true;P.preHid=null}},   // see attach: the classic meshes hidden while the body file loads
+  attach(P,o){if(!P||!P.root)return;const K=this.kind(o),BO=!!K,B0=K?this.BOD[K]:null,tpl=K?B0.tpl:this.tpl;if(!tpl){if((K?B0.st:this.st)===3){this.unhide(P);return}   // that file failed to load: show the classic body, queue nothing (a failed load used to keep every rebuilt avatar alive in `wait`)
+      // while the body file loads the classic body used to be visible: a Booba / Nolik pick showed the OLD character for a second or two. Hide it now (restored if the load fails or when the real attach runs)
+      if(!P.preHid){P.preHid=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;P.preHid.push(c)}})}
       this.wait.push([P,o]);K?this.loadX(K):this.load();return}
     if(P.real)this.detach(P);
     const M=this.clone(tpl),SC=K?B0.sc:this.SC,B=[],byN={},par=[],kind=[];
@@ -78,7 +87,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     // the procedural body is hidden, held things and head/neck/back extras stay (moved onto the new bones below)
     for(const c of [P.can,P.speaker])if(c)c.userData.keep=1;
     for(const c of (P.accH||[]).concat(P.accS||[]))if(c)c.userData.keep=BO?0:1;     // set on EVERY attach: an avatar that was Realistic and becomes Booba (creator) must not keep the old flag   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
-    R.hidden=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;R.hidden.push(c)}});
+    this.unhide(P);R.hidden=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;R.hidden.push(c)}});
     P.real=R;R.o=o;this.mount(P,R);
     // pose now, so the first frame is right even if the caller never ticks
     this.tick(P,{mode:'walk',spd:0},0);return R},

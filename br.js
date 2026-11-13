@@ -253,7 +253,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
     this.banner('BATTLE BUS','Press JUMP to leave the bus',4);if(this.ui)this.ui.jump.hidden=false},
   busDurFor(){return this.R0*2.3/34},
   busPos(){const b=this.bus,s=Math.min(b.L,b.t*b.sp);return {x:b.x0+b.dx*s,z:b.z0+b.dz*s}},
-  jumpBus(){if(this.phase!=='bus')return;this.phase='sky';const p=this.busPos();player.x=p.x;player.z=p.z;player.y=this.bus.y+1;player.vx=player.vz=0;player.vy=-5;this.gl=0;PLR.sky=1;
+  jumpBus(){if(this.phase!=='bus')return;this.phase='sky';if(typeof ADAPT_GRACE!=='undefined')ADAPT_GRACE=performance.now()+25000;const p=this.busPos();player.x=p.x;player.z=p.z;player.y=this.bus.y+1;player.vx=player.vz=0;player.vy=-5;this.gl=0;PLR.sky=1;
     cam.dist=Math.max(cam.dist,8);cam.pitch=.7;if(this.ui)this.ui.jump.hidden=true;this.banner('FREE FALL','Your glider opens near the ground · W / stick steers',3);this.snd('jump')},
   ctlStep(dt){
     if(this.phase==='bus'){const b=this.bus;b.t=Math.max(0,(Date.now()-this.t0)/1000);const p=this.busPos();b.m.position.set(p.x,b.y,p.z);b.m.rotation.y=b.yaw;player.x=p.x;player.z=p.z;player.y=b.y+3.0;player.yaw=b.yaw;player.vx=player.vz=0;
@@ -271,7 +271,7 @@ const BR={on:false,phase:'',ctl:false,inv:[],sel:0,ammo:{light:0,medium:0,shells
     PLR.root.position.set(player.x,player.y+(this.gl?0:.85),player.z);
     if(this.gl)PLR.root.rotation.set(0,player.yaw,0,'XYZ');else PLR.root.rotation.set(1.2,player.yaw,0,'YXZ');
     animPlayer(PLR,{spd:0,mode:'walk'},dt)},
-  land(g){this.ctl=false;this.phase='play';PLR.sky=0;this.glider.visible=false;player.y=g;player.vx=player.vz=player.vy=0;player.air=false;PLR.root.rotation.set(0,player.yaw,0,'XYZ');
+  land(g){this.ctl=false;this.phase='play';if(typeof ADAPT_GRACE!=='undefined')ADAPT_GRACE=performance.now()+15000;PLR.sky=0;this.glider.visible=false;player.y=g;player.vx=player.vz=player.vy=0;player.air=false;PLR.root.rotation.set(0,player.yaw,0,'XYZ');
     cam.dist=4.1;cam.pitch=.2;FX.init();for(let i=0;i<10;i++)FX.puff({x:player.x+(Math.random()-.5),y:g+.1,z:player.z+(Math.random()-.5),vx:(Math.random()-.5)*3,vy:.5,vz:(Math.random()-.5)*3,s0:.3,s1:1.4,life:.8,c0:[.8,.78,.7],c1:[.6,.6,.6],op:.4,add:false,drag:2,grow:1});
     this.snd('land');if(window.AUD&&AUD.land)AUD.land();this.banner('LANDED','Find a weapon — open chests, grab shield potions',3.5);GUN.noHold=true;
     const it=this.inv[0];this.select(0);GUN.noHold=false;GUN.aimT=0},

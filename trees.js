@@ -11,12 +11,30 @@ const _gM=new THREE.Matrix4(),_gQ=new THREE.Quaternion(),_gS=new THREE.Vector3()
 
 // one InstancedMesh that grows when it needs to; list = flat numbers, 10 per instance: x,y,z,rotY,sx,sy,sz,r,g,b
 class GInst{
-  constructor(geo,mat,o){this.geo=geo;this.mat=mat;this.color=!!(o&&o.color);this.depth=(o&&o.depth)||null;this.ext=(o&&o.ext)||[6,12];this.cap=0;this.mesh=null;this.list=[]}
-  ensure(n){if(this.mesh&&n<=this.cap)return;const cap=Math.max(24,Math.ceil(n*1.35));const m=new THREE.InstancedMesh(this.geo,this.mat,cap);
-    m.frustumCulled=true;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.visible=GLBT.show;
-    if(this.color)m.setColorAt(0,_gC.setRGB(1,1,1));if(this.depth)m.customDepthMaterial=this.depth;
-    if(this.mesh){scene.remove(this.mesh);this.mesh.dispose()}scene.add(m);this.mesh=m;this.cap=cap}
-  flush(){const L=this.list,n=L.length/10;if(!n){if(this.mesh)this.mesh.count=0;return}
+  constructor(geo,mat,o){this.geo=geo;this.mat=mat;this.color=!!(o&&o.color);this.depth=(o&&o.depth)||null;this.ext=(o&&o.ext)||[6,12];this.far=!!(o&&o.far);this.n=0;this.cap=0;this.mesh=null;this.list=[]}
+  ensure(n){if(this.mesh&&n<=this.cap)return;const cap=Math.max(24,Math.ceil(n*1.35));
+    const mk=(cast)=>{const m=new THREE.InstancedMesh(this.geo,this.mat,cap);m.frustumCulled=true;m.castShadow=cast;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.visible=GLBT.show;
+      if(this.color)m.setColorAt(0,_gC.setRGB(1,1,1));if(this.depth&&cast)m.customDepthMaterial=this.depth;return m};
+    if(this.mesh){scene.remove(this.mesh);this.mesh.dispose()}if(this.meshC){scene.remove(this.meshC);this.meshC.dispose();this.meshC=null}
+    this.mesh=mk(!this.far);scene.add(this.mesh);if(this.far){this.meshC=mk(true);scene.add(this.meshC)}this.cap=cap}
+  // FAR copies (the same tree, ~330 triangles): no shadow, and only the instances inside the camera frustum are drawn (cull(), called by TREES.cull). Before, the trees beyond the GLB range were the
+  // old procedural species, so a tree CHANGED into a different one when you came closer (on the magistral, in winter the green old trees against the bare new ones).
+  prep(n){const L=this.list;this.n=n;if(!n){if(this.mesh)this.mesh.count=0;return}
+    if(!this.M||this.M.length<n*16){const c=Math.ceil(n*1.25)+8;this.M=new Float32Array(c*16);this.Cc=new Float32Array(c*3);this.P=new Float32Array(c*4)}
+    let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9,y1=-1e9,y0=1e9;
+    for(let i=0;i<n;i++){const o=i*10;_gM.compose(_gT.set(L[o],L[o+1],L[o+2]),_gQ.setFromAxisAngle(_gY,L[o+3]),_gS.set(L[o+4],L[o+5],L[o+6])).toArray(this.M,i*16);
+      this.Cc[i*3]=L[o+7];this.Cc[i*3+1]=L[o+8];this.Cc[i*3+2]=L[o+9];const sc=Math.max(L[o+4],L[o+5]);this.P[i*4]=L[o];this.P[i*4+1]=L[o+1]+this.ext[1]*L[o+5]*.5;this.P[i*4+2]=L[o+2];this.P[i*4+3]=Math.max(this.ext[0],this.ext[1]*.6)*sc*1.15;
+      if(L[o]<x0)x0=L[o];if(L[o]>x1)x1=L[o];if(L[o+2]<z0)z0=L[o+2];if(L[o+2]>z1)z1=L[o+2];if(L[o+1]<y0)y0=L[o+1];if(L[o+1]>y1)y1=L[o+1]}
+    this.ensure(n);const e=this.ext[0]*1.6,h=this.ext[1]*1.4;
+    new THREE.Box3(new THREE.Vector3(x0-e,y0-2,z0-e),new THREE.Vector3(x1+e,y1+h,z1+e)).getBoundingSphere(this.geo.boundingSphere||(this.geo.boundingSphere=new THREE.Sphere()));this.mesh.count=0;this.meshC.count=0}
+  cull(pl,lb){if(!this.far||!this.n||!this.mesh)return;const m=this.mesh,mc=this.meshC,A=m.instanceMatrix.array,Ac=mc.instanceMatrix.array,Cc=this.color&&m.instanceColor?m.instanceColor.array:null,Ccc=this.color&&mc.instanceColor?mc.instanceColor.array:null,P=this.P;let k=0,kc=0;
+    for(let i=0;i<this.n;i++){const x=P[i*4],y=P[i*4+1],z=P[i*4+2],r=P[i*4+3];let cast=false;
+      if(lb.on){const dx=x-lb.Tx,dy=y-lb.Ty,dz=z-lb.Tz;cast=Math.abs(dx*lb.Rx+dy*lb.Ry+dz*lb.Rz)<lb.sr+r&&Math.abs(dx*lb.Vx+dy*lb.Vy+dz*lb.Vz)<lb.sr+r}
+      if(!cast){let ok=true;for(let q=0;q<6;q++){const c=pl[q];if(c.normal.x*x+c.normal.y*y+c.normal.z*z+c.constant<-r){ok=false;break}}if(!ok)continue}
+      if(cast){Ac.set(this.M.subarray(i*16,i*16+16),kc*16);if(Ccc){Ccc[kc*3]=this.Cc[i*3];Ccc[kc*3+1]=this.Cc[i*3+1];Ccc[kc*3+2]=this.Cc[i*3+2]}kc++}
+      else{A.set(this.M.subarray(i*16,i*16+16),k*16);if(Cc){Cc[k*3]=this.Cc[i*3];Cc[k*3+1]=this.Cc[i*3+1];Cc[k*3+2]=this.Cc[i*3+2]}k++}}
+    m.count=k;mc.count=kc;m.instanceMatrix.needsUpdate=mc.instanceMatrix.needsUpdate=true;if(Cc){m.instanceColor.needsUpdate=true;mc.instanceColor.needsUpdate=true}}
+  flush(){const L=this.list,n=L.length/10;if(this.far){this.prep(n);return}if(!n){if(this.mesh)this.mesh.count=0;return}
     this.ensure(n);const m=this.mesh;let x0=1e9,z0=1e9,x1=-1e9,z1=-1e9,y1=-1e9,y0=1e9;
     for(let i=0;i<n;i++){const o=i*10;_gM.compose(_gT.set(L[o],L[o+1],L[o+2]),_gQ.setFromAxisAngle(_gY,L[o+3]),_gS.set(L[o+4],L[o+5],L[o+6]));m.setMatrixAt(i,_gM);
       if(this.color)m.setColorAt(i,_gC.setRGB(L[o+7],L[o+8],L[o+9]));
@@ -40,21 +58,25 @@ const GLBT={ready:false,loading:false,near:0,show:true,K:{},all:[],
   depthMat(tex){return new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:tex,alphaTest:.45})},
   load(){if(this.loading)return;this.loading=true;
     const lo=(typeof MOBILE!=='undefined'&&MOBILE)||(typeof S!=='undefined'&&S.q==='low'),B='assets/models/trees/';
-    Promise.all([GLB_FETCH(B+'tree_maple_'+(lo?'lo':'hi')+'.glb'),GLB_FETCH(B+'tree_spruce_'+(lo?'lo':'hi')+'.glb'),GLB_FETCH(B+'tree_snow.glb')]).then(([ma,sp,sn])=>{
+    Promise.all([GLB_FETCH(B+'tree_maple_'+(lo?'lo':'hi')+'.glb'),GLB_FETCH(B+'tree_spruce_'+(lo?'lo':'hi')+'.glb'),GLB_FETCH(B+'tree_snow.glb'),GLB_FETCH(B+'tree_maple_far.glb').catch(()=>null),GLB_FETCH(B+'tree_spruce_far.glb').catch(()=>null)]).then(([ma,sp,sn,maF,spF])=>{
       const part=(g,n)=>g.scene.getObjectByName(n);
       const tree=(g,ext)=>{const t=part(g,'trunk'),l=part(g,'leaf');return {t:new GInst(t.geometry,this.barkMat(t.material.map),{ext}),l:new GInst(l.geometry,this.leafMat(l.material.map,'glbleaf'+(sp===g?'W':''),1,sp===g),{color:true,depth:this.depthMat(l.material.map),ext})}};
       this.K.maple=tree(ma,[5,11]);this.K.spruce=tree(sp,[3,13]);
       const card=(n,ext)=>{const o=part(sn,n);return {c:new GInst(o.geometry,this.leafMat(o.material.map,'glbcard',0,false),{depth:this.depthMat(o.material.map),ext})}};
       this.K.bare=card('bare',[5,12]);this.K.deadhero=card('deadhero',[6,10]);this.K.deadwide=card('deadwide',[4,7]);this.K.snowtree=card('snowtree',[5,12]);this.K.bush=card('bush',[3,2]);
-      this.all=[];for(const k of Object.values(this.K))for(const g of Object.values(k))this.all.push(g);
+      // far copies: the far maple / spruce files, and the winter card trees again (same geometry and material, no shadow, frustum-culled)
+      if(maF&&spF){const treeF=(g,ext,w)=>{const t=part(g,'trunk'),l=part(g,'leaf');return {t:new GInst(t.geometry,this.barkMat(t.material.map),{ext,far:true}),l:new GInst(l.geometry,this.leafMat(l.material.map,'glbleaf'+(w?'W':''),1,w),{color:true,depth:this.depthMat(l.material.map),ext,far:true})}};
+        this.KF={maple:treeF(maF,[5,11],false),spruce:treeF(spF,[3,13],true)};
+        for(const n of ['bare','deadhero','deadwide','snowtree'])this.KF[n]={c:new GInst(this.K[n].c.geo,this.K[n].c.mat,{ext:this.K[n].c.ext,far:true})}}
+      this.all=[];for(const k of Object.values(this.K))for(const g of Object.values(k))this.all.push(g);this.farAll=[];for(const k of Object.values(this.KF||{}))for(const g of Object.values(k)){this.all.push(g);this.farAll.push(g)}
       this.ready=true;TREES.dirty=true;console.log('[trees] GLB trees ready ('+(lo?'lo':'hi')+')')
     }).catch(e=>{console.warn('[trees] GLB trees not loaded, procedural ones stay',e&&e.message||e)})},
-  setVisible(v){this.show=v;for(const g of this.all)if(g.mesh)g.mesh.visible=v},
+  setVisible(v){this.show=v;for(const g of this.all){if(g.mesh)g.mesh.visible=v;if(g.meshC)g.meshC.visible=v}},
   // called by TREES.update(): begin() -> take(p) for every tree point within `near` -> flush()
   begin(maxD){const q=(typeof MOBILE!=='undefined'&&MOBILE)?60:92;this.near=this.ready?Math.min(maxD*.6,q):0;for(const g of this.all)g.clear();this.W=S.season==='winter'},
   // true = this tree is drawn from a GLB, false = leave it to the procedural species
-  take(p){const g=this.GM[p[2]],sp=p[2];if(!g&&sp!==4)return false;
-    const x=p[0],z=p[1],sc=p[3]||1;let y=p[4];if(y===undefined)y=p[4]=groundH(x,z)-.05;const h=GLBT_HASH(x,z),ry=h*6.283,w=.9+h*.2,K=this.K,W=this.W;
+  take(p,far){const g=this.GM[p[2]],sp=p[2];if(!g&&sp!==4)return false;if(far&&!this.KF)return false;   // far: the same trees, the far-copy meshes (a poplar stays a procedural tree: no mapping)
+    const x=p[0],z=p[1],sc=p[3]||1;let y=p[4];if(y===undefined)y=p[4]=groundH(x,z)-.05;const h=GLBT_HASH(x,z),ry=h*6.283,w=.9+h*.2,K=far?this.KF:this.K,W=this.W;
     if(sp===4){   // conifer: spruce (in winter every other one is a snow-covered tree)
       if(W&&h<.5){K.snowtree.c.list.push(x,y,z,ry,.85*sc,.85*sc,.85*sc,1,1,1)}
       else{const s=.82*sc,v=.9+h*.2;K.spruce.t.list.push(x,y,z,ry,s*w,s,s*w,1,1,1);K.spruce.l.list.push(x,y,z,ry,s*w,s,s*w,v*.95,v,v*.9)}
@@ -63,11 +85,12 @@ const GLBT={ready:false,loading:false,near:0,show:true,K:{},all:[],
       else if(h<.5)K.deadwide.c.list.push(x,y,z,ry,sc,sc,sc,1,1,1);
       else if(h<.57)K.deadhero.c.list.push(x,y,z,ry,.7*sc,.7*sc,.7*sc,1,1,1);
       else K.maple.t.list.push(x,y,z,ry,g[0]*sc*w,g[1]*sc,g[0]*sc*w,1,1,1);
-      const h2=GLBT_HASH(x*3.7,z*9.1);if(h2<.32){const a=h2*60;K.bush.c.list.push(x+Math.cos(a)*1.3,groundH(x+Math.cos(a)*1.3,z+Math.sin(a)*1.3)-.05,z+Math.sin(a)*1.3,a,1,1,1,1,1,1)}
+      const h2=GLBT_HASH(x*3.7,z*9.1);if(!far&&h2<.32){const a=h2*60;K.bush.c.list.push(x+Math.cos(a)*1.3,groundH(x+Math.cos(a)*1.3,z+Math.sin(a)*1.3)-.05,z+Math.sin(a)*1.3,a,1,1,1,1,1,1)}
     }else{        // leafy maple, shaped and tinted per old species so the city is not one tree
       const v=.88+h*.24;K.maple.t.list.push(x,y,z,ry,g[0]*sc*w,g[1]*sc,g[0]*sc*w,1,1,1);K.maple.l.list.push(x,y,z,ry,g[0]*sc*w,g[1]*sc,g[0]*sc*w,g[2]*v,g[3]*v,g[4]*v)}
     return true},
-  flush(){for(const g of this.all)g.flush()}
+  flush(){for(const g of this.all)g.flush()},
+  cullFar(pl,lb){for(const g of this.farAll||[])g.cull(pl,lb)}
 };
 
 // ---------- park benches ----------

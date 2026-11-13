@@ -26,3 +26,4 @@ async function variant(tag,{trunkTris,copies,barkW,barkH,needlePx,colours}){
 //            target tris, rotY, xz scale, y scale, y shift
 await variant('hi',{trunkTris:330,copies:[[620,0,1,1,0],[480,1.05,1.2,.78,-.2],[380,2.6,1.35,.55,-.3]],barkW:256,barkH:512,needlePx:512,colours:96});
 await variant('lo',{trunkTris:130,copies:[[300,0,1.1,1,0],[230,1.3,1.3,.7,-.25]],barkW:128,barkH:256,needlePx:256,colours:64});
+await variant('far',{trunkTris:50,copies:[[130,0,1.15,1,0],[100,1.4,1.4,.65,-.3]],barkW:64,barkH:128,needlePx:128,colours:32});   // far-range copy (~250 triangles)

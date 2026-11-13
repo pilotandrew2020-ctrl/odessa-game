@@ -20,4 +20,6 @@ SRC=src node nolik_decimate.mjs 12000 && python3 -I nolik_weights.py nolik_12000
 # goes to that wheel, which handles meshes holding both wheels of an axle), re-centres each wheel on its own pivot node (wheel_fl/fr/rl/rr), puts the car on the ground facing +z,
 # decimates every material group separately (meshopt, UV seams kept) and shrinks the textures. car_*.json holds the numbers (scale, origin, wheel centres, lamp material renames):
 node mk_car.mjs car_p911.json && node mk_car.mjs car_p918.json && node mk_car.mjs car_db9.json     # out/{p911,p918,db9}.glb -> assets/models/vehicles/
+# Characters (Steve, MrBeast, Halo, Leon, Ghost): one generic script, one config per model (skinned: regexes of the joints to keep; static: hand-placed joints read from a render with grid.py: a coordinate grid over a render):
+node mk_char.mjs char_steve.json && node mk_char.mjs char_mrbeast.json && node mk_char.mjs char_halo.json && node mk_char.mjs char_leon.json && node mk_char.mjs char_ghost.json     # out/<Name>.glb -> assets/models/avatar/
 Triangle counts, texture sizes and the colour quantisation are the numbers at the top of each `mk_*.mjs` call. Rendering check used: a bare three.js page with `lib/GLTFLoader.js` and Playwright screenshots.

@@ -1,0 +1,32 @@
+{
+ "src": "src/halo.glb",
+ "out": "out/Halo.glb",
+ "height": 2.0,
+ "armDeg": 14,
+ "texPx": 512,
+ "tris": 12000,
+ "keep": {
+  "pelvis": "^spine_\\d+$",
+  "spine_01": "^spine\\.001_\\d+$",
+  "spine_02": "^spine\\.002_\\d+$",
+  "spine_03": "^spine\\.003_\\d+$",
+  "neck_01": "^spine\\.004_\\d+$",
+  "Head": "^spine\\.006_\\d+$",
+  "clavicle_l": "^shoulder\\.L_\\d+$",
+  "upperarm_l": "^upper_arm\\.L_\\d+$",
+  "lowerarm_l": "^forearm\\.L_\\d+$",
+  "hand_l": "^hand\\.L_\\d+$",
+  "thigh_l": "^thigh\\.L_\\d+$",
+  "calf_l": "^shin\\.L_\\d+$",
+  "foot_l": "^foot\\.L_\\d+$",
+  "ball_l": "^toe\\.L_\\d+$",
+  "clavicle_r": "^shoulder\\.R_\\d+$",
+  "upperarm_r": "^upper_arm\\.R_\\d+$",
+  "lowerarm_r": "^forearm\\.R_\\d+$",
+  "hand_r": "^hand\\.R_\\d+$",
+  "thigh_r": "^thigh\\.R_\\d+$",
+  "calf_r": "^shin\\.R_\\d+$",
+  "foot_r": "^foot\\.R_\\d+$",
+  "ball_r": "^toe\\.R_\\d+$"
+ }
+}

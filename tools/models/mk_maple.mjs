@@ -32,3 +32,4 @@ async function variant(tag,{leafQuads,trunkTris,barkPx,leafPx,leafColours}){
 await variant('full',{leafQuads:2664,trunkTris:700,barkPx:512,leafPx:256,leafColours:96});
 await variant('hi',{leafQuads:1400,trunkTris:700,barkPx:512,leafPx:256,leafColours:96});
 await variant('lo',{leafQuads:700,trunkTris:300,barkPx:256,leafPx:256,leafColours:64});
+await variant('far',{leafQuads:120,trunkTris:110,barkPx:128,leafPx:128,leafColours:32});   // 2026-11-12: the look of the tree beyond the 'near' range (a ~350-triangle copy, so the swap to the near tree is not a different species)
