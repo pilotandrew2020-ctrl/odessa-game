@@ -73,7 +73,7 @@ const GLBT={ready:false,loading:false,near:0,show:true,K:{},all:[],
     }).catch(e=>{console.warn('[trees] GLB trees not loaded, procedural ones stay',e&&e.message||e)})},
   setVisible(v){this.show=v;for(const g of this.all){if(g.mesh)g.mesh.visible=v;if(g.meshC)g.meshC.visible=v}},
   // called by TREES.update(): begin() -> take(p) for every tree point within `near` -> flush()
-  begin(maxD){const q=(typeof MOBILE!=='undefined'&&MOBILE)?60:92;this.near=this.ready?Math.min(maxD*.6,q):0;for(const g of this.all)g.clear();this.W=S.season==='winter'},
+  begin(maxD){const q=(typeof MOBILE!=='undefined'&&MOBILE)?38:92;this.near=this.ready?Math.min(maxD*.6,q):0;for(const g of this.all)g.clear();this.W=S.season==='winter'},
   // true = this tree is drawn from a GLB, false = leave it to the procedural species
   take(p,far){const g=this.GM[p[2]],sp=p[2];if(!g&&sp!==4)return false;if(far&&!this.KF)return false;   // far: the same trees, the far-copy meshes (a poplar stays a procedural tree: no mapping)
     const x=p[0],z=p[1],sc=p[3]||1;let y=p[4];if(y===undefined)y=p[4]=groundH(x,z)-.05;const h=GLBT_HASH(x,z),ry=h*6.283,w=.9+h*.2,K=far?this.KF:this.K,W=this.W;

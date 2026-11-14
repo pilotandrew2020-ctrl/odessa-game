@@ -2065,8 +2065,15 @@ function setTreeInstanceBounds(mesh,points){
 // covers ~55 m around the player, so a far tree's shadow was never visible, yet it was drawn into the shadow pass; and only the instances inside the widened camera frustum are
 // drawn). Before, every tree of the whole ring (260-380 m) was drawn twice every frame in all directions: 250-400k triangles in the main pass and as much in the shadow pass.
 const TREE_KEYS=[['t','trunk',true],['l','leaf',true],['tf','trunk',false],['lf','leaf',false]];
+// 2026-11-14: a lighter crown for tablets / far trees: every second leaf card dropped, the rest 35 % bigger (the crown keeps its volume, half the triangles). Used for ALL leaf meshes on tablets and for the far class elsewhere.
+const _leafLite=new WeakMap();
+function leafLite(g){let r=_leafLite.get(g);if(r)return r;const P=g.attributes.position,N=g.attributes.normal,U=g.attributes.uv,I=g.index;if(!I){_leafLite.set(g,g);return g}
+  const pos=[],nor=[],uv=[],idx=[];let q=0;for(let i=0;i+5<I.count;i+=6){if((i/6)&1)continue;const ids=[...new Set([I.getX(i),I.getX(i+1),I.getX(i+2),I.getX(i+3),I.getX(i+4),I.getX(i+5)])];let cx=0,cy=0,cz=0;for(const v of ids){cx+=P.getX(v);cy+=P.getY(v);cz+=P.getZ(v)}cx/=ids.length;cy/=ids.length;cz/=ids.length;
+    const map=new Map();for(const v of ids){map.set(v,pos.length/3);pos.push(cx+(P.getX(v)-cx)*1.35,cy+(P.getY(v)-cy)*1.35,cz+(P.getZ(v)-cz)*1.35);nor.push(N.getX(v),N.getY(v),N.getZ(v));uv.push(U.getX(v),U.getY(v))}
+    for(let k=0;k<6;k++)idx.push(map.get(I.getX(i+k)));q++}
+  r=new THREE.BufferGeometry();r.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));r.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));r.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));r.setIndex(idx);r.computeBoundingSphere();_leafLite.set(g,r);return r}
 const TREES={chunks:new Map(),meshes:[],master:[],dirty:false,capK:[],cullT:0,cullSig:null,cullForce:false,
-  mk(s,k,part,cast,cap){const m=new THREE.InstancedMesh(TREE_SP[s][part],part==='trunk'?MATS.bark:MATS.leaves,cap);m.frustumCulled=true;m.castShadow=cast;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mk(s,k,part,cast,cap){const m=new THREE.InstancedMesh(part==='leaf'&&(MOBILE||!cast)?leafLite(TREE_SP[s][part]):TREE_SP[s][part],part==='trunk'?MATS.bark:MATS.leaves,cap);m.frustumCulled=true;m.castShadow=cast;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     if(part==='leaf'){m.setColorAt(0,new THREE.Color(1,1,1));m.customDepthMaterial=LEAF_DEPTH}   // the colour buffer is sized by count: allocate it BEFORE count goes to 0
     m.count=0;return m},
   init(scene){for(let s=0;s<TREE_SP.length;s++){const ms={};this.capK[s]={};for(const [k,part,cast] of TREE_KEYS){ms[k]=this.mk(s,k,part,cast,1);this.capK[s][k]=1;scene.add(ms[k])}this.meshes[s]=ms}},
@@ -4654,12 +4661,20 @@ function carCullSetup(){const cam=camera;if(!cam||!renderer){_carLB=null;return}
 function carVisible(c){if(!_carLB)return true;const x=c.x,y=c.y+1,z=c.z;
   if(_carLB.on){const dx=x-_ST.x,dy=y-_ST.y,dz=z-_ST.z;if(Math.abs(dx*_SR.x+dy*_SR.y+dz*_SR.z)<_carLB.sr&&Math.abs(dx*_SV.x+dy*_SV.y+dz*_SV.z)<_carLB.sr)return true}
   const pl=_carFr.planes;for(let i=0;i<6;i++){const q=pl[i];if(q.normal.x*x+q.normal.y*y+q.normal.z*z+q.constant<-4)return false}return true}
-function queueCarInstance(c,cnt,force){if(!c)return;const i=c.type,t=CAR_T[i];if(!t||cnt[i]>=t.cap)return;if(!force&&!carVisible(c))return;writeCar(t,cnt[i],c);cnt[i]++}
+// 2026-11-14: tablets draw cars beyond 55 m as a 24-triangle box car (a body and a cabin, tinted, no shadow, no wheels) instead of the 1.5k-triangle model: the yard alone held ~120 parked cars in view.
+let CAR_LOW=null,_lowN=0;const _lm=new THREE.Matrix4(),_lq=new THREE.Quaternion(),_le=new THREE.Euler(),_lv=new THREE.Vector3(),_ls=new THREE.Vector3(),_lc=new THREE.Color();
+function initCarLow(scene){if(CAR_LOW)return;const parts=[[1,.5,1,0,.45,0],[.82,.4,.52,0,.9,-.05]],pos=[],nor=[];for(const [w,h,d,x,y,z] of parts){const b=new THREE.BoxGeometry(w,h,d).toNonIndexed(),P=b.attributes.position,N=b.attributes.normal;for(let i=0;i<P.count;i++){pos.push(P.getX(i)+x,P.getY(i)+y,P.getZ(i)+z);nor.push(N.getX(i),N.getY(i),N.getZ(i))}}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+  CAR_LOW=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0xffffff,roughness:.45,metalness:.5}),600);CAR_LOW.frustumCulled=false;CAR_LOW.castShadow=false;CAR_LOW.receiveShadow=false;CAR_LOW.instanceMatrix.setUsage(THREE.DynamicDrawUsage);CAR_LOW.setColorAt(0,new THREE.Color(1,1,1));CAR_LOW.count=0;scene.add(CAR_LOW)}
+function queueCarInstance(c,cnt,force){if(!c)return;const i=c.type,t=CAR_T[i];if(!t||cnt[i]>=t.cap)return;if(!force&&!carVisible(c))return;
+  if(!force&&CAR_LOW&&MOBILE&&_lowN<600){const dx=c.x-camera.position.x,dz=c.z-camera.position.z;if(dx*dx+dz*dz>3025){_le.set(0,c.yaw,0,'YXZ');_lq.setFromEuler(_le);_lv.set(c.x,c.y,c.z);_ls.set(t.W||1.8,1.45,t.L||4.2);_lm.compose(_lv,_lq,_ls);CAR_LOW.setMatrixAt(_lowN,_lm);_lc.setHex(c.col);_lc.convertSRGBToLinear();CAR_LOW.setColorAt(_lowN,_lc);_lowN++;return}}
+  writeCar(t,cnt[i],c);cnt[i]++}
 function queueCarList(list,cnt){if(!list)return;for(const c of list)queueCarInstance(c,cnt)}
 function placeCars(list,peerList,driven){
-  const cnt=CAR_FRAME_COUNTS||(CAR_FRAME_COUNTS=new Uint16Array(CAR_T.length));cnt.fill(0);
+  const cnt=CAR_FRAME_COUNTS||(CAR_FRAME_COUNTS=new Uint16Array(CAR_T.length));cnt.fill(0);_lowN=0;
   carCullSetup();queueCarList(PARKED_CACHE,cnt);queueCarList(list,cnt);queueCarInstance(driven,cnt,true);queueCarList(peerList,cnt);
   for(let i=0;i<CAR_T.length;i++){const t=CAR_T[i];t.mesh.count=cnt[i];t.wheels.count=cnt[i]*4;t.mesh.instanceMatrix.needsUpdate=true;t.wheels.instanceMatrix.needsUpdate=true;if(t.mesh.instanceColor)t.mesh.instanceColor.needsUpdate=true}
+  if(CAR_LOW){CAR_LOW.count=_lowN;CAR_LOW.instanceMatrix.needsUpdate=true;if(CAR_LOW.instanceColor)CAR_LOW.instanceColor.needsUpdate=true}
 }
 let PARKED_CACHE=[];
 function refreshParked(chunksMap,px,pz){
@@ -6876,7 +6891,7 @@ const QUAL={low:{pr:.7,shadow:512,sr:26,bloom:false,R:300,trees:90,tdens:.25,car
 if(!QUAL[S.q])S.q=recommendedQuality();
 // Mobile Safari budget: one 1024 shadow map, no half-float bloom target, chunks within 450 m.
 // Above this the tab runs out of GPU memory and iOS silently drops the WebGL context.
-const MOBILE_CAP={pr:1.5,shadow:1024,sr:55,R:450,trees:260,cars:10,peds:16};
+const MOBILE_CAP={pr:1.5,shadow:1024,sr:42,R:450,trees:260,cars:10,peds:16};
 const QUAL_MOBILE={};
 function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q]?S.q:'mid';
   if(!QUAL_MOBILE[key]){const m=Object.assign({},q,{bloom:false});for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
@@ -8009,7 +8024,7 @@ async function boot(){
   bootMark('Building the city…');$('bStart').textContent='Building the city…';await new Promise(r=>setTimeout(r,30));
   await buildAllLandmarks(scene);if(LANDMARK_GRP)LANDMARK_GRP.traverse(o=>{if(o.isMesh){o.matrixAutoUpdate=false;o.updateMatrix()}});try{initTrams()}catch(e){console.error('trams',e)}try{initRides()}catch(e){console.error('rides',e)}
   PLR=makePlayer(WARDROBE.outfit());PLR.root.traverse(o=>{if(o.isMesh){o.castShadow=true}});mergeAvatar(PLR.root);scene.add(PLR.root);
-  initPeopleMeshes(scene,100);initCarMeshes(scene,20);
+  initPeopleMeshes(scene,100);initCarMeshes(scene,20);if(MOBILE)initCarLow(scene);
   bootMark('landmarks');HELI.init(scene);
   try{if(typeof SPRAY!=="undefined")SPRAY.init(scene)}catch(e){console.error("spray",e)}
   try{MARINE.init(scene)}catch(e){console.error("marine",e)}
