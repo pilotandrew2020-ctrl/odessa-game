@@ -80,7 +80,7 @@ body.spc #hud,body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #quickRow,
     d.innerHTML=`<div id="spcLook"></div><div id="spcInfo"><b id="spcMode">Space</b><span id="spcSpd"></span><span id="spcAlt"></span><i><u id="spcThr"></u></i></div><div id="spcMsg"></div><div id="spcStick"><div></div></div>
     <div id="spcBtns"><button data-k="thrUp"><b>▲</b>Throttle</button><button data-k="full"><b>⚡</b>Full</button><button data-k="thrDn"><b>▼</b>Throttle</button>
     <button data-k="rollL"><b>↺</b>Roll</button><button data-k="brake"><b>■</b>Brake</button><button data-k="rollR"><b>↻</b>Roll</button>
-    <button data-k="station"><b>🛰</b>Station</button><button data-k="act" class="pri" id="spcAct"><b>⬇</b>Land</button><button data-k="quit"><b>🌍</b>Earth</button></div>`;
+    <button data-k="door" id="spcDoor" hidden><b>🚪</b>Cabin</button><button data-k="station"><b>🛰</b>Station</button><button data-k="act" class="pri" id="spcAct"><b>⬇</b>Land</button><button data-k="quit"><b>🌍</b>Earth</button></div>`;
     const fl=document.createElement('div');fl.id='spcFlash';const dk=document.createElement('div');dk.id='spcDark';document.body.append(d,fl,dk);this.el=d;
     const I=this.in,hold={thrUp:()=>I.thr=1,thrDn:()=>I.thr=-1,full:()=>I.full=1,brake:()=>I.brake=1,rollL:()=>I.roll=1,rollR:()=>I.roll=-1},rel={thrUp:()=>I.thr=0,thrDn:()=>I.thr=0,full:()=>I.full=0,brake:()=>I.brake=0,rollL:()=>I.roll=0,rollR:()=>I.roll=0};
     d.querySelectorAll('#spcBtns button').forEach(b=>{const k=b.dataset.k;
@@ -166,7 +166,7 @@ Object.assign(SPC,{
   // ---------------------------------------------------------------------------------------------- the fighter in the atmosphere
   board(){if(this.on||!this.fgt||!this.fgtMesh)return;this.begin('atmo');this.atmo=true;const m=this.fgtMesh;this.C={w:{x:m.position.x,y:m.position.y,z:m.position.z},q:new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.fgt.yaw),sp:0,thr:0,cq:null};
     this.msg('Space fighter','throttle up and climb: the Moon is far away',3200)},
-  frameAtmo(dt){if(this.mode==='ascent')return this.ascent(dt);if(this.mode!=='atmo'||!this.C)return;const C=this.C,alt=C.w.y-SL;this.flyStep(dt,true,alt);
+  frameAtmo(dt){if(this.mode==='ascent')return this.ascent(dt);if(this.mode!=='atmo'||!this.C)return;this.sound(dt);const C=this.C,alt=C.w.y-SL;this.flyStep(dt,true,alt);
     const gh=Math.max(groundH(C.w.x,C.w.z),SL);if(C.w.y<gh+3.5){C.w.y=gh+3.5;if(C.q){const f=new THREE.Vector3(0,0,1).applyQuaternion(C.q);if(f.y<0){f.y=0;f.normalize();C.q.setFromUnitVectors(new THREE.Vector3(0,0,1),f)}}C.sp*=.98}
     const m=this.fgtMesh;m.position.set(C.w.x,C.w.y,C.w.z);m.quaternion.copy(C.q);this.camFollow(dt,camera,C,0);player.x=C.w.x;player.z=C.w.z;player.y=C.w.y;player.vx=player.vz=0;
     camera.near=.5;camera.far=60000;camera.fov=72;camera.updateProjectionMatrix();
