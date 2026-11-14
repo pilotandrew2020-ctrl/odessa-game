@@ -1,0 +1,1 @@
+{"src":"src/iss.glb","out":"out/iss.glb","scale":200,"center":"xyz","maxTex":1024,"rough":0.5,"metal":0.2,"groups":[{"name":"iss","match":{},"tris":30000}]}

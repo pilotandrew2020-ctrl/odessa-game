@@ -1,0 +1,1 @@
+{"src":"src/fighter.glb","out":"out/fighter.glb","rot":[[0,0,1],[0,1,0],[-1,0,0]],"scale":4,"ground":true,"center":"xz","maxTex":1024,"rough":0.35,"metal":0.3,"groups":[{"name":"fighter","match":{},"tris":2300}]}

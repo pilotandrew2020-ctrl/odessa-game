@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -8031,6 +8031,7 @@ async function boot(){
   try{if(typeof NAV!=='undefined'&&NAV&&NAV.init)NAV.init()}catch(e){console.error('[boot] nav',e)}
   try{if(typeof BGM!=='undefined'&&BGM&&BGM.init)BGM.init()}catch(e){console.error('[boot] bgm',e)}
   try{if(typeof SPKUI!=='undefined'&&SPKUI&&SPKUI.init)SPKUI.init()}catch(e){console.error('[boot] speaker ui',e)}
+  try{if(typeof SPC!=='undefined'&&SPC&&SPC.init)SPC.init()}catch(e){console.error('[boot] space',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -8047,6 +8048,7 @@ function loop(t){
   if(GAR.on){last=t;safe('garage',()=>GAR.frame(t));return}
   let dt=Math.min(.05,(t-last)/1000);last=t;
   UNI.uTime.value+=dt;
+  if(typeof SPC!=='undefined'&&SPC.space){safe('space',()=>SPC.frame(dt));return}   // space.js: the separate space scene (Earth orbit, the Moon) replaces the world while it is on
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
@@ -8059,7 +8061,7 @@ function loop(t){
     if(typeof PED_SPRITES!=='undefined')PED_SPRITES.update(dt,player.x,player.z);
     // Safety net: the avatar is hidden while driving / flying and restored on exit. If any of
     // those exits is missed the local character stays invisible, so re-assert it here.
-    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&PLR.root.visible===false)PLR.root.visible=true;
+    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&PLR.root.visible===false)PLR.root.visible=true;
     updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();if(BUDDY.on)BUDDY.update(dt);
     if(typeof BATTERY411!=='undefined')BATTERY411.update(dt);
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);
@@ -8076,6 +8078,7 @@ function loop(t){
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
+  safe('spcAtmo',()=>{if(typeof SPC!=='undefined'&&SPC.atmo)SPC.frameAtmo(dt)});   // space.js: the shuttle's automatic ascent / the fighter in the atmosphere take over the camera
   safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
   if(DRIVE.on&&UNI.uNight.value>.3){const c=DRIVE.car,[hx,hz]=carAhead(c,7.5);UNI.uL.value[15].set(hx,c.y+2.6,hz,3.6);DRIVE.hl=true}else if(DRIVE.hl){DRIVE.hl=false;updateLampUniforms()}
   sky.position.copy(camera.position);nightSky.position.copy(camera.position);
@@ -9246,7 +9249,7 @@ const CRUISE={people:[],x:0,z:0};
 function buildCruise(grp,F,a,o){
   const L=150,W=22,yM=SL+7,decks=3,yS=yM+decks*2.8,c=F.P(o.u,o.s*(46+W/2+2.5));
   const SF=frame(c[0],c[1],a+Math.PI);   // ship frame: +x bow (out to sea), +z towards the pier
-  CRUISE.x=c[0];CRUISE.z=c[1];
+  CRUISE.x=c[0];CRUISE.z=c[1];CRUISE.rot=-(a+Math.PI);
   const g=new THREE.Group();g.position.set(c[0],0,c[1]);g.rotation.y=-(a+Math.PI);grp.add(g);
   const halfW=x=>x<45?W/2:Math.max(0,W/2*(1-Math.pow((x-45)/30,2)));   // straight sides, rounded bow from x=45 to 75
   const sh=new THREE.Shape();sh.moveTo(-75,-W/2);for(let x=45;x<=75;x+=3)sh.lineTo(x,-halfW(x));for(let x=75;x>=45;x-=3)sh.lineTo(x,halfW(x));sh.lineTo(-75,W/2);sh.lineTo(-75,-W/2);
