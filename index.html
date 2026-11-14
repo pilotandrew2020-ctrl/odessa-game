@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -8047,6 +8047,7 @@ async function boot(){
   try{if(typeof BGM!=='undefined'&&BGM&&BGM.init)BGM.init()}catch(e){console.error('[boot] bgm',e)}
   try{if(typeof SPKUI!=='undefined'&&SPKUI&&SPKUI.init)SPKUI.init()}catch(e){console.error('[boot] speaker ui',e)}
   try{if(typeof SPC!=='undefined'&&SPC&&SPC.init)SPC.init()}catch(e){console.error('[boot] space',e)}
+  try{if(typeof SHIP!=='undefined'&&SHIP&&SHIP.init)SHIP.init()}catch(e){console.error('[boot] ship',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -9262,10 +9263,12 @@ INTERACT.push({get x(){return SHOVE.cand?SHOVE.cand.x:1e9},get z(){return SHOVE.
 // ===================== cruise liner at the sea terminal: gangway from the pier, promenade, sun deck with a pool =====================
 const CRUISE={people:[],x:0,z:0};
 function buildCruise(grp,F,a,o){
+  const _w0=STATIC_WALLS.length,_s0=SPECIAL.length;CRUISE.hide=[];   // ship.js replaces this liner with the owner's cruise ship: it neutralises everything registered in between
   const L=150,W=22,yM=SL+7,decks=3,yS=yM+decks*2.8,c=F.P(o.u,o.s*(46+W/2+2.5));
   const SF=frame(c[0],c[1],a+Math.PI);   // ship frame: +x bow (out to sea), +z towards the pier
   CRUISE.x=c[0];CRUISE.z=c[1];CRUISE.rot=-(a+Math.PI);
-  const g=new THREE.Group();g.position.set(c[0],0,c[1]);g.rotation.y=-(a+Math.PI);grp.add(g);
+  const g=new THREE.Group();g.position.set(c[0],0,c[1]);g.rotation.y=-(a+Math.PI);grp.add(g);g.userData.dyn=true;   // not baked into the landmark tiles: ship.js hides it
+
   const halfW=x=>x<45?W/2:Math.max(0,W/2*(1-Math.pow((x-45)/30,2)));   // straight sides, rounded bow from x=45 to 75
   const sh=new THREE.Shape();sh.moveTo(-75,-W/2);for(let x=45;x<=75;x+=3)sh.lineTo(x,-halfW(x));for(let x=75;x>=45;x-=3)sh.lineTo(x,halfW(x));sh.lineTo(-75,W/2);sh.lineTo(-75,-W/2);
   const hull=new THREE.ExtrudeGeometry(sh,{depth:10.5,bevelEnabled:false});hull.rotateX(-Math.PI/2);hull.translate(0,SL-3.5,0);
@@ -9319,13 +9322,14 @@ function buildCruise(grp,F,a,o){
   for(let x=45;x<75;x+=6)for(const s of [-1,1])wl(x,s*halfW(x),x+6,s*halfW(x+6),SL-4,yM-1.7);
   {const ry=Math.atan2(Math.cos(a),Math.sin(a)),len=Math.hypot(gu0-gu1,yM-yP),m=F.P((gu0+gu1)/2,gv),gm=new THREE.MeshStandardMaterial({color:0x8c9298,roughness:.6,metalness:.5});
    const ramp=new THREE.Mesh(new THREE.BoxGeometry(2.8,.18,len),gm);ramp.position.set(m[0],(yP+yM)/2-.1,m[1]);
-   ramp.rotation.set(Math.atan2(yM-yP,gu0-gu1),ry,0,'YXZ');ramp.castShadow=true;grp.add(ramp);
-   const b=F.P(gu1-1.1,(gv-1.4+49.5)/2),br=new THREE.Mesh(new THREE.BoxGeometry(2.2,.18,49.5-(gv-1.4)),gm);br.position.set(b[0],yM-.1,b[1]);br.rotation.y=ry+Math.PI/2;grp.add(br)}
+   ramp.rotation.set(Math.atan2(yM-yP,gu0-gu1),ry,0,'YXZ');ramp.castShadow=true;ramp.userData.dyn=true;grp.add(ramp);CRUISE.hide.push(ramp);
+   const b=F.P(gu1-1.1,(gv-1.4+49.5)/2),br=new THREE.Mesh(new THREE.BoxGeometry(2.2,.18,49.5-(gv-1.4)),gm);br.position.set(b[0],yM-.1,b[1]);br.rotation.y=ry+Math.PI/2;br.userData.dyn=true;grp.add(br);CRUISE.hide.push(br)}
   // passengers: sunbathers by the pool, groups chatting on the decks, a few at the rails
   const at=(lx,lz,y,pose,face)=>{const p=SF.P(lx,lz);CRUISE.people.push(Object.assign(randPerson(),{x:p[0],z:p[1],y,yaw:face-(a+Math.PI),pose,moving:false,phase:Math.random()*6,hand:Math.random()<.5?1:0}))};
   for(let i=0;i<6;i++)for(const s of [-1,1])if((i+s+3)%3)at(-27+i*2.8,s*5.6,yS+.02,'sit',s>0?Math.PI:0);
   for(const [lx,lz,n] of [[-6,2,3],[10,-3,2],[18,3,3]])for(let k=0;k<n;k++){const an=k/n*6.283,px=lx+Math.cos(an)*.8,pz=lz+Math.sin(an)*.8;at(px,pz,yS+.02,'talk',Math.atan2(lx-px,lz-pz))}
   for(const [lx,lz] of [[-60,9.6],[-48,9.6],[35,-9.6],[52,6],[60,-4],[-66,-9.6]])at(lx,lz,yM+.02,'stand',lz>0?0:Math.PI);
+  CRUISE.rm={w0:_w0,w1:STATIC_WALLS.length,s0:_s0,s1:SPECIAL.length,hull:MARINE.hulls.length};CRUISE.g=g;
   MARINE.hulls.push({x:c[0],z:c[1],hl:75.5,hw:W/2+.5,ca:Math.cos(a),sa:Math.sin(a)});
   const gp=F.P(gu0+4,gv);PLACES.push({id:'cruise',name:'Cruise liner Odesa Star',sub:'walk up the gangway at the sea terminal',x:gp[0],z:gp[1],yaw:Math.atan2(-Math.cos(a),-Math.sin(a))});
 }

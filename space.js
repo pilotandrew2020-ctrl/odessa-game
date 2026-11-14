@@ -18,7 +18,7 @@ const SPC={
     addEventListener('keydown',e=>this.key(e,1),true);addEventListener('keyup',e=>this.key(e,0),true);
     ANIM.push(dt=>this.tick(dt))},
   buildPad(){const th=CRUISE.rot||0,bd=[Math.cos(th),-Math.sin(th)],pp=[-bd[1],bd[0]];let px=0,pz=0,found=false;
-    for(let d=330;d<=1100&&!found;d+=30)for(const sd of [1,-1]){const x=CRUISE.x+bd[0]*d+pp[0]*130*sd,z=CRUISE.z+bd[1]*d+pp[1]*130*sd;let deep=true;
+    for(let d=620;d<=1300&&!found;d+=30)for(const sd of [1,-1]){const x=CRUISE.x+bd[0]*d+pp[0]*130*sd,z=CRUISE.z+bd[1]*d+pp[1]*130*sd;let deep=true;
       for(let a=0;a<8;a++){const q=a*Math.PI/4;if(rawH(x+Math.cos(q)*110,z+Math.sin(q)*110)>SL-6)deep=false}if(deep&&rawH(x,z)<SL-6){px=x;pz=z;found=true;break}}
     if(!found){px=CRUISE.x+bd[0]*600;pz=CRUISE.z+bd[1]*600}
     const top=SL+4.2,g=new THREE.Group();g.position.set(px,0,pz);scene.add(g);this.pad={x:px,z:pz,top,g,bow:bd};
