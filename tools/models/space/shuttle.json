@@ -1,0 +1,6 @@
+{"src":"src/shuttle.glb","out":"out/shuttle_stack.glb","rot":[[1,0,0],[0,0,1],[0,-1,0]],"scale":6,"ground":true,"center":"xz","maxTex":1024,"rough":0.55,
+ "groups":[
+  {"name":"srb_l","match":{"nodeRe":"^Rocket_","xMore":0},"tris":7000,"maxTex":512},
+  {"name":"srb_r","match":{"nodeRe":"^Rocket_","xLess":0},"tris":7000,"maxTex":512},
+  {"name":"tank","match":{"nodeRe":"^Orange_Parts"},"tris":5000,"maxTex":512},
+  {"name":"orbiter","match":{},"tris":30000,"maxTex":1024}]}
