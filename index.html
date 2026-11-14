@@ -332,6 +332,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
         <button id="bStart" disabled>Loading the map…</button>
         <button id="bBRm" disabled>Battle Royale</button>
         <button id="bChar" disabled>Character</button>
+        <button data-p="pModes">Game modes</button>
         <button data-p="pSet">Settings</button>
         <button data-p="pOnl">Online co-op</button>
         <button data-p="pKeys">Controls</button>
@@ -339,6 +340,8 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
     </div>
     <section id="mPanel">
       <div class="mp" id="pAbout"><h2>Welcome to Odesa</h2><p>Every street and building of Odesa from the real map, with real terrain. You start in Andrii's yard on Chykalenka St (formerly Williams), 59k. Go into the stairwell and the flat, the supermarket, the pharmacy, the Opera House and the railway station, ride the tram and walk around with a speaker. Play together with friends in co-op.</p><p>Press <b>Play</b> to design your character, then step outside.</p></div>
+      <div class="mp" id="pModes" hidden><h2>Game modes</h2><p>These stay out of the normal game screen. Pick one and you drop straight into it.</p>
+        <div class="modeList"><button data-mode="br"><b>Battle Royale</b><span>Bus, parachute, shrinking zone, bots</span></button><button data-mode="hs"><b>Hide &amp; Seek</b><span>Hide in the city, the seeker counts down</span></button><button data-mode="jet"><b>Jet Ski Rider</b><span>Race through gates on the sea</span></button></div></div>
       <div class="mp" id="pSet" hidden><h2>Settings</h2>
         <div class="row"><label>Time</label><button data-t="day" class="on">Day</button><button data-t="dusk">Sunset</button><button data-t="night">Night</button></div>
         <div class="row"><label>Season</label><button data-s="summer" class="on">Summer</button><button data-s="winter">Winter</button></div>
@@ -8102,6 +8105,9 @@ $('bStart').onclick=()=>{if(!renderer)return;if(!CREATOR.done){CREATOR.open('pla
   if((typeof AUD!=='undefined')&&AUD)AUD.start();
   if(!boot.greeted){boot.greeted=true;cam.yaw=player.yaw;toast('Chykalenka St, 59k','formerly Williams St · Tairove')}
   COOP.onStart();if(typeof BR!=='undefined'&&BR.want){BR.want=false;setTimeout(()=>BR.start(),900)}};
+document.querySelectorAll('#pModes [data-mode]').forEach(b=>b.onclick=()=>{AUD.menuUi('clk');const m=b.dataset.mode;
+  if(m==='br'){if(typeof BR==='undefined')return;BR.want=true;$('bStart').click();return}
+  $('bStart').click();setTimeout(()=>{const id={hs:'bHS',jet:'bJetRace'}[m],real=document.getElementById(id);if(real)real.click();else toast('Not ready','this mode is still loading')},700)});     // the real mode buttons live parked in the HUD; the menu presses them once the game is running
 $('bBRm').onclick=()=>{if(typeof BR==='undefined')return;AUD.menuUi('clk');BR.want=true;$('bStart').click()};      // main menu: Battle Royale (goes through the character screen the first time)
 // original menu sounds: hover/click blips + the menu theme keeps playing until Play (installed once AUDIO can start)
 function menuSounds(){if(AUD.ok)return;const nav=document.getElementById('mNav');if(!nav)return;AUD.start();AUD.menuTheme();

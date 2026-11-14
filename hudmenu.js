@@ -10,8 +10,8 @@ const HUDM={
   // user request 2026-11-09: Battle Royale + Hide & Seek stay OUT of the left stack (they live behind Modes);
   // the Modes button alone is row 3.
   MODES:['bBR','bHS','bJetRace'],            // registered mode buttons (adopted behind the Modes panel)
-  ROW1:['bModes','bTime','bRain','bSnow'],
-  ROW2:['bFog','bGun','bPolish','bMenu'],
+  ROW1:['bTime','bRain','bSnow','bFog'],
+  ROW2:['bGun','bPolish','bMenu'],
   ROW3:[],                                   // BR / HS / JetRace are NOT adopted into the stack any more
   RIGHT:['bMap','bChat','bBag'],              // these live in #quickRow (icon proxies)
   KEEP:new Set(),                             // nothing needs "keep the list open": there is no list
@@ -69,7 +69,7 @@ const HUDM={
     modes.onclick=e=>{e.stopPropagation();panel.hidden=!panel.hidden;modes.classList.toggle('on',!panel.hidden)};
     panel.addEventListener('click',e=>{if(e.target.closest('button'))setTimeout(()=>{panel.hidden=true},0)});     // choosing a mode closes the menu
     document.addEventListener('pointerdown',e=>{if(!panel.hidden&&!panel.contains(e.target)&&!modes.contains(e.target))panel.hidden=true},true);     // a tap anywhere else closes it
-    this.rows[0].appendChild(modes);
+    // 2026-11-14: the Modes tile is gone from the game screen; Battle Royale / Hide & Seek / Jet Ski Rider live in the menu (Game modes tab, index.html). The panel stays as a hidden parking place for their buttons.
     {const qb=document.createElement('button');qb.id='bPolish';this.syncPolish=()=>{qb.textContent='GFX '+(typeof S!=='undefined'&&S.polish==='max'?'MAX':'LITE')};this.syncPolish();qb.title='Visual polish: Lite / Max';qb.textContent='GFX LITE';qb.onclick=()=>{if(typeof S==='undefined')return;S.polish=S.polish==='max'?'lite':'max';try{if(typeof saveS==='function')saveS()}catch(e){}this.syncPolish();if(typeof applyTime==='function')applyTime()};bar.appendChild(qb)}
     for(const b of [...bar.children])if(b.tagName==='BUTTON')this.adopt(b);
     // buttons appended by scripts (bVoice, bPhone, mode buttons…): the mic and phone move into the right quick row as tiles,

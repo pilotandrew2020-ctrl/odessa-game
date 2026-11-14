@@ -17,10 +17,14 @@ const PHONE={
     {n:'Police',e:'🚓',num:'102',say:['Police. What is your emergency? ... Stay calm, someone is on the way.']}],
   lib:[],cur:-1,pos:0,dur:0,pstate:-1,shuffle:false,repeat:false,vol:70,paused:false,
   call:null,recents:[],dial:'',snake:null,
+  tt:'',ttLib:[],wall:0,
+  WALLS:[['Odesa night','radial-gradient(120% 90% at 20% 0%,#2a4a6b 0%,#162235 45%,#0c1320 100%)'],['Sunset','linear-gradient(160deg,#ff9a5a,#d9467a 45%,#3b2a7a)'],['Sea','linear-gradient(180deg,#52c7d8,#13708a 55%,#0a2f4a)'],['Aurora','linear-gradient(160deg,#0b1f2e,#0f6f6a 50%,#6be0b0)'],['Graphite','linear-gradient(180deg,#2b2f36,#0b0d10)'],['Cherry','linear-gradient(160deg,#6a1030,#c2185b 60%,#ff7a9a)'],['Forest','linear-gradient(170deg,#0e2b1c,#1f6b3f 60%,#9ad17a)'],['Neon grid','repeating-linear-gradient(0deg,rgba(56,228,208,.18) 0 1px,transparent 1px 28px),repeating-linear-gradient(90deg,rgba(56,228,208,.18) 0 1px,transparent 1px 28px),linear-gradient(180deg,#14072e,#06020f)']],
   // ---------------------------------------------------------------------------------------------------- setup
   init(){
     try{this.lib=JSON.parse(localStorage.getItem('odessa_phone_lib')||'[]').filter(t=>t&&typeof t.url==='string')}catch(e){this.lib=[]}
     try{this.recents=JSON.parse(localStorage.getItem('odessa_phone_recents')||'[]')}catch(e){this.recents=[]}
+    try{this.ttLib=JSON.parse(localStorage.getItem('odessa_phone_tt')||'[]').filter(x=>/^\d{8,25}$/.test(x))}catch(e){this.ttLib=[]}
+    try{const w=localStorage.getItem('odessa_phone_wall');this.wall=w==='custom'?'custom':Math.max(0,Math.min(this.WALLS.length-1,+w||0))}catch(e){}
     const old=document.getElementById('gtPhone');if(old)old.remove();
     this.css();this.build();
     let b=document.getElementById('bPhone');if(!b){b=document.createElement('button');b.id='bPhone';b.type='button';b.innerHTML='<i>📱</i><span>Phone</span>';document.body.appendChild(b)}
@@ -78,6 +82,9 @@ const PHONE={
 #phn canvas.sn{display:block;margin:4px auto;border-radius:14px;background:#0d1b12;touch-action:none}
 #phn .dp{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,46px);gap:6px;justify-content:center;margin:6px 0}#phn .dp button{border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-size:18px;cursor:pointer}
 #phn .kv{display:flex;justify-content:space-between;padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.12)}
+#phn .hint{margin:4px 14px 8px;font-size:11px;opacity:.7;line-height:1.4}
+#phn #phnTtBox{margin:0 12px 8px;border-radius:16px;overflow:hidden;background:#000;min-height:0}#phn #phnTtBox iframe{display:block;width:100%;height:330px;border:0}#phn #phnTtBox .hint{color:#fff}
+#phn .wps{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:6px 14px;overflow:auto}#phn .wp{position:relative;height:104px;border:2px solid transparent;border-radius:16px;display:flex;align-items:flex-end;padding:8px;color:#fff;font:700 11px system-ui;cursor:pointer;text-align:left;text-shadow:0 1px 4px rgba(0,0,0,.7)}#phn .wp.on{border-color:#38e4d0;box-shadow:0 0 12px rgba(56,228,208,.5)}
 #phn .pad2{padding:0 16px;overflow:auto}#phn .pad2 p{margin:6px 0 10px;line-height:1.5}
 `;document.head.appendChild(s)},
   build(){if(document.getElementById('phn'))return;const d=document.createElement('div');d.id='phn';d.setAttribute('role','dialog');d.setAttribute('aria-label','Phone');
@@ -92,11 +99,12 @@ const PHONE={
     const end=()=>{if(!drag)return;drag=false;const v=-dy/Math.max(1,performance.now()-t0);d.style.transition='';d.style.transform='';d.style.opacity='';
       if(dy<-70||(dy<-26&&v>.45))this.toggle();else if(Math.abs(dy)<6&&this.screen!=='home')this.go('home')};
     hm.addEventListener('pointerup',end);hm.addEventListener('pointercancel',end);
-    this.go('home')},
+    this.applyWall();this.go('home')},
+  applyWall(){const sc=document.querySelector('#phn .scr');if(!sc)return;let bg=this.WALLS[typeof this.wall==='number'?this.wall:0][1];if(this.wall==='custom'){try{const u=localStorage.getItem('odessa_phone_wallimg');if(u&&/^data:image\//.test(u))bg='center/cover url('+u+')'}catch(e){}}sc.style.background=bg},
   // ---------------------------------------------------------------------------------------------------- open / close / frame
   toggle(){this.open=!this.open;const d=document.getElementById('phn');if(!d)return;
     if(this.open){d.classList.remove('hide');void d.offsetWidth;d.classList.add('show');if(!this._hint){this._hint=1;try{if(!localStorage.getItem('odessa_phone_hint')){localStorage.setItem('odessa_phone_hint','1');if(typeof toast==='function')toast('Phone','Drag the bar at the bottom up to put it away')}}catch(e){}}this.go(this.screen==='calling'?'calling':'home');if(typeof AUD!=='undefined'&&AUD&&AUD.menuUi)try{AUD.menuUi('clk')}catch(e){}}
-    else{d.classList.add('hide');d.classList.remove('show');this.snakeStop()}
+    else{d.classList.add('hide');d.classList.remove('show');this.snakeStop();if(this.screen==='tiktok')this.go('home')}
     this.ui();if(typeof COOP!=='undefined')COOP.push(true)},
   ui(){const b=document.getElementById('bPhone');if(b){b.classList.toggle('on',this.open);b.setAttribute('aria-pressed',String(this.open));b.setAttribute('aria-label',this.open?'Put phone away':'Open phone')}},
   tick(dt){if(!this.open)return;this._c=(this._c||0)-dt;if(this._c>0)return;this._c=1;const c=document.getElementById('phnClk');if(c)c.textContent=this.time();
@@ -107,7 +115,7 @@ const PHONE={
   go(name,quiet){this.screen=name;const b=document.getElementById('phnBody');if(!b)return;if(name!=='snake')this.snakeStop();
     const e=this.esc,H={
       home:()=>`<div class="pg"><div class="wid"><b>${this.time()}</b><span>${new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long'}).format(new Date())}</span></div>
-        <div class="grid">${[['phone','📞','#3fb950','Phone'],['music','🎵','#e5484d','Music'],['snake','🐍','#2f9e5a','Snake'],['news','📰','#3b82f6','News'],['clock','🕐','#6b7280','Clock'],['bank','🏦','#d99a1d','Bank']].map(a=>`<button class="app" data-a="open" data-v="${a[0]}"><i style="background:${a[2]}">${a[1]}</i>${a[3]}</button>`).join('')}</div>
+        <div class="grid">${[['phone','📞','#3fb950','Phone'],['music','🎵','#e5484d','Music'],['snake','🐍','#2f9e5a','Snake'],['news','📰','#3b82f6','News'],['clock','🕐','#6b7280','Clock'],['bank','🏦','#d99a1d','Bank'],['tiktok','🎬','#111','TikTok'],['google','🔎','#4285f4','Google'],['wall','🖼️','#8b5cf6','Wallpaper']].map(a=>`<button class="app" data-a="open" data-v="${a[0]}"><i style="background:${a[2]}">${a[1]}</i>${a[3]}</button>`).join('')}</div>
         ${this.cur>=0&&this.lib[this.cur]?`<div class="mini" data-a="open" data-v="np"><img src="${e(this.lib[this.cur].thumb||'')}" alt="" onerror="this.style.visibility='hidden'"><b>${e(this.lib[this.cur].title)}</b><span>${this.paused?'▶':'⏸'}</span></div>`:''}</div>`,
       music:()=>`<div class="pg"><h2>Music</h2><div class="add"><input id="phnUrl" type="url" inputmode="url" placeholder="Paste a YouTube link" autocomplete="off"><button class="btn" data-a="addlink">Save</button></div>
         <div class="lst"><div class="row" data-a="fm"><div class="av">📻</div><div class="t"><b>Odesa FM</b><span>${typeof BGM!=='undefined'&&BGM.on?'On · soft lo-fi while you explore (pauses for your music)':'Off'}</span></div><span>${typeof BGM!=='undefined'&&BGM.on?'⏸':'▶'}</span></div>${this.lib.length?this.lib.map((t,i)=>`<div class="row${i===this.cur?' on':''}" data-a="play" data-v="${i}"><img src="${e(t.thumb||'')}" alt="" onerror="this.style.visibility='hidden'"><div class="t"><b>${e(t.title)}</b><span>${t.kind==='youtube'?'YouTube':e(t.kind)}${t.dur?' · '+this.mmss(t.dur):''}</span></div><button class="x" data-a="del" data-v="${i}" aria-label="Remove">✕</button></div>`).join(''):'<p style="opacity:.7;padding:8px 10px">No songs yet. Paste a YouTube link above, or play one from the speaker: it is saved here automatically.</p>'}</div>
@@ -124,10 +132,21 @@ const PHONE={
         <div class="dp"><span></span><button data-a="sd" data-v="0,-1">▲</button><span></span><button data-a="sd" data-v="-1,0">◀</button><button data-a="sd" data-v="0,1">▼</button><button data-a="sd" data-v="1,0">▶</button></div></div>`,
       news:()=>`<div class="pg"><h2>News</h2><div class="pad2"><p><b style="color:#38e4d0">PATCH NOTES</b></p><p>${e(this.news)}</p></div></div>`,
       clock:()=>`<div class="pg"><h2>Clock</h2><div class="pad2"><div class="wid"><b>${this.time(1)}</b><span>${new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date())}</span></div>${typeof S!=='undefined'?`<div class="kv"><span>Season</span><b>${e(S.season||'')}</b></div><div class="kv"><span>Time of day</span><b>${e(S.time||'')}</b></div>`:''}</div></div>`,
+      tiktok:()=>`<div class="pg"><h2>TikTok</h2><div class="add"><input id="phnTt" type="url" inputmode="url" placeholder="Paste a TikTok video link" autocomplete="off"><button class="btn" data-a="ttgo">Play</button></div>
+        <div id="phnTtBox">${this.tt?`<iframe src="https://www.tiktok.com/embed/v2/${this.tt}" title="TikTok" allow="autoplay; encrypted-media; fullscreen" allowfullscreen loading="eager"></iframe>`:'<p class="hint">TikTok does not allow its feed inside other apps: paste the link of a video (open it in TikTok, Share, Copy link) and it plays here.</p>'}</div>
+        <div class="lst">${this.ttLib.map((x,i)=>`<div class="row" data-a="ttplay" data-v="${i}"><div class="av">🎬</div><div class="t"><b>Video ${e(x)}</b><span>saved link</span></div><span data-a="ttdel" data-v="${i}" style="padding:6px">✕</span></div>`).join('')}<div class="row" data-a="ttopen"><div class="av">↗</div><div class="t"><b>Open TikTok</b><span>in a new tab (leaves the game open behind)</span></div></div></div></div>`,
+      google:()=>`<div class="pg"><h2>Google</h2><div style="text-align:center;font:700 34px/1 system-ui;margin:10px 0 6px;letter-spacing:-1px"><span style="color:#4285f4">G</span><span style="color:#ea4335">o</span><span style="color:#fbbc05">o</span><span style="color:#4285f4">g</span><span style="color:#34a853">l</span><span style="color:#ea4335">e</span></div>
+        <div class="add"><input id="phnGq" type="search" placeholder="Search Google" autocomplete="off"><button class="btn" data-a="gsearch">Go</button></div>
+        <p class="hint">Google does not allow itself inside other apps, so a search opens in a new browser tab; the game stays open behind it.</p>
+        <div class="lst">${[['Odesa weather','https://www.google.com/search?q=Odesa+weather'],['Odesa map','https://www.google.com/maps/place/Odesa'],['YouTube','https://www.youtube.com/'],['TikTok','https://www.tiktok.com/']].map((x,i)=>`<div class="row" data-a="gopen" data-v="${e(x[1])}"><div class="av">↗</div><div class="t"><b>${e(x[0])}</b></div></div>`).join('')}</div></div>`,
+      wall:()=>`<div class="pg"><h2>Wallpaper</h2><div class="wps">${this.WALLS.map((w,i)=>`<button class="wp${this.wall===i?' on':''}" data-a="wallset" data-v="${i}" style="background:${w[1]}" aria-label="${e(w[0])}"><span>${e(w[0])}</span></button>`).join('')}<label class="wp${this.wall==='custom'?' on':''}" style="background:#222"><span>Your photo</span><input id="phnWf" type="file" accept="image/*" hidden></label></div></div>`,
       bank:()=>`<div class="pg"><h2>Bank</h2><div class="pad2"><div class="wid"><span>Balance</span><b>${typeof WALLET!=='undefined'?e(WALLET.fmt()):'₴0'}</b></div></div></div>`};
     if(quiet&&name==='clock'){const w=b.querySelector('.wid b');if(w){w.textContent=this.time(1);return}}
     b.innerHTML=(H[name]||H.home)();
     if(name==='snake')this.snakeStart();
+    if(name==='tiktok'||name==='google'){const i=document.getElementById(name==='tiktok'?'phnTt':'phnGq');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.act(name==='tiktok'?'ttgo':'gsearch')}})}
+    if(name==='wall'){const f=document.getElementById('phnWf');if(f)f.onchange=()=>{const file=f.files&&f.files[0];if(!file)return;const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const k=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+      try{localStorage.setItem('odessa_phone_wallimg',c.toDataURL('image/jpeg',.8));localStorage.setItem('odessa_phone_wall','custom');this.wall='custom';this.applyWall();this.go('wall')}catch(e){if(typeof toast==='function')toast('Wallpaper','The photo is too big to keep')}};im.onerror=()=>URL.revokeObjectURL(u);im.src=u}}
     if(name==='np'){const s=document.getElementById('phnSeek'),v=document.getElementById('phnVol');
       if(s){s.oninput=()=>{document.getElementById('phnPos').textContent=this.mmss(+s.value);this._drag=1};s.onchange=()=>{this._drag=0;this.seek(+s.value)}}
       if(v)v.oninput=()=>{this.vol=+v.value;if(typeof SPK!=='undefined')SPK.mediaCommand('setVolume',[this.vol])}}
@@ -157,6 +176,13 @@ const PHONE={
     if(a==='next'){this.next();return}if(a==='prev'){this.prev();return}
     if(a==='back10'){this.seek(this.pos-10);return}if(a==='fwd10'){this.seek(this.pos+10);return}
     if(a==='shuf'){this.shuffle=!this.shuffle;this.go('np');return}if(a==='rep'){this.repeat=!this.repeat;this.go('np');return}
+    if(a==='ttgo'){const i=document.getElementById('phnTt'),m=i&&/\/video\/(\d{8,25})/.exec(i.value.trim())||(i&&/^(\d{8,25})$/.exec(i.value.trim()));if(!m){if(typeof toast==='function')toast('TikTok','Paste the full link of a video (…/video/123…): short vm.tiktok.com links cannot be opened here');return}
+      this.tt=m[1];if(!this.ttLib.includes(m[1])){this.ttLib.unshift(m[1]);this.ttLib=this.ttLib.slice(0,30);try{localStorage.setItem('odessa_phone_tt',JSON.stringify(this.ttLib))}catch(e){}}this.go('tiktok');return}
+    if(a==='ttplay'){this.tt=this.ttLib[+v]||'';this.go('tiktok');return}
+    if(a==='ttdel'){this.ttLib.splice(+v,1);try{localStorage.setItem('odessa_phone_tt',JSON.stringify(this.ttLib))}catch(e){}this.go('tiktok');return}
+    if(a==='ttopen'||a==='gopen'){window.open(a==='ttopen'?'https://www.tiktok.com/':v,'_blank','noopener,noreferrer');return}
+    if(a==='gsearch'){const i=document.getElementById('phnGq');if(i&&i.value.trim())window.open('https://www.google.com/search?q='+encodeURIComponent(i.value.trim()),'_blank','noopener,noreferrer');return}
+    if(a==='wallset'){this.wall=+v;try{localStorage.setItem('odessa_phone_wall',String(this.wall))}catch(e){}this.applyWall();this.go('wall');return}
     if(a==='sd'){const [x,y]=String(v).split(',').map(Number);this.snakeDir(x,y);return}
   },
   // ---------------------------------------------------------------------------------------------------- music library and playback (through the speaker, SPK)

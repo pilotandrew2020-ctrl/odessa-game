@@ -36,4 +36,15 @@ exports.run = async (page, h) => {
   assert(/Never Gonna/.test(sp.title) && sp.play === '⏸' && sp.rows === 2 && sp.cur === 1 && sp.eq && sp.seek[3] === '3:33' && sp.seek[2] === '0:42', 'speaker player state is wrong');
   await h.shot('ui_speaker', 2500);
   await ev(() => { SPK.media = null; SPK.playing = false; document.getElementById('spk').hidden = true });
+  // ---- 2026-11-14: no Modes tile on the game screen, a Game modes tab in the menu, wallpapers, TikTok and Google in the phone
+  assert(await ev(() => !document.getElementById('bModes') || !document.querySelector('#hudmStack #bModes')), 'the Modes tile is still on the game screen');
+  assert(await ev(() => !document.querySelector('#hudmStack #bBR, #hudmStack #bHS, #hudmStack #bJetRace')), 'a mode button is on the game screen');
+  const ph = await ev(() => { PHONE.open = true; const d = document.getElementById('phn'); PHONE.go('wall'); const bg0 = document.querySelector('#phn .scr').style.background; PHONE.act('wallset', '3'); const bg1 = document.querySelector('#phn .scr').style.background;
+    PHONE.go('tiktok'); document.getElementById('phnTt').value = 'https://www.tiktok.com/@user/video/7234567890123456789'; PHONE.act('ttgo'); const f = document.querySelector('#phnTtBox iframe'); const src = f && f.src; const lib = PHONE.ttLib.slice();
+    PHONE.go('google'); const g = !!document.getElementById('phnGq'); PHONE.go('home'); PHONE.open = false; return { changed: bg0 !== bg1, src, lib, g, apps: document.querySelectorAll('#phn .app').length } });
+  console.log('phone apps', JSON.stringify(ph)); assert(ph.changed && /embed\/v2\/7234567890123456789/.test(ph.src || '') && ph.lib[0] === '7234567890123456789' && ph.g && ph.apps === 9, 'phone wallpaper / TikTok / Google are wrong');
+  await ev(() => document.getElementById('bMenu').click()); await h.wait(800);
+  const mt = await ev(() => { const b = document.querySelector('#mNav [data-p=pModes]'); if (!b) return null; b.click(); return { shown: !document.getElementById('pModes').hidden, cards: [...document.querySelectorAll('#pModes [data-mode]')].map(x => x.dataset.mode) } });
+  console.log('modes tab', JSON.stringify(mt)); assert(mt && mt.shown && mt.cards.join() === 'br,hs,jet', 'the Game modes tab is missing');
+  await h.shot('ui_modes_tab', 2500);
 };
