@@ -26,6 +26,18 @@ exports.run = async (page, h) => {
   await ev(() => { SPC.A.t = 89.5 }); await page.waitForFunction(() => SPC.space && SPC.mode === 'eva', null, { timeout: 90000 }); await h.wait(1500);
   console.log('in space', JSON.stringify(await ev(() => ({ mode: SPC.mode, moonKm: Math.round(SPC.M.length() / 1000), earthR: SPC.P.earthR }))));
   await shot('space_eva', 4000);
+  // ---- interiors and sound: the station, the shuttle's orbiter, the fighter cabin
+  const snd = await ev(() => ({ aud: !!(typeof AUD !== 'undefined' && AUD.ok), s: !!SPC._s })); console.log('sound', JSON.stringify(snd)); if (snd.aud) assert(snd.s, 'the space sound bus was not created');
+  for (const [kind, spot] of [['iss', [30, 0, -20]], ['shuttle', null], ['fighter', null]]) {
+    await ev(([k, sp]) => { if (k === 'iss') SPC.E1.w.set(sp[0], sp[1], sp[2]); else if (k === 'shuttle') SPC.E1.w.copy(SPC.orb.userData.w).add(new THREE.Vector3(0, 0, -15)); else SPC.E1.w.copy(SPC.C.w).add(new THREE.Vector3(0, 8, -12)) }, [kind, spot]); await page.waitForFunction(k => SPC.doorTarget() === k, kind, { timeout: 30000 });
+    await ev(() => SPC.door()); await h.wait(600); const inn = await ev(() => ({ mode: SPC.mode, kind: SPC.IN && SPC.IN.kind, z: +SPC.IN.z.toFixed(1) })); console.log('inside', JSON.stringify(inn)); assert(inn.mode === 'interior' && inn.kind === kind, 'could not enter ' + kind);
+    await ev(() => { SPC.in.ly = 1 }); await h.wait(2500); await ev(() => { SPC.in.ly = 0 }); const z2 = await ev(() => +SPC.IN.z.toFixed(1)); console.log(kind, 'walked from z', inn.z, 'to', z2); assert(z2 > inn.z + 1.5, 'cannot walk inside ' + kind);
+    await shot('space_in_' + kind, 1500);
+    if (kind === 'fighter') { await ev(() => { const s = SPC.IN.pod.userData.seat; SPC.IN.x = s.x; SPC.IN.z = s.z }); await h.wait(800); assert.strictEqual(await ev(() => SPC.IN.use), 'seat', 'no pilot seat prompt'); await ev(() => SPC.act()); await h.wait(500); assert.strictEqual(await ev(() => SPC.mode), 'fly', 'the pilot seat does not fly the ship'); await ev(() => { SPC.in.full = 0; SPC.C.thr = 0; SPC.C.sp = 0 }); }
+    else { await ev(() => { const e = SPC.IN.pod.userData.exit; SPC.IN.x = e.x; SPC.IN.z = e.z }); await h.wait(800); assert.strictEqual(await ev(() => SPC.IN.use), 'exit', 'no exit prompt'); await ev(() => SPC.act()); await h.wait(500); assert.strictEqual(await ev(() => SPC.mode), 'eva', 'exit did not bring us out'); }
+  }
+  // the fighter flight below needs a spacewalk start
+  await ev(() => { SPC.mode = 'eva'; SPC.startEva(SPC.E1.w.clone()) }); await h.wait(300);
   // ---- board the fighter and fly: speed limit 25,000, the Moon is far
   await ev(() => { SPC.E1.w.copy(SPC.C.w).add(new THREE.Vector3(0, 6, -20)); SPC.act() }); await h.wait(500);
   assert.strictEqual(await ev(() => SPC.mode), 'fly', 'could not board the fighter');
