@@ -26,4 +26,10 @@ exports.run = async (page, h) => {
   assert(await ev(() => !NAV.on && !NAV.grp.visible && !document.getElementById('navHud').classList.contains('on')), 'arriving did not clear the marker');
   // set from code and cancel with the cross
   await ev(() => NAV.set(player.x + 400, player.z, 'Test point')); assert(await ev(() => NAV.on)); await ev(() => document.getElementById('navX').click()); assert(await ev(() => !NAV.on), 'the cross does not cancel');
+  // ---- 2026-11-14: route guidance along the streets
+  await ev(() => { player.x = 0; player.z = 0; const p = PLACES.find(q => /Vavilova/i.test(q.name)); NAV.set(p.x, p.z, p.name) });
+  const rt = await ev(() => ({ has: !!NAV.path, len: Math.round(NAV.pl), straight: Math.round(Math.hypot(NAV.x - player.x, NAV.z - player.z)), pts: NAV.path ? NAV.path.length : 0 }));
+  console.log('route', JSON.stringify(rt)); assert(rt.has && rt.len >= rt.straight && rt.len < rt.straight * 2.2 + 300, 'no sensible street route: ' + JSON.stringify(rt));
+  await h.wait(2500); const ch = await ev(() => ({ n: NAV.chev ? NAV.chev.count : 0, vis: NAV.chev && NAV.chev.visible, left: Math.round(NAV.dist()), txt: document.getElementById('navTxt').textContent })); console.log('chevrons', JSON.stringify(ch)); assert(ch.n > 5 && ch.vis, 'no guidance chevrons on the ground');
+  await ev(() => document.getElementById('navX').click()); assert(await ev(() => !NAV.chev.visible && !NAV.path), 'cancelling does not remove the route');
 };

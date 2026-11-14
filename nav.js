@@ -36,7 +36,7 @@ const NAV={on:false,x:0,z:0,name:'',grp:null,beam:null,gem:null,ring:null,el:nul
   fmt(d){return d<1000?Math.max(5,Math.round(d/5)*5)+' m':(d/1000).toFixed(d<10000?1:0)+' km'},
   upd(force){if(!this.el)return;const d=this.dist(),t=document.getElementById('navTxt'),a=document.getElementById('navArrow');
     const s='📍 '+this.name;const txt=document.createTextNode(s),em=document.createElement('em');em.textContent=this.fmt(d);if(t){t.replaceChildren(txt,em)}
-    if(a){let rel=Math.atan2(this.x-player.x,this.z-player.z)-(typeof cam!=='undefined'?cam.yaw:0);while(rel>Math.PI)rel-=6.283;while(rel<-Math.PI)rel+=6.283;a.style.transform='rotate('+(-rel)+'rad)'}},
+    if(a){const aim=this.path&&this.s!==undefined?this.at(Math.min(this.pl,this.s+18)):[this.x,this.z];let rel=Math.atan2(aim[0]-player.x,aim[1]-player.z)-(typeof cam!=='undefined'?cam.yaw:0);while(rel>Math.PI)rel-=6.283;while(rel<-Math.PI)rel+=6.283;a.style.transform='rotate('+(-rel)+'rad)'}},
   tick(dt){if(!this.on||typeof started==='undefined'||!started)return;this.t+=dt;
     const d=this.dist();if(d<14){this.clear();if(typeof toast==='function')toast('You have arrived',this.name);return}
     // beam and diamond keep a readable size from far away; the marker follows the ground when streets stream in
@@ -45,3 +45,39 @@ const NAV={on:false,x:0,z:0,name:'',grp:null,beam:null,gem:null,ring:null,el:nul
     this._u=(this._u||0)-dt;if(this._u<=0){this._u=.12;this.upd()}
     this._g=(this._g||0)-dt;if(this._g<=0){this._g=1;this.grp.position.y=Math.max(groundH(this.x,this.z),(typeof SL!=='undefined'?SL:0))}}
 };
+// ---- route guidance along the streets (2026-11-14): A* over the road network the traffic uses, aqua chevrons on the ground that lead you along the way, the HUD pill shows the distance ALONG the route
+// and its arrow points at the next stretch of it. No route (the destination is across water / on an island): the beam and the straight distance as before.
+Object.assign(NAV,{
+  path:null,pl:0,pi:0,
+  graph(){if(this.G||typeof D==='undefined'||!D.nodes||!D.wn||typeof HDR==='undefined')return this.G;const nN=HDR.nNodes,nW=HDR.nWays,ws=D.wstart,wn=D.wn,P=D.nodes,deg=new Uint32Array(nN+1);
+    const ok=k=>D.wfl[k]!==1;for(let k=0;k<nW;k++){if(!ok(k))continue;for(let q=ws[k];q<ws[k+1]-1;q++){deg[wn[q]]++;deg[wn[q+1]]++}}
+    const st=new Uint32Array(nN+1);for(let i=0;i<nN;i++)st[i+1]=st[i]+deg[i];const adj=new Int32Array(st[nN]),fill=new Uint32Array(nN);
+    for(let k=0;k<nW;k++){if(!ok(k))continue;for(let q=ws[k];q<ws[k+1]-1;q++){const a=wn[q],b=wn[q+1];adj[st[a]+fill[a]++]=b;adj[st[b]+fill[b]++]=a}}
+    return this.G={st,adj,P,nN}},
+  nearest(x,z){const {st,P,nN}=this.G;let best=-1,bd=1e18;for(let i=0;i<nN;i++){if(st[i+1]===st[i])continue;const dx=P[i*2]-x,dz=P[i*2+1]-z,d=dx*dx+dz*dz;if(d<bd){bd=d;best=i}}return bd<250*250?best:-1},
+  route(){this.path=null;this.pl=0;this.pi=0;const G=this.graph();if(!G)return;const a=this.nearest(player.x,player.z),b=this.nearest(this.x,this.z);if(a<0||b<0)return;
+    const {st,adj,P,nN}=G,g=new Float32Array(nN).fill(1e30),came=new Int32Array(nN).fill(-1),closed=new Uint8Array(nN),H=[];const hx=P[b*2],hz=P[b*2+1],h=n=>Math.hypot(P[n*2]-hx,P[n*2+1]-hz);
+    const push=(f,n)=>{H.push([f,n]);let i=H.length-1;while(i>0){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p}},pop=()=>{const t=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){let m=i;const L=2*i+1,R=L+1;if(L<H.length&&H[L][0]<H[m][0])m=L;if(R<H.length&&H[R][0]<H[m][0])m=R;if(m===i)break;[H[m],H[i]]=[H[i],H[m]];i=m}}return t};
+    g[a]=0;push(h(a),a);let it=0,found=false;while(H.length&&it++<600000){const [,n]=pop();if(closed[n])continue;closed[n]=1;if(n===b){found=true;break}
+      for(let e=st[n];e<st[n+1];e++){const m=adj[e];if(closed[m])continue;const w=Math.hypot(P[m*2]-P[n*2],P[m*2+1]-P[n*2+1]),ng=g[n]+w;if(ng<g[m]){g[m]=ng;came[m]=n;push(ng+h(m),m)}}}
+    if(!found)return;const pts=[];for(let n=b;n>=0;n=came[n])pts.push([P[n*2],P[n*2+1]]);pts.reverse();pts.unshift([player.x,player.z]);pts.push([this.x,this.z]);
+    let L=0;const cum=[0];for(let i=1;i<pts.length;i++){L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);cum.push(L)}this.path=pts;this.cum=cum;this.pl=L;this.pi=0;this.mk()},
+  mk(){if(this.chev||typeof scene==='undefined')return;const sh=new THREE.Shape();sh.moveTo(0,1);sh.lineTo(.9,-.6);sh.lineTo(0,-.1);sh.lineTo(-.9,-.6);sh.closePath();const g=new THREE.ShapeGeometry(sh);g.rotateX(-Math.PI/2);
+    const m=new THREE.InstancedMesh(g,new THREE.MeshBasicMaterial({color:0x38e4d0,transparent:true,opacity:.85,depthTest:false,depthWrite:false,fog:false,toneMapped:false,side:THREE.DoubleSide}),40);m.frustumCulled=false;m.renderOrder=39;m.count=0;m.visible=false;scene.add(m);this.chev=m},
+  // the point on the route `s` metres ahead of the player's place on it
+  at(s){const P=this.path,C=this.cum;let i=this.pi;while(i<P.length-2&&C[i+1]<s)i++;const t=Math.max(0,Math.min(1,(s-C[i])/Math.max(.001,C[i+1]-C[i])));return [P[i][0]+(P[i+1][0]-P[i][0])*t,P[i][1]+(P[i+1][1]-P[i][1])*t,i]},
+  upRoute(dt){if(!this.path||!this.chev){if(this.chev)this.chev.visible=false;return}const P=this.path,C=this.cum;
+    // where are we on the route: the nearest of the next few path vertices' segments
+    let bi=this.pi,bd=1e18;for(let i=Math.max(0,this.pi-2);i<Math.min(P.length-1,this.pi+14);i++){const ax=P[i][0],az=P[i][1],dx=P[i+1][0]-ax,dz=P[i+1][1]-az,L2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((player.x-ax)*dx+(player.z-az)*dz)/L2)),d=Math.hypot(ax+dx*t-player.x,az+dz*t-player.z);if(d<bd){bd=d;bi=i}}
+    this.pi=bi;const ax=P[bi][0],az=P[bi][1],dx=P[bi+1][0]-ax,dz=P[bi+1][1]-az,L2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((player.x-ax)*dx+(player.z-az)*dz)/L2));this.s=C[bi]+Math.sqrt(L2)*t;this.left=Math.max(0,this.pl-this.s);
+    if(bd>60){this._rr=(this._rr||0)+dt;if(this._rr>2){this._rr=0;this.route()}return}   // far off the route: plan again
+    const m=this.chev,M4=new THREE.Matrix4(),Q=new THREE.Quaternion(),V=new THREE.Vector3(),S=new THREE.Vector3(1.5,1.5,1.5),Y=new THREE.Vector3(0,1,0);let n=0;
+    for(let k=0;k<40;k++){const s=this.s+5+k*5;if(s>this.pl-4)break;const [x,z,i]=this.at(s),tx=P[i+1][0]-P[i][0],tz=P[i+1][1]-P[i][1];Q.setFromAxisAngle(Y,Math.atan2(tx,tz));V.set(x,Math.max(groundH(x,z),SL)+.35,z);M4.compose(V,Q,S);m.setMatrixAt(n++,M4)}
+    m.count=n;m.instanceMatrix.needsUpdate=true;m.visible=n>0}
+});
+{const _set=NAV.set,_clr=NAV.clear,_dist=NAV.dist,_tick=NAV.tick;
+  NAV.set=function(x,z,name){_set.call(this,x,z,name);try{this.route()}catch(e){console.warn('[nav] route',e);this.path=null}this.upd(true)};
+  NAV.clear=function(){this.path=null;if(this.chev)this.chev.visible=false;return _clr.call(this)};
+  NAV.dist=function(){return this.path&&this.left!==undefined&&this.on?this.left:_dist.call(this)};
+  NAV.tick=function(dt){if(this.on&&Math.hypot(this.x-player.x,this.z-player.z)<14)this.path=null;_tick.call(this,dt);if(this.on)try{this.upRoute(dt)}catch(e){this.path=null}};
+}
