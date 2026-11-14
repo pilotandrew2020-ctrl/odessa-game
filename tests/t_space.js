@@ -12,6 +12,8 @@ exports.run = async (page, h) => {
   const pad = await ev(() => ({ x: Math.round(SPC.pad.x), z: Math.round(SPC.pad.z), d: Math.round(Math.hypot(SPC.pad.x - CRUISE.x, SPC.pad.z - CRUISE.z)), deep: rawH(SPC.pad.x, SPC.pad.z) < SL - 5, top: SPC.top }));
   console.log('pad', JSON.stringify(pad)); assert(pad.deep, 'the islet is not in deep water'); assert(pad.d > 250 && pad.d < 1300, 'the islet is not near the liner: ' + pad.d);
   await ev(() => SPC.goPad()); await h.wait(3500);
+  const st = []; for (let i = 0; i < 12; i++) { await h.wait(400); st.push(await ev(() => [+player.y.toFixed(2), player.air ? 1 : 0])) } console.log('standing on the pad (y, air)', JSON.stringify(st.slice(-6)));
+  assert(st.slice(3).every(v => Math.abs(v[0] - st[3][0]) < .2 && !v[1]), 'the player bounces / falls on the pad: ' + JSON.stringify(st));
   await page.waitForFunction(() => SPC.stk, null, { timeout: 90000 });
   const on = await ev(() => ({ y: +player.y.toFixed(1), top: +SPC.top.toFixed(1), d: Math.round(Math.hypot(player.x - SPC.pad.x, player.z - SPC.pad.z)), tris: (() => { let t = 0; SPC.stk.traverse(o => { if (o.isMesh) t += o.geometry.index.count / 3 }); return Math.round(t) })(), parts: Object.keys(SPC.parts).filter(k => SPC.parts[k]) }));
   console.log('on the islet', JSON.stringify(on)); assert(Math.abs(on.y - on.top) < 1.5, 'the player does not stand on the pad'); assert(on.parts.length === 4, 'stack parts: ' + on.parts);
@@ -23,7 +25,8 @@ exports.run = async (page, h) => {
   const asc = [];
   for (const t of [3, 20, 45, 85]) { const f0 = await ev(t => { SPC.A.t = t; SPC.A.snap = 1; return SPC.A.fc || 0 }, t); await page.waitForFunction(f => SPC.A.fc >= f + 2, f0, { timeout: 90000 }); asc.push(await ev(() => ({ t: Math.round(SPC.A.t), h: Math.round(SPC.A.h), sep1: SPC.A.sep1, sep2: SPC.A.sep2, debris: (SPC.debris || []).length, mode: SPC.mode }))); if (t !== 3) await shot('space_ascent_' + t, 2500) }
   console.log('ascent', JSON.stringify(asc)); assert(asc[2].sep1 && asc[2].debris >= 2, 'boosters did not separate'); assert(asc[3].sep2 && asc[3].debris >= 3, 'the tank did not separate'); assert(asc[3].h > 40000, 'altitude too low: ' + asc[3].h);
-  await ev(() => { SPC.A.t = 89.5 }); await page.waitForFunction(() => SPC.space && SPC.mode === 'eva', null, { timeout: 90000 }); await h.wait(1500);
+  await ev(() => { SPC.A.t = 89.5 }); await page.waitForFunction(() => SPC.space && SPC.mode === 'interior' && SPC.IN && SPC.IN.kind === 'iss', null, { timeout: 90000 }); await shot('space_arrive_iss', 1500);   // after the shuttle you arrive INSIDE the station and can walk
+  await ev(() => { const e = SPC.IN.pod.userData.exit; SPC.IN.x = e.x; SPC.IN.z = e.z }); await h.wait(800); await ev(() => SPC.act()); await h.wait(500); assert.strictEqual(await ev(() => SPC.mode), 'eva', 'exit from the station'); await h.wait(1500);
   console.log('in space', JSON.stringify(await ev(() => ({ mode: SPC.mode, moonKm: Math.round(SPC.M.length() / 1000), earthR: SPC.P.earthR }))));
   await shot('space_eva', 4000);
   // ---- interiors and sound: the station, the shuttle's orbiter, the fighter cabin

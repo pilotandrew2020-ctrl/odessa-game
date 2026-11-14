@@ -38,7 +38,8 @@ const SPC={
     const hut=new THREE.Mesh(new THREE.BoxGeometry(14,5,9),M(0xeeeeea,.7));hut.position.set(-30,top+2.5,22);g.add(hut);const hw=new THREE.Mesh(new THREE.BoxGeometry(12,1.4,.2),M(0x1b2b3a,.2,.3));hw.position.set(-30,top+3.2,26.6);g.add(hw);
     try{const cv=txtCanvas(['ODESA SPACE CENTER','Pad 1 · launch your shuttle here'],{w:1024,h:256,sizes:[96,44],color:'#fff',bg:'#0b0d11',border:'#38e4d0',bw:10});const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;const sg=new THREE.Mesh(new THREE.PlaneGeometry(22,5.5),new THREE.MeshBasicMaterial({map:tex}));sg.position.set(-30,top+9,22);sg.rotation.y=Math.PI;g.add(sg);const pl=new THREE.Mesh(new THREE.BoxGeometry(.5,9,.5),steel);pl.position.set(-30,top+4.5,22);}catch(e){}
     // the ground: the pad deck, the sand and its slope into the sea (the player walks on it)
-    SPECIAL.push((x,z)=>{const r=Math.hypot(x-px,z-pz);if(r>100)return null;const h=r<64?top:top-(r-64)*.62;return h>SL-3?{h,pri:5,surf:r<44?'stone':'sand'}:null});
+    // holdSpecial (.hold): groundAt() follows function surfaces only when they are flagged, otherwise the player sank to the sea bed and bounced between it and the surface
+    holdSpecial((x,z)=>{const r=Math.hypot(x-px,z-pz);if(r>100)return null;const h=r<64?top:top-(r-64)*.62;return h>SL-3?{h,pri:5,surf:r<44?'stone':'sand'}:null});
     PLACES.push({id:'spacepad',name:'Space launch pad',sub:'islet beyond the Odesa Star liner',x:px-34,z:pz+8,yaw:Math.atan2(34,-8)});
     INTERACT.push({x:px,z:pz,y:top,r:46,label:'Launch the Space Shuttle',cond:()=>!this.on&&!PORTAL.cur&&!!this.stk,fn:()=>this.launch()});
     INTERACT.push({x:0,z:0,r:1e9,label:'Board the space fighter',cond:()=>!this.on&&!PORTAL.cur&&this.fgt&&Math.hypot(this.fgt.x-player.x,this.fgt.z-player.z)<16,fn:()=>this.board()});
@@ -201,10 +202,10 @@ Object.assign(SPC,{
     const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(pos,3));sg.setAttribute('color',new THREE.BufferAttribute(col,3));const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,depthWrite:false,fog:false}));stars.frustumCulled=false;stars.renderOrder=-10;sc.add(stars);this.stars=stars;
     {const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,2,64,64,64);g.addColorStop(0,'rgba(255,255,240,1)');g.addColorStop(.12,'rgba(255,245,210,.95)');g.addColorStop(.3,'rgba(255,220,150,.25)');g.addColorStop(1,'rgba(255,200,120,0)');x.fillStyle=g;x.fillRect(0,0,128,128);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));sp.scale.setScalar(5e6);sp.renderOrder=-9;this.sunSp=sp;sc.add(sp)}
     // Earth (below the station), a cloud shell, an atmosphere rim
-    const Re=P.earthR,E=this.E=new THREE.Vector3(0,-(Re+9e4),0),eg=new THREE.SphereGeometry(1,220,110);
+    const Re=P.earthR,E=this.E=new THREE.Vector3(0,-(Re+9e4),0),eg=new THREE.SphereGeometry(1,150,75);
     const earth=new THREE.Mesh(eg,new THREE.MeshStandardMaterial({map:this.earthTex(),roughness:.95,metalness:0}));earth.scale.setScalar(Re);reg(earth,E);this.earth=earth;
-    const cl=new THREE.Mesh(new THREE.SphereGeometry(1,160,80),new THREE.MeshStandardMaterial({map:this.cloudTex(),transparent:true,depthWrite:false,roughness:1}));cl.scale.setScalar(Re*1.006);reg(cl,E);this.clouds=cl;
-    const at=new THREE.Mesh(new THREE.SphereGeometry(1,120,60),new THREE.ShaderMaterial({uniforms:{},vertexShader:'varying vec3 n,v;void main(){n=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);v=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',fragmentShader:'varying vec3 n,v;void main(){float f=pow(1.-max(dot(n,v),0.),2.6);gl_FragColor=vec4(.35,.62,1.,f*.85);}',transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));at.scale.setScalar(Re*1.05);reg(at,E);
+    const cl=new THREE.Mesh(new THREE.SphereGeometry(1,90,45),new THREE.MeshStandardMaterial({map:this.cloudTex(),transparent:true,depthWrite:false,roughness:1}));cl.scale.setScalar(Re*1.006);reg(cl,E);this.clouds=cl;
+    const at=new THREE.Mesh(new THREE.SphereGeometry(1,64,32),new THREE.ShaderMaterial({uniforms:{},vertexShader:'varying vec3 n,v;void main(){n=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);v=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}',fragmentShader:'varying vec3 n,v;void main(){float f=pow(1.-max(dot(n,v),0.),2.6);gl_FragColor=vec4(.35,.62,1.,f*.85);}',transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));at.scale.setScalar(Re*1.05);reg(at,E);
     this.status('Loading space…');const [moon,iss,fg]=await Promise.all([this.load('moon'),this.load('iss'),this.load('fighter')]);
     const mm=moon.clone(true),M=this.M=new THREE.Vector3(.62,.28,-.73).normalize().multiplyScalar(P.moonD);mm.scale.setScalar(P.moonR);reg(mm,M);this.moonM=mm;mm.traverse(o=>{if(o.isMesh)o.material.side=THREE.FrontSide});
     const im=iss.clone(true);reg(im,new THREE.Vector3(0,0,0));this.issM=im;
@@ -256,8 +257,8 @@ Object.assign(SPC,{
     // camera looks along its own -z; "forward" for the astronaut is where the camera looks
     const f=new THREE.Vector3(0,0,-1).applyQuaternion(q),r=new THREE.Vector3(1,0,0).applyQuaternion(q),u=new THREE.Vector3(0,1,0);
     // the astronaut is seen from behind: the camera sits behind him, so forward = away from the camera = -(camera offset)
-    const acc=new THREE.Vector3().addScaledVector(f,sy*9).addScaledVector(r,sx*9).addScaledVector(u,(I.jump?1:0)*9-(I.thr<0?9:0)+(I.thr>0?9:0));
-    E.v.addScaledVector(acc,dt);E.v.multiplyScalar(Math.exp(-dt*(I.brake?5:1.1)));if(E.v.length()>14)E.v.setLength(14);E.w.addScaledVector(E.v,dt);
+    const acc=new THREE.Vector3().addScaledVector(f,sy*17).addScaledVector(r,sx*17).addScaledVector(u,(I.jump?1:0)*17-(I.thr<0?17:0)+(I.thr>0?17:0));
+    E.v.addScaledVector(acc,dt);E.v.multiplyScalar(Math.exp(-dt*(I.brake?5:.9)));if(E.v.length()>22)E.v.setLength(22);E.w.addScaledVector(E.v,dt);
     if(E.w.length()<30){E.w.setLength(30)}   // keep out of the station
     if(E.v.length()>.4){const yaw=Math.atan2(E.v.x,E.v.z);E.yaw+=((((yaw-E.yaw+Math.PI)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)-Math.PI)*Math.min(1,dt*5)}
     const root=PLR.root;root.position.set(E.w.x,E.w.y,E.w.z);root.rotation.set(0,E.yaw,0);root.userData.w=E.w;this.avatarW(E.w);
