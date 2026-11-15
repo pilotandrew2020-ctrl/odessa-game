@@ -8,8 +8,11 @@ exports.run = async (page, h) => {
   await ev(() => { S.q = 'high'; applyQuality(); });
   await ev(() => document.getElementById('bBRm').click()); await h.wait(1500);
   await ev(() => { const g = document.getElementById('crGo'); if (g) g.click(); }); await h.wait(8000);
-  await h.noRender();
   await page.waitForFunction(() => BR.on, null, { timeout: 60000 });
+  // the shader warm-up of the bus ride draws ONE sample per step, not the whole scene (brwarm.js): a few draw calls per sample
+  await page.waitForFunction(() => BRWARM.stat.n >= 3, null, { timeout: 120000 });
+  const W = await ev(() => ({ samples: BRWARM.stat.n, callsPerSample: +(BRWARM.stat.calls / BRWARM.stat.n).toFixed(1) })); console.log('warm-up', JSON.stringify(W)); assert(W.callsPerSample < 40, 'the warm-up draws the whole scene again: ' + W.callsPerSample + ' draw calls per sample');
+  await h.noRender();
   await h.wait(8000);
   const A = await ev(() => ({ phase: BR.phase, bots: BOTS.list.length, alive: BOTS.alive(), mobile: MOBILE, chunks: chunks.size, R: renderRadius() }));
   console.log('BR', JSON.stringify(A));

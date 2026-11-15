@@ -28,8 +28,17 @@ const LV_GLB={
   p911:{url:'assets/models/vehicles/p911.glb',wheels:[['wheel_fl',true,.315],['wheel_fr',true,.315],['wheel_rl',false,.315],['wheel_rr',false,.315]]},
   p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
   db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
-const LV_GLB_CACHE={};
-function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
+const LV_GLB_CACHE={},LV_GLB_USE={};   // LV_GLB_USE: vehicles showing each file; at 0 the file's geometry and textures are released (LiteVehicle.detachGLB)
+// tablets: vehicle textures are shrunk (a yard of five detailed cars and a bike was ~90 MB of video memory: the bike alone had nine 768 px maps) and their CPU copy goes once the GPU has them
+function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).then(g=>{
+    if(typeof MOBILE!=='undefined'&&MOBILE){const need=new Map();   // texture -> [is a colour map, size of the biggest mesh that wears it]
+      g.scene.traverse(o=>{if(!o.isMesh)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const b=o.geometry.boundingBox,d=Math.hypot(b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z);
+        for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(!t||!t.isTexture)continue;const r=need.get(t)||[false,0];if(k==='map')r[0]=true;if(d>r[1])r[1]=d;need.set(t,r)}});
+      // the shell and the cabin keep 512 px colour maps; wheels, discs, lamps, badges (meshes under 1.6 m) get 256 px, and so does every map that is not a colour (normal, roughness, glow)
+      for(const [t,[col,d]] of need){const max=col&&d>1.6?512:256,im=t.image,w=im&&im.width,h=im&&im.height;
+        if(w&&h&&Math.max(w,h)>max){try{const k=max/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*k));cv.height=Math.max(1,Math.round(h*k));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}catch(e){}}
+        freeAfterUpload(t)}}
+    return g}).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
 const SUB_CRUSH=150;
@@ -88,6 +97,8 @@ class LiteVehicle{
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
     ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),p911:()=>this.buildGtrPlaceholder(1.76,1.28,4.28),p918:()=>this.buildGtrPlaceholder(2.06,1.18,4.65),db9:()=>this.buildGtrPlaceholder(2.02,1.29,4.7),sub:()=>this.buildSub()})[kind]();
+    // tablets: a vehicle built from code is 30-90 little meshes that each cast a shadow (268 extra draw calls in the shadow pass of the home yard): only the pieces of half a metre and more cast
+    if(typeof MOBILE!=='undefined'&&MOBILE)this.root.traverse(o=>{if(!o.isMesh||!o.castShadow||!o.geometry)return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const sc=Math.max(o.scale.x,o.scale.y,o.scale.z);if(o.geometry.boundingSphere.radius*sc<.5)o.castShadow=false});
     this.glbPending=!!LV_GLB[kind];this.glbDone=false;
     this.sync();
     if(this.glbPending&&this.proxy)this.attachGLB();   // garage display / a friend's vehicle: load now; parked ones load when the player gets near (EXT.tick)
@@ -96,7 +107,7 @@ class LiteVehicle{
   buildGtrPlaceholder(w,h,l){w=w||1.9;h=h||1.3;l=l||4.7;this.cols=[0xb01820,0x111111,0xc9ccd2];const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),new THREE.MeshBasicMaterial({visible:false}));m.position.y=h/2;this.body.add(m);this.placeholder=true}
   // swap in the real GLB: wheels become pivot nodes (the front ones steer, all spin), lamps get night glow
   attachGLB(){const def=LV_GLB[this.kind];if(!def||this.glbDone||this.glbLoading)return;this.glbLoading=true;
-    loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;
+    loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;LV_GLB_USE[def.url]=(LV_GLB_USE[def.url]||0)+1;this.glbUrl=def.url;
       const m=g.scene.clone(true);
       for(const c of [...this.body.children])this.body.remove(c);
       for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
@@ -108,6 +119,9 @@ class LiteVehicle{
         o.material.envMapIntensity=1;
         if(/red_galass/i.test(n)){o.material.emissive=new THREE.Color(0xff1a22);this.tailMat=o.material}
         else if(/Light_glass|LightC/i.test(n)){o.material.emissive=new THREE.Color(0xfff3c0);this.lampMat=o.material}});
+      // tablets: only the big shell pieces throw the shadow (a detailed car is 30-60 meshes: interior, lamps, badges... drawn once more into the shadow map for a shadow that the shell alone makes)
+      if(typeof MOBILE!=='undefined'&&MOBILE){let big=0;const sz=[];m.traverse(o=>{if(!o.isMesh)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const b=o.geometry.boundingBox,d=Math.hypot(b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z);sz.push([o,d]);if(d>big)big=d});
+        for(const [o,d] of sz)o.castShadow=d>=big*.5&&!/interior|glass|seat|dash|carpet|light/i.test(o.material.name||'')}
       this.body.add(m);this.placeholder=false;this.glbDone=true;this.glbPending=false;   // no sync() here: the garage places the root itself
     }).catch(e=>{this.glbLoading=false;console.error('[vehicle] GLB load failed:',def.url,e)})}
   // wheel: tyre, rim with spokes, brake disc and caliper (the caliper does not spin); front wheels steer around piv
@@ -260,6 +274,14 @@ class LiteVehicle{
     this.school=new THREE.InstancedMesh(fishGeo,XM(0x8dd9df,.55,.08,{emissive:0x15353a}),this.schoolData.length);
     this.school.castShadow=false;this.school.receiveShadow=false;this.body.add(this.school);this.schoolDummy=new THREE.Object3D();
     this.modelLoaded=false;this.modelLoading=false}
+  // The opposite of attachGLB: a parked vehicle the player has left far behind goes back to its invisible placeholder; when no vehicle shows the file any more, its geometry and
+  // textures leave the GPU and the parsed file is dropped (it comes back from the browser cache when the player returns). A yard of eight detailed cars was ~90 MB of textures for good.
+  detachGLB(){if(!this.glbDone||this.proxy||!this.glbUrl)return;const url=this.glbUrl,mats=new Set();
+    this.root.traverse(o=>{if(o.isMesh&&o.material)for(const m of (Array.isArray(o.material)?o.material:[o.material]))mats.add(m)});
+    for(const c of [...this.body.children])this.body.remove(c);for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
+    this.wheels=[];this.tailMat=this.lampMat=null;for(const m of mats)m.dispose();
+    const dim={p911:[1.76,1.28,4.28],p918:[2.06,1.18,4.65],db9:[2.02,1.29,4.7]}[this.kind]||[];if(this.kind==='moto')this.buildMoto();else this.buildGtrPlaceholder(dim[0],dim[1],dim[2]);this.glbDone=false;this.glbPending=true;this.glbUrl=null;this.sync();
+    if(--LV_GLB_USE[url]<=0){const p=LV_GLB_CACHE[url];delete LV_GLB_CACHE[url];LV_GLB_USE[url]=0;if(p)p.then(g=>{if(LV_GLB_CACHE[url])return;g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}})}).catch(()=>{})}}
   loadModel(){if(LV_GLB[this.kind]){this.attachGLB();return}
     if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
     loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;

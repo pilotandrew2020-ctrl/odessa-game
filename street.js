@@ -38,20 +38,20 @@ function kiosk(P,k,x,y,z,dx,dz,r){note('kiosk',x,z);
 
 // pts: the lamp list of the chunk [x,z,dx,dz,kind] (d = from the lamp towards the road); ctx: {id,solid,nearRoad,blockedStatic,cirs,lobb,cols}
 function scatter(id,P,pts,ctx){
-  const k=kit(),r=rng((id*7919+13)>>>0);let nb=0,nk=0;
+  const k=kit(),r=rng((id*7919+13)>>>0),Pd=P.det||P;let nb=0,nk=0;   // Pd: the chunk's detail mesh (drawn near the player only): bins, planters, bollards, cabinets; kiosks and advert pillars stay in the far mesh
   const free=(x,z,m)=>!ctx.blockedStatic(x,z,m)&&!ctx.solid(x,z,m)&&!ctx.nearRoad(id,x,z,-SW[0]);   // same test as the road-clearance pass: only the carriageway counts, the pavement is where this goes
   for(const [lx,lz,dx,dz,kind] of pts){const tx=-dz,tz=dx,roll=r();
     if(kind===1){   // pedestrian street: urns, planters, tumbas along the lamp line
       const side=r()<.5?1:-1,x=lx+tx*side*2.2,z=lz+tz*side*2.2,y=groundH(x,z)+.17;
-      if(roll<.22&&free(x,z,.7)){bin(P,k,x,y,z,r);ctx.cirs.push(x,z,.32)}
-      else if(roll<.40&&free(x,z,1.1)){planter(P,k,x,y,z,Math.atan2(dx,dz),r);ctx.cirs.push(x,z,.75)}
+      if(roll<.22&&free(x,z,.7)){bin(Pd,k,x,y,z,r);ctx.cirs.push(x,z,.32)}
+      else if(roll<.40&&free(x,z,1.1)){planter(Pd,k,x,y,z,Math.atan2(dx,dz),r);ctx.cirs.push(x,z,.75)}
       else if(roll<.46&&free(x,z,1.2)){tumba(P,k,x,y,z,r);ctx.cirs.push(x,z,.7)}
-      else if(roll<.54&&free(lx+dx*1.1,lz+dz*1.1,.6)){bollards(P,k,lx+dx*1.1,groundH(lx,lz)+.17,lz+dz*1.1,tx,tz)}
+      else if(roll<.54&&free(lx+dx*1.1,lz+dz*1.1,.6)){bollards(Pd,k,lx+dx*1.1,groundH(lx,lz)+.17,lz+dz*1.1,tx,tz)}
       continue}
     // pavement lamp: a bin 2.4 m along the pavement, sometimes a cabinet or a kiosk further on
     const side=r()<.5?1:-1,x=lx+tx*side*2.4+dx*.2,z=lz+tz*side*2.4+dz*.2;
-    if(roll<.34&&free(x,z,.6)){bin(P,k,x,groundH(x,z)+.17,z,r);ctx.cirs.push(x,z,.3);nb++}
-    else if(roll<.40){const cx=lx+tx*side*5.5-dx*.4,cz=lz+tz*side*5.5-dz*.4;if(free(cx,cz,.9)){cabinet(P,k,cx,groundH(cx,cz)+.17,cz,Math.atan2(dx,dz));ctx.lobb.push(cx,cz,.6,.28,Math.cos(Math.atan2(dx,dz)),-Math.sin(Math.atan2(dx,dz)))}}
+    if(roll<.34&&free(x,z,.6)){bin(Pd,k,x,groundH(x,z)+.17,z,r);ctx.cirs.push(x,z,.3);nb++}
+    else if(roll<.40){const cx=lx+tx*side*5.5-dx*.4,cz=lz+tz*side*5.5-dz*.4;if(free(cx,cz,.9)){cabinet(Pd,k,cx,groundH(cx,cz)+.17,cz,Math.atan2(dx,dz));ctx.lobb.push(cx,cz,.6,.28,Math.cos(Math.atan2(dx,dz)),-Math.sin(Math.atan2(dx,dz)))}}
     else if(roll<.425&&nk<2){const kx=lx+tx*side*7-dx*1.2,kz=lz+tz*side*7-dz*1.2;if(free(kx,kz,1.8)){kiosk(P,k,kx,groundH(kx,kz)+.17,kz,dx,dz,r);const ry=Math.atan2(dx,dz);ctx.lobb.push(kx,kz,1.3,.9,Math.cos(ry),-Math.sin(ry));nk++}}
   }}
 return {scatter,bin,cabinet,tumba,planter,kiosk,bollards,kit,seen}})();

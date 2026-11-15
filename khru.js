@@ -16,7 +16,7 @@ let KH_RES=null;
 function khBrick(x,w,h,bh,nb,R){x.fillStyle='#d3caaa';x.fillRect(0,0,w,h);const bw=w/nb;
   for(let r=0;r*bh<h;r++){const off=(r%2)*bw/2;for(let k=-1;k<=nb;k++){const t=R();x.fillStyle='hsl('+(41+t*7)+','+(36+t*16)+'%,'+(77+R()*9)+'%)';x.fillRect(Math.round(k*bw+off)+1,r*bh+1,Math.round(bw)-1,bh-1)}}}
 // two sections of facade: brick, windows (some lit, some curtained), sills; plus a black-and-warm map for the night glow; plus the green picket fence
-function khRes(){if(KH_RES)return KH_RES;const R=rng(77),mk=(w,h)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv},tx=cv=>{const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t};
+function khRes(){if(KH_RES)return KH_RES;const R=rng(77),mk=(w,h)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv},tx=cv=>{const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;freeAfterUpload(t);return t};   // painted once: the CPU copy goes when the GPU has it
   const bc=mk(256,256);khBrick(bc.getContext('2d'),256,256,8,13,R);
   const W2=2048,H2=1024,HP=14.4-KH_PL,PX=W2/(KH_SEC*2),PY=H2/HP,fc=mk(W2,H2),f=fc.getContext('2d'),ec=mk(1024,512),e=ec.getContext('2d');
   khBrick(f,W2,H2,8,107,R);e.fillStyle='#000';e.fillRect(0,0,1024,512);e.scale(.5,.5);
