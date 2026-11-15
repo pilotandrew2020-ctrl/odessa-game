@@ -29,11 +29,15 @@ const LV_GLB={
   p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
   db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
 const LV_GLB_CACHE={},LV_GLB_USE={};   // LV_GLB_USE: vehicles showing each file; at 0 the file's geometry and textures are released (LiteVehicle.detachGLB)
-// tablets: vehicle textures are shrunk to 512 px (the bike alone had nine 768 px maps: 28 MB of video memory) and their CPU copy goes once the GPU has them
+// tablets: vehicle textures are shrunk (a yard of five detailed cars and a bike was ~90 MB of video memory: the bike alone had nine 768 px maps) and their CPU copy goes once the GPU has them
 function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).then(g=>{
-    if(typeof MOBILE!=='undefined'&&MOBILE&&typeof MDL!=='undefined'){const col=new Set(),all=new Set();g.scene.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(m.map)col.add(m.map);for(const k in m){const t=m[k];if(t&&t.isTexture)all.add(t)}}});
-      MDL.shrink(g.scene,512);   // then the maps that are not a colour map (normal, roughness, glow: a third of a car's textures) to 256 px
-      for(const t of all){if(!col.has(t)){const im=t.image,w=im&&im.width,h=im&&im.height;if(w&&h&&Math.max(w,h)>256){const k=256/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*k));cv.height=Math.max(1,Math.round(h*k));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}}freeAfterUpload(t)}}
+    if(typeof MOBILE!=='undefined'&&MOBILE){const need=new Map();   // texture -> [is a colour map, size of the biggest mesh that wears it]
+      g.scene.traverse(o=>{if(!o.isMesh)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const b=o.geometry.boundingBox,d=Math.hypot(b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z);
+        for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(!t||!t.isTexture)continue;const r=need.get(t)||[false,0];if(k==='map')r[0]=true;if(d>r[1])r[1]=d;need.set(t,r)}});
+      // the shell and the cabin keep 512 px colour maps; wheels, discs, lamps, badges (meshes under 1.6 m) get 256 px, and so does every map that is not a colour (normal, roughness, glow)
+      for(const [t,[col,d]] of need){const max=col&&d>1.6?512:256,im=t.image,w=im&&im.width,h=im&&im.height;
+        if(w&&h&&Math.max(w,h)>max){try{const k=max/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*k));cv.height=Math.max(1,Math.round(h*k));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}catch(e){}}
+        freeAfterUpload(t)}}
     return g}).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
@@ -93,6 +97,8 @@ class LiteVehicle{
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
     ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),p911:()=>this.buildGtrPlaceholder(1.76,1.28,4.28),p918:()=>this.buildGtrPlaceholder(2.06,1.18,4.65),db9:()=>this.buildGtrPlaceholder(2.02,1.29,4.7),sub:()=>this.buildSub()})[kind]();
+    // tablets: a vehicle built from code is 30-90 little meshes that each cast a shadow (268 extra draw calls in the shadow pass of the home yard): only the pieces of half a metre and more cast
+    if(typeof MOBILE!=='undefined'&&MOBILE)this.root.traverse(o=>{if(!o.isMesh||!o.castShadow||!o.geometry)return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const sc=Math.max(o.scale.x,o.scale.y,o.scale.z);if(o.geometry.boundingSphere.radius*sc<.5)o.castShadow=false});
     this.glbPending=!!LV_GLB[kind];this.glbDone=false;
     this.sync();
     if(this.glbPending&&this.proxy)this.attachGLB();   // garage display / a friend's vehicle: load now; parked ones load when the player gets near (EXT.tick)

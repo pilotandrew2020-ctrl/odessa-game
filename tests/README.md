@@ -4,10 +4,11 @@ Real-browser checks (Playwright + Chromium, software WebGL). No test framework: 
 
 ## Run
 ```
-python3 -m http.server 8765 &                     # the game is static files, no build step
+python3 -m http.server 8765 &                     # the game is static files, no build step  (no Python: `node tests/serve.js 8765`)
 npm i playwright && npx playwright install chromium   # once (the Claude cloud image already has both)
 BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 ```
+- `node tests/run_all.js [-j 2] [IPAD=1] [t_final t_ui ...]` runs many tests (no names = all of them), one line each, logs in `tests/out/log/`. `node tests/check_inline.js` syntax-checks the inline scripts of `index.html` (run it after every edit: a typo there only shows when the page loads).
 - `IPAD=1` emulates an iPad (touch, MacIntel) so the mobile memory caps apply. `SHOTS=/some/dir` changes the screenshot folder.
 - A run ends with `--- console errors (N) ---`. N should be 0; the one known exception is `setPointerCapture ... No active pointer` in `t_hudm` (a synthetic pointer event in the test, not a game bug).
 - The headless browser is slow and frames stall for seconds, so tests poll state (`until(...)`) instead of sleeping. After a teleport wait for `curAct` (the interaction prompt) to update before pressing E (`doAction()`).
@@ -45,8 +46,11 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_ui` | the iPad HUD: no yellow controls, the empty strip under the map is hidden, the phone closes by dragging its home bar up, the speaker player (title, play, seek, saved links); screenshots `ui_hud / ui_phone / ui_speaker` |
 | `t_space` | the space programme end to end: the islet beyond the liner, the stack on the pad, the automatic ascent (boosters and tank separate), the cut to the ISS, the fighter at 25,000 m/s (the Moon ~4 min away), the landing assist, a landing, the walk and a jump (low gravity), Station, Earth; `SPACESHOT=1` screenshots |
 | `t_speed` | fast driving (`KIND=gtr\|p918\|moto`, `START=<place id>`, `Q=`, `SECS=`; use `IPAD=1`): chunk streaming slices, live chunks, scene objects / textures growth (a leak shows as growth in steady state) |
-| `t_tris`, `t_mem` | what a frame costs: triangles of the main and the shadow pass per category (map-wide meshes are never culled), and the estimated texture / geometry memory with the biggest items (`RENDER=<s>` draws real frames first) |
+| `t_tris`, `t_mem` | what a frame costs: triangles of the main and the shadow pass per category (map-wide meshes are never culled; it waits until the chunk streamer is idle; `TOP=<n>` lists the heaviest object groups), and the estimated texture / geometry memory of the scene graph with the biggest items (`RENDER=<s>` draws real frames first; `t_gpu` measures what was really uploaded) |
 | `t_ref` | reference screenshots with a frozen clock for before / after checks of performance changes (`SHOTS=<dir>`, compare with `python3 -I tools/imgdiff.py <dirA> <dirB>`) |
 | `t_br` | Battle Royale smoke test on the tablet caps (bots, match state, work per frame) |
+| `t_gpu` | what the GPU REALLY holds: the WebGL calls are counted (textures, buffers, render buffers) on a tour home -> centre -> airport -> ship -> island -> launch pad -> space -> home, looking around at every stop; plus every 2D canvas alive (CPU pixels) by the line that made it. Fails when a repeated trip keeps growing GPU textures. `IPAD=1`, `TOP=<rows>`, `OWNERS=1` (group by owner), `STOPS=a,b`, `NOSPACE=1`, `TTL=<s>` |
+| `t_lod` | the "draw / keep only what is near" rules: parked GLB cars drop their model when far and get it back, text plates hidden beyond ~70 x their size (never inside an interior), instanced landmark props measured from their instances, chunk detail mesh near only, 1-9 chunks cast shadows, lazy label textures hold no canvas (`IPAD=1`) |
+| `t_dom` | per-frame DOM writes (MutationObserver) while standing, walking, driving and in Battle Royale, by element; fails above `LIMIT` (3) mutations per frame |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
