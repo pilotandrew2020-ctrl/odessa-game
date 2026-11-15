@@ -57,10 +57,12 @@ exports.run = async (page, h) => {
       for (const k in by) by[k].mb = +by[k].mb.toFixed(1);
       const cvBy = {}; let cvN = 0, cvB = 0; for (const [w, site] of G.cv) { const c = w.deref(); if (!c || c === renderer.domElement) continue; const b = c.width * c.height * 4; if (!b) continue; cvN++; cvB += b; const r = cvBy[site] = cvBy[site] || [0, 0]; r[0] += b; r[1]++ }
       const cvTop = Object.entries(cvBy).sort((a, b) => b[1][0] - a[1][0]).slice(0, TOP).map(([k, v]) => (v[0] / 1048576).toFixed(1) + ' MB x' + v[1] + ' ' + k);
-      return { canvasN: cvN, canvasMB: MB(cvB), cvTop, texN: G.tex.size, texMB: MB(tb), bufN: G.buf.size, bufMB: MB(bb), rbMB: MB(rb), totalMB: MB(tb + bb + rb), peakMB: MB(G.peak), lost: G.lost, notInScene: orphanN + ' / ' + MB(orphan) + ' MB', by, three: { tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }, pr: renderer.getPixelRatio(),
+      const grp = {}; for (const [o, r] of rows) { const w = who.get(o), k = (w ? w.replace(/\d+/g, '#') : '(not in the scene now)') + ' ' + r.w + 'x' + r.h; const q = grp[k] = grp[k] || [0, 0]; q[0] += r.b; q[1]++ }
+      const groups = Object.entries(grp).sort((a, b) => b[1][0] - a[1][0]).slice(0, TOP * 2).map(([k, v]) => (v[0] / 1048576).toFixed(1) + ' MB x' + v[1] + ' ' + k);
+      return { groups, canvasN: cvN, canvasMB: MB(cvB), cvTop, texN: G.tex.size, texMB: MB(tb), bufN: G.buf.size, bufMB: MB(bb), rbMB: MB(rb), totalMB: MB(tb + bb + rb), peakMB: MB(G.peak), lost: G.lost, notInScene: orphanN + ' / ' + MB(orphan) + ' MB', by, three: { tex: renderer.info.memory.textures, geo: renderer.info.memory.geometries }, pr: renderer.getPixelRatio(),
         top: rows.slice(0, TOP).map(([o, r]) => (r.b / 1048576).toFixed(1) + ' MB ' + r.w + 'x' + r.h + (r.mip ? ' mip ' : ' ') + (who.get(o) || '(not in the scene now)')) };
     }, TOP);
-    console.log('=== ' + label + ' ' + JSON.stringify({ ...R, top: undefined, cvTop: undefined })); if (TOP) { console.log('  ' + R.top.join('\n  ')); console.log('  2D canvases alive (CPU pixels), by the line that made them:\n  ' + R.cvTop.join('\n  ')) }
+    console.log('=== ' + label + ' ' + JSON.stringify({ ...R, top: undefined, cvTop: undefined, groups: undefined })); if (TOP) { console.log('  ' + R.top.join('\n  ')); if (process.env.OWNERS) console.log('  GPU textures grouped by owner and size (OWNERS=1):\n  ' + R.groups.join('\n  ')); console.log('  2D canvases alive (CPU pixels), by the line that made them:\n  ' + R.cvTop.join('\n  ')) }
     return R;
   };
   const go = (id) => ev((id) => { const p = PLACES.find(q => q.id === id); if (!p) return false; teleportRaw(p.x, p.z, p.yaw || 0, 0); return true }, id);

@@ -129,18 +129,24 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     this.farGeo=col(T(new THREE.IcosahedronGeometry(1,0),0,9,0,6,5,6),.08,.27,.07);
     this.iTree=mk(this.treeGeo,this.M.leaf,900);this.iPalm=mk(this.palmGeo,this.M.palm,600);this.iBush=mk(this.bushGeo,this.bush,2200);this.iRock=mk(this.rockGeo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),260);this.iBamboo=mk(this.bambooGeo,this.M.leaf,160);this.iFar=mk(this.farGeo,this.M.leaf,3600);
     },
-  rebuildVeg(px,pz){const R=this.iTree,P=this.iPalm,B=this.iBush,K=this.iRock,Bm=this.iBamboo,F=this.iFar,m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),sc=new THREE.Vector3(),p=new THREE.Vector3(),c=new THREE.Color();
-    let nT=0,nP=0,nB=0,nK=0,nM=0,nF=0;const ix0=Math.floor(px/ISL_CELL),iz0=Math.floor(pz/ISL_CELL),RR=Math.ceil(900/ISL_CELL);
-    for(let j=iz0-RR;j<=iz0+RR;j++)for(let i=ix0-RR;i<=ix0+RR;i++){const d2=((i-ix0)**2+(j-iz0)**2)*ISL_CELL*ISL_CELL;if(d2>900*900)continue;
+  // The rebuild looks at ~25,000 cells (50-60 ms in one go: a hitch every 60 m of the way). It now runs as a job of ~3 ms slices: the new instance matrices are collected in scratch
+  // arrays and swapped in together when the job is done, so nothing half-built is ever drawn. rebuildVeg() (the first build, the tests) still does it in one call.
+  rebuildVeg(px,pz){const g=this.vegGen(px,pz,1e9);while(!g.next().done);},
+  *vegGen(px,pz,budget){const IM=[this.iTree,this.iPalm,this.iBush,this.iRock,this.iBamboo,this.iFar],CAP=[900,600,2200,260,160,3600],m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),sc=new THREE.Vector3(),p=new THREE.Vector3();
+    const S=this._vs||(this._vs=CAP.map(c=>new Float32Array(c*16))),N=[0,0,0,0,0,0],put=(k)=>{m.toArray(S[k],N[k]*16);N[k]++};
+    const ix0=Math.floor(px/ISL_CELL),iz0=Math.floor(pz/ISL_CELL),RR=Math.ceil(900/ISL_CELL);let t0=performance.now();
+    for(let j=iz0-RR;j<=iz0+RR;j++){if(performance.now()-t0>budget){yield;t0=performance.now()}
+     for(let i=ix0-RR;i<=ix0+RR;i++){const d2=((i-ix0)**2+(j-iz0)**2)*ISL_CELL*ISL_CELL;if(d2>900*900)continue;
       const cl=islCell(i,j);if(!cl)continue;const d=Math.sqrt(d2);
-      if(d>340){if(cl.kind===0){if(nF<3600){p.set(cl.x,SL+cl.y-.5,cl.z);sc.set(cl.s*.9,cl.s,cl.s*.9);q.setFromEuler(e.set(0,cl.rot,0));m.compose(p,q,sc);F.setMatrixAt(nF++,m)}}continue}
+      if(d>340){if(cl.kind===0){if(N[5]<3600){p.set(cl.x,SL+cl.y-.5,cl.z);sc.set(cl.s*.9,cl.s,cl.s*.9);q.setFromEuler(e.set(0,cl.rot,0));m.compose(p,q,sc);put(5)}}continue}
       p.set(cl.x,SL+cl.y,cl.z);q.setFromEuler(e.set(0,cl.rot,0));
-      if(cl.kind===0){if(d<300&&nT<900){sc.set(cl.s,cl.s*(.9+.3*cl.h4),cl.s);m.compose(p,q,sc);R.setMatrixAt(nT,m);nT++}else if(nF<3600){p.y-=.5;sc.set(cl.s*.9,cl.s,cl.s*.9);m.compose(p,q,sc);F.setMatrixAt(nF++,m)}}
-      else if(cl.kind===1){if(d<300&&nP<600){sc.set(cl.s,cl.s*(.8+.5*cl.h4),cl.s);q.setFromEuler(e.set(0,cl.rot,0));m.compose(p,q,sc);P.setMatrixAt(nP,m);nP++}}
-      else if(cl.kind===2){if(d<110&&nB<2200){sc.set(cl.s*1.2,cl.s*(.9+cl.h4*.8),cl.s*1.2);m.compose(p,q,sc);B.setMatrixAt(nB,m);nB++}}
-      else if(cl.kind===3){if(d<300&&nK<260){sc.set(cl.s*1.6,cl.s*1.1,cl.s*1.6);m.compose(p,q,sc);K.setMatrixAt(nK,m);nK++}}
-      else if(cl.kind===4){if(d<240&&nM<160){sc.set(1,.8+cl.h4*.5,1);m.compose(p,q,sc);Bm.setMatrixAt(nM,m);nM++}}}
-    R.count=nT;P.count=nP;B.count=nB;K.count=nK;Bm.count=nM;F.count=nF;for(const im of [R,P,B,K,Bm,F])im.instanceMatrix.needsUpdate=true;this.last=[px,pz]},
+      if(cl.kind===0){if(d<300&&N[0]<900){sc.set(cl.s,cl.s*(.9+.3*cl.h4),cl.s);m.compose(p,q,sc);put(0)}else if(N[5]<3600){p.y-=.5;sc.set(cl.s*.9,cl.s,cl.s*.9);m.compose(p,q,sc);put(5)}}
+      else if(cl.kind===1){if(d<300&&N[1]<600){sc.set(cl.s,cl.s*(.8+.5*cl.h4),cl.s);m.compose(p,q,sc);put(1)}}
+      else if(cl.kind===2){if(d<110&&N[2]<2200){sc.set(cl.s*1.2,cl.s*(.9+cl.h4*.8),cl.s*1.2);m.compose(p,q,sc);put(2)}}
+      else if(cl.kind===3){if(d<300&&N[3]<260){sc.set(cl.s*1.6,cl.s*1.1,cl.s*1.6);m.compose(p,q,sc);put(3)}}
+      else if(cl.kind===4){if(d<240&&N[4]<160){sc.set(1,.8+cl.h4*.5,1);m.compose(p,q,sc);put(4)}}}}
+    for(let k=0;k<6;k++){const im=IM[k],A=im.instanceMatrix.array,n=N[k]*16,B=S[k];for(let i=0;i<n;i++)A[i]=B[i];im.count=N[k];im.instanceMatrix.needsUpdate=true}
+    this.last=[px,pz]},
   // ---------- beach camp ----------
   buildCamp(){const g=new THREE.Group(),th=ISL.landTh,bx=ISL.beach[0],bz=ISL.beach[1];this.camp=g;this.root.add(g);const gy=SL+Math.max(2.2,islH(bx+14,bz)||2.4);g.position.set(bx+14,gy,bz);g.rotation.y=Math.atan2(-Math.cos(th),-Math.sin(th))*0;
     const mb=new MB(),M=this.M;
@@ -188,8 +194,10 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     this.updateTiles(this.firstBuild?2:40);this.firstBuild=true;
     const vx=Math.round(camera.position.x),vz=Math.round(camera.position.z);
     const now=performance.now();   // the rebuild looks at ~25 000 cells: at most once per 1.5 s and only after 60 m of movement
-    if(d<3700&&(!this._v||(Math.hypot(vx-this.last[0],vz-this.last[1])>60&&now-(this._lb||0)>1500))){this._v=1;this._lb=now;this.rebuildVeg(vx,vz)}
-    else if(d>=3700&&this.iFar.count){for(const im of [this.iTree,this.iPalm,this.iBush,this.iRock,this.iBamboo,this.iFar])im.count=0;this.last=[1e9,1e9];this._v=0}
+    if(this._vj){if(this._vj.next().done)this._vj=null}
+    else if(d<3700&&!this._v){this._v=1;this._lb=now;this.rebuildVeg(vx,vz)}   // the first build: at once (behind the teleport fade)
+    else if(d<3700&&Math.hypot(vx-this.last[0],vz-this.last[1])>60&&now-(this._lb||0)>1500){this._lb=now;this._vj=this.vegGen(vx,vz,3)}
+    if(d>=3700&&this.iFar.count){this._vj=null;for(const im of [this.iTree,this.iPalm,this.iBush,this.iRock,this.iBamboo,this.iFar])im.count=0;this.last=[1e9,1e9];this._v=0}
     // campfire flicker
     if(this.fireL){const near=Math.hypot(player.x-ISL.beach[0],player.z-ISL.beach[1])<90;this.fireL.intensity=near?(1.4+Math.sin(performance.now()*.02)*.35+Math.random()*.3):0;this.camp.visible=true}
     // the pond is flat water only visible near

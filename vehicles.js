@@ -28,10 +28,12 @@ const LV_GLB={
   p911:{url:'assets/models/vehicles/p911.glb',wheels:[['wheel_fl',true,.315],['wheel_fr',true,.315],['wheel_rl',false,.315],['wheel_rr',false,.315]]},
   p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
   db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
-const LV_GLB_CACHE={};
+const LV_GLB_CACHE={},LV_GLB_USE={};   // LV_GLB_USE: vehicles showing each file; at 0 the file's geometry and textures are released (LiteVehicle.detachGLB)
 // tablets: vehicle textures are shrunk to 512 px (the bike alone had nine 768 px maps: 28 MB of video memory) and their CPU copy goes once the GPU has them
 function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).then(g=>{
-    if(typeof MOBILE!=='undefined'&&MOBILE&&typeof MDL!=='undefined'){MDL.shrink(g.scene,512);const seen=new Set();g.scene.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(t&&t.isTexture&&!seen.has(t)){seen.add(t);freeAfterUpload(t)}}})}
+    if(typeof MOBILE!=='undefined'&&MOBILE&&typeof MDL!=='undefined'){const col=new Set(),all=new Set();g.scene.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(m.map)col.add(m.map);for(const k in m){const t=m[k];if(t&&t.isTexture)all.add(t)}}});
+      MDL.shrink(g.scene,512);   // then the maps that are not a colour map (normal, roughness, glow: a third of a car's textures) to 256 px
+      for(const t of all){if(!col.has(t)){const im=t.image,w=im&&im.width,h=im&&im.height;if(w&&h&&Math.max(w,h)>256){const k=256/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*k));cv.height=Math.max(1,Math.round(h*k));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}}freeAfterUpload(t)}}
     return g}).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
@@ -99,7 +101,7 @@ class LiteVehicle{
   buildGtrPlaceholder(w,h,l){w=w||1.9;h=h||1.3;l=l||4.7;this.cols=[0xb01820,0x111111,0xc9ccd2];const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,l),new THREE.MeshBasicMaterial({visible:false}));m.position.y=h/2;this.body.add(m);this.placeholder=true}
   // swap in the real GLB: wheels become pivot nodes (the front ones steer, all spin), lamps get night glow
   attachGLB(){const def=LV_GLB[this.kind];if(!def||this.glbDone||this.glbLoading)return;this.glbLoading=true;
-    loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;
+    loadLvGLB(def.url).then(g=>{this.glbLoading=false;if(this.glbDone)return;LV_GLB_USE[def.url]=(LV_GLB_USE[def.url]||0)+1;this.glbUrl=def.url;
       const m=g.scene.clone(true);
       for(const c of [...this.body.children])this.body.remove(c);
       for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
@@ -266,6 +268,14 @@ class LiteVehicle{
     this.school=new THREE.InstancedMesh(fishGeo,XM(0x8dd9df,.55,.08,{emissive:0x15353a}),this.schoolData.length);
     this.school.castShadow=false;this.school.receiveShadow=false;this.body.add(this.school);this.schoolDummy=new THREE.Object3D();
     this.modelLoaded=false;this.modelLoading=false}
+  // The opposite of attachGLB: a parked vehicle the player has left far behind goes back to its invisible placeholder; when no vehicle shows the file any more, its geometry and
+  // textures leave the GPU and the parsed file is dropped (it comes back from the browser cache when the player returns). A yard of eight detailed cars was ~90 MB of textures for good.
+  detachGLB(){if(!this.glbDone||this.proxy||!this.glbUrl)return;const url=this.glbUrl,mats=new Set();
+    this.root.traverse(o=>{if(o.isMesh&&o.material)for(const m of (Array.isArray(o.material)?o.material:[o.material]))mats.add(m)});
+    for(const c of [...this.body.children])this.body.remove(c);for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
+    this.wheels=[];this.tailMat=this.lampMat=null;for(const m of mats)m.dispose();
+    const dim={p911:[1.76,1.28,4.28],p918:[2.06,1.18,4.65],db9:[2.02,1.29,4.7]}[this.kind]||[];if(this.kind==='moto')this.buildMoto();else this.buildGtrPlaceholder(dim[0],dim[1],dim[2]);this.glbDone=false;this.glbPending=true;this.glbUrl=null;this.sync();
+    if(--LV_GLB_USE[url]<=0){const p=LV_GLB_CACHE[url];delete LV_GLB_CACHE[url];LV_GLB_USE[url]=0;if(p)p.then(g=>{if(LV_GLB_CACHE[url])return;g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}})}).catch(()=>{})}}
   loadModel(){if(LV_GLB[this.kind]){this.attachGLB();return}
     if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;
     loadSubModel().then(m=>{this.modelLoading=false;if(this.dead)return;

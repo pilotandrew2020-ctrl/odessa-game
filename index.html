@@ -2321,7 +2321,13 @@ function labelSprite(lines,opt){lines=lines.slice();opt=opt&&Object.assign({},op
   const s=new THREE.Sprite(m);const k=(opt&&opt.scale)||1;s.scale.set(k*((opt&&opt.w)||512)/((opt&&opt.h)||128),k,1);return s}
 function plateMesh(lines,opt,w,h,emis){lines=lines.slice();opt=opt&&Object.assign({},opt);const tex=lazyTex(()=>txtCanvas(lines,opt));   // (copies: the picture is painted later, the caller may reuse its arrays)tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
   const mat=new THREE.MeshStandardMaterial({map:tex,roughness:.5});if(emis){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=tex;mat.emissiveIntensity=emis}
-  return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat)}
+  const pm=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);pm.userData.pl=Math.max(w,h);PLATE_LOD.push(pm);return pm}
+// A plate is one draw call and one texture; there are hundreds (flat numbers, door plates, shop hours) and each used to be drawn, and its picture uploaded, from as far as its building was
+// visible. They are shown only from where they can be read: ~70 (tablets) / 130 x their size, checked 3 times a second. Inside an interior every plate is shown.
+const PLATE_LOD=[];let plateT=0,platePortal=null;
+function plateLOD(dt){if(PORTAL.cur!==platePortal){platePortal=PORTAL.cur;plateT=0}plateT-=dt;if(plateT>0)return;plateT=.3;const L=PLATE_LOD,k=MOBILE?70:130,cx=camera.position.x,cz=camera.position.z,inside=!!PORTAL.cur;
+  for(let i=0;i<L.length;i++){const m=L[i],u=m.userData;if(!m.parent)continue;const e=m.matrixWorld.elements,P=u.plp,lim=Math.min(900,Math.max(45,u.pl*k)),far=!inside&&Math.hypot((P?P[0]:e[12])-cx,(P?P[1]:e[14])-cz)>(u.plc?lim:lim*1.1);
+    if(far){if(!u.plc){u.plc=1;u.plv=m.visible;m.visible=false}}else if(u.plc){u.plc=0;m.visible=u.plv}}}
 function geo2xz(lat,lon){return [(lon-HDR.LON0)*HDR.KX,-(lat-HDR.LAT0)*HDR.KZ]}
 let _glow=null;
 function glowTex(){if(_glow)return _glow;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,240,200,.6)');g.addColorStop(1,'rgba(255,220,150,0)');x.fillStyle=g;x.fillRect(0,0,64,64);_glow=new THREE.CanvasTexture(c);return _glow}
@@ -3157,7 +3163,7 @@ function buildOpera(grp,G,P,Sg,GR){
     for(let v=-vmax;v<=vmax+.01;v+=.6){if(Math.abs(v)<.9)continue;if(Math.abs(Math.abs(v)-vmax)<.25&&vmax>6)continue;seats.push([u,v])}
     // row collider (two halves)
     for(const s of [-1,1]){if(vmax<1.4)continue;const c=F.P(u,s*(vmax+.9)/2);STATIC_WALLS.push({cx:c[0],cz:c[1],hw:.28,hd:(vmax-.9)/2+.3,ca:F.ca,sa:F.sa,y0:y0,y1:y0+FLR+.9})}}
-  const sim=new THREE.InstancedMesh(seatG,M.velvet,seats.length);sim.frustumCulled=false;const Mx=new THREE.Matrix4(),Q=new THREE.Quaternion(),Sv=new THREE.Vector3(1,1,1),T=new THREE.Vector3();
+  const sim=new THREE.InstancedMesh(seatG,M.velvet,seats.length);sim.frustumCulled=false;sim.userData.lodMax=28;   /* 611 seats inside the hall: drawn only from the hall or its doors (updateCityLOD, distance to the seats' bounds) */const Mx=new THREE.Matrix4(),Q=new THREE.Quaternion(),Sv=new THREE.Vector3(1,1,1),T=new THREE.Vector3();
   Q.setFromAxisAngle(new THREE.Vector3(0,1,0),ry+Math.PI/2);
   seats.forEach(([u,v],k)=>{const p=F.P(u,v);T.set(p[0],y0+FLR,p[1]);Mx.compose(T,Q,Sv);sim.setMatrixAt(k,Mx)});sim.receiveShadow=true;grp.add(sim);
   OPERA.seats=seats;
@@ -3264,7 +3270,8 @@ function bakeStatic(root,from,tile){
       vo+=c;gc.dispose()}
     const G=new THREE.BufferGeometry();for(const nm of names)G.setAttribute(nm,new THREE.BufferAttribute(arr[nm],sz[nm]));
     G.setIndex(new THREE.BufferAttribute(n>65535?idx:Uint16Array.from(idx),1));
-    for(const g of (tile?tileGeometry(G,tile):[G])){g.computeBoundingSphere();if(tile)dropCpuCopy(g);const m=new THREE.Mesh(g,b.mat);m.castShadow=b.cast;m.receiveShadow=b.recv;m.renderOrder=b.ro;m.matrixAutoUpdate=false;root.add(m)}
+    for(const g of (tile?tileGeometry(G,tile):[G])){g.computeBoundingSphere();if(tile)dropCpuCopy(g);const m=new THREE.Mesh(g,b.mat);m.castShadow=b.cast;m.receiveShadow=b.recv;m.renderOrder=b.ro;m.matrixAutoUpdate=false;root.add(m);
+      if(b.list.length===1&&b.list[0].userData.pl){const c=_lodV.copy(g.boundingSphere.center).applyMatrix4(root.matrixWorld);m.userData.pl=b.list[0].userData.pl;m.userData.plp=[c.x,c.z];PLATE_LOD.push(m)}}   // a text plate keeps its distance rule (plateLOD) after the bake
     if(tile)G.dispose()}
   for(const o of rm){o.parent.remove(o);o.geometry.dispose()}
 }
@@ -7333,7 +7340,7 @@ function updateCityLOD(dt){
     }
     // Landmark subgroups (shops, facades, props): distance-cull beyond 750 m on mobile/low quality
     let maxLmDist = (MOBILE || S.q === 'low') ? 750 : 1800;
-    if(inst)maxLmDist=Math.min(maxLmDist,Math.max(80,inst*(MOBILE?350:800)));   // small instanced things (fruit on a stall, theatre seats: 0.4 m each) only from near: three cannot cull their instances
+    if(inst)maxLmDist=o.userData.lodMax||Math.min(maxLmDist,Math.max(60,inst*(MOBILE?150:500)));   // small instanced things (fruit on a stall, theatre seats: 0.4 m each) only from near: three cannot cull their instances
     const lmDist = Math.hypot(ox - x, oz - z) - (inst ? radius : 0);
     if(lmDist > maxLmDist){
       if(!o.userData.distanceCulled){
@@ -8139,7 +8146,7 @@ function loop(t){
   if(!window.__touchN&&window.__stickTouch&&(inp.jx||inp.jy)&&window.resetStick)resetStick();   // a joystick whose finger is gone must not keep walking
   safe('land',()=>{if(typeof LAND_UPDATE!=='undefined')LAND_UPDATE(dt)});
   safe('phone',()=>{if(typeof PHONE!=='undefined')PHONE.tick(dt)});
-  safe('chunks',()=>updateChunks(started?chunkBudget(dt):4));safe('lod',()=>updateCityLOD(dt));safe('net',syncMultiplayerState);
+  safe('chunks',()=>updateChunks(started?chunkBudget(dt):4));safe('lod',()=>{updateCityLOD(dt);plateLOD(dt)});safe('net',syncMultiplayerState);
   safe('cam',()=>stepCamera(dt));
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
@@ -9801,6 +9808,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       if(d.t>2.4)d.m.scale.multiplyScalar(Math.max(0,1-dt*2.5));if(d.t>3.2){d.on=false;d.m.visible=false}}
     for(let i=this.fires.length-1;i>=0;i--){const f=this.fires[i];f.t+=dt;const k=f.t/.7;f.m.scale.setScalar(f.r*(.4+k*1.6));f.m.material.opacity=Math.max(0,.9*(1-k));if(k>=1){scene.remove(f.m);f.m.geometry.dispose();f.m.material.dispose();this.fires.splice(i,1)}}
     for(const v of this.veh){if(v.dead&&performance.now()>v.respawnAt)v.revive();if(!v.dead&&((v.kind==='sub'&&Math.hypot(v.x-player.x,v.z-player.z)<1000)||(v.glbPending&&Math.hypot(v.x-player.x,v.z-player.z)<150)))v.loadModel();
+      else if(v.glbDone&&v!==this.cur&&!v.occupied&&!v.dead&&v.detachGLB&&Math.hypot(v.x-player.x,v.z-player.z)>(MOBILE?450:1500))v.detachGLB();   // far behind: the model and its textures are let go (vehicles.js)
       if(v!==this.cur&&v.kind==='sub'&&!v.dead){v.y=SL+SUB_SURF+Math.sin(UNI.uTime.value*1.1+v.x)*.05;v.sync()}
       else if(v!==this.cur&&!v.dead&&v.lights)v.lights()}
     // coastline: show the spawn-a-boat buttons while there is navigable water nearby
