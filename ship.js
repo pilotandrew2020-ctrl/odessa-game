@@ -60,6 +60,6 @@ const SHIP={ready:false,inst:[],near:null,far:null,deck:null,drop:8,spawnLoc:nul
         I.x+=Math.sin(I.th)*I.spd*dt;I.z+=Math.cos(I.th)*I.spd*dt;      }
       if(on&&I.mode==='sail'){I.carry=on}else I.carry=null;
       if(I.mode==='sail'){const old={cp:I.cp,sp:I.sp,x:I.x,z:I.z};this.pose(I);if(I.carry){const [wx,wz]=this.world(I,I.carry[0],I.carry[1]);player.x=wx;player.z=wz;player.yaw+=I.th-(I.prevTh===undefined?I.th:I.prevTh)}I.prevTh=I.th}
-      const d=Math.hypot(I.x-cam.x,I.z-cam.z);I.n.visible=d<900;I.f.visible=d>=900&&d<6000;I.g.visible=d<6000}
+      const d=Math.hypot(I.x-cam.x,I.z-cam.z);const FAR=MOBILE?2400:6000;I.n.visible=d<900;I.f.visible=d>=900&&d<FAR;I.g.visible=d<FAR}   // tablets: the 32k-triangle far model only within 2.4 km (the sailing ship was drawn from the city centre)
   },
 };

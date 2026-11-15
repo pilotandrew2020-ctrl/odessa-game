@@ -52,6 +52,7 @@ const SPC={
       }).catch(e=>console.warn('[space] stack',e))},
   tick(dt){if(!this.pad||this.on)return;const d=Math.hypot(player.x-this.pad.x,player.z-this.pad.z);if(d<58&&player.y<this.top-1.5&&player.y>this.top-60&&typeof started!=='undefined'&&started){player.y=this.top+.05;player.vy=0;player.air=false;if(typeof SWIM!=='undefined')try{SWIM.reset()}catch(e){}}   // a teleport onto the islet starts at the sea bed: stand on the pad
     if(d<1500&&!this.stk&&!this._ls)this.loadStack();
+    if(this.stk&&!this.fly)this.stk.visible=d<(MOBILE?1300:7000);   // the 45k-triangle stack is a dot from further away, but it was drawn from anywhere on the map once loaded
     if(this.fgtMesh){this.fgtMesh.position.y=this.fgt.y+Math.sin(performance.now()*.0013)*.5;this.fgtMesh.rotation.z=Math.sin(performance.now()*.0009)*.03}},
   // ------------------------------------------------------------------------------------------------ the Spawn menu entries
   goPad(){const p=PLACES.find(q=>q.id==='spacepad');if(!p){toast('Space launch pad','still being built, try again in a moment');return}teleport(p);setTimeout(()=>toast('Space Shuttle','walk to the shuttle and press the action button to launch'),900)},

@@ -5,7 +5,8 @@
 // Hooks: GPUDIET.step(false) right before the world is rendered in loop(), GPUDIET.step(true) while the space scene is the one on screen.
 const GPUDIET={now:0,last:0,ttl:0,on:true,O:[],L:[],seen:new WeakMap(),stat:{freed:0,passes:0},_v:null,
   MAPS:['map','normalMap','roughnessMap','metalnessMap','alphaMap','emissiveMap','bumpMap','aoMap','lightMap','specularMap'],
-  again(t){const im=t.image;if(!im||t.isVideoTexture||t.isRenderTargetTexture||t.isCubeTexture||t.version<1)return false;
+  again(t){if(t.lazy)return t.version>0;   // index.html lazyTex: painted again on demand (do not touch .image: reading it would paint)
+    const im=t.image;if(!im||t.isVideoTexture||t.isRenderTargetTexture||t.isCubeTexture||t.version<1)return false;
     if(typeof HTMLCanvasElement!=='undefined'&&im instanceof HTMLCanvasElement)return im.width>0;
     if((typeof HTMLImageElement!=='undefined'&&im instanceof HTMLImageElement)||(typeof ImageBitmap!=='undefined'&&im instanceof ImageBitmap))return (im.width||0)>0;
     return !!(t.isDataTexture&&im.data)||!!(t.isCompressedTexture&&t.mipmaps&&t.mipmaps.length)},

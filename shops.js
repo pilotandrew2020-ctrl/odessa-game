@@ -32,7 +32,7 @@ function shLogoCanvas(key,W,H){const b=SH_BRANDS[key]||{name:key.toUpperCase(),b
   else if(key==='tavria'){x.fillStyle='#ffd200';x.fillRect(0,H*.82,W,H*.1);txt('ТАВРІЯ В',H*.58,'#fff',W/2,H*.44,'Arial Black,Arial')}
   else txt(b.name,H*.5,b.fg,W/2,H*.52,'Arial Black,Arial');
   return cv}
-function shLogoMesh(key,w,h,glow){const cv=shLogoCanvas(key,1024,Math.round(1024*h/w));const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=4;
+function shLogoMesh(key,w,h,glow){const t=lazyTex(()=>shLogoCanvas(key,1024,Math.round(1024*h/w)));t.encoding=THREE.sRGBEncoding;t.anisotropy=4;   // painted when first seen, no CPU copy kept (index.html lazyTex)
   const m=new THREE.MeshStandardMaterial({map:t,roughness:.5,emissive:new THREE.Color(1,1,1),emissiveMap:t,emissiveIntensity:glow===undefined?.8:glow});return new THREE.Mesh(new THREE.PlaneGeometry(w,h),m)}
 
 // ---------- prices ----------

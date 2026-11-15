@@ -805,7 +805,7 @@ function genSignAtlas(){
     x.fillStyle=fg;x.textAlign='center';x.textBaseline='middle';let fs=44;x.font=`800 ${fs}px "Golos Text",Arial,sans-serif`;
     while(x.measureText(s).width>cw-90&&fs>16){fs-=2;x.font=`800 ${fs}px "Golos Text",Arial,sans-serif`}
     x.fillText(s,cx+cw/2,cy+chh/2+2)});
-  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;t.generateMipmaps=true;TX.signs=t;
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;t.generateMipmaps=true;freeAfterUpload(t);TX.signs=t;
 }
 function signUV(i){i=i%SIGNS.length;const cx=(i%2)*.5,cy=((i/2)|0)/SIGN_ROWS;return [cx,1-cy-1/SIGN_ROWS,cx+.5,1-cy]} // u0,v0,u1,v1
 
@@ -2126,8 +2126,9 @@ const TREES={chunks:new Map(),meshes:[],master:[],dirty:false,capK:[],cullT:0,cu
         K[i]=c;if(c===1)nn++;else if(c===2)nf++}
       for(const [k,part,cast] of TREE_KEYS){const need=cast?nn:nf;if(need>this.capK[s][k]){const cap=Math.ceil(need*1.3)+16,old=ms[k],m=this.mk(s,k,part,cast,cap);scene.remove(old);old.dispose&&old.dispose();scene.add(m);ms[k]=m;this.capK[s][k]=cap}}
       let a=0,b=0;const mt=ms.t.instanceMatrix.array,ml=ms.l.instanceMatrix.array,cl=ms.l.instanceColor.array,mtf=ms.tf.instanceMatrix.array,mlf=ms.lf.instanceMatrix.array,clf=ms.lf.instanceColor.array;
-      for(let i=0;i<Mx.n;i++){const c=K[i];if(!c)continue;const sub=Mx.m.subarray(i*16,i*16+16),col=Mx.c.subarray(i*3,i*3+3);
-        if(c===1){mt.set(sub,a*16);ml.set(sub,a*16);cl.set(col,a*3);a++}else{mtf.set(sub,b*16);mlf.set(sub,b*16);clf.set(col,b*3);b++}}
+      const Mm=Mx.m,Mc=Mx.c;for(let i=0;i<Mx.n;i++){const c=K[i];if(!c)continue;const o=i*16,q=i*3;   // plain loops: subarray() made two throw-away views per tree on every cull
+        if(c===1){const d=a*16;for(let j=0;j<16;j++)mt[d+j]=ml[d+j]=Mm[o+j];cl[a*3]=Mc[q];cl[a*3+1]=Mc[q+1];cl[a*3+2]=Mc[q+2];a++}
+        else{const d=b*16;for(let j=0;j<16;j++)mtf[d+j]=mlf[d+j]=Mm[o+j];clf[b*3]=Mc[q];clf[b*3+1]=Mc[q+1];clf[b*3+2]=Mc[q+2];b++}}
       ms.t.count=ms.l.count=a;ms.tf.count=ms.lf.count=b;
       ms.t.instanceMatrix.needsUpdate=ms.l.instanceMatrix.needsUpdate=ms.tf.instanceMatrix.needsUpdate=ms.lf.instanceMatrix.needsUpdate=true;ms.l.instanceColor.needsUpdate=ms.lf.instanceColor.needsUpdate=true}}};
 const TREE_CLEAR=[];let _tcLen=-1,_tcGrid=null;
@@ -2308,10 +2309,17 @@ function txtCanvas(lines,opt){
 }
 // a plate / label canvas is painted once: after the GPU has the pixels the CPU copy (a 512x128..1024x512 canvas each, hundreds of them) is let go. Texture.image stays `undefined`: three keeps using the uploaded copy.
 function freeAfterUpload(tex){tex.onUpdate=()=>{tex.image=undefined;tex.onUpdate=null}}
-function labelSprite(lines,opt){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;freeAfterUpload(tex);
+// A canvas texture that keeps NO pixels on the CPU: paint() is called when the GPU first needs the picture (three reads texture.image right before the upload), the canvas is
+// emptied right after it, and the getter is armed again, so gpudiet.js may release the GPU copy of a label nobody has looked at for a while and it is simply painted again.
+// (433 canvases / 203 MB were alive at the start of the game, most of them plates and signs of places the player had never been to: tests/t_gpu.js.)
+function lazyTex(paint){const tex=new THREE.Texture();tex.lazy=1;
+  const plain=v=>Object.defineProperty(tex,'image',{configurable:true,enumerable:true,writable:true,value:v});
+  const arm=()=>Object.defineProperty(tex,'image',{configurable:true,enumerable:true,get(){const cv=paint();plain(cv);return cv},set:plain});
+  arm();tex.onUpdate=()=>{const d=Object.getOwnPropertyDescriptor(tex,'image'),cv=d&&d.value;arm();if(cv&&cv.getContext)cv.width=cv.height=0};tex.needsUpdate=true;return tex}
+function labelSprite(lines,opt){lines=lines.slice();opt=opt&&Object.assign({},opt);const tex=lazyTex(()=>txtCanvas(lines,opt));tex.encoding=THREE.sRGBEncoding;
   const m=new THREE.SpriteMaterial({map:tex,depthTest:opt&&opt.depthTest===false?false:true,transparent:true,fog:false,toneMapped:false});
-  const s=new THREE.Sprite(m);const k=(opt&&opt.scale)||1;s.scale.set(k*cv.width/cv.height,k,1);return s}
-function plateMesh(lines,opt,w,h,emis){const cv=txtCanvas(lines,opt);const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;freeAfterUpload(tex);
+  const s=new THREE.Sprite(m);const k=(opt&&opt.scale)||1;s.scale.set(k*((opt&&opt.w)||512)/((opt&&opt.h)||128),k,1);return s}
+function plateMesh(lines,opt,w,h,emis){lines=lines.slice();opt=opt&&Object.assign({},opt);const tex=lazyTex(()=>txtCanvas(lines,opt));   // (copies: the picture is painted later, the caller may reuse its arrays)tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
   const mat=new THREE.MeshStandardMaterial({map:tex,roughness:.5});if(emis){mat.emissive=new THREE.Color(1,1,1);mat.emissiveMap=tex;mat.emissiveIntensity=emis}
   return new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat)}
 function geo2xz(lat,lon){return [(lon-HDR.LON0)*HDR.KX,-(lat-HDR.LAT0)*HDR.KZ]}
@@ -3530,7 +3538,7 @@ function buildPlatforms(grp,P,GR,F,y0){
 function windowRowsTex(o){const W=512,H=512,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.fillStyle=o.bg;x.fillRect(0,0,W,H);
   const rows=o.rows,cols=o.cols;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const lit=Math.random()<(o.lit||0);x.fillStyle=lit?'#ffe2a8':(o.win||'#22313c');const w=W/cols,h=H/rows;x.fillRect(c*w+w*(o.mx||.12),r*h+h*(o.my||.25),w*(1-2*(o.mx||.12)),h*(1-(o.my||.25)*1.6))}
   if(o.band){x.fillStyle=o.band;for(let r=0;r<rows;r++)x.fillRect(0,r*H/rows,W,2)}
-  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t}
+  const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;freeAfterUpload(t);return t}
 function texBox(grp,x,y,z,w,h,d,ry,tex,repU,repV,plain,emis){const g=new THREE.BoxGeometry(w,h,d);const uv=g.attributes.uv,n=g.attributes.normal;
   for(let i=0;i<uv.count;i++){const sx=Math.abs(n.getX(i))>.5?d:w;uv.setXY(i,uv.getX(i)*sx/repU,uv.getY(i)*h/repV)}
   const m=new THREE.MeshStandardMaterial({map:tex,roughness:.35,metalness:.1});if(emis){m.emissive=new THREE.Color(1,1,1);m.emissiveMap=tex;m.emissiveIntensity=0;LIGHT_SIGNS.push(m)}
@@ -4352,14 +4360,15 @@ const _m=new THREE.Matrix4(),_m2=new THREE.Matrix4(),_q=new THREE.Quaternion(),_
 const ND={hy:.84,legL:.80,torH:.54,shY:.48,armL:.6,headY:.58,HR:.11,HH:.255};
 function initPeopleMeshes(scene,N){
   // body.js shapes: lofted torso, limbs and shoes, an egg-shaped head and a hair cap with a hairline (the same look as the player, cheaper than the old rounded boxes)
-  const torso=bdLoft(BD_TORSO,16);torso.scale(1.02,ND.torH/.5,1.04);
-  const head=headGeo(ND.HR,ND.HH,18);
-  const hairG=bdShell(ND.HR,ND.HH,[[0,.79],[.55,.74],[1.2,.6],[1.65,.5],[2.3,.34],[Math.PI,.26]],.012,.015,24);
+  const LQ=MOBILE;   // tablets: fewer segments around every part (a passer-by is rarely closer than a few metres): ~3,000 -> ~1,900 triangles each
+  const torso=bdLoft(BD_TORSO,LQ?12:16);torso.scale(1.02,ND.torH/.5,1.04);
+  const head=headGeo(ND.HR,ND.HH,LQ?13:18);
+  const hairG=bdShell(ND.HR,ND.HH,[[0,.79],[.55,.74],[1.2,.6],[1.65,.5],[2.3,.34],[Math.PI,.26]],.012,.015,LQ?16:24);
   const longH=bdBackPanel(-ND.HR*.98,-.22,ND.HH*.78,ND.HR*1.02,ND.HR*.33);
-  const leg=bdLoft([{y:0,rx:.087,rz:.09},{y:-.2,rx:.076,rz:.079},{y:-.4,rx:.062,rz:.065},{y:-.52,rx:.06,rz:.064},{y:-.62,rx:.053,rz:.057},{y:-.74,rx:.044,rz:.047},{y:-.8,rx:.042,rz:.045}],12);
-  const arm=bdLoft([{y:.03,rx:.06,rz:.058},{y:-.1,rx:.058,rz:.056},{y:-.27,rx:.047,rz:.045},{y:-.4,rx:.04,rz:.038},{y:-.52,rx:.034,rz:.032}],10);
+  const leg=bdLoft([{y:0,rx:.087,rz:.09},{y:-.2,rx:.076,rz:.079},{y:-.4,rx:.062,rz:.065},{y:-.52,rx:.06,rz:.064},{y:-.62,rx:.053,rz:.057},{y:-.74,rx:.044,rz:.047},{y:-.8,rx:.042,rz:.045}],LQ?8:12);
+  const arm=bdLoft([{y:.03,rx:.06,rz:.058},{y:-.1,rx:.058,rz:.056},{y:-.27,rx:.047,rz:.045},{y:-.4,rx:.04,rz:.038},{y:-.52,rx:.034,rz:.032}],LQ?7:10);
   const shoe=bdShoe(false);shoe.translate(0,-ND.legL,0);
-  const hips=bdLoft(BD_PELVIS,14);hips.translate(0,.02,0);
+  const hips=bdLoft(BD_PELVIS,LQ?10:14);hips.translate(0,.02,0);
   const skirt=new THREE.CylinderGeometry(.21,.31,.56,14,1,true);skirt.translate(0,-.22,0);
   const scarf=new THREE.SphereGeometry(ND.HR*1.14,14,10,0,Math.PI*2,0,Math.PI*.62);scarf.scale(1.02,1.0,1.08);scarf.translate(0,ND.HH*.55,-.01);
   const hand=bdHand(0,true);hand.translate(0,-ND.armL+.0,0);
@@ -4369,13 +4378,17 @@ function initPeopleMeshes(scene,N){
   NPC_P.skirt=mk(skirt,N,THREE.DoubleSide);NPC_P.scarf=mk(scarf,N);
   BUBBLES.init(scene);
 }
-const _eR=new THREE.Euler();
+const _eR=new THREE.Euler(),_pf=new THREE.Vector3();
 function writePlacedNpcPart(mesh,idx,ox,oy,oz,rx,col,rz){_e.set(rx,0,rz||0);_q.setFromEuler(_e);_v.set(ox,oy,oz);_s.set(1,1,1);_m2.compose(_v,_q,_s);_m2.premultiply(_m);mesh.setMatrixAt(idx,_m2);if(col!==undefined)mesh.setColorAt(idx,linHex(col))}
 function placePeople(list){
   const P=NPC_P;let k=0,ks=0,kh=0,kc=0,kl=0;
   const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;const cap=P.torso.instanceMatrix.count;
+  // A person is ~3,000 triangles in a dozen instanced meshes that three cannot cull per instance, and every one cast a shadow: 25 people cost 85k triangles in the main pass and 85k in the
+  // shadow pass wherever they stood. Now only the ones inside a widened view cone, or within 18 m of the player (their shadow may reach the picture), are written.
+  camera.getWorldDirection(_pf);const fx=_pf.x,fy=_pf.y,fz=_pf.z,cosL=Math.cos(Math.min(1.5,Math.atan(Math.tan(camera.fov*.008727)*Math.max(1,camera.aspect))+.3)),npx=player.x,npz=player.z;
   for(const n of list){
     if(k>=cap)break;   // never write past the instance buffers
+    {const dx=n.x-cx,dy=n.y+.9-cy,dz=n.z-cz,d=Math.hypot(dx,dy,dz);if(d>7&&dx*fx+dy*fy+dz*fz<d*cosL&&(n.x-npx)*(n.x-npx)+(n.z-npz)*(n.z-npz)>324)continue}
     if(Math.abs(n.x-cx)<1.0&&Math.abs(n.z-cz)<1.0&&cy-n.y<2.4&&cy-n.y>-.5)continue;   // never let an NPC fill the camera
     const ph=n.phase;const pose=n.pose||'walk';const amp=(pose==='walk'&&n.moving)?.5:0;
     _eR.set(n.tilt||0,n.yaw,0,'YXZ');_q.setFromEuler(_eR);_v.set(n.x,n.y,n.z);_s.set(n.sc,n.sc,n.sc);_m.compose(_v,_q,_s);   // tilt: knocked over (SHOVE)

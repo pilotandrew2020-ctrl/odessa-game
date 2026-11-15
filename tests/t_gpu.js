@@ -40,6 +40,7 @@ exports.run = async (page, h) => {
   await h.boot(); await h.start();
   const ev = (f, a) => page.evaluate(f, a);
   await ev(q => { S.q = q; applyQuality(); }, Q);
+  const TTL = +(process.env.TTL || 6); await ev(t => { if (typeof GPUDIET !== 'undefined') GPUDIET.ttl = t }, TTL);   // gpudiet.js releases what has been hidden / out of range for TTL seconds (40 on a tablet; short here so the test does not take an hour)
   const settle = async () => { for (let i = 0, same = 0, last = -1; i < 90 && same < 3; i++) { await h.wait(1000); const n = await ev(() => CHUNK_JOB ? -1 : chunks.size); same = n >= 0 && n === last ? same + 1 : 0; last = n; } };
   const report = async (label) => {
     await settle(); await h.wait(SECS * 1000); await ev(() => { if (typeof gc === 'function') gc() });   // EXTRA=--js-flags=--expose-gc: canvases nobody holds are not counted
@@ -74,7 +75,8 @@ exports.run = async (page, h) => {
     await ev(() => { const e = SPC.IN.pod.userData.exit; SPC.IN.x = e.x; SPC.IN.z = e.z }); await h.wait(800); await ev(() => SPC.act()); await h.wait(1500); await report('space (spacewalk: Earth, Moon, ISS)');
     await ev(() => SPC.leave()); await h.wait(3000);
   }
-  await ev(() => teleportRaw(3, 14, 0, 0)); const R1 = await report('home yard again');
+  await ev(() => teleportRaw(3, 14, 0, 0)); await h.wait(TTL * 2500); const R1 = await report('home yard again');
+  console.log('gpudiet', JSON.stringify(await ev(() => typeof GPUDIET !== 'undefined' ? GPUDIET.stat : null)));
   console.log('2D canvases: ' + R0.canvasN + ' / ' + R0.canvasMB + ' MB at the start, ' + R1.canvasN + ' / ' + R1.canvasMB + ' MB after the tour');
   console.log('LEFT BEHIND by the tour: textures ' + (R1.texN - R0.texN) + ' (' + (R1.texMB - R0.texMB).toFixed(1) + ' MB), buffers ' + (R1.bufN - R0.bufN) + ' (' + (R1.bufMB - R0.bufMB).toFixed(1) + ' MB), peak ' + R1.peakMB + ' MB, context lost ' + R1.lost);
 };

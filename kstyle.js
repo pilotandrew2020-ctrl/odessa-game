@@ -15,7 +15,7 @@ const KS_ST={
 const KS_PL=.85,KS_RES={};
 // one entrance section of facade, sec metres wide, as a 512×1024 (new build: 512×2048) canvas (+ a black-and-warm glow map for the lit windows at night)
 function ksRes(st){if(KS_RES[st.key])return KS_RES[st.key];
-  const R=rng(st.floors*53+st.sec),mk=(w,h)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv},tx=cv=>{const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t};
+  const R=rng(st.floors*53+st.sec),mk=(w,h)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv},tx=cv=>{const t=new THREE.CanvasTexture(cv);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;freeAfterUpload(t);return t};   // painted once: the CPU copy goes when the GPU has it
   const W2=512,H2=st.key==='new'?2048:1024,hp=st.floors*st.fh-KS_PL,PX=W2/st.sec,PY=H2/hp,fc=mk(W2,H2),f=fc.getContext('2d'),ec=mk(W2/2,H2/2),e=ec.getContext('2d');
   const X=m=>m*PX,Y=m=>H2-m*PY;e.fillStyle='#000';e.fillRect(0,0,512,1024);e.scale(.5,.5);
   f.fillStyle=st.body;f.fillRect(0,0,W2,H2);
