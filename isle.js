@@ -25,6 +25,7 @@ function islH(x,z){
   h+=hill+pk;
   // plateau under the temple, flat floor of the pond basin, flat camp ground on the beach
   const T=ISL.temple;if(T){const d=Math.hypot(x-T.x,z-T.z);if(d<110)h+=(T.h-h)*islSmooth(110,62,d);const p=ISL.pond;if(p){const dp=Math.hypot(x-p.x,z-p.z);if(dp<75){h+=(p.h-h)*islSmooth(75,48,dp);if(dp<30)h-=.85*islSmooth(30,10,dp)}}}
+  const Cc=ISL.campC;if(Cc){const d=Math.hypot(x-Cc.x,z-Cc.z);if(d<32)h+=(Cc.h-h)*islSmooth(32,20,d)}   // camp.js: level sand under the beach camp
   return h}
 // ---------- trees: one candidate per 10 m cell ----------
 const ISL_CELL=10;
@@ -55,7 +56,8 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     const tx=ISL.cx-380,tz=ISL.cz+170;ISL.temple=null;ISL.pond=null;{const h0=islH(tx,tz);ISL.temple={x:tx,z:tz,h:h0}}
     {const px=tx+150,pz=tz+110;const h0=islH(px,pz);ISL.pond={x:px,z:pz,h:h0};}
     // keep the camp, the temple and the pond free of trees
-    ISL.clear=[[ISL.beach[0]+12,ISL.beach[1],26],[tx,tz,70],[ISL.pond.x,ISL.pond.z,44]];ISL.solids=[];
+    {const cx=ISL.beach[0]+14,cz=ISL.beach[1];ISL.campC=null;ISL.campC={x:cx,z:cz,h:Math.max(2.3,islH(cx,cz)||2.4)}}
+    ISL.clear=[[ISL.beach[0]+13,ISL.beach[1],29],[tx,tz,70],[ISL.pond.x,ISL.pond.z,44]];ISL.solids=[];
     FLAT.push({x:ISL.cx,z:ISL.cz,R:4300,fn:(x,z,h)=>{const r=islH(x,z);return r===null?h:SL+r}});
     this.root=new THREE.Group();this.root.visible=false;world.add(this.root);
     this.mats();this.buildCamp();this.buildTemple();this.buildPond();this.vegInit();
