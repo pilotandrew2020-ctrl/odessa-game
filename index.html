@@ -6859,6 +6859,7 @@ const player={x:0,z:0,y:0,vy:0,vx:0,vz:0,yaw:0,spd:0,air:false,run:false,scoot:f
 window.multiplayerState={players:{},vehicles:{}};
 window.sendStateToServer=function(){throw new Error('No multiplayer transport is configured');};
 function syncMultiplayerState(){
+  {const t=performance.now();if(t-(syncMultiplayerState.t||0)<250)return;syncMultiplayerState.t=t}   // nothing in the game reads this export: 4 times a second is plenty (it made ~50 objects per frame)
   const players=window.multiplayerState.players,vehicles=window.multiplayerState.vehicles;
   players.local={position:[player.x,player.y,player.z],rotation:[0,player.yaw,0],in:started};
   for(const key of Object.keys(vehicles))delete vehicles[key];
@@ -7264,12 +7265,16 @@ function updateChunks(budget,sync){
   const ci=Math.floor((player.x-BB[0])/CH),cj=Math.floor((player.z-BB[2])/CH);const n=Math.ceil(R/CH)+1;
   // direction and speed of travel from the last call (works in a car, on a boat or in the air as well: the player position follows the vehicle)
   const U=updateChunks;let ux=0,uz=0,sp=0;if(U.px!==undefined){const dx=player.x-U.px,dz=player.z-U.pz,L=Math.hypot(dx,dz);if(L>.05&&L<80){ux=dx/L;uz=dz/L;sp=Math.min(1,L/Math.max(.008,(t0-U.pt)/1000)/14)}}U.px=player.x;U.pz=player.z;U.pt=t0;
-  const want=[];
+  // the wanted list and the out-of-range sweep are redone 5 times a second, or at once when the player enters another chunk / the radius changes / a sync build is asked
+  // (they were ~80 small arrays, a sort and a copy of the chunk list on EVERY frame: steady garbage for the collector)
+  if(sync||!U.want||U.ci!==ci||U.cj!==cj||U.R!==R||t0-U.wt>200){U.ci=ci;U.cj=cj;U.R=R;U.wt=t0;
+  const want=U.want=[];
   for(let j=cj-n;j<=cj+n;j++)for(let i=ci-n;i<=ci+n;i++){if(i<0||j<0||i>=NCX||j>=NCZ)continue;
     const cx=BB[0]+(i+.5)*CH,cz=BB[2]+(j+.5)*CH;const d=Math.hypot(cx-player.x,cz-player.z);if(d<R+CH*.6)want.push([d-(sp>.05?sp*Math.max(0,((cx-player.x)*ux+(cz-player.z)*uz))*.5:0),j*NCX+i])}   // moving fast: chunks AHEAD come first
   want.sort((a,b)=>a[0]-b[0]);
   // drop the chunks that are out of range BEFORE building new ones: after a teleport the old ring and the new one used to be in memory together
-  for(const c of [...chunks.values()]){const cx=BB[0]+(c.id%NCX+.5)*CH,cz=BB[2]+(Math.floor(c.id/NCX)+.5)*CH;if(Math.hypot(cx-player.x,cz-player.z)>R+CH*1.6)disposeChunk(c)}
+  for(const c of [...chunks.values()]){const cx=BB[0]+(c.id%NCX+.5)*CH,cz=BB[2]+(Math.floor(c.id/NCX)+.5)*CH;if(Math.hypot(cx-player.x,cz-player.z)>R+CH*1.6)disposeChunk(c)}}
+  const want=U.want;
   if(sync){for(const [d,id] of want){if(chunks.has(id))continue;if(d>sync)break;buildChunk(id);freezeChunkMeshes(id)}}
   else{let wi=0;const mobileBudget=TOUCH?budget*1.5:budget;while(performance.now()-t0<mobileBudget){
     if(!CHUNK_JOB){while(wi<want.length&&chunks.has(want[wi][1]))wi++;if(wi>=want.length)break;const id=want[wi][1];wi++;CHUNK_JOB={id,gen:buildChunkGen(id)}}
@@ -7277,10 +7282,10 @@ function updateChunks(budget,sync){
 }
 let cityLodT=0;
 const _lodV=new THREE.Vector3(),_lodM=new THREE.Matrix4();
-// world-space circle [x, z, radius, instanceMatrix.version] around the instances of an InstancedMesh
+// world-space circle [x, z, radius, instanceMatrix.version, size of one instance] around the instances of an InstancedMesh
 function instBounds(o){const g=o.geometry,M=_lodM;if(!g.boundingSphere)g.computeBoundingSphere();let x0=1e9,y0=1e9,z0=1e9,x1=-1e9,y1=-1e9,z1=-1e9,sc=1;
   for(let i=0;i<o.count;i++){o.getMatrixAt(i,M);const e=M.elements;if(e[12]<x0)x0=e[12];if(e[12]>x1)x1=e[12];if(e[13]<y0)y0=e[13];if(e[13]>y1)y1=e[13];if(e[14]<z0)z0=e[14];if(e[14]>z1)z1=e[14];sc=Math.max(sc,Math.hypot(e[0],e[1],e[2]),Math.hypot(e[4],e[5],e[6]),Math.hypot(e[8],e[9],e[10]))}
-  const r=Math.hypot(x1-x0,y1-y0,z1-z0)/2+(g.boundingSphere.radius+g.boundingSphere.center.length())*sc;o.updateMatrixWorld();_lodV.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2).applyMatrix4(o.matrixWorld);return [_lodV.x,_lodV.z,r,o.instanceMatrix.version]}
+  const r=Math.hypot(x1-x0,y1-y0,z1-z0)/2+(g.boundingSphere.radius+g.boundingSphere.center.length())*sc;o.updateMatrixWorld();_lodV.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2).applyMatrix4(o.matrixWorld);return [_lodV.x,_lodV.z,r,o.instanceMatrix.version,g.boundingSphere.radius*sc]}
 function updateCityLOD(dt){
   if(PORTAL.cur){cityLodT=0;return}
   cityLodT-=dt;if(cityLodT>0)return;cityLodT=.3;
@@ -7308,11 +7313,11 @@ function updateCityLOD(dt){
   if(LANDMARK_GRP){
     LANDMARK_GRP.updateMatrixWorld(true);
     for(const o of LANDMARK_GRP.children){
-    let ox,oz,radius=0,inst=false;
+    let ox,oz,radius=0,inst=0;
     // An InstancedMesh's own position says nothing about where its instances are: the market's fruit (260 spheres) and the theatre's seats were measured from the map origin, so they were
     // drawn (66k triangles, unculled) around the home yard 10 km away and hidden at their own place. Their bounds come from the instances (once; a mesh whose instances change is left alone).
     if(o.isInstancedMesh&&!o.userData.ibDyn){let B=o.userData.ib;if(B&&B[3]!==o.instanceMatrix.version){o.userData.ibDyn=1;B=o.userData.ib=null}else if(!B&&o.count>0)B=o.userData.ib=instBounds(o);
-      if(B){ox=B[0];oz=B[1];radius=B[2];inst=true}}
+      if(B){ox=B[0];oz=B[1];radius=B[2];inst=B[4]}}
     if(inst){}
     else if(o.isMesh&&o.geometry){
       if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
@@ -7327,7 +7332,8 @@ function updateCityLOD(dt){
       continue;
     }
     // Landmark subgroups (shops, facades, props): distance-cull beyond 750 m on mobile/low quality
-    const maxLmDist = (MOBILE || S.q === 'low') ? 750 : 1800;
+    let maxLmDist = (MOBILE || S.q === 'low') ? 750 : 1800;
+    if(inst)maxLmDist=Math.min(maxLmDist,Math.max(80,inst*(MOBILE?350:800)));   // small instanced things (fruit on a stall, theatre seats: 0.4 m each) only from near: three cannot cull their instances
     const lmDist = Math.hypot(ox - x, oz - z) - (inst ? radius : 0);
     if(lmDist > maxLmDist){
       if(!o.userData.distanceCulled){

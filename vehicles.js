@@ -29,7 +29,10 @@ const LV_GLB={
   p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
   db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
 const LV_GLB_CACHE={};
-function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
+// tablets: vehicle textures are shrunk to 512 px (the bike alone had nine 768 px maps: 28 MB of video memory) and their CPU copy goes once the GPU has them
+function loadLvGLB(url){return LV_GLB_CACHE[url]||(LV_GLB_CACHE[url]=new Promise((res,rej)=>new THREE.GLTFLoader().load(url,res,undefined,rej)).then(g=>{
+    if(typeof MOBILE!=='undefined'&&MOBILE&&typeof MDL!=='undefined'){MDL.shrink(g.scene,512);const seen=new Set();g.scene.traverse(o=>{if(!o.isMesh)return;for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(t&&t.isTexture&&!seen.has(t)){seen.add(t);freeAfterUpload(t)}}})}
+    return g}).catch(e=>{delete LV_GLB_CACHE[url];throw e}))}
 const SUB_SURF=-.62;   // hull origin relative to the sea level when surfaced: the top of the hull and the sail stand out, the rest is under water
 const SUB_MAXD=180;     // metres of depth, the sea floor stops it earlier
 const SUB_CRUSH=150;
@@ -108,6 +111,9 @@ class LiteVehicle{
         o.material.envMapIntensity=1;
         if(/red_galass/i.test(n)){o.material.emissive=new THREE.Color(0xff1a22);this.tailMat=o.material}
         else if(/Light_glass|LightC/i.test(n)){o.material.emissive=new THREE.Color(0xfff3c0);this.lampMat=o.material}});
+      // tablets: only the big shell pieces throw the shadow (a detailed car is 30-60 meshes: interior, lamps, badges... drawn once more into the shadow map for a shadow that the shell alone makes)
+      if(typeof MOBILE!=='undefined'&&MOBILE){let big=0;const sz=[];m.traverse(o=>{if(!o.isMesh)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();const b=o.geometry.boundingBox,d=Math.hypot(b.max.x-b.min.x,b.max.y-b.min.y,b.max.z-b.min.z);sz.push([o,d]);if(d>big)big=d});
+        for(const [o,d] of sz)o.castShadow=d>=big*.5&&!/interior|glass|seat|dash|carpet|light/i.test(o.material.name||'')}
       this.body.add(m);this.placeholder=false;this.glbDone=true;this.glbPending=false;   // no sync() here: the garage places the root itself
     }).catch(e=>{this.glbLoading=false;console.error('[vehicle] GLB load failed:',def.url,e)})}
   // wheel: tyre, rim with spokes, brake disc and caliper (the caliper does not spin); front wheels steer around piv

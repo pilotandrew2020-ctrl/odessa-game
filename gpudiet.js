@@ -15,12 +15,14 @@ const GPUDIET={now:0,last:0,ttl:0,per:260,on:true,O:[],L:[],seen:new WeakMap(),s
     if(this.now-s<this.ttl)return;
     const p=renderer.properties.get(t);if(!p||p.__webglTexture===undefined||!this.again(t))return;
     t.dispose();this.stat.freed++;this.seen.set(t,this.now)},
-  step(space){if(!this.on||typeof renderer==='undefined'||!renderer)return;
+  // never throws: this runs right before the frame is drawn, an error here would freeze the picture, so a failure only switches the diet off
+  step(space){if(!this.on||typeof renderer==='undefined'||!renderer)return;try{this.walk(space)}catch(e){this.on=false;this.err=e;console.warn('[gpudiet] off',e)}},
+  walk(space){
     const t=performance.now();this.now+=Math.min(1,(t-(this.last||t))/1000);this.last=t;if(!this.ttl)this.ttl=MOBILE?40:150;
     const O=this.O,L=this.L,v=this._v||(this._v=new THREE.Vector3());
     if(!O.length){this.stat.passes++;O.push(scene);L.push(space?0:1);if(typeof SPC!=='undefined'&&SPC.sc){O.push(SPC.sc);L.push(space?1:0)}}
     const cam=camera.position,far=camera.far;
-    for(let n=0;n<this.per&&O.length;n++){   // `per` objects a frame: the whole scene every second or soconst o=O.pop(),chain=L.pop()&&o.visible?1:0;
+    for(let n=0;n<this.per&&O.length;n++){const o=O.pop(),chain=L.pop()&&o.visible?1:0;   // `per` objects a frame: the whole scene every second or so
       const kids=o.children;for(let i=0;i<kids.length;i++){O.push(kids[i]);L.push(chain)}
       const m=o.material;if(!m)continue;
       let live=chain;
