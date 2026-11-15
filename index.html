@@ -444,7 +444,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="plane.js"></script>
 <script src="airp.js"></script>
 <script src="buddy.js"></script>
-<script src="isle.js"></script><script src="camp.js"></script>
+<script src="isle.js"></script><script src="camp.js"></script><script src="arsenal.js"></script><script src="volcano.js"></script>
 <script src="fauna.js"></script>
 <script src="ybuild.js"></script>
 <script src="yacht.js"></script>
@@ -8072,7 +8072,7 @@ async function boot(){
   camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,5000);
   sunL=new THREE.DirectionalLight(0xffffff,3);scene.add(sunL);scene.add(sunL.target);
   hemiL=new THREE.HemisphereLight(0xbcd0ff,0x6b5b4b,1);scene.add(hemiL);
-  initMats();LEAF_DEPTH=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:TX.leaves,alphaTest:.45});
+  if(typeof DMG!=='undefined')DMG.patch();initMats();LEAF_DEPTH=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:TX.leaves,alphaTest:.45});
   PROP_DEPTH=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});PROP_DEPTH.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aM;varying float vM;').replace('#include <begin_vertex>','#include <begin_vertex>\nvM=aM;');sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vM;').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(vM>9.5&&vM<19.5&&mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.,4.)>.5)discard;')};
   makeTreeSpecies();TREES.init(scene);if(typeof GLBT!=='undefined'){GLBT.load();BENCH.load();BOOBA.load()}makeSkies();makeSea();makeSnow();if(window.GFX)GFX.init(scene);
   if(typeof GRASS_SYS!=='undefined')GRASS_SYS.init(scene);
@@ -8105,6 +8105,7 @@ async function boot(){
   try{if(typeof SPKUI!=='undefined'&&SPKUI&&SPKUI.init)SPKUI.init()}catch(e){console.error('[boot] speaker ui',e)}
   try{if(typeof SPC!=='undefined'&&SPC&&SPC.init)SPC.init()}catch(e){console.error('[boot] space',e)}
   try{if(typeof SHIP!=='undefined'&&SHIP&&SHIP.init)SHIP.init()}catch(e){console.error('[boot] ship',e)}
+  try{if(typeof ARS!=='undefined')ARS.init();if(typeof VOLC!=='undefined')VOLC.init()}catch(e){console.error('[boot] arsenal',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -8124,7 +8125,7 @@ function loop(t){
   if(typeof SPC!=='undefined'&&SPC.space){GPUDIET.step(true);safe('space',()=>SPC.frame(dt));return}   // space.js: the separate space scene (Earth orbit, the Moon) replaces the world while it is on
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
-    refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
+    refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(window.NOWALK){}else if(!RIDE.on)stepPlayer(dt);
     if(PORTAL.cur){stepIntPeds(dt);placePeople(PORTAL.peds)}
     else{if(!(typeof BR!=='undefined'&&BR.on&&(BR.phase==='bus'||BR.phase==='sky'))){updateCars(dt,player,Qp().cars);SHOVE.pre();updatePeds(dt,player,Qp().peds);SHOVE.post(dt)}   // not while 400 m up on the battle bus / in free fall: nothing down there can be reached
       if(typeof updateTrams!=='undefined')updateTrams(dt);if(typeof TRN2!=='undefined')TRN2.tick(dt);else if(typeof updateTrains!=='undefined')updateTrains(dt);if(PARKED_DIRTY||(lightTick%60===0)){refreshParked(chunks,player.x,player.z);PARKED_DIRTY=false}dodgeCar(PEDS);dodgeCar(TALKERS);placeCars(CARS,typeof COOP!=='undefined'?COOP.carList():null,DRIVE.car);updateRoutePlates(scene,player);placePeople(crowdList());
@@ -8134,7 +8135,7 @@ function loop(t){
     if(typeof PED_SPRITES!=='undefined')PED_SPRITES.update(dt,player.x,player.z);
     // Safety net: the avatar is hidden while driving / flying and restored on exit. If any of
     // those exits is missed the local character stays invisible, so re-assert it here.
-    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&PLR.root.visible===false)PLR.root.visible=true;
+    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&!window.NOWALK&&PLR.root.visible===false)PLR.root.visible=true;
     updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();if(BUDDY.on)BUDDY.update(dt);
     if(typeof BATTERY411!=='undefined')BATTERY411.update(dt);
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);

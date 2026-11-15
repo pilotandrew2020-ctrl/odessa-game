@@ -144,7 +144,8 @@ function weapon(P,st,dt){
     if(gp.cls==='pick'||gp.cls==='bat'||gp.cls==='hammer'){swing(P,gp,gs,dt,dr)}
     else if(gp.cls==='melee'){const sl=gp.slash||0,k=sl>0?Math.sin(PI*(1-sl)):0;
       G.sh.rotation.x=lerp(-.2,-1.15-1.1*k,dr);G.sh.rotation.z=sl>0?.9*Math.cos(PI*(1-sl)):0;G.el.rotation.x=lerp(-.4,-.35,dr);
-      S.sh.rotation.x=lerp(-.2,-1.0-.6*k,dr);S.sh.rotation.z=.35*dr;S.el.rotation.x=lerp(-.4,-.6,dr);grip(P,0,'bar');grip(P,1,'bar')}
+      S.sh.rotation.x=lerp(-.2,-1.0-.6*k,dr);S.sh.rotation.z=.35*dr;S.el.rotation.x=lerp(-.4,-.6,dr);grip(P,0,'bar');grip(P,1,'bar');
+      if(gp.block&&!sl){G.sh.rotation.x=-1.55;G.sh.rotation.z=.75;G.el.rotation.x=-1.25;S.sh.rotation.x=-1.45;S.sh.rotation.z=-.55;S.el.rotation.x=-1.15}}   // arsenal.js: the blade held across the body
     else{G.sh.rotation.x=lerp(-.3,-1.42+(gs.rec||0)*.12,dr);G.sh.rotation.z=0;G.el.rotation.x=-.05;S.sh.rotation.x=lerp(-.3,-1.2,dr);S.sh.rotation.z=.25*dr;S.el.rotation.x=lerp(-.4,-.4,dr);grip(P,0,'bar');grip(P,1,'bar')}
     if(gw)gw.visible=true;return}
   // aim direction in the spine's space

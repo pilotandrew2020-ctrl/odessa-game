@@ -25,6 +25,7 @@ function islH(x,z){
   h+=hill+pk;
   // plateau under the temple, flat floor of the pond basin, flat camp ground on the beach
   const T=ISL.temple;if(T){const d=Math.hypot(x-T.x,z-T.z);if(d<110)h+=(T.h-h)*islSmooth(110,62,d);const p=ISL.pond;if(p){const dp=Math.hypot(x-p.x,z-p.z);if(dp<75){h+=(p.h-h)*islSmooth(75,48,dp);if(dp<30)h-=.85*islSmooth(30,10,dp)}}}
+  const Vc=ISL.volc;if(Vc){const d=Math.hypot(x-Vc.x,z-Vc.z);if(d<Vc.R)h-=Vc.d*islSmooth(Vc.R,Vc.r,d)}   // volcano.js: the crater
   const Cc=ISL.campC;if(Cc){const d=Math.hypot(x-Cc.x,z-Cc.z);if(d<32)h+=(Cc.h-h)*islSmooth(32,20,d)}   // camp.js: level sand under the beach camp
   return h}
 // ---------- trees: one candidate per 10 m cell ----------
