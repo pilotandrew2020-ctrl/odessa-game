@@ -40,10 +40,10 @@ exports.run = async (page, h) => {
   await h.boot(); await h.start();
   const ev = (f, a) => page.evaluate(f, a);
   await ev(q => { S.q = q; applyQuality(); }, Q);
-  const TTL = +(process.env.TTL || 6); await ev(t => { if (typeof GPUDIET !== 'undefined') GPUDIET.ttl = t }, TTL);   // gpudiet.js releases what has been hidden / out of range for TTL seconds (40 on a tablet; short here so the test does not take an hour)
+  const TTL = +(process.env.TTL || 6); await ev(t => { if (typeof GPUDIET !== 'undefined') { GPUDIET.ttl = t; GPUDIET.per = 4000 } }, TTL);   // gpudiet.js releases what has been hidden / out of range for TTL seconds (40 on a tablet; short here so the test does not take an hour)
   const settle = async () => { for (let i = 0, same = 0, last = -1; i < 90 && same < 3; i++) { await h.wait(1000); const n = await ev(() => CHUNK_JOB ? -1 : chunks.size); same = n >= 0 && n === last ? same + 1 : 0; last = n; } };
   const report = async (label) => {
-    await settle(); await h.wait(SECS * 1000); await ev(() => { if (typeof gc === 'function') gc() });   // EXTRA=--js-flags=--expose-gc: canvases nobody holds are not counted
+    await settle(); for (let q = 0; q < 4; q++) { await ev(() => { cam.yaw += Math.PI / 2 }); await h.wait(SECS * 250) }   // look around: what stands around the player is uploaded await ev(() => { if (typeof gc === 'function') gc() });   // EXTRA=--js-flags=--expose-gc: canvases nobody holds are not counted
     const R = await ev((TOP) => {
       const G = window.__gpu, MB = x => +(x / 1048576).toFixed(1); let tb = 0, bb = 0, rb = 0; for (const v of G.tex.values()) tb += v.b; for (const v of G.buf.values()) bb += v; for (const v of G.rb.values()) rb += v;
       // name the uploaded textures through three's own table (texture -> WebGLTexture)
@@ -77,6 +77,10 @@ exports.run = async (page, h) => {
   }
   await ev(() => teleportRaw(3, 14, 0, 0)); await h.wait(TTL * 2500); const R1 = await report('home yard again');
   console.log('gpudiet', JSON.stringify(await ev(() => typeof GPUDIET !== 'undefined' ? GPUDIET.stat : null)));
+  // steady state: one more trip (the centre and back) must leave the GPU where it was
+  await go('opera'); await report('opera again'); await ev(() => teleportRaw(3, 14, 0, 0)); await h.wait(TTL * 2500); const R2 = await report('home yard, third time');
+  const grow = +(R2.texMB - R1.texMB).toFixed(1); console.log('STEADY STATE: a second trip changed the GPU textures by ' + (R2.texN - R1.texN) + ' (' + grow + ' MB), buffers by ' + (R2.bufMB - R1.bufMB).toFixed(1) + ' MB');
+  require('assert')(grow < 12, 'GPU texture memory keeps growing: +' + grow + ' MB on a repeated trip'); require('assert')(R2.lost === 0, 'the WebGL context was lost');
   console.log('2D canvases: ' + R0.canvasN + ' / ' + R0.canvasMB + ' MB at the start, ' + R1.canvasN + ' / ' + R1.canvasMB + ' MB after the tour');
   console.log('LEFT BEHIND by the tour: textures ' + (R1.texN - R0.texN) + ' (' + (R1.texMB - R0.texMB).toFixed(1) + ' MB), buffers ' + (R1.bufN - R0.bufN) + ' (' + (R1.bufMB - R0.bufMB).toFixed(1) + ' MB), peak ' + R1.peakMB + ' MB, context lost ' + R1.lost);
 };

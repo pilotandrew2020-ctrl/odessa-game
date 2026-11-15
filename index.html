@@ -4665,7 +4665,8 @@ function initCarMeshes(scene,N){
   CAR_DEFS.forEach((d,i)=>{const t=(d.box&&typeof buildBoxVehicle==='function')?buildBoxVehicle(d):buildCarType(d);
     const cap=i===4?2:(i===9||i===10)?12:i===14?60:N+(i===3?40:160);   // 9, 10: dealer classics only; 14: rare supercar
     t.mesh=new THREE.InstancedMesh(t.geo,CAR_MAT,cap);t.wheels=new THREE.InstancedMesh(t.wgeo,CAR_MAT,cap*4);
-    for(const m of [t.mesh,t.wheels]){m.frustumCulled=false;m.castShadow=true;m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m)}
+    for(const m of [t.mesh,t.wheels]){m.frustumCulled=false;m.castShadow=m===t.mesh||!MOBILE;   // tablets: the body's shadow covers the wheels' (4 x ~300 triangles per car, as much as the body)
+      m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m)}
     t.cap=cap;CAR_T.push(t)});
 }
 const _cm=new THREE.Matrix4(),_cm2=new THREE.Matrix4(),_cq=new THREE.Quaternion(),_ce=new THREE.Euler(),_cv=new THREE.Vector3(),_cs=new THREE.Vector3(1,1,1),_cc=new THREE.Color();
@@ -6948,10 +6949,12 @@ function setupRenderer(){
 }
 let pixelScale=1;const _SL=new THREE.Vector3(),_SU=new THREE.Vector3(),_SR=new THREE.Vector3(),_SV=new THREE.Vector3(),_ST=new THREE.Vector3();
 function applyTextureAnisotropy(){
-  const max=renderer.capabilities.getMaxAnisotropy(),target=S.q==='high'?(MOBILE?Math.min(4,max):max):Math.min(2,max),seen=new Set();   // 16x on a tablet GPU costs a lot of texture bandwidth for little gain over 4x
+  const max=renderer.capabilities.getMaxAnisotropy(),target=MOBILE?Math.min(4,max):(S.q==='high'?max:Math.min(2,max)),seen=new Set();   // tablets: one value for every quality, so a quality step (also the automatic one, made when the frame rate is already poor) does not re-upload every texture of the scene at once   // 16x on a tablet GPU costs a lot of texture bandwidth for little gain over 4x
   scene.traverse(o=>{const materials=Array.isArray(o.material)?o.material:o.material?[o.material]:[];
     for(const material of materials)for(const key of ['map','normalMap','roughnessMap','metalnessMap','alphaMap','emissiveMap','bumpMap','displacementMap','aoMap','envMap']){
-      const texture=material[key];if(!texture||!texture.isTexture||seen.has(texture))continue;seen.add(texture);if(texture.image===undefined)continue;   // image already freed after upload (plateMesh / labelSprite)
+      const texture=material[key];if(!texture||!texture.isTexture||seen.has(texture))continue;seen.add(texture);
+      if(texture.lazy){if(texture.anisotropy!==target){texture.anisotropy=target;const p=renderer.properties.get(texture);if(p&&p.__webglTexture!==undefined)texture.needsUpdate=true}continue}   // lazyTex: reading .image would paint it; one that is not on the GPU yet simply uploads with the new value
+      if(texture.image===undefined)continue;   // image already freed after upload (plateMesh / labelSprite)
       if(texture.image&&texture.image.data===undefined&&texture.image.depth!==undefined)continue;   // render-target texture (Opera film screen): needsUpdate would make three upload it as an image and throw
       if(texture.anisotropy!==target){texture.anisotropy=target;texture.needsUpdate=true}
     }
@@ -7273,6 +7276,11 @@ function updateChunks(budget,sync){
     if(CHUNK_JOB.gen.next().done){freezeChunkMeshes(CHUNK_JOB.id);CHUNK_JOB=null}}}
 }
 let cityLodT=0;
+const _lodV=new THREE.Vector3(),_lodM=new THREE.Matrix4();
+// world-space circle [x, z, radius, instanceMatrix.version] around the instances of an InstancedMesh
+function instBounds(o){const g=o.geometry,M=_lodM;if(!g.boundingSphere)g.computeBoundingSphere();let x0=1e9,y0=1e9,z0=1e9,x1=-1e9,y1=-1e9,z1=-1e9,sc=1;
+  for(let i=0;i<o.count;i++){o.getMatrixAt(i,M);const e=M.elements;if(e[12]<x0)x0=e[12];if(e[12]>x1)x1=e[12];if(e[13]<y0)y0=e[13];if(e[13]>y1)y1=e[13];if(e[14]<z0)z0=e[14];if(e[14]>z1)z1=e[14];sc=Math.max(sc,Math.hypot(e[0],e[1],e[2]),Math.hypot(e[4],e[5],e[6]),Math.hypot(e[8],e[9],e[10]))}
+  const r=Math.hypot(x1-x0,y1-y0,z1-z0)/2+(g.boundingSphere.radius+g.boundingSphere.center.length())*sc;o.updateMatrixWorld();_lodV.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2).applyMatrix4(o.matrixWorld);return [_lodV.x,_lodV.z,r,o.instanceMatrix.version]}
 function updateCityLOD(dt){
   if(PORTAL.cur){cityLodT=0;return}
   cityLodT-=dt;if(cityLodT>0)return;cityLodT=.3;
@@ -7300,22 +7308,27 @@ function updateCityLOD(dt){
   if(LANDMARK_GRP){
     LANDMARK_GRP.updateMatrixWorld(true);
     for(const o of LANDMARK_GRP.children){
-    let ox,oz,radius=0;
-    if(o.isMesh&&o.geometry){
+    let ox,oz,radius=0,inst=false;
+    // An InstancedMesh's own position says nothing about where its instances are: the market's fruit (260 spheres) and the theatre's seats were measured from the map origin, so they were
+    // drawn (66k triangles, unculled) around the home yard 10 km away and hidden at their own place. Their bounds come from the instances (once; a mesh whose instances change is left alone).
+    if(o.isInstancedMesh&&!o.userData.ibDyn){let B=o.userData.ib;if(B&&B[3]!==o.instanceMatrix.version){o.userData.ibDyn=1;B=o.userData.ib=null}else if(!B&&o.count>0)B=o.userData.ib=instBounds(o);
+      if(B){ox=B[0];oz=B[1];radius=B[2];inst=true}}
+    if(inst){}
+    else if(o.isMesh&&o.geometry){
       if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
-      const sphere=o.geometry.boundingSphere,center=sphere.center.clone().applyMatrix4(o.matrixWorld);
+      const sphere=o.geometry.boundingSphere,center=_lodV.copy(sphere.center).applyMatrix4(o.matrixWorld);
       const e=o.matrixWorld.elements,scale=Math.max(Math.hypot(e[0],e[1],e[2]),Math.hypot(e[4],e[5],e[6]),Math.hypot(e[8],e[9],e[10]));
       ox=center.x;oz=center.z;radius=sphere.radius*scale;
     }else{
-      const center=new THREE.Vector3();o.getWorldPosition(center);ox=center.x;oz=center.z;
+      const e=o.matrixWorld.elements;ox=e[12];oz=e[14];
     }
-    if(radius>150){
+    if(radius>150&&!inst){
       if(o.userData.distanceCulled){o.visible=o.userData.distanceWasVisible;delete o.userData.distanceCulled;delete o.userData.distanceWasVisible}
       continue;
     }
     // Landmark subgroups (shops, facades, props): distance-cull beyond 750 m on mobile/low quality
     const maxLmDist = (MOBILE || S.q === 'low') ? 750 : 1800;
-    const lmDist = Math.hypot(ox - x, oz - z);
+    const lmDist = Math.hypot(ox - x, oz - z) - (inst ? radius : 0);
     if(lmDist > maxLmDist){
       if(!o.userData.distanceCulled){
         o.userData.distanceWasVisible = o.visible;
@@ -7674,7 +7687,7 @@ function updateHUD(dt){
   if(SWIM.on&&!EXT.cur){const sub=EXT.nearestHatch();if(sub)best={label:'Enter submarine hatch',fn:()=>EXT.boardFromSwim(sub)}}
   best=MP.hudAction(best);
   if(PLN.cur)best={label:PLN.cur.kind==='light'?'Get out of the plane':'Get out of the fighter',fn:()=>PLN.leaveFighter()};
-  curAct=best;const ab=$('bAct');if(best){ab.hidden=false;const sub=EXT.cur&&EXT.cur.kind==='sub',key=sub?(EXT.cur.cabinWalk?(EXT.aimSubLever()?'E':'B'):'B'):'E';ab.textContent=(TOUCH?'':key+' · ')+best.label}else ab.hidden=true;
+  curAct=best;const ab=$('bAct');if(best){if(ab.hidden)ab.hidden=false;const sub=EXT.cur&&EXT.cur.kind==='sub',key=sub?(EXT.cur.cabinWalk?(EXT.aimSubLever()?'E':'B'):'B'):'E';const tx=(TOUCH?'':key+' · ')+best.label;if(ab._tx!==tx){ab.textContent=tx;ab._tx=tx}}else if(!ab.hidden)ab.hidden=true;   // the label is written only when it changes (it used to be rewritten every frame: a DOM mutation per frame)
   if(miniT<=0){miniT=.1;drawMini()}
 }
 let curAct=null;
@@ -9955,9 +9968,11 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.setIndex(idx);g.computeVertexNormals();
     const road=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.92}));road.receiveShadow=true;world.add(road);
     // white dashed centre line (cheap InstancedMesh) + guard rails on both edges
-    const nD=Math.floor(len/18),dash=new THREE.InstancedMesh(new THREE.BoxGeometry(.35,.02,6),new THREE.MeshBasicMaterial({color:0xffffff}),nD),dm=new THREE.Object3D();
-    for(let i=0;i<nD;i++){const u=10+i*18;dm.position.set(x0+ux*u,SL+2.26,z0+uz*u);dm.rotation.y=Math.atan2(ux,uz);dm.updateMatrix();dash.setMatrixAt(i,dm.matrix)}
-    dash.frustumCulled=false;world.add(dash);
+    const nD=Math.floor(len/18),dMat=new THREE.MeshBasicMaterial({color:0xffffff}),dm=new THREE.Object3D();dm.rotation.y=Math.atan2(ux,uz);
+    for(let a=0;a<nD;a+=60){const n=Math.min(60,nD-a),g2=new THREE.BoxGeometry(.35,.02,6),dash=new THREE.InstancedMesh(g2,dMat,n);   // 60 dashes (1.1 km) per mesh with its own bounds: the single 25 km mesh could not be culled and cost 17k triangles in every frame anywhere on the map
+      for(let i=0;i<n;i++){const u=10+(a+i)*18;dm.position.set(x0+ux*u,SL+2.26,z0+uz*u);dm.updateMatrix();dash.setMatrixAt(i,dm.matrix)}
+      const um=10+(a+(n-1)/2)*18;g2.boundingSphere=new THREE.Sphere(new THREE.Vector3(x0+ux*um,SL+2.26,z0+uz*um),n*9+8);world.add(dash)}
+    
     for(const s of [-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.25,1.1,len),XM(0x5a6068,.5,.6));
       rail.position.set(x0+ux*len/2-uz*s*(HW+.4),SL+2.75,z0+uz*len/2+ux*s*(HW+.4));rail.rotation.y=Math.atan2(ux,uz);world.add(rail)}
     PLACES.push({id:'magistral',name:'Magistral',sub:'the highway to Jungle Island · flat out',x:x0+ux*30,z:z0+uz*30,yaw:Math.atan2(ux,uz)});

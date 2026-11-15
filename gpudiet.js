@@ -3,7 +3,7 @@
 // (a hidden parent, an interior you left, the space scene) or beyond the far plane for `ttl` seconds is released on the GPU. three uploads it again by itself when it is next drawn,
 // so only textures that CAN be uploaded again are touched (an image / canvas / data that is still there; never a video, a render target or a texture that dropped its CPU copy).
 // Hooks: GPUDIET.step(false) right before the world is rendered in loop(), GPUDIET.step(true) while the space scene is the one on screen.
-const GPUDIET={now:0,last:0,ttl:0,on:true,O:[],L:[],seen:new WeakMap(),stat:{freed:0,passes:0},_v:null,
+const GPUDIET={now:0,last:0,ttl:0,per:260,on:true,O:[],L:[],seen:new WeakMap(),stat:{freed:0,passes:0},_v:null,
   MAPS:['map','normalMap','roughnessMap','metalnessMap','alphaMap','emissiveMap','bumpMap','aoMap','lightMap','specularMap'],
   again(t){if(t.lazy)return t.version>0;   // index.html lazyTex: painted again on demand (do not touch .image: reading it would paint)
     const im=t.image;if(!im||t.isVideoTexture||t.isRenderTargetTexture||t.isCubeTexture||t.version<1)return false;
@@ -20,7 +20,7 @@ const GPUDIET={now:0,last:0,ttl:0,on:true,O:[],L:[],seen:new WeakMap(),stat:{fre
     const O=this.O,L=this.L,v=this._v||(this._v=new THREE.Vector3());
     if(!O.length){this.stat.passes++;O.push(scene);L.push(space?0:1);if(typeof SPC!=='undefined'&&SPC.sc){O.push(SPC.sc);L.push(space?1:0)}}
     const cam=camera.position,far=camera.far;
-    for(let n=0;n<260&&O.length;n++){const o=O.pop(),chain=L.pop()&&o.visible?1:0;
+    for(let n=0;n<this.per&&O.length;n++){   // `per` objects a frame: the whole scene every second or soconst o=O.pop(),chain=L.pop()&&o.visible?1:0;
       const kids=o.children;for(let i=0;i<kids.length;i++){O.push(kids[i]);L.push(chain)}
       const m=o.material;if(!m)continue;
       let live=chain;
