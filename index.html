@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -1727,7 +1727,7 @@ function buildTrees2(id,obb,dens){
   const grp=new THREE.Group();grp.add(trunk);grp.add(leaf);grp.userData.leaf=leaf;
   return grp;
 }
-let LEAF_DEPTH=null;
+let LEAF_DEPTH=null,PROP_DEPTH=null;   // PROP_DEPTH: the shadow of a see-through grille (fences, balcony rails: PROP_SURF codes 10..11) is a light dither, not a solid wall
 const STATIC_BLOCK=[];   // cx,cz,hw,hd,ca,sa  (no trees / no generated buildings)
 function blockedStatic(x,z,m){return insideOBB(STATIC_BLOCK,x,z,m)}
 
@@ -1828,7 +1828,10 @@ function addPolyBuilding(g,rings,lv,st,sd,fl,P,S,opt){
     for(const p of all)g.v({position:[p.x,top,p.y],normal:[0,1,0],aQ:(st===INDUST&&lv<=2)?2:1,aP:[st,lv,sd,-1],aUV:[0,0],aT:[1,0,0]});
     for(const t of tris){g.tri(base+t[0],base+t[2],base+t[1]);g.tri(base+t[0],base+t[1],base+t[2])}
     // parapet lip
-    if(P&&lv>=3&&area>80){for(const W of walls){if(W.L<3)continue;const mx=(W.x1+W.x2)/2,mz=(W.z1+W.z2)/2;P.box(mx-W.nx*.12,top+.18,mz-W.nz*.12,W.L,.36,.24,Math.atan2(W.tx,W.tz)-Math.PI/2,sRGB(st===HIST||st===MOLD?'#d9d0bf':'#a9a6a0'),9)}}
+    if(P&&lv>=3&&area>80){const pc=sRGB(st===HIST||st===MOLD?'#d9d0bf':'#a9a6a0'),pa=()=>({color:pc,aM:9}),t1=top+.36;   // outer face, top, inner face: the underside and the two ends of the old box were never seen (12 vertices instead of 24 per wall)
+      for(const W of walls){if(W.L<3)continue;const ix=-W.nx*.24,iz=-W.nz*.24;
+        quadN(P.g,[[W.x1,top,W.z1],[W.x2,top,W.z2],[W.x2,t1,W.z2],[W.x1,t1,W.z1]],[W.nx,0,W.nz],pa);quadN(P.g,[[W.x1,t1,W.z1],[W.x2,t1,W.z2],[W.x2+ix,t1,W.z2+iz],[W.x1+ix,t1,W.z1+iz]],[0,1,0],pa);
+        quadN(P.g,[[W.x1+ix,top,W.z1+iz],[W.x2+ix,top,W.z2+iz],[W.x2+ix,t1,W.z2+iz],[W.x1+ix,t1,W.z1+iz]],[-W.nx,0,-W.nz],pa)}}
   }
   if(P&&opt.props!==false){
     // roof structures
@@ -1909,7 +1912,8 @@ function buildBarriers(id,P,segsOut,colsOut,sA,sB){      // sA..sB = optional su
       const gy=Math.min(groundH(ax,az),groundH(bx,bz));
       if(k===0){const h=2.0;P.box(mx,gy+h/2-.1,mz,.32,h+.2,l+.02,ry,(q%2?wallC:wallC2),9);P.box(mx,gy+h+.05,mz,.42,.12,l+.04,ry,sRGB('#d8cdb4'),9)}
       else if(k===1){const h=1.6;P.box(mx,gy+h-.05,mz,.05,.05,l,ry,fenceC,1);P.box(mx,gy+.25,mz,.05,.05,l,ry,fenceC,1);
-        const nb=Math.max(2,Math.round(l/.16));for(let b=0;b<nb;b+=1){const t=(b+.5)/nb;const px=ax+(bx-ax)*t,pz=az+(bz-az)*t;P.box(px,gy+h/2,pz,.025,h,.025,0,fenceC,1)}
+        // the upright bars are ONE see-through quad (the bars are cut out in the shader, PROP_SURF code 10..11, like the balcony grilles) instead of a box every 16 cm: ~900 -> ~80 vertices per 6 m of fence (fences were 28 % of the city centre's prop geometry)
+        {const fx=(bx-ax)/l,fz=(bz-az)/l,fm=10+(Math.atan2(fz,fx)+Math.PI)/6.2831853*.998,ps=[[ax,gy,az],[bx,gy,bz],[bx,gy+h,bz],[ax,gy+h,az]],fa=()=>({color:fenceC,aM:fm});quadN(P.g,ps,[fz,0,-fx],fa);quadN(P.g,ps,[-fz,0,fx],fa)}
         P.box(ax,gy+h/2+.05,az,.07,h+.1,.07,0,fenceC,1);
         if(colsOut){const dx=(bx-ax)/l,dz=(bz-az)/l,nx=-dz*.08,nz=dx*.08;
           colsOut.push(makeColPoly([new Float32Array([ax+nx,az+nz,bx+nx,bz+nz,bx-nx,bz-nz,ax-nx,az-nz])],gy+h,gy))}
@@ -1934,13 +1938,18 @@ function buildRails(id,P,catOut,inBld,sA,sB){
     const smp=[];for(let q=0;q<=nSub;q++){const t=q/nSub;let mx=nA[0]+(nB[0]-nA[0])*t,mz=nA[1]+(nB[1]-nA[1])*t;const ml=Math.hypot(mx,mz)||1;mx/=ml;mz/=ml;const px=ax+(bx-ax)*t,pz=az+(bz-az)*t;
       const onRd=nearRoad(id,px,pz,0);smp.push({x:px,z:pz,on:onRd,y:groundH(px,pz)+(onRd?.13:0),nx:mx,nz:mz,sc:nA[2]+(nB[2]-nA[2])*t})}
     const at=(m,w,dy)=>[m.x+m.nx*w*m.sc,m.y+dy,m.z+m.nz*w*m.sc];
-    for(let q=0;q<nSub;q++){const m0=smp[q],m1=smp[q+1],px=(m0.x+m1.x)/2,pz=(m0.z+m1.z)/2,l=Math.hypot(m1.x-m0.x,m1.z-m0.z)+.02;if(inBld&&inBld(px,pz))continue;
+    // 2.5 m pieces follow the ground; where the ground is straight (within 1-2.5 cm) consecutive pieces become ONE (flat streets and the port yard were cut into thousands of needless pieces)
+    const bad=q=>!!(inBld&&inBld((smp[q].x+smp[q+1].x)/2,(smp[q].z+smp[q+1].z)/2)),runs=[];
+    for(let q=0;q<nSub;){if(bad(q)){q++;continue}let e=q+1;const on=smp[q].on,tol=on?.01:.025;
+      while(e<nSub&&smp[e].on===on&&smp[e+1].on===on&&!bad(e)){let ok=true;for(let j=q+1;j<=e;j++)if(Math.abs(smp[j].y-(smp[q].y+(smp[e+1].y-smp[q].y)*(j-q)/(e+1-q)))>tol){ok=false;break}if(!ok)break;e++}
+      runs.push(q,e);q=e}
+    for(let ru=0;ru<runs.length;ru+=2){const m0=smp[runs[ru]],m1=smp[runs[ru+1]],px=(m0.x+m1.x)/2,pz=(m0.z+m1.z)/2,l=Math.hypot(m1.x-m0.x,m1.z-m0.z)+.02;
       const strip=(w0,d0,w1,d1,n,col,mat)=>quadN(P.g,[at(m0,w0,d0),at(m0,w1,d1),at(m1,w1,d1),at(m1,w0,d0)],n,()=>({color:col,aM:mat}));
       // on a car road there is no ballast, bed or sleepers: the rails are laid flush in the asphalt (level crossing / street tram), the road stays clean
       const flush=m0.on&&m1.on;
       if(flush){}
       else if(k===1){strip(-2.25,.01,-1.55,.19,[-nx*.5,.86,-nz*.5],BAL_S,9);strip(-1.55,.19,1.55,.19,[0,1,0],BAL_T,9);strip(1.55,.19,2.25,.01,[nx*.5,.86,nz*.5],BAL_S,9);
-        const nsl=Math.max(1,Math.round(l/.6)),gyc=(m0.y+m1.y)/2;for(let t=0;t<nsl;t++){const u=-l/2+(t+.5)*l/nsl;P.box(px+tx*u,gyc+.25,pz+tz*u,2.5,.12,.22,ry,SLEEP,5)}}
+        const nsl=Math.max(1,Math.round(l/.6)),SL=P.det||P;for(let t=0;t<nsl;t++){const f=(t+.5)/nsl;SL.box(m0.x+(m1.x-m0.x)*f,m0.y+(m1.y-m0.y)*f+.25,m0.z+(m1.z-m0.z)*f,2.5,.12,.22,ry,SLEEP,5)}}   // sleepers are small: they live in the chunk's detail mesh (P.det, drawn near only)
       else strip(-1,.07,1,.07,[0,1,0],TRAM_S,9);
       const yb=flush?-.02:k===1?.27:.04,yt=flush?.02:k===1?.39:.16;
       for(const sg of [-1,1]){const w=g*sg;strip(w-.04,yt,w+.04,yt,[0,1,0],steel,6);strip(w-.04,yb,w-.04,yt,[-nx,0,-nz],steel,6);strip(w+.04,yt,w+.04,yb,[nx,0,nz],steel,6)}
@@ -5336,7 +5345,7 @@ const PORTAL={cur:null,built:{},active:null,ret:null,peds:[],
     if(name!=='flat')return name;
     return `flat:${ent}:${floor}`;
   },
-  setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;if(seaNear)seaNear.visible=showWorld;
+  setCity(v){const showWorld=v||this.cur==='flat';for(const c of chunks.values())for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.visible=showWorld;if(!showWorld)for(const c of chunks.values())if(c.det)c.det.visible=false;if(LANDMARK_GRP)LANDMARK_GRP.visible=showWorld;seaMesh.visible=showWorld;if(seaNear)seaNear.visible=showWorld;
     for(const t of TREES.all())t.visible=showWorld;if(typeof GLBT!=='undefined'){GLBT.setVisible(showWorld);BENCH.setVisible(showWorld)}for(const t of CAR_T){t.mesh.visible=showWorld;t.wheels.visible=showWorld}for(const t of TRAMS)t.mesh.visible=showWorld;if(snowPts)snowPts.visible=showWorld&&S.season==='winter';
     for(const n in this.built){const B=this.built[n];setInteriorGroupVisible(B.grp,!v&&B===this.active)}},
   fail(e,name,f){console.error('[portal] could not open '+name,e);this.cur=null;this.active=null;this.setCity(true);for(const n in this.built)setInteriorGroupVisible(this.built[n].grp,false);const r=this.ret||PLACES[0];teleportRaw(r.x,r.z,r.yaw);toast('Closed for now','this place failed to open');f.style.opacity=0},
@@ -7132,7 +7141,7 @@ function* buildChunkGen(id){
   // the streamer only checks its frame budget BETWEEN yields: yield whenever ~2 ms have passed, so no step can eat a whole frame (a dense chunk used to have single steps of 100-250 ms)
   let _ts=performance.now();const sl=()=>{const n=performance.now();if(n-_ts>2){_ts=n;return true}return false};
   const gr=buildGround2(id);yield;
-  const g=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2}),GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});P.bn=[];
+  const g=new GB({position:3,normal:3,aUV:2,aP:4,aQ:1,aT:3}),P=new PB(),Sg=new GB({position:3,normal:3,uv:2}),GRX=new GB({position:3,normal:3,aK:2,aR:4,aU:1});P.bn=[];P.det=new PB();   // P.det: small things (sleepers, street furniture) in their own mesh that updateCityLOD draws near the player only
   const cols=[],lots=[],benches=[],lampPos=[],segs=[],obb=[],lobb=[],cirs=[],treePts=[],doors=[];
   const feats=chunkFeatures(id);
   // buildings (real OSM footprints)
@@ -7183,18 +7192,20 @@ function* buildChunkGen(id){
   {const onRoad=(x,z)=>nearRoad(id,x,z,-SW[0]);
    for(let i=cirs.length-3;i>=0;i-=3)if(onRoad(cirs[i],cirs[i+1]))cirs.splice(i,3);
    for(let i=lobb.length-6;i>=0;i-=6)if(onRoad(lobb[i],lobb[i+1]))lobb.splice(i,6)}
-  const c={id,ground:gr.mesh,bld:null,props:null,signs:null,grx:null,parked,benches,cols,doors:doors.filter(d=>DOOR_KIND[d.code]),segs:new Float32Array(segs),cirs:new Float32Array(cirs),lampPos:new Float32Array(lampPos),tlPts:new Float32Array(tlPts),obb:new Float32Array(obb),lobb:new Float32Array(lobb)};
+  const c={id,ground:gr.mesh,bld:null,props:null,det:null,signs:null,grx:null,parked,benches,cols,doors:doors.filter(d=>DOOR_KIND[d.code]),segs:new Float32Array(segs),cirs:new Float32Array(cirs),lampPos:new Float32Array(lampPos),tlPts:new Float32Array(tlPts),obb:new Float32Array(obb),lobb:new Float32Array(lobb)};
   if(g.n){c.bld=new THREE.Mesh(g.build(),MATS.bld);c.bld.castShadow=c.bld.receiveShadow=true;c.bld.matrixAutoUpdate=false}
   yield;
-  const pg=P.build();if(pg){c.props=new THREE.Mesh(pg,MATS.props);c.props.castShadow=c.props.receiveShadow=true;c.props.matrixAutoUpdate=false}
+  const pg=P.build();if(pg){c.props=new THREE.Mesh(pg,MATS.props);c.props.castShadow=c.props.receiveShadow=true;c.props.matrixAutoUpdate=false;c.props.customDepthMaterial=PROP_DEPTH}
+  yield;
+  {const dg=P.det.build();if(dg){c.det=new THREE.Mesh(dg,MATS.props);c.det.receiveShadow=true;c.det.matrixAutoUpdate=false;c.det.customDepthMaterial=PROP_DEPTH;c.det.visible=false}}
   yield;
   if(Sg.n){c.signs=new THREE.Mesh(Sg.build(),MATS.signs);c.signs.matrixAutoUpdate=false}
   if(GRX.n){c.grx=new THREE.Mesh(GRX.build(),MATS.ground);c.grx.receiveShadow=true;c.grx.matrixAutoUpdate=false}
-  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m)m.frustumCulled=true;
+  for(const m of [c.ground,c.bld,c.props,c.det,c.signs,c.grx])if(m)m.frustumCulled=true;
   yield;
   // trees: OSM trees + roadside + land-use density
   treesForChunk(id,c,treePts,solid);
-  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m){scene.add(m);if(PORTAL.cur)m.visible=false}
+  for(const m of [c.ground,c.bld,c.props,c.det,c.signs,c.grx])if(m){scene.add(m);if(PORTAL.cur)m.visible=false}
   chunks.set(id,c);PARKED_DIRTY=true;TREES.add(id,treePts);if(typeof BENCH!=='undefined')BENCH.reg(id,P.bn);
 }
 const YELLOW_SD=(()=>{for(let s=0;s<256;s++){const h=(s/255*13.7+.11)%1;if(h>.49&&h<.55)return s}return 0})();
@@ -7217,7 +7228,7 @@ function buildPlayground(P,x,y,z,ry,r){
   p=at(.2,2.6);P.cyl(p[0],y+.25,p[1],1.1,1.1,.12,10,grn,1);P.cyl(p[0],y+.37,p[1],.06,.06,.8,5,met,1);
 }
 function disposeChunk(c){
-  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx]){if(!m)continue;scene.remove(m);m.geometry.dispose()}
+  for(const m of [c.ground,c.bld,c.props,c.det,c.signs,c.grx]){if(!m)continue;scene.remove(m);m.geometry.dispose()}
   TREES.remove(c.id);if(typeof BENCH!=='undefined')BENCH.rm(c.id);
   if(typeof GRASS_SYS!=='undefined')GRASS_SYS.removeChunk(c.id);
   chunks.delete(c.id);PARKED_DIRTY=true;
@@ -7226,7 +7237,7 @@ function disposeChunk(c){
 // matrix on every frame is pure waste, so bake it once and opt out of the per-frame update.
 function freezeChunkMeshes(id){
   const c=chunks.get(id);if(!c)return;
-  for(const m of [c.ground,c.bld,c.props,c.signs,c.grx])if(m){m.matrixAutoUpdate=false;m.updateMatrix();dropCpuCopy(m.geometry)}
+  for(const m of [c.ground,c.bld,c.props,c.det,c.signs,c.grx])if(m){m.matrixAutoUpdate=false;m.updateMatrix();dropCpuCopy(m.geometry)}
 }
 function rebuildAllChunks(){for(const c of [...chunks.values()])disposeChunk(c);if(started||renderer)updateChunks(0,260)}
 // ms per frame the streamer may spend: little when the frame rate is already low, more when there is time to spare
@@ -7260,11 +7271,17 @@ function updateCityLOD(dt){
   const buildingVisibility=Math.max(chunkVisibility,S.q==='low'?360:760);
   const propVisibility=Math.max(chunkVisibility*.9,S.q==='low'?300:620);
   const HYS=1.12; // hysteresis: switch on at the limit, off only 12% further out -> no 0.3 s flicker
+  // the detail mesh (sleepers, street furniture) is drawn near only, and a chunk casts into the sun's shadow map only when its BOX is near enough to throw a shadow into the shadow box around the player:
+  // three's own test uses the chunk's 140 m bounding sphere, so 9-10 whole chunks were redrawn into the shadow map for a 42 m shadow box
+  const detVis=S.q==='low'?70:(MOBILE?110:240),tanEl=Math.max(.08,sunDir.y)/Math.max(.05,Math.hypot(sunDir.x,sunDir.z)),castR=Qp().sr*1.45+Math.min(260,Math.max(20,45/tanEl));
   for(const c of chunks.values()){
     const cx=BB[0]+(c.id%NCX+.5)*CH,cz=BB[2]+(Math.floor(c.id/NCX)+.5)*CH;
     const distance=Math.hypot(cx-x,cz-z);
     if(c.bld)c.bld.visible=c.bld.visible?distance<=buildingVisibility*HYS:distance<=buildingVisibility;
     if(c.props)c.props.visible=c.props.visible?distance<=propVisibility*HYS:distance<=propVisibility;
+    const box=Math.hypot(Math.max(0,Math.abs(cx-x)-CH/2),Math.max(0,Math.abs(cz-z)-CH/2)),cast=box<=castR;   // distance to the chunk's square, not to its centre
+    if(c.det)c.det.visible=c.det.visible?box<=detVis*HYS:box<=detVis;
+    if(c.bld)c.bld.castShadow=cast;if(c.props)c.props.castShadow=cast;if(c.det)c.det.castShadow=cast&&box<=Qp().sr;
     for(const m of [c.signs,c.grx])if(m)m.visible=distance<=chunkVisibility;
   }
   if(LANDMARK_GRP){
@@ -8017,6 +8034,7 @@ async function boot(){
   sunL=new THREE.DirectionalLight(0xffffff,3);scene.add(sunL);scene.add(sunL.target);
   hemiL=new THREE.HemisphereLight(0xbcd0ff,0x6b5b4b,1);scene.add(hemiL);
   initMats();LEAF_DEPTH=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,map:TX.leaves,alphaTest:.45});
+  PROP_DEPTH=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});PROP_DEPTH.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nattribute float aM;varying float vM;').replace('#include <begin_vertex>','#include <begin_vertex>\nvM=aM;');sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying float vM;').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(vM>9.5&&vM<19.5&&mod(floor(gl_FragCoord.x)+floor(gl_FragCoord.y)*2.,4.)>.5)discard;')};
   makeTreeSpecies();TREES.init(scene);if(typeof GLBT!=='undefined'){GLBT.load();BENCH.load();BOOBA.load()}makeSkies();makeSea();makeSnow();if(window.GFX)GFX.init(scene);
   if(typeof GRASS_SYS!=='undefined')GRASS_SYS.init(scene);
   if(typeof SNOW_SYS!=='undefined')SNOW_SYS.init(scene);
@@ -8064,7 +8082,7 @@ function loop(t){
   if(GAR.on){last=t;safe('garage',()=>GAR.frame(t));return}
   let dt=Math.min(.05,(t-last)/1000);last=t;
   UNI.uTime.value+=dt;
-  if(typeof SPC!=='undefined'&&SPC.space){safe('space',()=>SPC.frame(dt));return}   // space.js: the separate space scene (Earth orbit, the Moon) replaces the world while it is on
+  if(typeof SPC!=='undefined'&&SPC.space){GPUDIET.step(true);safe('space',()=>SPC.frame(dt));return}   // space.js: the separate space scene (Earth orbit, the Moon) replaces the world while it is on
   if(typeof TL!=='undefined')safe('tl',()=>TL.frame(dt));
   safe('sim',()=>{if(started&&$('mapUI').hidden){
     refreshCarObb();if(COOP.online())COOP.advance(dt);MARINE.update(dt);if(typeof YACHT!=='undefined')YACHT.update(dt);if(typeof ISLE!=='undefined'&&ISLE.built)ISLE.update(dt);if(typeof PLN!=='undefined'&&PLN.world){PLN.tick(dt);if(typeof AIRP!=='undefined')AIRP.update(dt)}if(typeof TRN2!=='undefined')TRN2.update(dt);if(MP.on)MP.step(dt);else if(PLN.cur){}else if(HELI.on)HELI.update(dt);else if(PASS.host)PASS.ride(dt);else if(MARINE.cur)MARINE.ride(dt);else if(EXT.cur)EXT.ride(dt);else if(DRIVE.on)stepDrive(dt);else if(!RIDE.on)stepPlayer(dt);
@@ -8111,6 +8129,7 @@ function loop(t){
   // phones and tablets: the sun's shadow map (which redraws every chunk that touches the 110 m frustum) is refreshed every other frame, or every frame when moving fast
   if(MOBILE&&renderer.shadowMap.enabled){renderer.shadowMap.autoUpdate=false;_shadowTick^=1;const skyHi=typeof BR!=='undefined'&&BR.on&&(BR.phase==='bus'||BR.phase==='sky');   // 400 m up the sun's shadow box holds nothing the ground could show: do not redraw it
     if(skyHi)renderer.shadowMap.needsUpdate=false;else if(_shadowTick||Math.hypot(player.vx||0,player.vz||0)>7||DRIVE.on||HELI.on||renderer.shadowMap.needsUpdate)renderer.shadowMap.needsUpdate=true}
+  GPUDIET.step(false);   // gpudiet.js: textures of things hidden / out of range for a while leave the GPU
   renderer.info.reset();const _shk=(typeof FX!=='undefined'&&FX.ready)?FX.shakeOff(dt):null;if(_shk)camera.position.add(_shk);
   try{if(composer)composer.render();else renderer.render(scene,camera)}finally{if(_shk)camera.position.sub(_shk)}
   safe('lowdc',adaptLowDrawCalls);
