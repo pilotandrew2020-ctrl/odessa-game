@@ -50,7 +50,7 @@ const LOOK={
         'uniform sampler2D uFT;uniform vec3 uFMed;uniform vec2 uFMid;uniform vec2 uFSz;uniform float uFS;uniform float uFSy;uniform float uFCos;uniform float uFSin;',
         // photo pixel for this surface point (eyes level, image y down), oval mask (wider above the eyes than below), fade where the skin turns from the camera
         'vec2 frel=vec2(vMP.x-('+FC.cx.toFixed(4)+'),-(vMP.y-'+FC.ey.toFixed(4)+')*uFSy)*uFS;vec2 fpp=uFMid+vec2(frel.x*uFCos-frel.y*uFSin,frel.x*uFSin+frel.y*uFCos);'+
-        'float fdy=vMP.y-'+FC.fcy.toFixed(4)+';float fry=fdy>0.?'+FC.ru.toFixed(4)+':'+FC.rd.toFixed(4)+';float fm=(1.-smoothstep(.7,1.,length(vec2((vMP.x-('+FC.cx.toFixed(4)+'))/'+FC.rx.toFixed(4)+',fdy/fry))))*smoothstep(.25,.7,vMN.z)*step(0.,fpp.y)*step(fpp.y,uFSz.y)*step(0.,fpp.x)*step(fpp.x,uFSz.x);'+
+        'float fdy=vMP.y-'+FC.fcy.toFixed(4)+';float fry=fdy>0.?'+FC.ru.toFixed(4)+':'+FC.rd.toFixed(4)+';float fm=(1.-smoothstep(.45,1.,length(vec2((vMP.x-('+FC.cx.toFixed(4)+'))/'+FC.rx.toFixed(4)+',fdy/fry))))*smoothstep(.25,.7,vMN.z)*step(0.,fpp.y)*step(fpp.y,uFSz.y)*step(0.,fpp.x)*step(fpp.x,uFSz.x);'+
         'vec3 fph=pow(texture2D(uFT,fpp/uFSz).rgb,vec3(2.2));'+(rel?'fph=diffuseColor.rgb*clamp(fph/max(uFMed,vec3(.02)),vec3(.1),vec3(1.8));':'')+'diffuseColor.rgb=mix(diffuseColor.rgb,fph,fm);');
       if(R.Eyes)R.Eyes.visible=false;R.M.traverse(c=>{if(c.name==='Brows')c.visible=false})}},
   // ---- the avatar options for your own character: skin and hair from the photo
