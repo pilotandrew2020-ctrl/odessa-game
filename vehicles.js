@@ -357,8 +357,8 @@ class LiteVehicle{
   stepSub(dt,thr,str,up){const s=this.spec;
     if(thr>0)this.v+=thr*s.acc*dt*(this.v<0?2:1);else if(thr<0)this.v+=thr*s.acc*dt*(this.v>0?2.2:.7);else this.v*=Math.exp(-dt*.45);
     this.v=Math.max(-s.max*.3,Math.min(s.max,this.v));
-    const sa=str*s.steer/(1+Math.abs(this.v)*(this.kind==='sub'?.16:.07));this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);   // stronger denominator for the 500 km/h sub so it stays steerable
-    this.yaw+=this.v*Math.tan(this.steerA)/s.wb*dt;
+    const sa=str*s.steer;this.steerA+=(sa-this.steerA)*Math.min(1,dt*8);   // round 18: the sub was hard to turn (the old rudder fell off with speed: ~0.2 rad/s at 50 m/s). Now an arcade yaw rate: ~1.1 rad/s when crawling, ~0.45 at 50 m/s, ~0.22 at full speed
+    this.yaw+=Math.sign(this.v)*(this.steerA/s.steer)*1.1/(1+Math.abs(this.v)/35)*Math.min(1,Math.abs(this.v)/1.5)*dt;
     const fx=-Math.sin(this.yaw),fz=-Math.cos(this.yaw),nx=this.x+fx*this.v*dt,nz=this.z+fz*this.v*dt,sg=this.v>=0?1:-1,px=nx+fx*s.len/2*sg,pz=nz+fz*s.len/2*sg;
     const block=Math.abs(this.v)>.05&&(groundH(px,pz)>SL-.3||groundH(nx,nz)>SL-.3);
     if(block)this.v*=-.2;else{this.x=nx;this.z=nz}
