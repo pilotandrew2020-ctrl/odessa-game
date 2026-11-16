@@ -17,15 +17,15 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // 2026-11-12: more bodies (Character -> Body -> Booba / Nolik): cartoon creatures with the same 22 bones under the Man.glb names (pelvis, spine_01..03, neck_01, Head,
   // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
   // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
-  BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1.24,tpl:null,st:0},
-       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,ks:.5,sy:.0,sz:-.02}},
+  BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1.24,tpl:null,st:0,tint:['booba']},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,ks:.5,sy:.0,sz:-.02},tint:['nolik']},
        // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
        steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0},
-       mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0},
+       mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0,tint:['M_MED_Lettuce_Head']},
        halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
        leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
-       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9}},
-       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95}},
+       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9},tint:['Head_diff_000_a_whi','hand_diff_002_a_whi_003','hand_diff_001_a_whi_003']},
+       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95},tint:['Head']},
        // round 23: Anton Chigurh from the owner's TRELLIS mesh (gun, tank and puddle cut off, the right hand mirrored onto the gun arm, decimated to 28k, rigged with mk_char): colours only, the face is projected by look.js
        chigurh:{url:'assets/models/avatar/Chigurh.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.8,th:.9,ca:.9}}},
   kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
@@ -98,10 +98,28 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   kept(c,P){for(let p=c;p&&p!==P.hips;p=p.parent)if(p.userData&&p.userData.keep)return true;return false},
   detach(P){const R=P.real;if(!R)return;P.root.remove(R.M);const seen=new Set();R.M.traverse(c=>{if(c.isMesh&&c.material&&!seen.has(c.material)){seen.add(c.material);c.material.dispose()}});P.real=null;
     for(const c of R.hidden)c.visible=true},
+  // round 29: pick a skin colour on a textured body (Nolik is blue, Booba white...) and it really changes: the body's dominant texture colour is measured once and every pixel close to it is remapped to the chosen colour, keeping the shading
+  baseCol(mat){const im=mat.map&&mat.map.image;if(!im||!im.width)return null;if(mat.userData.base)return mat.userData.base;try{const N=48,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,N,N);const d=g.getImageData(0,0,N,N).data,H={};let best=null,bn=0;
+      for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const r=d[i]>>5,gg=d[i+1]>>5,b=d[i+2]>>5,k=r+','+gg+','+b,e=H[k]||(H[k]={n:0,r:0,g:0,b:0});e.n++;e.r+=d[i];e.g+=d[i+1];e.b+=d[i+2];if(e.n>bn){bn=e.n;best=e}}
+      if(!best)return null;return mat.userData.base=[best.r/best.n/255,best.g/best.n/255,best.b/best.n/255]}catch(e){return null}},
+  tint(mat,hex){const B=this.baseCol(mat);if(!B)return;const lin=c=>Math.pow(c,2.2),bl=new THREE.Vector3(lin(B[0]),lin(B[1]),lin(B[2])),tc=this.lin(hex),bL=Math.max(.02,bl.dot(new THREE.Vector3(.299,.587,.114)));
+    if(!mat.userData.tintU){mat.userData.tintU={uTB:{value:bl},uTC:{value:new THREE.Color()},uTL:{value:bL}};const prev=mat.onBeforeCompile,U=mat.userData.tintU;
+      mat.onBeforeCompile=(sh,r)=>{if(prev)prev.call(mat,sh,r);Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 uTB;uniform vec3 uTC;uniform float uTL;').replace('#include <map_fragment>','#include <map_fragment>\n{vec3 tc=max(diffuseColor.rgb,vec3(.001));float sim=dot(normalize(tc),normalize(uTB)),lum=dot(tc,vec3(.299,.587,.114));float tm=smoothstep(.9,.985,sim)*step(.0,lum);diffuseColor.rgb=mix(diffuseColor.rgb,uTC*(lum/uTL),tm);}');};
+      const k=mat.customProgramCacheKey?mat.customProgramCacheKey():'';mat.customProgramCacheKey=()=>k+'|tint';mat.needsUpdate=true}
+    mat.userData.tintU.uTC.value.copy(tc);mat.userData.tintU.uTB.value.copy(bl);mat.userData.tintU.uTL.value=bL},
+  // round 29: "Me (3D scan)": the owner's head scan (assets/models/avatar/MeHead.glb, 13k triangles, flat colours) on the realistic body: Man's own head triangles (above the neck) are cut away and the scan rides on the Head bone
+  meHead(R,o,find,sh){const body=find('Body');for(const k of ['Eyes','Brows','Beard','HairParted','HairBuzzed','HairLong','HairBuns'])sh(k,false);
+    if(body&&body.geometry&&!body.userData.meCut){const g=body.geometry.clone(),ix=g.index,pa=g.attributes.position,keep=[];for(let i=0;i<ix.count;i+=3){const a=ix.getX(i),b=ix.getX(i+1),c=ix.getX(i+2);if(!(pa.getY(a)>1.53&&pa.getY(b)>1.53&&pa.getY(c)>1.53))keep.push(a,b,c)}g.setIndex(keep);body.geometry=g;body.userData.meCut=1}
+    const put=(g)=>{if(!R.M||!R.M.parent)return;const iH=R.idx.Head,k=.158,w=new THREE.Object3D(),iq=R.bindW[iH].clone().invert(),root=g.scene.clone(true);let zn=.7;
+      root.traverse(c=>{if(!c.isMesh)return;c.geometry=c.geometry.clone();c.geometry.computeVertexNormals();c.castShadow=false;const m=c.material=c.material.clone();m.side=THREE.DoubleSide;
+        if(m.name==='mhair')m.color.copy(this.lin((o.hair===undefined||o.hair===0xe6c477)?0x2a1a10:o.hair));else{m.color.copy(this.lin(o.skin||'#f2c9a6')).multiplyScalar(1.02)}});
+      const off=new THREE.Vector3(0,1.6985-R.Hb[iH].y-.07*k/R.sc,(.115-R.Hb[iH].z)-zn*k/R.sc);w.quaternion.copy(iq);w.position.copy(off.applyQuaternion(iq));w.scale.setScalar(k/R.sc);w.add(root);R.B[iH].add(w);R.wr=(R.wr||[]).concat([w]);R.meW=w};
+    if(this._meG)put(this._meG);else{if(!this._meP)this._meP=new Promise(res=>new THREE.GLTFLoader().load('assets/models/avatar/MeHead.glb',g=>{this._meG=g;res(g)},undefined,()=>res(null)));this._meP.then(g=>{if(g&&R.M&&R.M.parent&&!R.meW)put(g)})}},
   // colours, shown parts
   paint(R,P,o){const M=R.M,SC=this.SC;o=o||{};const find=nm=>{let r=null;M.traverse(c=>{if(c.name===nm)r=c});return r},sh=(nm,v)=>{const c=find(nm);if(c)c.visible=v};
     const mat={};M.traverse(c=>{if(c.isMesh)mat[c.material.name]=c.material});
     // skin: the texture is baked around #f2c9a6, other tones tint it
+    {const K=this.kind(o),T=K&&this.BOD[K]&&this.BOD[K].tint;if(T&&o.skinPick){for(const nm of T)if(mat[nm]){const apply=()=>this.tint(mat[nm],o.skin);if(mat[nm].map&&mat[nm].map.image&&mat[nm].map.image.width)apply();else if(mat[nm].map){const t=mat[nm].map,f=()=>{apply()};t.addEventListener&&0;setTimeout(apply,400);setTimeout(apply,1500)}}}}
     if(mat.chead){mat.chead.color.setRGB(1.3,1.25,1.22);mat.chead.roughness=.7}   // Chigurh's textured head: a little brighter than the file (the game's light is dim on skin)
     if(mat.handskin){mat.handskin.color.copy(this.lin(o.skinRaw||o.skin||'#f2c9a6'));mat.handskin.roughness=.62}   // Chigurh: the sculpt's hands, untextured, in the colour of the face
     if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
@@ -121,6 +139,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     for(const k of ['HairParted','HairBuzzed','HairLong','HairBuns'])sh(k,false);
     if(hs!=='bald'&&!hat)sh(hmap[hs]||'HairParted',true);
     sh('Beard',o.bd==='beard');
+    if(o.meHead)this.meHead(R,o,find,sh);
     if(typeof LOOK!=='undefined')LOOK.paint(R,mat,P,o);     // look.js: the capybara tee print and your face photo
   },
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
