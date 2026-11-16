@@ -57,6 +57,5 @@ const TANK={on:false,g:null,x:0,z:0,y:0,yaw:0,v:0,pitch:0,roll:0,aimYaw:0,aimPit
     player.x=this.x;player.z=this.z;player.y=this.y;player.vx=player.vz=0;player.air=false;
     if(this._s){const sp=Math.abs(this.v)/13,t=this._s.c.currentTime;this._s.gn.gain.setTargetAtTime(.1+sp*.35,t,.15);this._s.f.frequency.setTargetAtTime(220+sp*300,t,.15);this._s.og.gain.setTargetAtTime(.12+sp*.18,t,.15);this._s.o.frequency.setTargetAtTime(34+sp*26,t,.15)}
     document.getElementById('tankSpd').textContent=Math.round(Math.abs(this.v)*3.6)+' km/h';document.querySelector('#tankReload u').style.width=((1-this.reload/2.5)*100)+'%'},
-  blast(p){if(typeof FX!=='undefined'){FX.init();FX.explode(p.x,p.y,p.z,7)}if(typeof EXT!=='undefined'&&EXT.fireball)try{EXT.fireball(p.x,p.y,p.z,6)}catch(e){}
-    const d=Math.hypot(p.x-player.x,p.z-player.z);if(d<9&&typeof GUN!=='undefined'&&GUN.armed&&!(this.on&&d<4))GUN.damage(Math.round(60*(1-d/9)),'tank shell');this.hits=(this.hits||0)+1},
+  blast(p){BLAST.at(p.x,p.y,p.z,7,this.on?0:60);this.hits=(this.hits||0)+1},
 };
