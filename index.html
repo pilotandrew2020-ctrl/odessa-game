@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -7479,7 +7479,7 @@ function collide(x,z,m,y){
 // ---------- player ----------
 let stepPhase=0;
 function stepPlayer(dt){
-  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on)return;   // tank.js / drone.js / rails.js move the player themselves
+  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on||typeof SHIPX!=='undefined'&&SHIPX.on)return;   // tank.js / drone.js / rails.js / the ship's helm move the player themselves
   if(typeof BR!=='undefined'&&BR.ctl){BR.ctlStep(dt);return}     // Battle Royale: on the bus / skydiving
   if(typeof SWIM!=='undefined'&&SWIM.step(dt))return;            // in deep water: swimming (swim.js)
   if(player.sit){const s=player.sit;player.x=s.x;player.z=s.z;player.y=s.y;player.yaw=s.yaw;PLR.root.position.set(s.x,s.y,s.z);PLR.root.rotation.y=s.yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt);
@@ -8120,6 +8120,7 @@ async function boot(){
   try{if(typeof ROOFPADS!=='undefined'&&ROOFPADS.init)ROOFPADS.init()}catch(e){console.error('[boot] roofpads',e)}
   try{if(typeof BLASTFX!=='undefined')BLASTFX.init()}catch(e){console.error('[boot] blastfx',e)}
   try{if(typeof RAILS!=='undefined'){RAILS.init();RAILS.gorky()}}catch(e){console.error('[boot] rails',e)}
+  try{if(typeof SHIPX!=='undefined')SHIPX.init()}catch(e){console.error('[boot] shipx',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';

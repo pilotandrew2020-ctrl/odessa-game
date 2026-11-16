@@ -33,7 +33,7 @@ const SHIP={ready:false,inst:[],near:null,far:null,deck:null,drop:8,spawnLoc:nul
     // the old yacht: hidden and switched off, "call the yacht" brings the cruise ship
     try{if(typeof YACHT!=='undefined'&&YACHT.y){YACHT.y.root.visible=false;YACHT.update=()=>{};YACHT.summon=()=>SHIP.summon()}}catch(e){}},
   add(x,z,theta,mode){const g=new THREE.Group(),n=this.near.clone(true),f=this.far.clone(true);g.add(n);g.add(f);g.position.set(x,SL-this.drop,z);scene.add(g);
-    const I={g,n,f,x,z,th:theta,mode,spd:0,ri:0,carry:null,hull:{x,z,hl:225,hw:36,ca:Math.sin(theta),sa:Math.cos(theta)}};this.pose(I);MARINE.hulls.push(I.hull);this.inst.push(I);
+    const I={g,n,f,x,z,th:theta,mode,spd:0,ri:0,carry:null,home:{x,z,th:theta},solids:[],hull:{x,z,hl:225,hw:36,ca:Math.sin(theta),sa:Math.cos(theta)}};this.pose(I);MARINE.hulls.push(I.hull);this.inst.push(I);
     // the deck surface of this ship (walls block, floors carry)
     const f2=(wx,wz,wy)=>this.surface(I,wx,wz,wy);f2.deck=1;SPECIAL.push(f2);return I},
   pose(I){const ph=I.th+Math.PI;I.g.rotation.y=ph;I.g.position.x=I.x;I.g.position.z=I.z;I.cp=Math.cos(ph);I.sp=Math.sin(ph);I.hull.x=I.x;I.hull.z=I.z;I.hull.ca=Math.sin(I.th);I.hull.sa=Math.cos(I.th)},
@@ -42,7 +42,7 @@ const SHIP={ready:false,inst:[],near:null,far:null,deck:null,drop:8,spawnLoc:nul
     const yy=(wy===undefined?99:wy)-I.g.position.y,F=this.floors(o);let h=null;for(const f of F)if(f<=yy+.9&&(h===null||f>h))h=f;if(h===null)return null;
     const W=this.walls(o);for(const [a,b] of W)if(b>h+.7&&a<h+1.7&&b-a>.8)return {h:I.g.position.y+h,pri:45,surf:'wood',wall:true};return {h:I.g.position.y+h,pri:45,surf:'wood'}},
   // boarding
-  nearQuay(){if(!this.ready||this.carryOn())return false;const p=PLACES.find(q=>q.id==='cruise');return !!p&&Math.hypot(p.x-player.x,p.z-player.z)<14&&!PORTAL.cur},
+  nearQuay(){if(!this.ready||this.carryOn()||(this.A&&this.A.mode!=='dock'))return false;const p=PLACES.find(q=>q.id==='cruise');return !!p&&Math.hypot(p.x-player.x,p.z-player.z)<14&&!PORTAL.cur},
   carryOn(){return this.inst.some(I=>I.carry)},
   deckSpot(I,prefZ){const D=this.deck;let best=null;for(let dz=0;dz<120;dz++)for(const s of [1,-1]){const lz=prefZ+s*dz;for(let lx=-16;lx<=16;lx+=3){const o=this.cellAt(lx,lz);if(o<0)continue;const F=this.floors(o).filter(f=>f>14&&f<40),W=this.walls(o);if(!F.length)continue;const f=Math.max(...F);let ok=true;for(const [a,b] of W)if(b>f+.7&&a<f+1.7)ok=false;
         // an open area: the four neighbours free too
@@ -55,11 +55,11 @@ const SHIP={ready:false,inst:[],near:null,far:null,deck:null,drop:8,spawnLoc:nul
   update(dt){if(!this.ready)return;const cam=camera.position;dt=Math.min(dt,.1);
     for(const I of this.inst){
       let on=null;if(typeof started!=='undefined'&&started){const [lx,lz]=this.local(I,player.x,player.z);if(Math.abs(lx)<34&&Math.abs(lz)<222){const o=this.cellAt(lx,lz);if(o>=0){const yy=player.y-I.g.position.y;if(this.floors(o).some(f=>Math.abs(f-yy)<1.3))on=[lx,lz]}}}
-      if(I.mode==='sail'){const T=this.route[I.ri],dx=T[0]-I.x,dz=T[1]-I.z,d=Math.hypot(dx,dz);if(d<90)I.ri=(I.ri+1)%this.route.length;
+      if(I.mode==='manual')this.manual(I,dt);else if(I.mode==='home')this.goHome(I,dt);else if(I.mode==='sail'){const T=this.route[I.ri],dx=T[0]-I.x,dz=T[1]-I.z,d=Math.hypot(dx,dz);if(d<90)I.ri=(I.ri+1)%this.route.length;
         let want=Math.atan2(dx,dz)-I.th;while(want>Math.PI)want-=6.2832;while(want<-Math.PI)want+=6.2832;const maxT=.02*dt;I.th+=Math.max(-maxT,Math.min(maxT,want));I.spd+=(11-I.spd)*Math.min(1,dt*.15);
         I.x+=Math.sin(I.th)*I.spd*dt;I.z+=Math.cos(I.th)*I.spd*dt;      }
-      if(on&&I.mode==='sail'){I.carry=on}else I.carry=null;
-      if(I.mode==='sail'){const old={cp:I.cp,sp:I.sp,x:I.x,z:I.z};this.pose(I);if(I.carry){const [wx,wz]=this.world(I,I.carry[0],I.carry[1]);player.x=wx;player.z=wz;player.yaw+=I.th-(I.prevTh===undefined?I.th:I.prevTh)}I.prevTh=I.th}
+      if(on&&I.mode!=='dock'){I.carry=on}else I.carry=null;
+      if(I.mode!=='dock'){const old={cp:I.cp,sp:I.sp,x:I.x,z:I.z};this.pose(I);if(I.carry){const [wx,wz]=this.world(I,I.carry[0],I.carry[1]);player.x=wx;player.z=wz;player.yaw+=I.th-(I.prevTh===undefined?I.th:I.prevTh)}I.prevTh=I.th}
       const d=Math.hypot(I.x-cam.x,I.z-cam.z);const FAR=MOBILE?2400:6000;I.n.visible=d<900;I.f.visible=d>=900&&d<FAR;I.g.visible=d<FAR}   // tablets: the 32k-triangle far model only within 2.4 km (the sailing ship was drawn from the city centre)
   },
 };
