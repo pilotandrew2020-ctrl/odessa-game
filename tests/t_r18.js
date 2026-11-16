@@ -14,5 +14,8 @@ exports.run = async (page, h) => {
   // phone: Home inside an app, the shade
   await ev(() => { toast('Hello', 'one'); PHONE.toggle() }); await h.wait(600); await ev(() => PHONE.go('snake')); await h.wait(300);
   assert(await ev(() => !document.getElementById('phnBack').hidden), 'no Home button in the app'); await ev(() => document.getElementById('phnBack').click()); await h.wait(200); assert.strictEqual(await ev(() => PHONE.screen), 'home');
+  // TikTok tile = the in-game player again; @name gives the scrolling creator list
+  const tt = await ev(() => { PHONE.go('tiktok'); document.getElementById('phnTt').value = 'https://www.tiktok.com/@scout2015'; PHONE.act('ttgo'); const f = document.querySelector('#phnTtBox iframe'); const a = f && f.src; document.getElementById('phnTt').value = '@someone.else'; PHONE.act('ttgo'); const b = document.querySelector('#phnTtBox iframe'); return { a, b: b && b.src, tile: [...document.querySelectorAll('#phn .app')].map(x => x.textContent.trim()) } }); console.log('tiktok', JSON.stringify(tt));
+  assert(/embed\/@scout2015/.test(tt.a || '') && /embed\/@someone.else/.test(tt.b || ''), 'creator list embed missing');
   await ev(() => PHONE.shade(true)); await h.wait(500); assert(await ev(() => document.getElementById('phnShade').classList.contains('open') && PHONE.notes.length > 0), 'shade not open / no notifications'); await ev(() => PHONE.shade(false));
 };
