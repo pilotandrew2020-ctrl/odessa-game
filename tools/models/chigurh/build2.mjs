@@ -29,14 +29,14 @@ const md=await new NodeIO().registerExtensions(ALL_EXTENSIONS).read(MAN);const N
 // caricature the realistic head so the geometry matches the projected face (long nose, heavy brow, sunken eyes, thick lips, long jaw)
 const sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)},GA=(x,y,z,cx,cy,cz,sx,sy,sz)=>Math.exp(-(((x-cx)/sx)**2+((y-cy)/sy)**2+((z-cz)/sz)**2));
 const deform=(p)=>{let [x,y,z]=p;const front=sm(0.0,0.06,z);
-  const gn=GA(x,y,z,0,1.662,.112,.022,.024,.05);z+=.026*gn*front;y-=.016*gn*front;               // long, drooping nose
+  const gn=GA(x,y,z,0,1.662,.112,.022,.024,.05);z+=.046*gn*front;y-=.026*gn*front;               // long, drooping nose
   z+=.010*GA(x,y,z,0,1.69,.1,.016,.02,.05)*front;                                                  // high nose bridge
   z+=.010*GA(x,y,z,0,1.727,.09,.085,.011,.05)*front;                                               // heavy brow ridge
   for(const sx of [-1,1])z-=.007*GA(x,y,z,sx*.034,1.6985,.092,.02,.016,.04)*front;                  // sunken eye sockets
   z+=.009*GA(x,y,z,0,1.626,.092,.05,.011,.05)*front;                                               // thick lips
   y-=.014*sm(1.7,1.62,y);                                                                         // longer lower face
-  y-=.020*sm(1.625,1.58,y)*front;z+=.012*GA(x,y,z,0,1.585,.075,.04,.014,.05)*front;                 // heavy chin
-  x*=1+.10*sm(1.63,1.575,y);                                                                      // wide jowls
+  y-=.036*sm(1.625,1.58,y)*front;z+=.022*GA(x,y,z,0,1.585,.075,.045,.018,.05)*front;                 // heavy chin
+  x*=1+.14*sm(1.63,1.575,y);                                                                      // wide jowls
   return [x,y,z]};
 const put=(p)=>[NT[0]+(p[0]-NM[0])*K,NT[1]+(p[1]-NM[1])*K,NT[2]+(p[2]-NM[2])*K];
 for(const [nodeName,matName,yMin] of [['Body','skin',1.52],['HairParted','hair',0]]){
