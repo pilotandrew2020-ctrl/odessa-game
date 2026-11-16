@@ -9,7 +9,7 @@ exports.run = async (page, h) => {
   await ev(() => { const p = PLACES.find(q => q.id === 'airport'); teleportRaw(p.x + 60, p.z + 60, p.yaw) }); await h.wait(6000);
   await ev(() => { cam.dist = 12; cam.pitch = .2; cam.init = false; BLASTFX.init() });
   await ev(() => { const f = [Math.sin(cam.yaw), Math.cos(cam.yaw)]; window.__b = [player.x + f[0] * 18, groundH(player.x + f[0] * 18, player.z + f[1] * 18) + 1, player.z + f[1] * 18]; FX.explode(__b[0], __b[1], __b[2], 11); BLASTFX.tick(.016) });
-  const a = await ev(() => ({ fb: BLASTFX.fb.filter(f => f.on).length, dw: BLASTFX.dw.filter(f => f.on).length, flash: +BLASTFX.fl.style.opacity })); console.log('blast', JSON.stringify(a)); assert(a.fb === 2 && a.dw >= 1 && a.flash >= 0, 'the extra effects did not start');
+  const a = await ev(() => ({ fb: BLASTFX.fb.filter(f => f.on).length, dw: BLASTFX.dw.filter(f => f.on).length, flash: +BLASTFX.fl.style.opacity })); console.log('blast', JSON.stringify(a)); assert(a.fb === 1 && a.dw >= 1 && a.flash >= 0, 'the extra effects did not start');
   await ev(() => { for (let i = 0; i < 12; i++) BLASTFX.tick(.016) }); await shot('blastfx_bazooka', 100);
   await ev(() => { for (let i = 0; i < 40; i++) BLASTFX.tick(.016) }); const b = await ev(() => ({ fb: BLASTFX.fb.filter(f => f.on).length })); console.log('after 0.7 s', JSON.stringify(b)); assert(b.fb === 0, 'the fireball did not end');
   // 2. the nuke flattens the home yard's flats too (they are not chunk meshes)

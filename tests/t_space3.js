@@ -13,10 +13,7 @@ exports.run = async (page, h) => {
   await ev(() => { SPC.mode = 'eva'; SPC.startEva(SPC.E1.w.clone()) }); await h.wait(300);
   await ev(() => { SPC.E1.w.copy(SPC.C.w).add(new THREE.Vector3(0, 6, -20)); SPC.act() }); await h.wait(500); assert.strictEqual(await ev(() => SPC.mode), 'fly', 'could not board the fighter');
   // ---- Uranus
-  await page.waitForFunction(() => SPC.uranusM && SPC.gas.length === 1, null, { timeout: 60000 }); console.log('Uranus loaded');
-  await ev(() => { const b = SPC.gas[0], n = b.c.clone().add(new THREE.Vector3(.3, .5, .8).normalize().multiplyScalar(b.R * 3.5)); SPC.C.w.copy(n); SPC.C.q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), b.c.clone().sub(n).normalize()); SPC.C.cq = null; SPC.C.thr = 0; SPC.in.full = 0 }); await shot('space3_uranus', 3500);
-  await ev(() => { const b = SPC.gas[0]; SPC.C.w.copy(b.c).add(new THREE.Vector3(0, 1, 0).multiplyScalar(b.R + 3000)) }); await h.wait(1500);
-  const ur = await ev(() => { const b = SPC.gas[0]; return Math.round(SPC.C.w.distanceTo(b.c) - b.R) }); console.log('pushed out of the gas giant to', ur, 'm'); assert(ur > 20000, 'flew into Uranus');
+  await page.waitForFunction(() => SPC.uranusM && SPC.bodies.some(b => b.id === 'uranus'), null, { timeout: 60000 }); console.log('Uranus loaded (a landable world since round 18)');
   // ---- an asteroid is solid
   const rk = await ev(() => { const m = SPC.rocks[2], c = m.userData.w; SPC.C.w.copy(c).add(new THREE.Vector3(1, 0, 0).multiplyScalar(m.userData.rad * .5)); SPC.C.sp = 500; return Math.round(m.userData.rad) }); await h.wait(1500);
   const rd = await ev(() => { const m = SPC.rocks[2]; return Math.round(SPC.C.w.distanceTo(m.userData.w)) }); console.log('rock radius', rk, 'ship distance after', rd); assert(rd >= rk, 'flew through an asteroid');

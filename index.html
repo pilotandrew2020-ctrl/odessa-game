@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="moonx.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -4263,7 +4263,7 @@ function makePlayer(o){o=o||{};
   const grill=new THREE.Mesh(new THREE.CylinderGeometry(.077,.077,.18,16,1,true),std(0x2a7fbf,.5,.3));grill.rotation.z=Math.PI/2;spk.add(grill);
   const ring=new THREE.Mesh(new THREE.TorusGeometry(.06,.006,6,16),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x2299ff,emissiveIntensity:1.5}));ring.rotation.y=Math.PI/2;ring.position.x=.121;spk.add(ring);
   spk.position.set(0,-.3,.02);arms[1].el.add(spk);spk.visible=false;
-  const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,sipClock:0,sipNext:300+Math.random()*300,accH,accS};
+  const P={root,hips,spine,head,arms,legs,scooter:sc,speaker:spk,speakerRing:ring,can,phase:0,hipY,idle:0,sipClock:0,sipNext:300+Math.random()*300,accH,accS,chig:!!o.faceImg};
   if((o.real||o.booba||o.nolik||o.bodyK)&&typeof REAL!=='undefined')REAL.attach(P,o);     // real.js: the same rig, a real human body on top (the classic meshes get hidden)
   return P;
 }
@@ -4311,9 +4311,9 @@ function animPlayerBase(P,st,dt){
   // 2026-11-13: the gait follows the LEG LENGTH of the body that is worn (real.js R.legL, 0.9 m for the classic rig): Booba's legs are 0.3 m and Nolik's 0.16 m, so with the human step they skated; now short legs
   // swing a little wider, take short steps at a higher cadence, tall bodies (Halo, MrBeast) take longer, slower steps, and the bounce scales with the leg
   const kL=Math.max(.2,Math.min(1.3,((P.real&&P.real.legL)||.9)/.9));
-  const th=Math.min(.9,((.28+.22*Math.min(1,sp/2.25))*(1-rb2)+(.62+.16*Math.min(1,Math.max(0,(sp-2.8)/4)))*rb2)*(1+.45*Math.max(0,1-kL)));     // hip swing (rad)
+  const th=Math.min(.9,((.28+.22*Math.min(1,sp/2.25))*(1-rb2)+(.62+.16*Math.min(1,Math.max(0,(sp-2.8)/4)))*rb2)*(1+.45*Math.max(0,1-kL))*(P.chig?1.12:1));     // hip swing (rad)
   const SL=Math.max(.35*kL,2*.9*kL*Math.sin(th));                                                        // step length (m)
-  P.phase+=dt*Math.PI*Math.min(sp/SL,3.9+2.6*Math.max(0,1-kL));                                                               // 2 steps per cycle; a sprint cadence cap of ~3.9 steps/s
+  P.phase+=dt*Math.PI*Math.min(sp/SL,3.9+2.6*Math.max(0,1-kL))*(P.chig?.8:1);                                                               // 2 steps per cycle; a sprint cadence cap of ~3.9 steps/s
   const ph=P.phase;const amp=ws;
   if(st.mode==='air'){
     for(const g of P.legs){g.hp.rotation.x=g.s>0?-.7:.25;g.kn.rotation.x=g.s>0?1.1:.5;g.ft.rotation.x=0}
@@ -4326,7 +4326,7 @@ function animPlayerBase(P,st,dt){
     g.kn.rotation.x=Math.max(0,Math.sin(q+1.3))*amp*(.6+.9*rb2)+.05+.08*ws*Math.max(0,-Math.cos(q))*(1-rb2);
     g.ft.rotation.x=-Math.max(0,-sq)*.25*amp*(1-.5*rb2)+Math.max(0,sq)*.1*amp}
   for(const A of P.arms){const q=ph+(A.s>0?Math.PI:0)-.28;      // the arms trail their leg a little
-    const swA=((.3+.3*Math.min(1,sp/2.25))*(1-rb2)+(.95)*rb2)*amp;
+    const swA=((.3+.3*Math.min(1,sp/2.25))*(1-rb2)+(.95)*rb2)*amp*(P.chig?.35:1);   // Chigurh: arms hang almost still
     A.sh.rotation.x=-Math.sin(q)*swA-.05*ws*(1-rb2)-.2*rb2*ws;A.sh.rotation.z=A.s*(-.07-.1*rb2*ws);
     A.el.rotation.x=-((.2+.25*ws+.35*ws*Math.max(0,Math.sin(q+.6)))*(1-rb2)+(1.25+.4*Math.max(0,Math.sin(q+.5)))*rb2);
     if(carry&&A.s>0){A.sh.rotation.x=-.25-Math.sin(q)*amp*.2;A.el.rotation.x=-.6}
@@ -7507,7 +7507,7 @@ function stepPlayer(dt){
   const fx=Math.sin(cam.yaw),fz=Math.cos(cam.yaw),rx=-Math.cos(cam.yaw),rz=Math.sin(cam.yaw);
   let mx=fx*iz+rx*ix,mz=fz*iz+rz*ix;
   const running=player.run||inp.k.ShiftLeft||inp.k.ShiftRight;
-  const vmax=(player.scoot?28:(running?5.4*1.25:1.8*1.25))*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
+  const vmax=(player.scoot?28:(running?5.4*1.25:1.8*1.25))*((typeof CHAR!=='undefined'&&CHAR.cur&&CHAR.cur[17]===10&&!player.scoot)?(running?.82:.78):1)*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
   const acc=player.scoot?(im>0?3.4:2.2):(player.air?2:10);
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
   let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
@@ -8661,10 +8661,11 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
   mkTex(kind){
     const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
     if(kind==='puff'){
-      const rr=(()=>{let s=7;return()=>{s=(s*16807)%2147483647;return s/2147483647}})();
-      for(let i=0;i<26;i++){const a=rr()*6.283,d=rr()*34,cx=64+Math.cos(a)*d,cy=64+Math.sin(a)*d,r=22+rr()*26;const g=x.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(.6,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
-      // soft vignette so the sprite edge never shows
-      const g=x.createRadialGradient(64,64,30,64,64,64);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,1)');x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,0,128,128)}
+      // fractal (fBm) smoke / fire billow: ragged edge, dark crevices and bright lobes inside (the old texture was a few soft discs: it read as a flat sticker)
+      {const N=128,H=(i,j)=>{let h=(i*374761393+j*668265263+1013904223)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))>>>0)/4294967296},V=(u,v,o)=>{const i=Math.floor(u),j=Math.floor(v),fu=u-i,fv=v-j,s1=fu*fu*(3-2*fu),s2=fv*fv*(3-2*fv),g=(a,b)=>H(i+a+o,j+b+o*7);return(g(0,0)*(1-s1)+g(1,0)*s1)*(1-s2)+(g(0,1)*(1-s1)+g(1,1)*s1)*s2},im=x.createImageData(N,N);
+        for(let j=0;j<N;j++)for(let i=0;i<N;i++){const dx=(i-63.5)/64,dy=(j-63.5)/64,d=Math.sqrt(dx*dx+dy*dy);let f=0,am=.5,fr=4;for(let o=0;o<5;o++){f+=V(i/N*fr,j/N*fr,o*13)*am;am*=.5;fr*=2}
+          const al=Math.max(0,Math.min(1,(f*1.55-.18)-Math.pow(d,2.2)*1.15)),lum=Math.max(0,Math.min(1,.45+(f-.5)*1.6+(1-d)*.25)),k=(j*N+i)*4;im.data[k]=im.data[k+1]=im.data[k+2]=Math.round(90+165*lum);im.data[k+3]=Math.round(255*al*Math.min(1,(1-d)*4))}
+        x.putImageData(im,0,0)}}
     else if(kind==='spark'){const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.25,'rgba(255,220,140,.9)');g.addColorStop(1,'rgba(255,120,20,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
     else if(kind==='ring'){const g=x.createRadialGradient(64,64,40,64,64,64);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.7,'rgba(255,255,255,.9)');g.addColorStop(.85,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
     else if(kind==='scorch'){const g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(10,8,6,.95)');g.addColorStop(.55,'rgba(14,11,8,.7)');g.addColorStop(1,'rgba(14,11,8,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}
@@ -8689,7 +8690,7 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
     for(let i=0;i<6;i++){const m=new THREE.Mesh(rg,new THREE.MeshBasicMaterial({map:this.tex.scorch,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-3}));m.visible=false;m.renderOrder=1;scene.add(m);this.scorch.push({m,on:false,t:0})}
   },
   puff(o){// o: {x,y,z,vx,vy,vz,s0,s1,life,c0,c1,op,add,delay,drag,grow}
-    let sp=this.free.pop();if(!sp)return;sp.visible=false;this.act.push(Object.assign({s:sp,t:-(o.delay||0)},o));},
+    let sp=this.free.pop();if(!sp)return;sp.visible=false;this.act.push(Object.assign({s:sp,t:-(o.delay||0),rot:Math.random()*6.283,sr:(Math.random()-.5)*.9},o));},
   explode(x,y,z,r){
     this.init();const k=Math.max(.5,r/7);const R=Math.random;const gy=groundH(x,z);const air=Math.max(0,y-gy);
     const near=Math.hypot(x-player.x,z-player.z);
@@ -8766,7 +8767,7 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
       if(u>=1){sp.visible=false;this.free.push(sp);this.act.splice(i,1);continue}
       sp.visible=true;const dr=Math.exp(-(a.drag||0)*dt);a.vx*=dr;a.vz*=dr;a.vy*=a.riseDecay?Math.exp(-.35*dt):dr;a.x+=a.vx*dt;a.y+=a.vy*dt;a.z+=a.vz*dt;
       const e=a.grow?1-Math.pow(1-Math.min(1,u*1.4),2.2):u;const s=a.s0+(a.s1-a.s0)*e;sp.position.set(a.x,a.y,a.z);sp.scale.set(s,s,1);
-      const m=sp.material;m.color.setRGB(a.c0[0]+(a.c1[0]-a.c0[0])*Math.min(1,u*1.6),a.c0[1]+(a.c1[1]-a.c0[1])*Math.min(1,u*1.6),a.c0[2]+(a.c1[2]-a.c0[2])*Math.min(1,u*1.6));
+      const m=sp.material;m.rotation=a.rot+=a.sr*dt;m.color.setRGB(a.c0[0]+(a.c1[0]-a.c0[0])*Math.min(1,u*1.6),a.c0[1]+(a.c1[1]-a.c0[1])*Math.min(1,u*1.6),a.c0[2]+(a.c1[2]-a.c0[2])*Math.min(1,u*1.6));
       m.opacity=a.op*(a.add?Math.pow(1-u,1.6):(u<.12?u/.12:Math.pow(1-u,1.2)))}
     // sparks
     if(this.sparks){let any=false;for(let i=0;i<this.sN;i++){let L=this.sLife[i];if(L<=0)continue;any=true;L-=dt;this.sLife[i]=L;const j=i*3;
@@ -9005,7 +9006,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   aimRay(){camera.updateMatrixWorld(true);const o=camera.position.clone(),d=new THREE.Vector3();camera.getWorldDirection(d);d.normalize();return {o,d}},
   // in a boat / car the aim follows the camera, never the vehicle's yaw
   muzzle(){const inV=MARINE.cur||DRIVE.on||EXT.cur,y=inV?cam.yaw:player.yaw;return new THREE.Vector3(player.x+Math.sin(y)*.7,player.y+(inV?1.7:1.25),player.z+Math.cos(y)*.7)},
-  canFire(){return this.armed&&!this.down&&!PORTAL.cur&&!RIDE.on&&!player.sit&&!player.scoot},   // armed from ANY vehicle: EXT/MARINE/PLN/HELI do not block
+  canFire(){return this.armed&&!this.down&&!PORTAL.cur&&!RIDE.on&&!player.sit},   // armed from ANY vehicle: EXT/MARINE/PLN/HELI do not block
   peersAlive(){const out=[];for(const R of COOP.peers.values()){const s=R.st,g=s&&s.g;if(!s||!s.in||!g||!g.a||(g.h!==undefined&&g.h<=0))continue;if((s.zn||'')!==COOP.zone())continue;out.push(R)}return out},
   // closest hit of a ray with any armed remote player; returns {R,t,head}
   raycast(o,d,max){let best=null;
@@ -9167,6 +9168,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     ui.fire=mk('button','gunFire');ui.fire.textContent='FIRE';
     // FIRE is its own pointer: the finger that holds it never interferes with the stick finger (move / gas) or the look finger
     let fid=null;    const dn=e=>{if(fid!==null)return;fid=e.pointerId;try{ui.fire.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault();this.held=true;ui.ret.classList.add('aim');this.fire()},up=e=>{if(e.pointerId!==fid)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};
+    // twin-stick: slide the finger that holds FIRE and the view / aim turns with it (the other thumb keeps driving the stick)
+    {let lx=0,ly=0;ui.fire.addEventListener('pointerdown',e=>{lx=e.clientX;ly=e.clientY});ui.fire.addEventListener('pointermove',e=>{if(e.pointerId!==fid)return;inp.lookT=performance.now();cam.yaw-=(e.clientX-lx)*.007;cam.pitch=Math.max(-.3,Math.min(1.25,cam.pitch+(e.clientY-ly)*.005));lx=e.clientX;ly=e.clientY})}
     ui.fire.addEventListener('pointerdown',dn);ui.fire.addEventListener('pointerup',up);ui.fire.addEventListener('pointercancel',up);ui.fire.addEventListener('lostpointercapture',up);
     // iOS Safari: with one finger already on the joystick the SECOND finger's pointer events on this button can be
     // swallowed — drive FIRE with raw touch events too, whichever arrives first wins (user report 2026-11-09)
@@ -9748,8 +9751,8 @@ setInterval(()=>{if(started&&!document.hidden){WALLET.earn(500);toast('+₴500',
 const LV_SPECS={
   gwagon:{name:'G-Wagon',len:4.6,wb:2.85,max:34,acc:9,brake:22,steer:.52,lat:10.5,grip:6,hgrip:2.8,r:1.25},
   lambo:{name:'Lamborghini',len:4.8,wb:2.7,max:54,acc:16,brake:32,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},
-  bike:{name:'bicycle',len:1.8,wb:1.05,max:139,acc:70,brake:16,steer:.65,lat:12,grip:16,hgrip:3,r:.45},   // user: 500 km/h; arcade yaw rate in LiteVehicle.step (grip 16: the bike follows its heading, no sideways slide)
-  moto:{name:'motorbike',len:1.9,wb:1.45,max:139,acc:80,brake:26,steer:.6,lat:13,grip:9,hgrip:2.6,r:.5},   // real motorbike, also 500 km/h at the user's request
+  bike:{name:'bicycle',len:1.8,wb:1.05,max:97,acc:70,brake:16,steer:.65,lat:12,grip:16,hgrip:3,r:.45},   // user: 350 km/h (97 m/s, was 500); arcade yaw rate in LiteVehicle.step (grip 16: the bike follows its heading, no sideways slide)
+  moto:{name:'motorbike',len:1.9,wb:1.45,max:97,acc:80,brake:26,steer:.6,lat:13,grip:9,hgrip:2.6,r:.5},   // real motorbike, 350 km/h (97 m/s) at the user's request
   gtr:{name:'Nissan GT-R',len:4.7,wb:2.6,max:62,acc:17,brake:34,steer:.5,lat:15,grip:8.5,hgrip:2.4,r:1.3},   // replaces the old red Sport hatch as the everyday car
   p911:{name:'Porsche 911 Turbo',len:4.28,wb:2.27,max:56,acc:13,brake:30,steer:.5,lat:14,grip:8,hgrip:2.4,r:1.25},   // 1975 "930" (Sketchfab, Lexyc16)
   p918:{name:'Porsche 918 Spyder',len:4.65,wb:2.73,max:90,acc:24,brake:40,steer:.5,lat:17,grip:9.5,hgrip:2.4,r:1.3},   // 2015 (Sketchfab, vecarz)
