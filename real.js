@@ -102,8 +102,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   paint(R,P,o){const M=R.M,SC=this.SC;o=o||{};const find=nm=>{let r=null;M.traverse(c=>{if(c.name===nm)r=c});return r},sh=(nm,v)=>{const c=find(nm);if(c)c.visible=v};
     const mat={};M.traverse(c=>{if(c.isMesh)mat[c.material.name]=c.material});
     // skin: the texture is baked around #f2c9a6, other tones tint it
-    if(mat.skin&&o.skinRaw){mat.skin.color.copy(this.lin(o.skinRaw));mat.skin.roughness=.62}   // an untextured body (Chigurh): the colour itself, not a tint of the baked texture
-    else if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
+    if(mat.handskin){mat.handskin.color.copy(this.lin(o.skinRaw||o.skin||'#f2c9a6'));mat.handskin.roughness=.62}   // Chigurh: the sculpt's hands, untextured, in the colour of the face
+    if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
       if(typeof bdSkinRim==='function')bdSkinRim(mat.skin)}
     if(mat.eyes){const t=mat.eyes.map;if(t&&t.image&&o.iris&&o.iris.toLowerCase()!=='#3b7fd4'){const T=this.eye(t.image,o.iris);if(T)mat.eyes.map=T}mat.eyes.roughness=.18}
     if(mat.brow)mat.brow.color.copy(this.lin(o.brow||'#b88a3e'));
