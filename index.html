@@ -4219,7 +4219,7 @@ function makePlayer(o){o=o||{};
   o.head=head;   // exposed so stepCamera can hide only MY head in first person (friends still see it)
   const HR=.104,HH=.245;   // a real head is ~0.16 m wide and ~0.23 m tall (the old 0.30 m wide one made everyone look like a toy)
   const hm=new THREE.Mesh(headGeo(HR,HH),M.head);head.add(hm);bdFace(head,M,HR,HH);bdEyes(head,HR,HH);
-  CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);const nH=head.children.length;CHP.glasses(head,o,M,HR,HH);CHP.hat(head,o,HR,HH);const accH=head.children.slice(nH);
+  CHP.hair(head,o,M,HR,HH);CHP.beard(head,o,M,HR,HH);const nH=head.children.length;CHP.glasses(head,o,M,HR,HH);const nHat=head.children.length;CHP.hat(head,o,HR,HH);const accH=head.children.slice(nH);for(const c of head.children.slice(nHat))c.userData.hat=1;   // hat parts are tagged: a body can move the hat apart from the glasses (real.js mount)
   const nS=spine.children.length;CHP.neck(spine,o);CHP.back(spine,o,M);const accS=spine.children.slice(nS);
   const arms=[],legs=[];
   if(LONG)M.cuffS=std(CHP.shade(shirtH,.78),.9);

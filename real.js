@@ -18,14 +18,14 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
   // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
   BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1.24,tpl:null,st:0,tint:['booba']},
-       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,ks:.5,sy:.0,sz:-.02},tint:['nolik']},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,hdy:.48,hdz:-.14,ks:.5,sy:.0,sz:-.02},tint:['nolik']},
        // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
-       steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0},
+       steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0,acc:{kh:1.6,dy:.085,dz:.19}},
        mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0,tint:['M_MED_Lettuce_Head']},
        halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
        leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
        ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9},tint:['Head_diff_000_a_whi','hand_diff_002_a_whi_003','hand_diff_001_a_whi_003']},
-       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95},tint:['Head']},
+       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95},tint:['Head'],acc:{dy:.035}},
        // round 23: Anton Chigurh from the owner's TRELLIS mesh (gun, tank and puddle cut off, the right hand mirrored onto the gun arm, decimated to 28k, rigged with mk_char): colours only, the face is projected by look.js
        chigurh:{url:'assets/models/avatar/Chigurh.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.8,th:.9,ca:.9}}},
   kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
@@ -144,12 +144,13 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   },
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
   // rest-pose measures of an attached body (metres): head span (head bone -> top of the head), shoulder width, depth of the back behind the spine bone at chest height. Accessories are scaled / moved by body / Man ratios (round 29: Booba's backpack hung 30 cm beside him)
-  measure(R){const SC=R.sc,iH=R.idx.Head,iS=R.idx.spine_03,iL=R.idx.upperarm_l,iR=R.idx.upperarm_r,hy=R.Hb[iS].y,cx=R.Hb[iS].x,sw=Math.abs(R.Hb[iL].x-R.Hb[iR].x);let top=-1e9;const zs=[];
+  measure(R){const SC=R.sc,iH=R.idx.Head,iS=R.idx.spine_03,iL=R.idx.upperarm_l,iR=R.idx.upperarm_r,hy=R.Hb[iS].y,cx=R.Hb[iS].x,sw=Math.abs(R.Hb[iL].x-R.Hb[iR].x);let top=-1e9;const zs=[],hv=[];
     R.M.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(R.M.matrixWorld).invert(),m4=new THREE.Matrix4(),v=new THREE.Vector3();   // vertices in the body's own (unscaled) model space, whatever transform the mesh node has
-    R.M.traverse(c=>{if(!c.isMesh||!c.geometry||!c.geometry.attributes.position||c.name==='Eyes')return;const a=c.geometry.attributes.position;m4.multiplyMatrices(inv,c.matrixWorld);for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(m4);const y=v.y;if(y>top)top=y;if(Math.abs(y-hy)<.12&&Math.abs(v.x-cx)<sw*.4)zs.push(v.z)}});
+    R.M.traverse(c=>{if(!c.isMesh||!c.geometry||!c.geometry.attributes.position||c.name==='Eyes')return;const a=c.geometry.attributes.position;m4.multiplyMatrices(inv,c.matrixWorld);for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(m4);const y=v.y;if(y>top)top=y;if(Math.abs(y-hy)<.12&&Math.abs(v.x-cx)<sw*.4)zs.push(v.z);if(y>R.Hb[iH].y&&Math.abs(v.x-cx)<.05&&v.z>.0)hv.push([y,v.z])}});
     zs.sort((a,b)=>a-b);const back=zs.length?zs[Math.floor(zs.length*.04)]:R.Hb[iS].z-.12/SC;
-    return {hs:(top-R.Hb[iH].y)*SC,sw:sw*SC,bd:Math.max(.05,Math.min(sw*SC*.55,(R.Hb[iS].z-back)*SC)),top:top*SC}},
-  REF:{hs:.2,sw:.4,bd:.12},   // the realistic Man.glb (filled by the first realistic attach, see mount)
+    const y0=R.Hb[iH].y+(top-R.Hb[iH].y)*.35,y1=R.Hb[iH].y+(top-R.Hb[iH].y)*.8;let zf=-1e9;for(const [y,z] of hv)if(y>=y0&&y<=y1&&z>zf)zf=z;if(zf<-1e8)zf=R.Hb[iH].z+.1;   // the front of the face at eye height (a Minecraft head is a box: the glasses must be put in front of it)
+    return {zf:(zf-R.Hb[iH].z)*SC,hs:(top-R.Hb[iH].y)*SC,sw:sw*SC,bd:Math.max(.05,Math.min(sw*SC*.55,(R.Hb[iS].z-back)*SC)),top:top*SC}},
+  REF:{hs:.2,sw:.4,bd:.12,zf:.1},   // the realistic Man.glb (filled by the first realistic attach, see mount)
   mount(P,R){const SC=R.sc,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
     const wrap=(bi,off,sc)=>{const w=new THREE.Object3D();const iq=R.bindW[bi].clone().invert();w.quaternion.copy(iq);w.position.copy(off.clone().applyQuaternion(iq));w.scale.setScalar(sc/SC);R.B[bi].add(w);R.wr=(R.wr||[]).concat([w]);return w};
     if(!R.nh){this.REF=this.measure(R)}
@@ -157,7 +158,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     const ov=(R.nh&&this.BOD[this.kind(R.o||{})]&&this.BOD[this.kind(R.o||{})].acc)||null;   // per-body hand-tuned fit: {kh: head scale, dy / dz: head shift (m), ks: back scale, sy / sz: back shift (m)}
     const kH2=ov&&ov.kh?ov.kh:kH,kS2=ov&&ov.ks?ov.ks:kS;
     const headExtras=P.accH||[],spineExtras=P.accS||[];   // every body carries the hat / glasses / neckwear on the head bone and the bag / backpack on the chest bone, scaled by the body's own size
-    if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02*kH2+(ov&&ov.dy||0)/SC,.004*kH2+(ov&&ov.dz||0)/SC),.76*kH2);for(const c of headExtras)w.add(c)}
+    if(headExtras.length){const dzf=R.nh?Math.max(-.05,Math.min(.5,M.zf-this.REF.zf*kH2)):0;const w=wrap(iH,new THREE.Vector3(0,-.02*kH2+(ov&&ov.dy||0)/SC,.004*kH2+((ov&&ov.dz)||0)/SC+dzf/SC),.76*kH2);const hatE=headExtras.filter(c=>c.userData&&c.userData.hat),gl=headExtras.filter(c=>!(c.userData&&c.userData.hat));for(const c of gl)w.add(c);
+      if(hatE.length){const w2=(ov&&(ov.hdy||ov.hdz))?wrap(iH,new THREE.Vector3(0,-.02*kH2+((ov.dy||0)+(ov.hdy||0))/SC,.004*kH2+((ov.dz||0)+(ov.hdz||0))/SC+dzf/SC),.76*kH2):w;for(const c of hatE)w2.add(c)}}
     if(spineExtras.length){const ks=.9*kS2,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;if(R.nh)off.z-=(M.bd-this.REF.bd*kS2)/SC;if(ov){off.y+=(ov.sy||0)/SC;off.z+=(ov.sz||0)/SC}const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
     // the can and the speaker sit in the hands: the wrapper's origin is the wrist
     for(const S of R.sides){const A=S.arm;if(!A)continue;const items=[];if(P.can&&(P.can.parent===A.el||P.can.parent===A.hand))items.push(P.can);if(P.speaker&&(P.speaker.parent===A.el||P.speaker.parent===A.hand))items.push(P.speaker);   // 2026-11-13: the can hangs on the hand object (not the elbow) since the hand rig, so it stayed ~0.3 m below the real wrist
