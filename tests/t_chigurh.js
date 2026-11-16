@@ -8,7 +8,7 @@ exports.run = async (page, h) => {
   await page.waitForFunction(() => CHG.prefab, null, { timeout: 60000 }); console.log('shotgun GLB loaded');
   await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 10; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }); await h.wait(2500);
   const st = await ev(() => ({ armed: GUN.armed, w: WEAPONS[GUN.w].n, tank: !!(PLR._chgTank && PLR._chgTank.parent), opts: { hs: CHAR.opts().hs, ts: CHAR.opts().ts }, names: WEAPONS.slice(-2).map(w => w.n) })); console.log('equipped', JSON.stringify(st));
-  assert(st.armed && st.w === "Chigurh's shotgun" && st.tank && st.opts.hs === 'bob' && st.opts.ts === 'chig', 'not equipped as Chigurh');
+  assert(st.armed && st.w === "Chigurh's shotgun" && st.tank && st.opts.hs === 'short' && st.opts.ts === 'chig', 'not equipped as Chigurh');
   // from the front (face, jacket), the side (shotgun + tank), the back
   for (const [n, yaw] of [['front', Math.PI], ['side', Math.PI / 2 + Math.PI], ['back', 0]]) { await ev(y => { cam.dist = 3.2; cam.pitch = .08; cam.yaw = player.yaw + y; cam.init = false }, yaw); await shot('chig_' + n, 2500) }
   await ev(() => { cam.dist = 1.5; cam.pitch = .02; cam.yaw = player.yaw + Math.PI; cam.init = false }); await shot('chig_face', 2500);

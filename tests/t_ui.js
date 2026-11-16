@@ -42,7 +42,7 @@ exports.run = async (page, h) => {
   const ph = await ev(() => { PHONE.open = true; const d = document.getElementById('phn'); PHONE.go('wall'); const bg0 = document.querySelector('#phn .scr').style.background; PHONE.act('wallset', '3'); const bg1 = document.querySelector('#phn .scr').style.background;
     PHONE.go('tiktok'); document.getElementById('phnTt').value = 'https://www.tiktok.com/@user/video/7234567890123456789'; PHONE.act('ttgo'); const f = document.querySelector('#phnTtBox iframe'); const src = f && f.src; const lib = PHONE.ttLib.slice();
     PHONE.go('google'); const g = !!document.getElementById('phnGq'); PHONE.go('home'); PHONE.open = false; return { changed: bg0 !== bg1, src, lib, g, apps: document.querySelectorAll('#phn .app').length } });
-  console.log('phone apps', JSON.stringify(ph)); assert(ph.changed && /embed\/v2\/7234567890123456789/.test(ph.src || '') && ph.lib[0] === '7234567890123456789' && ph.g && ph.apps === 9, 'phone wallpaper / TikTok / Google are wrong');
+  console.log('phone apps', JSON.stringify(ph)); assert(ph.changed && /embed\/v2\/7234567890123456789/.test(ph.src || '') && ph.lib[0] === '7234567890123456789' && ph.g && ph.apps === 11, 'phone wallpaper / TikTok / Google are wrong');
   await ev(() => document.getElementById('bMenu').click()); await h.wait(800);
   const mt = await ev(() => { const b = document.querySelector('#mNav [data-p=pModes]'); if (!b) return null; b.click(); return { shown: !document.getElementById('pModes').hidden, cards: [...document.querySelectorAll('#pModes [data-mode]')].map(x => x.dataset.mode) } });
   console.log('modes tab', JSON.stringify(mt)); assert(mt && mt.shown && mt.cards.join() === 'br,hs,jet', 'the Game modes tab is missing');
