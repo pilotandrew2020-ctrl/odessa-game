@@ -3,7 +3,7 @@
 //   samples it every 0.5 m (positions, tangents, a parallel-transport 'up' so the cart can go through the loop upside down) and the cart is driven by gravity along the tangent (energy), friction, a chain lift and a brake zone.
 //   Ride: walk to the station, press the action button "Ride ...", the cart takes you, first person through the nose (View button: behind the cart); at the end you are put back beside the station.
 const RAILS={on:false,tracks:[],cur:null,s:0,v:0,view:0,
-  init(){if(this.inited)return;this.inited=1;const st=document.createElement('style');st.textContent=`body.railson #hud,body.railson #actBtns,body.railson #bAct,body.railson #quickRow,body.railson #gunBar{display:none!important}
+  init(){if(this.inited)return;this.inited=1;const st=document.createElement('style');st.textContent=`body.railson #hud *{visibility:hidden}body.railson #joy,body.railson #joy *{visibility:visible}body.railson #actBtns,body.railson #bAct,body.railson #quickRow,body.railson #gunBar{display:none!important}   /* the stick (#joy) lives inside #hud and must stay: it drives */
 #railHud{position:fixed;inset:0;z-index:39;pointer-events:none;font:700 12px var(--f-disp,system-ui);color:#e9f2f5}#railHud[hidden]{display:none}
 #railInfo{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(14px + env(safe-area-inset-top,0px));padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#191c23,#07080b);border:1px solid rgba(255,255,255,.13);min-width:170px;line-height:1.6}#railInfo b{display:block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#38e4d0}
 #railBtns{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:calc(24px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;pointer-events:auto}#railBtns button{width:84px;height:84px;border-radius:14px;border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,#191c23,#07080b);color:#e3edf1;font:800 12px var(--f-disp,system-ui);letter-spacing:.1em;text-transform:uppercase;touch-action:none}`;document.head.appendChild(st);
@@ -39,7 +39,9 @@ const RAILS={on:false,tracks:[],cur:null,s:0,v:0,view:0,
   state(T,s){const f=s/T.ds,i=Math.max(0,Math.min(T.N-1,Math.floor(f))),k=f-i,V=THREE.Vector3;const p=new V().lerpVectors(T.P[i],T.P[i+1],k),t=new V().lerpVectors(T.T[i],T.T[i+1],k).normalize(),u=new V().lerpVectors(T.U[i],T.U[i+1],k);u.addScaledVector(t,-u.dot(t)).normalize();return {p,t,u}},
   place(T,s){const S=this.state(T,s),r=new THREE.Vector3().crossVectors(S.u,S.t).normalize(),b=new THREE.Matrix4().makeBasis(r,S.u,S.t);T.cart.position.copy(S.p).addScaledVector(S.u,.05);T.cart.quaternion.setFromRotationMatrix(b)},
   startWorld(T){T.frame.updateMatrixWorld(true);return T.frame.localToWorld(T.P[0].clone())},
-  near(){for(const T of this.tracks){if(!T.frame.visible&&T.frame.parent!==scene&&false)continue;const w=this.startWorld(T);if(Math.hypot(w.x-player.x,w.z-player.z)<(T.kind==='slide'?3.5:7)&&Math.abs(w.y-player.y)<5)return T}return null},
+  near(){const t=performance.now();if(t-(this._nt||0)<120)return this._nv;this._nt=t;let r=null;
+    for(const T of this.tracks){if(T.moving&&Math.hypot(T.frame.position.x-player.x,T.frame.position.z-player.z)>300)continue;const w=T.moving?this.startWorld(T):(T.sw||(T.sw=this.startWorld(T)));if(Math.abs(w.x-player.x)>12||Math.abs(w.z-player.z)>12)continue;if(Math.hypot(w.x-player.x,w.z-player.z)<(T.kind==='slide'?3.5:7)&&Math.abs(w.y-player.y)<5){r=T;break}}
+    return this._nv=r},
   ride(T){if(this.on)return;this.cur=T;this.on=true;this.s=0;this.v=T.v0||2;this.view=T.kind==='slide'?0:0;document.body.classList.add('railson');this.el.hidden=false;document.getElementById('railName').textContent=T.name;PLR.root.visible=true;this._cam=null;toast(T.name,'hold on · V / View: change the camera')},
   end(){const T=this.cur;if(!T)return;this.on=false;this.cur=null;document.body.classList.remove('railson');this.el.hidden=true;PLR.root.visible=true;
     // put the rider beside the station (slide: on the deck by the pool)
@@ -63,7 +65,7 @@ const RAILS={on:false,tracks:[],cur:null,s:0,v:0,view:0,
     camera.fov=this.view?68:78;camera.updateProjectionMatrix();
     document.getElementById('railTxt').innerHTML=Math.round(this.v*3.6)+' km/h<br>height '+Math.max(0,Math.round(wp.y-groundH(wp.x,wp.z)))+' m · '+Math.round(this.s/L*100)+' %'},
   // LOD: tracks are only drawn near the player
-  tick(dt){for(const T of this.tracks){const w=this.startWorld(T);T.grp.visible=Math.hypot(w.x-player.x,w.z-player.z)<1100}}};
+  tick(dt){this._tt=(this._tt||0)-dt;if(this._tt>0)return;this._tt=.5;for(const T of this.tracks){const w=T.moving?(Math.hypot(T.frame.position.x-player.x,T.frame.position.z-player.z)>1500?null:this.startWorld(T)):(T.sw||(T.sw=this.startWorld(T)));T.grp.visible=!!w&&Math.hypot(w.x-player.x,w.z-player.z)<1100}}};
 
 // ---- the Mega coaster of Gorky Park: an open flat site found south of the lake (-1020, -4630), 120 m along x
 RAILS.gorky=function(){const x0=-1020,z0=-4630,g=new THREE.Group();g.position.set(x0,groundH(x0,z0),z0);scene.add(g);g.updateMatrixWorld(true);

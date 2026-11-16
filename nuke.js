@@ -32,7 +32,7 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
     if(kind==='fall'){const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(2400,T);o.frequency.exponentialRampToValueAtTime(500,T+4.6);const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1500;const g=c.createGain();g.gain.setValueAtTime(.02,T);g.gain.linearRampToValueAtTime(.12,T+4.5);g.gain.linearRampToValueAtTime(0,T+4.8);o.connect(f);f.connect(g);g.connect(m);o.start(T);o.stop(T+5)}
     else{const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(900,T);f.frequency.exponentialRampToValueAtTime(70,T+9);const g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(1,T+.08);g.gain.exponentialRampToValueAtTime(.001,T+11);n.connect(f);f.connect(g);g.connect(m);n.start(T);n.stop(T+11.5);
       const o=c.createOscillator();o.frequency.setValueAtTime(70,T);o.frequency.exponentialRampToValueAtTime(22,T+3);const og=c.createGain();og.gain.setValueAtTime(.9,T);og.gain.exponentialRampToValueAtTime(.001,T+3.2);o.connect(og);og.connect(m);o.start(T);o.stop(T+3.4)}}catch(e){}},
-  flash(){const d=this.fl;d.style.background=this.sc<.6?'#ffe9c4':'#fff';d.style.transition='none';d.style.opacity='1';void d.offsetWidth;d.style.transition='opacity 3.5s ease-out';d.style.opacity='0'},
+  flash(){const d=this.fl;const amp=Math.max(.12,Math.min(1,this.sc*2));d.style.background=this.sc<.6?'#ffe9c4':'#fff';d.style.transition='none';d.style.opacity=String(amp);void d.offsetWidth;d.style.transition='opacity '+(amp<.5?.8:3.5)+'s ease-out';d.style.opacity='0'},
   boom(){this.st='boom';this.t=0;this.K=1;this.ruin=true;this.bomb.visible=false;UNI.uNuke.value.set(this.gx,this.gz,this.R,0);UNI.uNukeK.value=1;UNI.uNukeY.value=this.gy;
     for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt])m.visible=true;this.flash();for(const o of this.shadowOff||[])o.castShadow=false;BLAST.at(this.gx,this.gy+2,this.gz,this.R*.8,this.sc>.5?0:50,true);
     this.dp=Math.hypot(player.x-this.gx,player.z-this.gz);this.snd('boom',this.dp/330);toast('Nuclear bomb','Detonation')},
@@ -43,13 +43,14 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
     const k0=this.sc,br=120*k0*(1-Math.exp(-t*1.6));this.ball.position.set(this.gx,this.gy+br*.55+t*7*k0,this.gz);this.ball.scale.setScalar(Math.max(.01,br));this.ball.material.opacity=Math.max(0,1-t/9);this.ball.material.color.setRGB(1,Math.max(.25,1-t*.14),Math.max(.1,1-t*.3));
     this.ring.position.set(this.gx,this.gy+1.2,this.gz);this.ring.scale.set(front,front,1);this.ring.material.opacity=.85*fade;this.ring.visible=fade>.02;
     this.wall.position.set(this.gx,this.gy+(18+front*.06),this.gz);this.wall.scale.set(front,(36+front*.12)*Math.max(.4,k0),front);this.wall.material.opacity=.55*fade;this.wall.visible=fade>.02;
-    const H=340*k0*(1-Math.exp(-t/6)),rise=Math.min(1,t/1.5),life=t>50?Math.max(0,1-(t-50)/30):1,col=Math.min(1,t/20),op=rise*life*.85;
+    const H=340*k0*(1-Math.exp(-t/6)),rise=Math.min(1,t/1.5),life=t>50*k0?Math.max(0,1-(t-50*k0)/Math.max(3,30*k0)):1,col=Math.min(1,t/20),op=rise*life*.85;
     for(const m of [this.stem,this.cap,this.skirt]){m.material.opacity=op;m.material.color.setRGB(1-.62*col,.69-.36*col,.38-.06*col)}
     this.stem.position.set(this.gx,this.gy+H/2,this.gz);this.stem.scale.set((26+t*.6)*k0,Math.max(1,H),(26+t*.6)*k0);
     const cr=(40+Math.min(150,t*9))*k0;this.cap.position.set(this.gx,this.gy+H+cr*.25,this.gz);this.cap.scale.set(cr,cr*.6,cr);this.skirt.position.set(this.gx,this.gy+H*.82,this.gz);this.skirt.scale.set(cr*.95,cr*.95,cr*.5);this.cap.rotation.y=this.stem.rotation.y=t*.05;
     // the shock reaches you: shove, hurt, shake (once)
     if(!this.hit&&front*1>=this.dp){this.hit=true;const dx=player.x-this.gx,dz=player.z-this.gz,d=Math.hypot(dx,dz)||1,k=Math.max(0,1-d/(R*1.8));player.vx+=dx/d*(8+22*k);player.vz+=dz/d*(8+22*k);if(typeof GUN!=='undefined'&&GUN.armed)GUN.damage(Math.round(100*k),'nuclear blast');if(typeof FX!=='undefined'){FX.shakeT=2.2;FX.shakeA=.07}}
     // the zone stays ruined for 75 s, then the city grows back over 25 s
-    if(t>75){this.K=Math.max(0,1-(t-75)/25);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
-    if(t>100)this.clear()},
+    const hold=Math.max(10,75*k0),rec=Math.max(5,25*k0);   // small strikes (a tank shell) are over in ~15 s
+    if(t>hold){this.K=Math.max(0,1-(t-hold)/rec);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg&&k0>.3){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
+    if(t>hold+rec)this.clear()},
   clear(){for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
