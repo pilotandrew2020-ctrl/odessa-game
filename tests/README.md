@@ -65,6 +65,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_skydeck` | the sky deck runway for the airliner (`SKYSHOT=1`) |
 | `t_chigurh` | Anton Chigurh body type + silenced shotgun (GLB), captive bolt, air tank (`CHIGSHOT=1`) |
 | `t_space2` | 100,000 m/s, instant speed, orbit/zoom/cockpit camera, aura + fire + lightning, ISS third person + float, Mercury, minimap over Earth (`SPACE2SHOT=1`) |
+| `t_space3` | Uranus, asteroid collisions, autopilot docking, flying together (simulated friend: JOIN / passenger / leave) (`SPACE3SHOT=1`) |
 | `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, the sea stops it, exit (`TANKSHOT=1` screenshots) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
