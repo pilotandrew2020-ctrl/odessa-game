@@ -19,6 +19,17 @@ exports.run = async (page, h) => {
     // the dead are removed after ~20 s
     for (let i = 0; i < 25; i++) GTAP.tick(1); out.gone = !PEDS.includes(p); return out });
   console.log('gta peds', JSON.stringify(r)); assert(r.rayHit && r.scared && r.dead && r.fall && r.boom && r.gone, 'street people do not react / cannot be shot');
+  // round 29: people run AWAY from you, shout (bubble text), the katana kills
+  const r2 = await ev(() => {
+    const f = [Math.sin(player.yaw), Math.cos(player.yaw)], p = PEDS.filter(q => !q.dead)[0], out = {}; GUN.armed = true; GUN.down = 0;
+    // put him on a path heading towards the player
+    const sg = segInfo(p.ri, p.dir); p.x = player.x + f[0] * 10; p.z = player.z + f[1] * 10; p.y = groundH(p.x, p.z); p.dead = false; p.flee = 0; p.fallT = 0; p.hp = 60;
+    GTAP.scare(player.x, player.z, 45, true); out.flee = p.flee > 0; p.flipT = 0; const d0 = Math.hypot(sg.tx * 0 + p.x - player.x, p.z - player.z);
+    out.said = []; for (const q of PEDS) if (q.gsayT > 0) out.said.push(q.gsay); out.sayN = out.said.length;
+    GTAP.bubbles(); out.bubble = !!BUBBLES.pool[6].s.visible || out.sayN === 0;
+    // katana: two slashes kill a man standing in front
+    const k = PEDS.filter(q => !q.dead && q !== p)[0]; k.x = player.x + f[0] * 1.2; k.z = player.z + f[1] * 1.2; k.y = player.y; k.dead = false; k.fallT = 0; k.hp = 60; GUN.pick(WEAPONS.findIndex(w => w.n === 'Neon katana')); for (let i = 0; i < 3 && !k.dead; i++) { GUN.cd = 0; k.fallT = 0; GUN.fire() } out.katana = !!k.dead; return out });
+  console.log('flee / shout / katana', JSON.stringify(r2)); assert(r2.flee && r2.bubble && r2.katana && r2.sayN > 0, 'people do not scream / flee, or the katana does not kill');
   // nukes on the Armed bar again, nothing nuclear in Spawn, the Spawn menu is a small grid
   const ui = await ev(() => { GUN.armed = true; GUN.sync(); const names = [...document.querySelectorAll('#gunBar button')].filter(b => !b.hidden).map(b => b.textContent); AIRP.menu(); const m = document.getElementById('airPick'), ap = m.querySelector('.ap').getBoundingClientRect(), sp = m.textContent; const out = { names, spawnNuke: /nuke|nuclear/i.test(sp), w: Math.round(ap.width), hgt: Math.round(ap.height), vw: innerWidth, vh: innerHeight, tiles: m.querySelectorAll('.apg button').length }; m.hidden = true; return out });
   console.log('ui', JSON.stringify(ui)); assert(ui.names.some(n => /Mini-nuke/.test(n)) && ui.names.some(n => /T-Nuke/.test(n)) && ui.names.some(n => /N-Bomb/.test(n)), 'the nukes are not on the Armed bar'); assert(!ui.spawnNuke, 'nukes still in Spawn'); assert(ui.w < ui.vw * .4 && ui.hgt < ui.vh * .5, 'Spawn menu is still huge');

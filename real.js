@@ -18,7 +18,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   // clavicle/upperarm/lowerarm/hand, thigh/calf/foot/ball, _l/_r), no clothes, so everything below (poses, seats, feet on the ground) works unchanged.
   // lim: how much of the procedural arm / leg swing the body takes (Nolik's arms are fused to his torso, bigger angles would tear the skin).
   BOD:{booba:{url:'assets/models/avatar/Booba.glb',sc:1.24,tpl:null,st:0},
-       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75}},
+       nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,ks:.5,sy:.0,sz:-.02}},
        // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
        steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0},
        mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0},
@@ -90,7 +90,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     this.paint(R,P,o);
     // the procedural body is hidden, held things and head/neck/back extras stay (moved onto the new bones below)
     for(const c of [P.can,P.speaker])if(c)c.userData.keep=1;
-    for(const c of (P.accH||[]).concat(P.accS||[]))if(c)c.userData.keep=BO?0:1;     // set on EVERY attach: an avatar that was Realistic and becomes Booba (creator) must not keep the old flag   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
+    for(const c of (P.accH||[]).concat(P.accS||[]))if(c)c.userData.keep=1;     // set on EVERY attach: an avatar that was Realistic and becomes Booba (creator) must not keep the old flag   // Booba wears no hats / glasses / bags: they are hidden with the rest of the classic body
     this.unhide(P);R.hidden=[];P.hips.traverse(c=>{if(c.isMesh&&c.visible&&!REAL.kept(c,P)){c.visible=false;R.hidden.push(c)}});
     P.real=R;R.o=o;this.mount(P,R);
     // pose now, so the first frame is right even if the caller never ticks
@@ -124,11 +124,22 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     if(typeof LOOK!=='undefined')LOOK.paint(R,mat,P,o);     // look.js: the capybara tee print and your face photo
   },
   // things that belong on the head / chest / hand of the classic rig are carried by the new bones
+  // rest-pose measures of an attached body (metres): head span (head bone -> top of the head), shoulder width, depth of the back behind the spine bone at chest height. Accessories are scaled / moved by body / Man ratios (round 29: Booba's backpack hung 30 cm beside him)
+  measure(R){const SC=R.sc,iH=R.idx.Head,iS=R.idx.spine_03,iL=R.idx.upperarm_l,iR=R.idx.upperarm_r,hy=R.Hb[iS].y,cx=R.Hb[iS].x,sw=Math.abs(R.Hb[iL].x-R.Hb[iR].x);let top=-1e9;const zs=[];
+    R.M.updateMatrixWorld(true);const inv=new THREE.Matrix4().copy(R.M.matrixWorld).invert(),m4=new THREE.Matrix4(),v=new THREE.Vector3();   // vertices in the body's own (unscaled) model space, whatever transform the mesh node has
+    R.M.traverse(c=>{if(!c.isMesh||!c.geometry||!c.geometry.attributes.position||c.name==='Eyes')return;const a=c.geometry.attributes.position;m4.multiplyMatrices(inv,c.matrixWorld);for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(m4);const y=v.y;if(y>top)top=y;if(Math.abs(y-hy)<.12&&Math.abs(v.x-cx)<sw*.4)zs.push(v.z)}});
+    zs.sort((a,b)=>a-b);const back=zs.length?zs[Math.floor(zs.length*.04)]:R.Hb[iS].z-.12/SC;
+    return {hs:(top-R.Hb[iH].y)*SC,sw:sw*SC,bd:Math.max(.05,Math.min(sw*SC*.55,(R.Hb[iS].z-back)*SC)),top:top*SC}},
+  REF:{hs:.2,sw:.4,bd:.12},   // the realistic Man.glb (filled by the first realistic attach, see mount)
   mount(P,R){const SC=R.sc,Hb=R.Hb,iH=R.idx.Head,iS=R.idx.spine_03,iN=R.idx.neck_01;
     const wrap=(bi,off,sc)=>{const w=new THREE.Object3D();const iq=R.bindW[bi].clone().invert();w.quaternion.copy(iq);w.position.copy(off.clone().applyQuaternion(iq));w.scale.setScalar(sc/SC);R.B[bi].add(w);R.wr=(R.wr||[]).concat([w]);return w};
-    const headExtras=R.nh?[]:(P.accH||[]),spineExtras=R.nh?[]:(P.accS||[]);
-    if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02,.004),.76);for(const c of headExtras)w.add(c)}
-    if(spineExtras.length){const ks=.9,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
+    if(!R.nh){this.REF=this.measure(R)}
+    const M=R.nh?this.measure(R):this.REF,kH=R.nh?Math.max(.3,Math.min(3,M.hs/this.REF.hs)):1,kS=R.nh?Math.max(.3,Math.min(3,M.sw/this.REF.sw)):1;
+    const ov=(R.nh&&this.BOD[this.kind(R.o||{})]&&this.BOD[this.kind(R.o||{})].acc)||null;   // per-body hand-tuned fit: {kh: head scale, dy / dz: head shift (m), ks: back scale, sy / sz: back shift (m)}
+    const kH2=ov&&ov.kh?ov.kh:kH,kS2=ov&&ov.ks?ov.ks:kS;
+    const headExtras=P.accH||[],spineExtras=P.accS||[];   // every body carries the hat / glasses / neckwear on the head bone and the bag / backpack on the chest bone, scaled by the body's own size
+    if(headExtras.length){const w=wrap(iH,new THREE.Vector3(0,-.02*kH2+(ov&&ov.dy||0)/SC,.004*kH2+(ov&&ov.dz||0)/SC),.76*kH2);for(const c of headExtras)w.add(c)}
+    if(spineExtras.length){const ks=.9*kS2,off=new THREE.Vector3().subVectors(Hb[iN],Hb[iS]);off.y-=.49*ks/SC;if(R.nh)off.z-=(M.bd-this.REF.bd*kS2)/SC;if(ov){off.y+=(ov.sy||0)/SC;off.z+=(ov.sz||0)/SC}const w=wrap(iS,off,ks);for(const c of spineExtras)w.add(c)}
     // the can and the speaker sit in the hands: the wrapper's origin is the wrist
     for(const S of R.sides){const A=S.arm;if(!A)continue;const items=[];if(P.can&&(P.can.parent===A.el||P.can.parent===A.hand))items.push(P.can);if(P.speaker&&(P.speaker.parent===A.el||P.speaker.parent===A.hand))items.push(P.speaker);   // 2026-11-13: the can hangs on the hand object (not the elbow) since the hand rig, so it stayed ~0.3 m below the real wrist
       if(!items.length)continue;const w=wrap(S.ha,new THREE.Vector3(0,0,0),1);for(const it of items){const p=it.position.clone(),fromEl=it.parent===A.el;w.add(it);it.position.set(p.x,fromEl?p.y+.205-.02:p.y,p.z)}}

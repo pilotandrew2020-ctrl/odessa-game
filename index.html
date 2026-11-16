@@ -4442,7 +4442,7 @@ function mergeG(list){const g=new GB({position:3,normal:3});for(const ge of list
 function linHex(h){_c.setHex(h);_c.convertSRGBToLinear();return _c}
 // ---------- speech bubbles ----------
 const PHRASES=['Whaddya say!','Oh, I beg you!','Yes, indeed.','Don\'t make me nervous!','Oh, please…','Two big differences!','Where are you rushing to?','How much are the gobies at Pryvoz today?','This is Odesa!','Listen here…','Don\'t mess with my head','The sea is warm as fresh milk today','Where\'s the stop for Arkadia?','You\'ll laugh, but…','Mum said be home by six','What, roadworks again?','Let\'s go to the beach!','What weather, eh!'];
-const BUBBLES={pool:[],init(scene){for(let i=0;i<6;i++){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
+const BUBBLES={pool:[],init(scene){for(let i=0;i<9;i++){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true,toneMapped:false,fog:false}));s.scale.set(3.2,.8,1);s.visible=false;scene.add(s);this.pool.push({s,cv,tex,txt:''})}},
   show(i,x,y,z,txt){const b=this.pool[i];if(!b)return;if(b.txt!==txt){b.txt=txt;const c=b.cv.getContext('2d');c.clearRect(0,0,512,128);c.fillStyle='rgba(255,255,255,.94)';
     c.beginPath();c.roundRect?c.roundRect(8,8,496,92,26):c.rect(8,8,496,92);c.fill();c.beginPath();c.moveTo(240,98);c.lineTo(256,124);c.lineTo(276,98);c.fill();
@@ -6398,7 +6398,10 @@ const AUD={
   },
   // ---------- main menu: the original synth theme, plain oscillators, NO autotune / pitch-correction anywhere ----------
   menuOn:false,
-  menuTheme(){if(this.menuOn||!this.ok)return;this.menuOn=true;   // called once from start(); plays while #menu is visible
+  // round 29: the owner found the synthesised menu loop (a saw bass + pad) annoying. The menu now plays a REAL recording if assets/music/menu.mp3 exists (put any royalty-free action track there), otherwise it stays silent; the old synth loop is kept below, unused (menuSynth)
+  menuFile(){if(this.menuAudio||!MENU_FILE)return;try{const a=this.menuAudio=new Audio(MENU_FILE);a.loop=true;a.volume=.5;a.addEventListener('error',()=>{this.menuAudio=null});const p=a.play();if(p&&p.catch)p.catch(()=>{this.menuAudio=null})}catch(e){this.menuAudio=null}},
+  menuTheme(){if(this.menuOn||!this.ok)return;this.menuOn=true;return this.menuFile()},
+  menuSynth(){if(this.menuOn||!this.ok)return;this.menuOn=true;   // (old loop, no longer started)
     const c=this.ctx,T=c.currentTime;
     this.musG=c.createGain();this.musG.gain.value=0;this.musG.connect(this.master);
     this.musG.gain.setTargetAtTime(.34,T,1.2);
@@ -6411,7 +6414,7 @@ const AUD={
   menuUi(k){if(!this.ok)return;   // hover / click blips for the menu buttons (original square-wave blips)
     if(k==='hov')this.tone(760,760,.05,.05,'square',this.master);
     else if(k==='clk')this.tone(420,180,.12,.12,'square',this.master)},
-  menuStop(){if(!this.menuOn)return;this.menuOn=false;const T=this.ctx.currentTime;this.musG.gain.setTargetAtTime(0,T,.6);(this.menuOsc||[]).forEach(o=>{try{o.stop(T+2)}catch(e){}});this.menuOsc=[]},
+  menuStop(){if(this.menuAudio){const a=this.menuAudio;this.menuAudio=null;let v=a.volume;const iv=setInterval(()=>{v-=.08;if(v<=0){clearInterval(iv);a.pause()}else a.volume=Math.max(0,v)},60)}if(!this.menuOn)return;this.menuOn=false;if(!this.musG)return;const T=this.ctx.currentTime;this.musG.gain.setTargetAtTime(0,T,.6);(this.menuOsc||[]).forEach(o=>{try{o.stop(T+2)}catch(e){}});this.menuOsc=[]},
   panner(dest){
     const p=this.ctx.createPanner();p.panningModel='HRTF';p.distanceModel='inverse';p.refDistance=3;p.maxDistance=220;p.rolloffFactor=1.15;p.connect(dest||this.sfx);return p},
   position(p,x,y,z){const T=this.ctx.currentTime;if(p.positionX){p.positionX.setTargetAtTime(x,T,.04);p.positionY.setTargetAtTime(y,T,.04);p.positionZ.setTargetAtTime(z,T,.04)}else p.setPosition(x,y,z)},
@@ -6713,6 +6716,7 @@ function vTone(t,f,dur,v,type,cut,toDelay,det){const c=AUD.ctx;const o=c.createO
   if(cut){const fl=c.createBiquadFilter();fl.type='lowpass';fl.frequency.setValueAtTime(cut*2.5,t);fl.frequency.exponentialRampToValueAtTime(cut*.5+60,t+dur);o.connect(fl);node=fl}
   const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.008);g.gain.setValueAtTime(v,t+dur*.7);g.gain.exponentialRampToValueAtTime(.001,t+dur);node.connect(g);g.connect(SPK.out);if(toDelay)g.connect(SPK.delay);o.start(t);o.stop(t+dur+.02)}
 const CHORD={Em:[52,55,59],C:[48,52,55],G:[55,59,62],D:[50,54,57],Am:[57,60,64],F:[53,57,60],Dm:[50,53,57],A7:[57,61,64,67],Gm:[55,58,62],E:[52,56,59],B7:[59,63,66,69]};
+const MENU_FILE=null;   // set to 'assets/music/menu.mp3' once a real track is in that folder (no 404 noise while there is none)
 const MUSIC={
   punk(step,t,spb){ // 16 steps per bar, progression Em C G D
     const bar=Math.floor(step/16)%8,s=step%16;const prog=['Em','C','G','D','Em','C','D','D'];const ch=CHORD[prog[bar]];
@@ -9965,13 +9969,22 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
     if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*10);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(v.x+Math.sin(v.yaw)*2,ty,v.z+Math.cos(v.yaw)*2)},
   // bring a vehicle to the player: land ones 6 m ahead on solid ground, the submarine into deep water within 40 m
+  // free deep water near the player for the submarine: the nearest point (16 directions, growing rings) where the sea is deep enough all round; heading along the shore
+  subSpot(){const deep=(x,z)=>groundH(x,z)<SL-7;for(const r of [10,16,24,36,55,80,120,180,260,400])for(let i=0;i<16;i++){const a=i/16*6.2832,x=player.x+Math.cos(a)*r,z=player.z+Math.sin(a)*r;if(!deep(x,z))continue;
+      let ok=true;for(const [dx,dz] of [[14,0],[-14,0],[0,14],[0,-14],[10,10],[-10,-10]])if(!deep(x+dx,z+dz)){ok=false;break}if(!ok)continue;
+      const hx=-Math.sin(a),hz=Math.cos(a);return [x,z,Math.atan2(-hx,-hz)]}return null},
   summon(kind){const v=this.veh.find(q=>q.kind===kind);if(!v)return toast('Not available','');
     if(this.cur||GAR.on||player.scoot){toast('Get off first','then summon a vehicle');return}
     if(v.dead){v.revive()}v.repair();v.v=0;v.steerA=0;
-    if(kind==='sub'){const m=this.nearestMooring();if(!m){toast('No mooring found','');return}
+    if(kind==='sub'){
+      // round 29: water near you (up to ~400 m): the submarine floats there; otherwise you are taken to the nearest mooring (like the boat): no more "teleport there yourself"
+      const sp=this.subSpot();
+      if(sp){v.x=sp[0];v.z=sp[1];v.yaw=sp[2];v.home=sp.slice();v.y=SL+SUB_SURF;v.halt();v.sync();const d=Math.hypot(sp[0]-player.x,sp[1]-player.z);
+        toast('Submarine ready',d<25?'it floats right here · swim to the hatch and press E':'about '+fmtDist(d)+' away on the water · walk / swim to it and press E');return}
+      const m=this.nearestMooring();if(!m){toast('No water near','a submarine needs a sea or a deep channel');return}
       v.x=m.sub[0];v.z=m.sub[1];v.yaw=m.sub[2];v.home=m.sub.slice();v.y=SL+SUB_SURF;v.halt();v.sync();
-      const d=Math.hypot(m.S[0]-player.x,m.S[1]-player.z);
-      toast('Submarine · '+m.name,d<30?"moored at the water's edge · press E to board":'about '+fmtDist(d)+' away · pick "Submarine · '+m.name+'" in the map (M) to go there');return}
+      const pl=PLACES.find(q=>q.id==='sub'+(this.moorings.indexOf(m)+1));if(pl&&typeof teleport==='function'){toast('Submarine · '+m.name,'no deep water around here: taking you to the mooring…');teleport(pl);return}
+      toast('Submarine · '+m.name,'moored at the water\'s edge · press E to board');return}
     let best=null;for(const d of [6,8,10,5,12])for(const a of [0,.6,-.6,1.2,-1.2]){const x=player.x+Math.sin(cam.yaw+a)*d,z=player.z+Math.cos(cam.yaw+a)*d,gy=groundH(x,z);
       if(gy>SL+.5&&!insideAny(x,z,2.4,gy+.6)&&!insideAny(x,z,2.4,gy+1.6)&&this.level(x,z)){best=[x,z,cam.yaw+a+Math.PI/2];break}if(best)break}
     if(!best){toast('No room here','move to an open street and try again');return}

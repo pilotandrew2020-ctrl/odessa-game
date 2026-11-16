@@ -20,3 +20,8 @@ so they are not in the repository - but you can drop your own copies in and the 
 
 If the fog folder has your own tracks, the built-in calm fallback piece is not used.
 In-game you can also add any file to the speaker (the speaker button) - that is stored in your browser.
+
+MENU MUSIC
+==========
+assets/music/menu.mp3 (optional; then set MENU_FILE in index.html) plays on the start menu, fades out when you press Start. Without that file the menu is silent (the old synthesised loop was removed from use in round 29).
+Put a royalty-free / CC0 action track there (e.g. from freepd.com, pixabay.com/music, incompetech.com with credit) and add it to assets/CREDITS.md.
