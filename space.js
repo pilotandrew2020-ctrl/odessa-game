@@ -63,7 +63,7 @@ const SPC={
 // ==================================================================================================== HUD, input, styles
 Object.assign(SPC,{
   css(){const s=document.createElement('style');s.textContent=`
-body.spc #hud,body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #quickRow,body.spc #gunBar,body.spc #heliControls{display:none!important}
+body.spc #hud *{visibility:hidden}body.spc.spcearth #mini,body.spc.spcearth #mini *,body.spc.spcearth #district,body.spc.spcearth #district *,body.spc.spcearth #quickRow,body.spc.spcearth #quickRow *,body.spc.spcearth #homeDir,body.spc.spcearth #homeDir *{visibility:visible}body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #gunBar,body.spc #heliControls{display:none!important}   /* over the Earth (ascent / atmosphere) the minimap and the map button stay */
 #spc{position:fixed;inset:0;z-index:40;pointer-events:none;font:700 12px var(--f-disp,system-ui);color:#e9f2f5;user-select:none;-webkit-user-select:none}#spc[hidden]{display:none}
 #spc>*{pointer-events:auto}#spcLook{position:absolute;inset:0;pointer-events:auto;touch-action:none;z-index:0}
 #spcInfo{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#191c23,#07080b);border:1px solid rgba(255,255,255,.13);min-width:210px;pointer-events:none;z-index:2}
@@ -104,7 +104,7 @@ body.spc #hud,body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #quickRow,
   flash(a,ms){const f=document.getElementById('spcFlash');if(!f)return;f.style.transition='opacity '+(ms||500)+'ms';f.style.opacity=a},
   rumble(l){try{if(typeof AUD==='undefined'||!AUD.ok||!AUD.ctx)return;if(!this._rm){const c=AUD.ctx,s=c.createBufferSource();s.buffer=AUD.noise;s.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=200;const g=c.createGain();g.gain.value=0;s.connect(f);f.connect(g);g.connect(AUD.master||c.destination);s.start();this._rm={s,f,g}}
     const T=AUD.ctx.currentTime;this._rm.g.gain.setTargetAtTime(l*.55,T,.25);this._rm.f.frequency.setTargetAtTime(150+l*600,T,.3)}catch(e){}},
-  setHud(mode){const lab={ascent:'Space Shuttle · automatic ascent',fly:'Space fighter',eva:'Spacewalk',moon:'On the Moon',landed:'Landed on the Moon',atmo:'Space fighter · atmosphere'}[mode]||mode;document.getElementById('spcMode').textContent=lab;
+  setHud(mode){document.body.classList.toggle('spcearth',mode==='atmo'||mode==='ascent');const lab={ascent:'Space Shuttle · automatic ascent',fly:'Space fighter',eva:'Spacewalk',moon:'On the Moon',landed:'Landed on the Moon',atmo:'Space fighter · atmosphere'}[mode]||mode;document.getElementById('spcMode').textContent=lab;
     const sh=(k,v)=>{const b=document.querySelector('#spcBtns [data-k="'+k+'"]');if(b)b.hidden=!v},fly=mode==='fly'||mode==='atmo';
     sh('thrUp',fly||mode==='landed');sh('thrDn',fly);sh('full',fly||mode==='landed');sh('rollL',fly);sh('rollR',fly);sh('brake',fly);sh('station',mode==='fly'||mode==='eva'||mode==='moon'||mode==='landed'||mode==='ascent');const sb=document.querySelector('#spcBtns [data-k="station"]');if(sb)sb.innerHTML=mode==='ascent'?'<b>⏩</b>Skip':'<b>🛰</b>Station';const stk=document.getElementById('spcStick');if(stk)stk.style.display=mode==='ascent'?'none':'';sh('act',mode!=='ascent'&&mode!=='atmo');sh('quit',true);
     const a=document.getElementById('spcAct');if(a){const t={fly:['⬇','Land'],landed:['🚪','Exit'],eva:['🚀','Board'],moon:['⇱','Jump']}[mode]||['',''];a.innerHTML='<b>'+t[0]+'</b>'+t[1]}},
@@ -113,7 +113,7 @@ body.spc #hud,body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #quickRow,
   // ---------------------------------------------------------------------------------------------- start / leave
   begin(mode){this.on=true;this.mode=mode;document.body.classList.add('spc');this.el.hidden=false;this.setHud(mode);this.cam0={near:camera.near,far:camera.far,fov:camera.fov};this._pv=PLR&&PLR.root.visible;if(PLR)PLR.root.visible=false;
     const I=this.in;I.px=I.py=I.roll=I.thr=I.full=I.brake=I.jump=I.lx=I.ly=I.kx=I.ky=0},
-  leave(){if(!this.on)return;const wasSpace=this.space;this.on=false;this.space=false;this.atmo=false;this.mode='off';document.body.classList.remove('spc');this.el.hidden=true;this.msg('');this.rumble(0);
+  leave(){if(!this.on)return;const wasSpace=this.space;this.on=false;this.space=false;this.atmo=false;this.mode='off';document.body.classList.remove('spc');document.body.classList.remove('spcearth');this.el.hidden=true;this.msg('');this.rumble(0);
     document.getElementById('spcDark').style.opacity=0;this.flash(0,300);
     if(this.cam0){camera.near=this.cam0.near;camera.far=this.cam0.far;camera.fov=this.cam0.fov;camera.updateProjectionMatrix()}
     if(typeof sky!=='undefined'){sky.visible=true}if(this._fogD!==undefined&&scene.fog){scene.fog.density=this._fogD;this._fogD=undefined}
