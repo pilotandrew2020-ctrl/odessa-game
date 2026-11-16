@@ -26,11 +26,23 @@ for(const [name,list] of Object.entries(G)){const map=new Map(),pos=[],idx=[];
   mesh.addPrimitive(D.createPrimitive().setAttribute('POSITION',acc('VEC3',new Float32Array(P2))).setIndices(acc('SCALAR',I2)).setMaterial(mat))}
 // ---- the head: Man.glb (skin above the neck + the parted hair), scaled by K and put on the collar
 const md=await new NodeIO().registerExtensions(ALL_EXTENSIONS).read(MAN);const NM=[0,1.50,-0.041];
+// caricature the realistic head so the geometry matches the projected face (long nose, heavy brow, sunken eyes, thick lips, long jaw)
+const sm=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)},GA=(x,y,z,cx,cy,cz,sx,sy,sz)=>Math.exp(-(((x-cx)/sx)**2+((y-cy)/sy)**2+((z-cz)/sz)**2));
+const deform=(p)=>{let [x,y,z]=p;const front=sm(0.0,0.06,z);
+  const gn=GA(x,y,z,0,1.662,.112,.022,.024,.05);z+=.026*gn*front;y-=.016*gn*front;               // long, drooping nose
+  z+=.010*GA(x,y,z,0,1.69,.1,.016,.02,.05)*front;                                                  // high nose bridge
+  z+=.010*GA(x,y,z,0,1.727,.09,.085,.011,.05)*front;                                               // heavy brow ridge
+  for(const sx of [-1,1])z-=.007*GA(x,y,z,sx*.034,1.6985,.092,.02,.016,.04)*front;                  // sunken eye sockets
+  z+=.009*GA(x,y,z,0,1.626,.092,.05,.011,.05)*front;                                               // thick lips
+  y-=.014*sm(1.7,1.62,y);                                                                         // longer lower face
+  y-=.020*sm(1.625,1.58,y)*front;z+=.012*GA(x,y,z,0,1.585,.075,.04,.014,.05)*front;                 // heavy chin
+  x*=1+.10*sm(1.63,1.575,y);                                                                      // wide jowls
+  return [x,y,z]};
 const put=(p)=>[NT[0]+(p[0]-NM[0])*K,NT[1]+(p[1]-NM[1])*K,NT[2]+(p[2]-NM[2])*K];
 for(const [nodeName,matName,yMin] of [['Body','skin',1.52],['HairParted','hair',0]]){
   const node=md.getRoot().listNodes().find(n=>n.getName()===nodeName),pr=node.getMesh().listPrimitives()[0],pa=pr.getAttribute('POSITION').getArray(),ua=pr.getAttribute('TEXCOORD_0').getArray(),ia=pr.getIndices().getArray(),src=pr.getMaterial();
   const sel=[];for(let t=0;t<ia.length;t+=3){const a=ia[t],b=ia[t+1],c=ia[t+2];if(pa[a*3+1]>=yMin&&pa[b*3+1]>=yMin&&pa[c*3+1]>=yMin&&Math.abs(pa[a*3])<0.11&&Math.abs(pa[b*3])<0.11&&Math.abs(pa[c*3])<0.11)sel.push(a,b,c)}
-  const rm=new Int32Array(pa.length/3).fill(-1);let n=0;const P2=[],U2=[];for(const i of sel){if(rm[i]<0){rm[i]=n++;const q=put([pa[i*3],pa[i*3+1],pa[i*3+2]]);P2.push(...q);U2.push(ua[i*2],ua[i*2+1])}}
+  const rm=new Int32Array(pa.length/3).fill(-1);let n=0;const P2=[],U2=[];for(const i of sel){if(rm[i]<0){rm[i]=n++;const q=put(nodeName==='Body'?deform([pa[i*3],pa[i*3+1],pa[i*3+2]]):[pa[i*3],pa[i*3+1],pa[i*3+2]]);P2.push(...q);U2.push(ua[i*2],ua[i*2+1])}}
   const I2=Uint32Array.from(sel,i=>rm[i]);total+=I2.length/3;console.log(nodeName,I2.length/3,'tris');
   const mat=D.createMaterial(matName).setBaseColorFactor(src.getBaseColorFactor()).setRoughnessFactor(.7).setMetallicFactor(0).setDoubleSided(true);
   const bt=src.getBaseColorTexture();if(bt){const tx=D.createTexture(matName+'_c').setImage(bt.getImage()).setMimeType(bt.getMimeType());mat.setBaseColorTexture(tx)}
