@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -7479,7 +7479,7 @@ function collide(x,z,m,y){
 // ---------- player ----------
 let stepPhase=0;
 function stepPlayer(dt){
-  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on)return;   // tank.js / drone.js move the player themselves
+  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on)return;   // tank.js / drone.js / rails.js move the player themselves
   if(typeof BR!=='undefined'&&BR.ctl){BR.ctlStep(dt);return}     // Battle Royale: on the bus / skydiving
   if(typeof SWIM!=='undefined'&&SWIM.step(dt))return;            // in deep water: swimming (swim.js)
   if(player.sit){const s=player.sit;player.x=s.x;player.z=s.z;player.y=s.y;player.yaw=s.yaw;PLR.root.position.set(s.x,s.y,s.z);PLR.root.rotation.y=s.yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt);
@@ -7556,7 +7556,7 @@ function surfaceAt(x,z,y){
 }
 function stepCamera(dt){
   if(window.DBGCAM){const c=window.DBGCAM;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);return}
-  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on)return;   // their own frames set the camera
+  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on)return;   // their own frames set the camera
   if(HELI.on&&started)return HELI.stepCamera(dt);
   if(MP.on&&started)return MP.stepCamera(dt);
   if(PLN.cur&&started)return PLN.stepCamera(dt);
@@ -8119,6 +8119,7 @@ async function boot(){
   try{if(typeof DRONE!=='undefined'&&DRONE&&DRONE.init)DRONE.init()}catch(e){console.error('[boot] drone',e)}
   try{if(typeof ROOFPADS!=='undefined'&&ROOFPADS.init)ROOFPADS.init()}catch(e){console.error('[boot] roofpads',e)}
   try{if(typeof BLASTFX!=='undefined')BLASTFX.init()}catch(e){console.error('[boot] blastfx',e)}
+  try{if(typeof RAILS!=='undefined'){RAILS.init();RAILS.gorky()}}catch(e){console.error('[boot] rails',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -8148,7 +8149,7 @@ function loop(t){
     if(typeof PED_SPRITES!=='undefined')PED_SPRITES.update(dt,player.x,player.z);
     // Safety net: the avatar is hidden while driving / flying and restored on exit. If any of
     // those exits is missed the local character stays invisible, so re-assert it here.
-    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&!(typeof TANK!=='undefined'&&TANK.on)&&!(typeof DRONE!=='undefined'&&DRONE.on)&&PLR.root.visible===false)PLR.root.visible=true;
+    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&!(typeof TANK!=='undefined'&&TANK.on)&&!(typeof DRONE!=='undefined'&&DRONE.on)&&!(typeof RAILS!=='undefined'&&RAILS.on)&&PLR.root.visible===false)PLR.root.visible=true;
     updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();if(BUDDY.on)BUDDY.update(dt);
     if(typeof BATTERY411!=='undefined')BATTERY411.update(dt);
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);
@@ -8165,6 +8166,7 @@ function loop(t){
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
+  safe('rails',()=>{if(typeof RAILS!=='undefined'){if(RAILS.on)RAILS.frame(dt);else RAILS.tick(dt)}});   // rails.js: coaster / slide rides
   safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt);if(typeof BLASTFX!=='undefined')BLASTFX.tick(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
   safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});   // drone.js: flight and camera of the kamikaze drone
   safe('tank',()=>{if(typeof TANK!=='undefined'&&TANK.on)TANK.frame(dt)});   // tank.js: the driver's camera and the tank's physics
