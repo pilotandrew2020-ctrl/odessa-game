@@ -44,7 +44,8 @@ Object.assign(SPC,{
     for(const s of [-1,1]){const o=new THREE.Mesh(new THREE.ConeGeometry(L*.035,1,12,1,true),fireMat(0xff8a2a));o.rotation.x=-Math.PI/2;o.position.set(s*L*.1,0,-L*.48);g.add(o);const i=new THREE.Mesh(new THREE.ConeGeometry(L*.02,1,10,1,true),fireMat(0x9fd8ff));i.rotation.x=-Math.PI/2;i.position.copy(o.position);g.add(i);fires.push(o,i)}
     const N=14,pos=new Float32Array(N*6*3),ln=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xbfe4ff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));ln.geometry.setAttribute('position',new THREE.BufferAttribute(pos,3));ln.frustumCulled=false;g.add(ln);
     g.userData.aura=aura;g.userData.fires=fires;g.userData.ln=ln;g.userData.L=L;g.userData.N=N;g.visible=false;mesh.add(g);mesh.userData.fx=g;return g},
-  fxTick(dt,atmo){const mesh=atmo?this.fgtMesh:this.shipMesh;if(!mesh||!this.C)return;const g=this.fxBuild(mesh),U=g.userData,C=this.C,thr=C.thr||0,spd=Math.min(1,C.sp/(atmo?900:100000));g.visible=true;U.t+=dt;
+  fxTick(dt,atmo){const mesh=atmo?this.fgtMesh:this.shipMesh;if(!mesh||!this.C)return;this.fxUpdate(mesh,this.C.thr||0,Math.min(1,this.C.sp/(atmo?900:100000)),dt)},
+  fxUpdate(mesh,thr,spd,dt){const g=this.fxBuild(mesh),U=g.userData;g.visible=true;U.t+=dt;
     const aur=U.aura.material.uniforms;aur.uI.value=.25+.55*Math.max(thr,spd);aur.uT.value=U.t;
     const L=U.L;U.fires.forEach((o,i)=>{const len=L*(.05+.55*thr)*(.8+.4*Math.random()),isIn=i%2===1;o.scale.set(1,len*(isIn?.7:1),1);o.position.z=-L*.48-len*(isIn?.35:.5)});
     if((U.lt=(U.lt||0)-dt)<=0){U.lt=.06;const p=U.ln.geometry.attributes.position,N=U.N,on=thr>.05;for(let b=0;b<N;b++){const th=Math.random()*6.283,ph=(Math.random()-.5)*2,r=L*.3,x0=Math.cos(th)*r*.8,y0=ph*r*.4,z0=(Math.random()-.5)*L*.9;let x=x0,y=y0,z=z0;for(let s=0;s<3;s++){const o=(b*3+s)*6,nx=x+(Math.random()-.5)*L*.12+Math.cos(th)*L*.08,ny=y+(Math.random()-.5)*L*.12,nz=z+(Math.random()-.5)*L*.12;
@@ -172,3 +173,63 @@ Object.assign(SPC,{
 {const _ex=SPC.exitShip;SPC.exitShip=function(){const r=_ex.apply(this,arguments);if(this.M2)this.M2.fuel=100;return r}}
 // getting into the ship with a vehicle: leave the vehicle first
 {const _a=SPC.act;SPC.act=function(){const M=this.M2;if(this.mode==='moon'&&M&&M.veh){if(Math.hypot(M.x,M.z)<9)this.ride(null);else{if(!M.veh.fly&&!M.air){M.vy=M.veh.j;M.air=true}return}}return _a.apply(this,arguments)}}
+
+// ================================================================= URANUS, rock collisions, DOCKING, FLYING TOGETHER (2026-11-16)
+SPC.URL.uranus='assets/models/space/uranus.glb';
+// ---- Uranus (the owner's model: planet, cloud shell, rings): a gas giant 55,000 km out, no surface (the ship is pushed out of its atmosphere)
+{const _bsol=SPC.buildSolar;SPC.buildSolar=function(){_bsol.call(this);this.shipTpl=this.shipMesh.clone(true);this.rs=this.rs||{};this.gas=[];this.loadUranus()}}
+Object.assign(SPC,{
+  async loadUranus(){try{const u=(await this.load('uranus')).clone(true),R=2.4e6,k=R/44106;const g=new THREE.Group();g.add(u);g.scale.setScalar(k);u.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;const m=o.material;if(/clouds/i.test(o.name)){m.transparent=true;m.opacity=.35;m.depthWrite=false;m.transmission=0}
+        if(/ring/i.test(o.name)){m.transparent=true;m.opacity=1;m.alphaTest=.02;m.depthWrite=false;m.side=THREE.DoubleSide}else m.side=THREE.FrontSide});
+      const c=new THREE.Vector3(.4,-.08,.91).normalize().multiplyScalar(5.0e7);g.userData.w=c;this.reg.push(g);this.sc.add(g);this.uranusM=g;this.gas.push({id:'uranus',name:'Uranus',c,R:R*1.0,atm:2.6e4,mesh:g});console.log('[space] Uranus ready')}catch(e){console.warn('[space] uranus',e)}},
+  // gas giants: slow down near them, never fly through
+  gasGuard(){if(!this.gas||!this.C||this.mode!=='fly')return;const C=this.C;for(const b of this.gas){const d=C.w.distanceTo(b.c)-b.R;this.limit2=d<9e4?Math.max(40,40+d*.05):0;if(d<b.atm){const n=C.w.clone().sub(b.c).normalize();C.w.copy(b.c).addScaledVector(n,b.R+b.atm);C.sp=0;if(!this._gm||performance.now()-this._gm>4000){this._gm=performance.now();this.msg(b.name,'a gas giant: there is no surface, the ship turns back',2600)}}}},
+  // giant rocks are solid
+  rockGuard(){if(!this.rocks||!this.C||this.mode!=='fly')return;const C=this.C;for(const m of this.rocks){const c=m.userData.w,r=m.userData.rad;if(!c)continue;const d=C.w.distanceTo(c);if(d<r+40){const n=C.w.clone().sub(c).normalize();C.w.copy(c).addScaledVector(n,r+40);if(C.sp>200){FX&&(FX.shakeT=.6,FX.shakeA=.15);this.msg('Collision','you hit an asteroid · the ship stops',2000)}C.sp=0;C.thr=0}}},
+  // ---- docking: the autopilot flies you to the station and parks you next to it (the STATION button still teleports)
+  stationDist(){if(!this.issM||!this.C)return 1e30;const w=this.issM.userData.w;return Math.hypot(this.C.w.x-w.x,this.C.w.y-w.y,this.C.w.z-w.z)},
+  dock(){if(this.mode!=='fly'||this.dk)return;const C=this.C,d=this.stationDist();if(d>6e5){this.msg('Dock','fly closer to the station first (within 600 km)',2400);return}
+    const Y=new THREE.Vector3(0,1,0),end=new THREE.Vector3(70,6,-38),q1=new THREE.Quaternion().setFromAxisAngle(Y,2.6);this.dk={t:0,dur:Math.max(6,Math.min(16,d/40000+6)),p0:C.w.clone(),q0:C.q.clone(),p1:end,q1,p2:new THREE.Vector3(60,40,-300)};C.thr=0;C.sp=0;this.msg('Docking','autopilot: hands off the controls',2600)},
+  dockTick(dt){const D=this.dk,C=this.C;if(!D)return false;D.t+=dt/D.dur;const u=Math.min(1,D.t),e=u*u*(3-2*u);
+    // a smooth curve: from where you are, past a point 300 m off the station, into the berth
+    const a=D.p0,b=D.p2,c=D.p1,v=new THREE.Vector3().copy(a).multiplyScalar((1-e)*(1-e)).addScaledVector(b,2*(1-e)*e).addScaledVector(c,e*e);C.w.copy(v);C.q.slerpQuaternions(D.q0,D.q1,e);C.sp=(1-u)*3000;this.fxTick(dt,false);
+    if(u>=1){this.dk=null;C.sp=0;C.thr=0;C.w.copy(D.p1);C.q.copy(D.q1);C.cq=null;this.shipMesh.visible=true;sc_attach(this);this.startEva(new THREE.Vector3(36,3,-96));this.msg('Docked','the ship is berthed · you are on a spacewalk by the station',2600)}return true},
+  extraUI(){if(this._xu)return;const d=document.createElement('div');d.id='spcX';d.style.cssText='position:fixed;right:max(16px,env(safe-area-inset-right));top:calc(120px + env(safe-area-inset-top,0px));z-index:41;display:flex;flex-direction:column;gap:6px;align-items:flex-end';document.body.appendChild(d);this._xu=d;
+    d.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;if(k==='dock')this.dock();else if(k==='leave')this.leavePax();else if(k.startsWith('join:'))this.join(k.slice(5))})},
+  extraTick(dt){this.extraUI();this._xt=(this._xt||0)-dt;if(this._xt>0)return;this._xt=.4;const d=this._xu;if(!this.space||!this.on){d.innerHTML='';return}
+    const btn=(k,t)=>`<button data-k="${k}" style="min-width:140px;height:44px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,#191c23,#07080b);color:#38e4d0;font:800 12px var(--f-disp,system-ui);letter-spacing:.08em">${t}</button>`;let h='';
+    if(this.mode==='fly'&&!this.dk&&this.stationDist()<6e5)h+=btn('dock','DOCK · '+(this.stationDist()>=1e3?(this.stationDist()/1e3).toFixed(0)+' km':Math.round(this.stationDist())+' m'));
+    if(this.mode==='pax')h+=btn('leave','LEAVE THE SHIP');
+    if(this.mode==='fly'||this.mode==='eva'){for(const [id,R] of this.remoteShips())h+=btn('join:'+id,'JOIN '+String(R.st.n||'friend').toUpperCase());}
+    if(this.mode==='fly'){const pax=[...this.peersOnBoard(this.myId())].map(R=>R.st.n||'friend');if(pax.length)h+=`<div style="font:700 11px var(--f-disp,system-ui);color:#e9f2f5;background:#0b0e13;padding:8px 10px;border-radius:10px">On board: ${pax.join(', ')}</div>`}
+    d.innerHTML=h},
+  // ---- co-op: your ship is in your presence packet (st.sx); friends in space see it, and can climb aboard as passengers (3 more seats)
+  myId(){try{return COOP.myId||'me'}catch(e){return 'me'}},
+  coopState(){if(!this.space||!this.on||!this.C)return null;const r=v=>Math.round(v*10)/10;
+    if(this.mode==='pax'&&this.pax)return [0,0,0,0,0,0,0,1,0,this.pax.peer,this.pax.seat];
+    if(this.mode==='fly'||this.mode==='eva'||this.mode==='interior'){const C=this.C;return [1,r(C.w.x),r(C.w.y),r(C.w.z),+C.q.x.toFixed(4),+C.q.y.toFixed(4),+C.q.z.toFixed(4),+C.q.w.toFixed(4),+(C.thr||0).toFixed(2),this.mode==='fly'?1:0]}return null},
+  peers(){try{return COOP&&COOP.peers?COOP.peers:new Map()}catch(e){return new Map()}},
+  remoteShips(){const o=[];for(const [id,R] of this.peers()){const a=R&&R.st&&R.st.sx;if(!a||a[0]!==1||!this.C)continue;const d=Math.hypot(this.C.w.x-a[1],this.C.w.y-a[2],this.C.w.z-a[3]);if(d<2e6)o.push([id,R])}return o},
+  peersOnBoard(host){const o=new Set();for(const [id,R] of this.peers()){const a=R&&R.st&&R.st.sx;if(a&&a[0]===0&&a[9]===host)o.add(R)}return o},
+  join(id){const R=this.peers().get(id);if(!R||!R.st.sx||R.st.sx[0]!==1)return;const used=new Set();for(const [i2,R2] of this.peers()){const a=R2.st&&R2.st.sx;if(a&&a[0]===0&&a[9]===id)used.add(a[10])}let seat=1;while(used.has(seat)&&seat<4)seat++;if(seat>3){this.msg('Full','all 4 seats are taken',2000);return}
+    this.pax={peer:id,seat};this.paxC={w:new THREE.Vector3(R.st.sx[1],R.st.sx[2],R.st.sx[3]),q:new THREE.Quaternion(R.st.sx[4],R.st.sx[5],R.st.sx[6],R.st.sx[7]),sp:0,thr:0,seat};this.paxHome=this.C.w.clone();this.mode='pax';this.setHud('eva');document.getElementById('spcMode').textContent='Passenger · seat '+(seat+1);
+    for(const b of document.querySelectorAll('#spcBtns [data-k]'))b.hidden=true;this.shipMesh.visible=false;if(PLR&&PLR.root)PLR.root.visible=false;this.fvReset();try{COOP.push(true)}catch(e){}this.msg('Aboard','you are a passenger of '+(R.st.n||'a friend')+' · drag to look round, pinch to zoom, the cockpit view puts you in your seat',3200)},
+  leavePax(why){if(this.mode!=='pax')return;const P=this.paxC;this.mode='fly';this.pax=null;this.C.w.copy(P.w).add(new THREE.Vector3(0,12,-45).applyQuaternion(P.q));this.C.q.copy(P.q);this.C.cq=null;this.C.sp=0;this.C.thr=0;this.shipMesh.visible=true;this.setHud('fly');this.msg('You left the ship',why||'',2200);try{COOP.push(true)}catch(e){}},
+  paxFrame(dt){const R=this.peers().get(this.pax.peer),a=R&&R.st&&R.st.sx;if(!a||a[0]!==1)return this.leavePax('the pilot left');const P=this.paxC;P.w.lerp(new THREE.Vector3(a[1],a[2],a[3]),Math.min(1,dt*10));P.q.slerp(new THREE.Quaternion(a[4],a[5],a[6],a[7]),Math.min(1,dt*10));P.thr=a[8];P.sp=a[8]*1e5;
+    this.remoteTick(dt);this.camSpace(dt,P);const rm=this.rs[this.pax.peer];if(rm)rm.visible=this.FV.dist>=3;if(this.shipMesh)this.shipMesh.visible=false;
+    this.cam.copy(this.cam);for(const o of this.reg)this.place(o);this.stars.position.set(0,0,0);this.sunSp.position.copy(this.S).multiplyScalar(4e7);this.sun.position.copy(this.S).multiplyScalar(1000);this.sun.target.position.set(0,0,0);this.earth.rotation.y+=dt*.004;this.skyTick();
+    document.getElementById('spcSpd').textContent=Math.round(P.sp).toLocaleString('en')+' m/s';document.getElementById('spcAlt').textContent='Passenger of '+(R.st.n||'a friend')+' · seat '+(P.seat+1)+'/4';document.getElementById('spcThr').style.width=(P.thr*100)+'%';renderer.info.reset();renderer.render(this.sc,camera)},
+  // other players' ships (a clone of the fighter in the space scene, smoothed)
+  remoteTick(dt){this.rs=this.rs||{};const seen=new Set();for(const [id,R] of this.peers()){const a=R&&R.st&&R.st.sx;if(!a||a[0]!==1||!this.shipTpl)continue;seen.add(id);let m=this.rs[id];if(!m){m=this.shipTpl.clone(true);m.userData.w=new THREE.Vector3(a[1],a[2],a[3]);m.quaternion.set(a[4],a[5],a[6],a[7]);this.reg.push(m);this.sc.add(m);this.rs[id]=m;
+        const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.fillStyle='rgba(8,12,18,.7)';x.fillRect(0,0,256,64);x.fillStyle='#38e4d0';x.font='bold 30px system-ui';x.textAlign='center';x.fillText(String(R.st.n||'friend').slice(0,14),128,42);const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,transparent:true,fog:false}));sp.renderOrder=10;m.userData.tag=sp;this.sc.add(sp)}
+      m.visible=true;m.userData.w.lerp(new THREE.Vector3(a[1],a[2],a[3]),Math.min(1,dt*10));m.quaternion.slerp(new THREE.Quaternion(a[4],a[5],a[6],a[7]),Math.min(1,dt*10));this.fxUpdate(m,a[8]||0,a[8]||0,dt);
+      const cam=this.cam,w=m.userData.w,d=Math.hypot(w.x-cam.x,w.y-cam.y,w.z-cam.z),tg=m.userData.tag;tg.position.set(w.x-cam.x,w.y-cam.y+12+d*.004,w.z-cam.z);tg.scale.set(Math.max(40,d*.07),Math.max(10,d*.0175),1);tg.visible=d<3e6&&!(this.mode==='pax'&&id===this.pax.peer&&this.FV.dist<3)}
+    for(const id of Object.keys(this.rs))if(!seen.has(id)){const m=this.rs[id];this.sc.remove(m);if(m.userData.tag)this.sc.remove(m.userData.tag);this.reg=this.reg.filter(o=>o!==m);delete this.rs[id]}}});
+// the frame: guards, docking, remote ships, passengers
+{const _f=SPC.frame;SPC.frame=function(dt){if(this.mode==='pax'&&this.built)return this.paxFrame(dt);
+  if(this.mode==='fly'){this.limit2=0;if(this.dk){this.dockTick(dt)}else{this.gasGuard();this.rockGuard()}}
+  if(this.built)this.remoteTick(dt);this.extraTick(dt);return _f.call(this,dt)}}
+// the flight model honours the extra limit near gas giants and stays put while the autopilot docks
+{const _fs=SPC.flyStep;SPC.flyStep=function(dt,atmo,alt){if(this.dk){document.getElementById('spcSpd').textContent=Math.round(this.C.sp).toLocaleString('en')+' m/s · docking';return}const lim=this.limit;if(!atmo&&this.limit2)this.limit=this.limit?Math.min(this.limit,this.limit2):this.limit2;const r=_fs.call(this,dt,atmo,alt);this.limit=lim;return r}}
+// rocks know their radius; the presence packet carries the ship
+{const _bs2=SPC.buildSolar;SPC.buildSolar=function(){_bs2.call(this);this.rocks.forEach((m,i)=>{m.geometry.computeBoundingSphere();m.userData.rad=m.geometry.boundingSphere.radius*.92})}}

@@ -7622,14 +7622,14 @@ function underwaterFx(){
   else if(typeof UWFX!=='undefined'&&UWFX.ready)UNI.uSunUp.value=THREE.MathUtils.clamp(sunDir.y*3,0,1)}
 function stepCarCamera(dt){
   const c=DRIVE.car;const tx=c.x,ty=c.y+1.45,tz=c.z;
-  if(!freeLook()){let tgt=c.yaw;if(DRIVE.v<-1)tgt=c.yaw;let dy=tgt-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(DRIVE.v)>2?2.6:.8))}
+  if(CAMV.follow&&!freeLook()){let tgt=c.yaw;if(DRIVE.v<-1)tgt=c.yaw;let dy=tgt-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;cam.yaw+=dy*Math.min(1,dt*(Math.abs(DRIVE.v)>2?2.6:.8))}
   if(CAMV.mode===1||CAMV.mode===2){     // cockpit: the driver's eyes (left of centre); bonnet: low over the front of the car
     const s=Math.sin(c.yaw),co=Math.cos(c.yaw),T=CAR_T[c.type],L=(T&&T.L)||4.2;let ex,ey,ez;
     if(CAMV.mode===1){const eh={3:1.72,2:1.55,4:1.02,9:1.12}[c.type]||1.2;ex=c.x+s*.1+co*.34;ey=c.y+eh;ez=c.z+co*.1-s*.34}
     else{ex=c.x+s*L*.34;ey=c.y+({3:1.65,2:1.45,4:.9}[c.type]||1.0);ez=c.z+co*L*.34}
     const p=CAMV.mode===1?cam.pitch:cam.pitch*.5;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;camera.position.set(ex,ey,ez);
     camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(p),ey+Math.sin(p),ez+Math.cos(cam.yaw)*Math.cos(p));return}
-  const dist=Math.max(6.2,cam.dist)*(cam.vz||1);const pitch=Math.max(.1,cam.pitch);   // 2026-11-12: no longer pulled back by the speed; the pinch zoom (cam.vz) works
+  const dist=Math.max(2.5,cam.dist)*(cam.vz||1);const pitch=Math.max(.05,cam.pitch);   // 2026-11-12: no longer pulled back by the speed; the pinch zoom (cam.vz) works
   const cp=Math.cos(pitch),sp=Math.sin(pitch);const dx=-Math.sin(cam.yaw)*cp,dy2=sp,dz=-Math.cos(cam.yaw)*cp;
   let d=dist;for(let s=1.5;s<=dist;s+=.4){const px=tx+dx*s,py=ty+dy2*s,pz=tz+dz*s;if(insideAny(px,pz,.25,py)||py<groundAt(px,pz,py)+.3){d=Math.max(1.5,s-.4);break}}
   const wx=tx+dx*d,wy=ty+dy2*d,wz=tz+dz*d;if(!cam.init||!isFinite(cam.x+cam.y+cam.z)){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}
@@ -7941,9 +7941,9 @@ function setupInput(){
   // pinch / wheel zoom. f > 1 = closer. First person (cam.dist <= .75): the lens zooms (field of view), the head cannot get closer - before, the pinch only moved the camera between .25 and .5 m, i.e. nothing.
   // In a car the zoom is its own factor (cam.vz) on top of the usual chase distance, and the chase distance no longer grows with the speed.
   const camZoom=f=>{const inCar=(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')||(typeof DRIVE!=='undefined'&&DRIVE.on);
-    if(inCar){cam.vz=Math.max(.3,Math.min(2.6,(cam.vz||1)/f));cam.init=false;return}
+    if(inCar){cam.vz=Math.max(.04,Math.min(40,(cam.vz||1)/f));cam.init=false;return}
     if(cam.dist<=.75){cam.fpz=Math.max(1,Math.min(5,(cam.fpz||1)*f));return}
-    cam.dist=Math.max(.25,Math.min(14,cam.dist/f));cam.init=false};
+    cam.dist=Math.max(.25,Math.min(160,cam.dist/f));cam.init=false};   // (as far as you like: 160 m)
   const cameraTouches=new Map();let pinchDistance=0;
   // iPad/iOS: a fast double-tap used to trigger the system page zoom and there was no way back — kill it with a
   // touch-action lock on the canvas plus a dedicated double-tap preventer (the game's own camera-zoom via
@@ -7997,6 +7997,9 @@ function setupInput(){
   $('bCar').onclick=()=>DRIVE.on?toggleCar():GAR.open();     // the old button just summoned one fixed car; now it opens the garage (C still calls / leaves the current car)
   const bind=(id,fn)=>{const e=$(id);if(e)e.onclick=fn;else console.warn('[ui] missing button #'+id)};   // one missing button must never stop the rest of the HUD from being wired
   bind('bHeli',()=>HELI.toggle());bind('bView',()=>CAMV.next());
+  {const v=$('bView');if(v&&!$('bFollow')){const b=v.cloneNode(true);b.id='bFollow';const t=b.querySelector('b');if(t)t.textContent='Free';v.parentNode.insertBefore(b,v.nextSibling);
+    bind('bFollow',()=>{CAMV.follow=!CAMV.follow;if(t)t.textContent=CAMV.follow?'Follow':'Free';toast('Camera',CAMV.follow?'follows the car':'free: it never turns by itself')});
+    setInterval(()=>{b.hidden=!(DRIVE.on||(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub'))},500)}}
   bind('bScoot',toggleScoot);bind('bAct',doAction);
   bind('bSpk',()=>{if((typeof SPK!=='undefined')&&SPK)SPK.panel()});
   bind('bEmote',()=>{if(typeof POSE!=='undefined')POSE.wheel()});
@@ -8340,6 +8343,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     {const L=typeof AIRP!=='undefined'&&AIRP.mine&&AIRP.mine.light;if(L&&!L.crashed&&L.root.visible)st.pl=[r2(L.x),r2(L.y),r2(L.z),r2(L.yaw),r2(L.pitch),r2(L.roll),r2(L.thr),L.eng>.05?1:0,PLN.cur===L?1:0]}
     // on the water: the hull position plus [type, pitch, roll, forward speed]
     if(PASS.host){st.pp=PASS.host;st.pi=PASS.idx}
+    if(typeof SPC!=='undefined'&&SPC.coopState){const sx=SPC.coopState();if(sx)st.sx=sx}   // space2.js: my spacecraft (or the ship I am a passenger of)
     {const rt=RIDE.on&&RIDE.tram;if(rt&&rt.kind==='pass'&&rt.R&&rt.R.peer){st.pp=rt.R.peer;st.pi=rt.idx||1;st.m='pass'}}   // a seat in a friend's ordinary car: everybody seats me from that car, not from my own lagging position
     // in a G-Wagon / Lamborghini / bicycle / submarine: its position plus [kind, pitch, roll, speed, steering, colour]
     if(EXT.cur){const c=EXT.cur;st.x=r2(c.x);st.y=r2(c.y);st.z=r2(c.z);st.r=r2(c.yaw);st.xv=[LV_NAMES.indexOf(c.kind),r2(c.pitch),r2(c.roll),r2(c.v),r2(c.steerA),Math.max(0,c.colIdx)]}
@@ -9916,10 +9920,13 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
       cam.x=p.x;cam.y=p.y;cam.z=p.z;cam.init=true;PLR.root.visible=false;return}
     // user request: the camera must NOT drag your gaze around while driving (esp. the submarine) — the
     // auto-centre only re-engages after 1.2 s of looking straight-ish, otherwise you look wherever you want.
-    if(!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;const drift=Math.abs(dy);
+    if(CAMV.follow&&!freeLook()){let dy=v.yaw-cam.yaw;while(dy>Math.PI)dy-=6.283;while(dy<-Math.PI)dy+=6.283;const drift=Math.abs(dy);
       cam.autoT=(drift>2.4)?1.2:Math.max(0,(cam.autoT||0)-dt);
       if(cam.autoT<=0)cam.yaw+=dy*Math.min(1,dt*(Math.abs(v.v)>2?(v.kind==='bike'?4.4:2.6):.8))}   // the bicycle turns fast now: the camera must keep up
-    const dist=(v.kind==='bike'?4.2:sub?9:Math.max(6.2,cam.dist))*(sub?1+Math.min(.3,Math.abs(v.v)*.008):(cam.vz||1)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
+    if(!sub&&(CAMV.mode===1||CAMV.mode===2)){   // inside: the rider's / driver's eyes, a free look (nothing pulls the view)
+      const eh=v.kind==='bike'?1.62:1.28,fw=v.kind==='bike'?.05:.15,ex=v.x+Math.sin(v.yaw)*fw,ey=v.y+eh,ez=v.z+Math.cos(v.yaw)*fw;cam.x=ex;cam.y=ey;cam.z=ez;cam.init=true;PLR.root.visible=false;camera.position.set(ex,ey,ez);
+      camera.lookAt(ex+Math.sin(cam.yaw)*Math.cos(cam.pitch),ey+Math.sin(cam.pitch),ez+Math.cos(cam.yaw)*Math.cos(cam.pitch));return}
+    const dist=(v.kind==='bike'?4.2*(cam.vz||1):sub?9:Math.max(2.5,cam.dist))*(sub?1+Math.min(.3,Math.abs(v.v)*.008):(cam.vz||1)),pitch=Math.max(.1,cam.pitch),cp=Math.cos(pitch),sp=Math.sin(pitch);
     const ty=v.y+(sub?.6:v.kind==='bike'?1.3:1.45);let d=dist;
     if(!sub)for(let s=1.5;s<=dist;s+=.4){const px=v.x-Math.sin(cam.yaw)*cp*s,py=ty+sp*s,pz=v.z-Math.cos(cam.yaw)*cp*s;if(insideAny(px,pz,.25,py)||py<groundH(px,pz)+.3){d=Math.max(1.5,s-.4);break}}
     const wx=v.x-Math.sin(cam.yaw)*cp*d,wz=v.z-Math.cos(cam.yaw)*cp*d,wy=Math.max(ty+sp*d,groundH(wx,wz)+.5);
