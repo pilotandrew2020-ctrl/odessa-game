@@ -22,7 +22,8 @@ exports.run = async (page, h) => {
   // ---- the sailing ship: it moves and carries us
   await ev(() => SHIP.summon()); await page.waitForFunction(() => { const I = SHIP.B, [lx, lz] = SHIP.local(I, player.x, player.z); return Math.abs(lz) < 223 && Math.abs(lx) < 35 && player.y > I.g.position.y + 12 }, null, { timeout: 40000 }); await h.wait(1500);
   const b0 = await ev(() => { const I = SHIP.B, l = SHIP.local(I, player.x, player.z); return { x: I.x, z: I.z, lx: l[0], lz: l[1] } });
-  await h.wait(9000); const b1 = await ev(() => { const I = SHIP.B, l = SHIP.local(I, player.x, player.z); return { x: I.x, z: I.z, lx: l[0], lz: l[1], spd: I.spd } });
+  await page.waitForFunction(b => Math.hypot(SHIP.B.x - b.x, SHIP.B.z - b.z) > 8, b0, { timeout: 240000 });   // (waits on the ship's own movement: a fixed 9 s was too short with slow frames)
+  const b1 = await ev(() => { const I = SHIP.B, l = SHIP.local(I, player.x, player.z); return { x: I.x, z: I.z, lx: l[0], lz: l[1], spd: I.spd } });
   console.log('sailing', JSON.stringify({ moved: Math.round(Math.hypot(b1.x - b0.x, b1.z - b0.z)), local: [b0.lx, b0.lz, b1.lx, b1.lz].map(n => +n.toFixed(1)), spd: +b1.spd.toFixed(1) }));
   assert(Math.hypot(b1.x - b0.x, b1.z - b0.z) > 5, 'the ship does not sail'); assert(Math.hypot(b1.lx - b0.lx, b1.lz - b0.lz) < 8, 'the player is not carried by the ship');
   await shot('ship_sail', 2500);
