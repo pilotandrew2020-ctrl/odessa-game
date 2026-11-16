@@ -3,8 +3,7 @@
 const ROOFPADS={list:[
   {id:'a',x:341,z:-10647,y:42.9+.3,hx:20,hz:13},
   {id:'b',x:440,z:-10693,y:41.3+.3,hx:21,hz:10},
-  {id:'c',x:237,z:-10831,y:50+.3,hx:18,hz:9},
-  {id:'sky',x:300,z:-10700,y:66.3,hx:350,hz:24,big:1}],built:false,   // the SKY DECK: a 700 m runway on pillars over the city centre (roofs are at most 50 m): the airliner and the fighter land on it too
+  {id:'c',x:237,z:-10831,y:50+.3,hx:18,hz:9}],built:false,   // (the 700 m "sky deck" over Deribasivska was removed on the owner's request: buildDeck() is kept but unused)   // the SKY DECK: a 700 m runway on pillars over the city centre (roofs are at most 50 m): the airliner and the fighter land on it too
   at(x,z,y,kind){for(const p of this.list)if((p.big||!kind||kind==='light')&&Math.abs(x-p.x)<p.hx&&Math.abs(z-p.z)<p.hz&&y>p.y-2.5)return p.y;return null},
   big(){return this.list.find(p=>p.big)},
   near(x,z){let b=null,bd=1e18;for(const p of this.list){const d=Math.hypot(p.x-x,p.z-z);if(d<bd){bd=d;b=p}}return b},

@@ -113,3 +113,14 @@ html body #crBar #crGo,html body #garBar #garGo,html body #hsStart{background:va
 .modeList button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 16px;text-align:left;background:var(--tile);border:1px solid var(--rim);border-radius:var(--sq);color:#eef3f5}
 .modeList button b{font:800 14px var(--f-disp);letter-spacing:.1em;text-transform:uppercase}.modeList button span{font-size:12px;color:var(--muted)}
 .modeList button:hover,.modeList button:focus-visible{border-color:var(--ac);box-shadow:0 0 14px rgba(56,228,208,.3)}
+
+/* 2026-11-16: the weapon bar is a compact column that slides out at the left edge (it was a full-width strip that covered FIRE, the action buttons and the helicopter controls) */
+html body #gunBar{left:max(10px,env(safe-area-inset-left))!important;right:auto!important;top:calc(196px + env(safe-area-inset-top,0px))!important;bottom:auto!important;transform:none!important;flex-direction:column!important;gap:4px!important;width:132px!important;max-height:min(46vh,360px)!important;overflow-y:auto!important;overflow-x:hidden!important;padding:6px!important;animation:gunSlide .22s ease-out}
+html body #gunBar button{width:100%!important;min-width:0!important;height:34px!important;padding:0 8px!important;font-size:11px!important;text-align:left!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;border-radius:9px!important}
+html body #gunBar[hidden]{display:none!important}
+@keyframes gunSlide{from{transform:translateX(-120%);opacity:0}to{transform:none;opacity:1}}
+/* flying the helicopter: the action tiles step aside so UP / DOWN / LEFT / RIGHT are never covered */
+html body.heliOn #actBtns>button:not(#bHeli):not(#bJump),html body.heliOn #qMenu button:not(#bHeli){display:none!important}
+html body.heliOn #qMenu{grid-template-columns:52px!important;bottom:calc(100% + 112px)!important}   /* only the Heli (exit) tile stays, above Jump */
+html body.heliOn #heliControls{right:calc(104px + env(safe-area-inset-right,0px))!important;bottom:calc(22px + env(safe-area-inset-bottom,0px))!important}   /* the flight pad sits left of Jump, nothing else is drawn over it */
+html body.heliOn #quickRow{display:none!important}

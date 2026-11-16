@@ -17,6 +17,9 @@ exports.run = async (page, h) => {
   await step(30); await ev(() => { inp.jx = 1 }); await step(8); await ev(() => { inp.jx = 0 });
   const f = await ev(() => ({ d: Math.round(Math.hypot(DRONE.x - player.x, DRONE.z - player.z)), t: DRONE.t, v: Math.round(DRONE.v) })); const mv = await ev(a => Math.round(Math.hypot(DRONE.x - a.x, DRONE.z - a.z)), p0); console.log('flew', mv, 'm', JSON.stringify(f)); assert(mv > 15, 'the drone did not fly');
   await shot('drone_fly', 200);
+  // FIRE: a rocket leaves the nose forwards, the drone itself does not blow up
+  const fr = await ev(() => { BLAST.n = 0; BLAST.hits = 0; DRONE.pitch = 0; DRONE.v = 15; const a0 = DRONE.ammo, x0 = DRONE.x, z0 = DRONE.z; DRONE.shoot(); const rk = DRONE.rk[0], fw = [Math.sin(DRONE.yaw), Math.cos(DRONE.yaw)]; for (let i = 0; i < 12; i++) DRONE.frame(.05); return { st: DRONE.st, left: DRONE.ammo, was: a0, rk: DRONE.rk.length, ahead: rk ? (rk.m.position.x - x0) * fw[0] + (rk.m.position.z - z0) * fw[1] : -1 } });
+  console.log('fire', JSON.stringify(fr)); assert(fr.st === 'fly' && fr.left === fr.was - 1 && (fr.rk === 0 || fr.ahead > 8), 'the rocket did not go forward / the drone blew up');
   // dive at the ground: it explodes, hurts people / cars close by, leaves a scorch mark, then you are back home
   await ev(() => { GUN.armed = true; GUN.hp = 100; DRONE.pitch = -1.2; DRONE.v = 40; BLAST.n = 0; BLAST.hits = 0 });
   await ev(() => { for (let i = 0; i < 200 && DRONE.st === 'fly'; i++) DRONE.frame(.05) }); assert(await ev(() => DRONE.st === 'boom'), 'it did not blow up on the ground'); const b = await ev(() => ({ hits: BLAST.hits, mark: !!BLAST.marks[0], last: BLAST.last })); console.log('exploded', JSON.stringify(b)); assert(b.hits === 1 && b.mark, 'no explosion / scorch mark');

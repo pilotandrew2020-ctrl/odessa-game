@@ -46,3 +46,4 @@ Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the 
 | `models/weapons/chigurh_shotgun.glb` | owner upload `anton_chigurh_gun.glb` (author unknown) | not stated | `chigurh.js`: Anton Chigurh's silenced shotgun; 50 KB, 740 tris, re-coloured at load |
 | `models/drone/fpv_drone.glb` | owner upload `realistic_fpv_kamikaze_drone.glb` (author unknown) | not stated | `drone.js`: the kamikaze drone; 2.3 MB, 25k tris, textures 1024 px |
 | `models/space/uranus.glb` | owner upload `uranus.glb` (author unknown; upload was truncated, repaired) | not stated | `space2.js`: Uranus with rings, 0.5 MB, 8k tris |
+| `textures/chigurh_face.jpg` | crop of the owner's reference picture (Ernesto Perlingeiro, ArtStation) | all rights reserved (used at the owner's request) | `chigurh.js`: face painted on the Chigurh head texture |

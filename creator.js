@@ -24,7 +24,7 @@ const CH_BACK=['None','Crossbody bag','Backpack'],CH_BK_ID=['none','bag','pack']
 const CH_BEARD=['Clean','Stubble','Moustache','Beard'],CH_BD_ID=['none','stubble','mous','beard'];
 // code: [skin, eyes, beard, hairStyle, hairColour, top, topColour, bottom, bottomColour, shoes, shoeColour, glasses, hat, accessoryColour, neck, back, can]
 const CHAR_BODY_K=[null,null,'booba','nolik','steve','mrbeast','halo','leon','ghost','walter',null];   // 10 = Anton Chigurh: the realistic body dressed as him (CHIG_LOOK), with his shotgun, stunner and air tank (chigurh.js)
-const CHIG_LOOK={real:false,skin:'#efc9a8',iris:'#5a3d26',bd:'none',hs:'bob',hair:0x3b2718,hair2:0x4d3421,brow:'#2a1a10',ts:'chig',shirt:0x1d1e22,bs:'jeans',jeans:0x1b1b1e,cuff:0x2a2a2e,ss:'boot',shoe:0x5a3a24,sole:0x2a1a10,gl:'none',ht:'none',nk:'none',bk:'none',cn:false,bodyK:null,booba:false,nolik:false};
+const CHIG_LOOK={real:false,faceImg:'assets/textures/chigurh_face.jpg',skin:'#dba98b',iris:'#5a3d26',bd:'none',hs:'bob',hair:0x3b2718,hair2:0x4d3421,brow:'#2a1a10',ts:'chig',shirt:0x1d1e22,bs:'jeans',jeans:0x1b1b1e,cuff:0x2a2a2e,ss:'boot',shoe:0x5a3a24,sole:0x2a1a10,gl:'none',ht:'none',nk:'none',bk:'none',cn:false,bodyK:null,booba:false,nolik:false};
 const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,10,12,8,16,4,10,3,8,6,5,16,4,3,2, 11],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic, 2 Booba, 3 Nolik, 4 Steve, 5 MrBeast, 6 Halo, 7 Leon, 8 Ghost, 9 Walter (real.js BOD; CHAR_BODY_K below)
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
   load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
