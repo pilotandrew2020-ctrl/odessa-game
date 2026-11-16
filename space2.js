@@ -9,14 +9,15 @@ Object.assign(SPC,{
   FV:{yaw:0,pitch:.17,dist:32},
   fvReset(){this.FV={yaw:0,pitch:.17,dist:32}},
   look(dx,dy){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-    if(this.mode==='fly'||this.mode==='atmo'){const F=this.FV;F.yaw-=dx*.006;F.pitch=clamp(F.pitch+dy*.005,-1.4,1.4);return}
+    if(this.mode==='fly'||this.mode==='atmo'){const F=this.FV;F.yaw-=dx*.006;F.pitch=clamp(F.pitch+dy*.005,-1.4,1.4);F.drag=performance.now();return}
     const V=this.V;if(!V||this.mode==='ascent')return;V.yaw-=dx*.006;V.pitch=clamp(V.pitch+dy*.005,-1.2,1.3)},
   zoom(d){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
     if(this.mode==='fly'||this.mode==='atmo'){const F=this.FV;F.dist=clamp(F.dist*(1+d*.0015)+(d>0?.01:-.01),0,160);return}
     const V=this.V;if(!V)return;V.dist=clamp(V.dist+d*.01,this.mode==='interior'?0:2.5,this.mode==='interior'?7:30)},
   // ---- the flight model: 100,000 m/s in space, 900 m/s in the atmosphere, speed = throttle x max at once
   flyStep(dt,atmo,alt){const C=this.C,I=this.in,q=C.q,sx=Math.abs(I.lx)>.04?I.lx:(I.kx||0),sy=Math.abs(I.ly)>.04?I.ly:(I.ky||0);
-    q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(sy*1.05*dt,-sx*.9*dt,I.roll*1.5*dt,'XYZ'))).normalize();
+    const pv=(typeof S!=='undefined'&&S.flyPilot)?1:-1;   // like the planes: stick up = nose up (Menu -> Flight: PILOT style turns it round)
+    q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(pv*sy*1.05*dt,-sx*.9*dt,I.roll*1.5*dt,'XYZ'))).normalize();
     if(I.full)C.thr=1;else C.thr=Math.min(1,Math.max(0,C.thr+I.thr*dt*2));
     let vmax=atmo?Math.min(900,120+Math.max(0,alt)*.08):this.P.vmax;if(this.limit)vmax=Math.min(vmax,this.limit);
     C.sp=I.brake?0:C.thr*vmax;   // instant
@@ -25,6 +26,8 @@ Object.assign(SPC,{
     document.getElementById('spcSpd').textContent=(atmo?Math.round(C.sp*3.6)+' km/h':Math.round(C.sp).toLocaleString('en')+' m/s');document.getElementById('spcThr').style.width=(C.thr*100)+'%'},
   // ---- cameras: one function for both scenes; mode 'space' keeps the camera at the origin (floating origin), 'atmo' places it in the world
   fvCam(C,dt,space,sp){if(!C.cq)C.cq=C.q.clone();C.cq.slerp(C.q,1-Math.exp(-dt*6));const F=this.FV,cockpit=F.dist<3,V=THREE.Vector3;let off;
+    // the look-around springs back 1.2 s after you let go: a camera left in front of / beside the ship made left / right feel mirrored (the controls always steer the ship, not the view)
+    if(this.mode!=='pax'&&performance.now()-(F.drag||0)>1200){const k=Math.min(1,dt*3.5);F.yaw+=((((0-F.yaw+Math.PI)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)-Math.PI)*k;F.pitch+=((cockpit?0:.17)-F.pitch)*k}
     if(cockpit)off=new V(0,.95,1.9);else{const cp=Math.cos(F.pitch),d=F.dist+Math.min(30,C.sp/(space?3500:90));off=new V(Math.sin(F.yaw)*cp*d,Math.sin(F.pitch)*d+2.2,-Math.cos(F.yaw)*cp*d)}
     off.applyQuaternion(C.cq);const up=new V(0,1,0).applyQuaternion(C.cq);let dir;
     if(cockpit)dir=new V(Math.sin(F.yaw)*Math.cos(F.pitch),Math.sin(F.pitch),Math.cos(F.yaw)*Math.cos(F.pitch)).applyQuaternion(C.cq);else dir=off.clone().negate();

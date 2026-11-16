@@ -8303,7 +8303,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     if(!R.st.in&&wasIn&&started)toast((R.st.n||'A friend')+' is in the menu','co-op');
     if(!wasIn!==!R.st.in)this.renderList()},
   netRemove(id){const key='n:'+id;const R=this.peers.get(key);if(!R)return;if(started&&R.st&&R.st.in)toast((R.st.n||'A friend')+' left','co-op');this.drop(R);this.peers.delete(key);this.renderList()},
-  drop(R){VOICE.closePeer(R);if(R.spk){R.spk.dispose();R.spk=null}if(R.machine){R.machine.dispose();R.machine=null}if(R.spkMesh){scene.remove(R.spkMesh);R.spkMesh=null}if(R.plane){R.plane.dispose();R.plane=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.heldObj){shDisposeHeld(R.heldObj);R.heldObj=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag.material.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);if(R.bub.material.map)R.bub.material.map.dispose();R.bub.material.dispose();R.bub=null}},
+  drop(R){VOICE.closePeer(R);if(R.spk){R.spk.dispose();R.spk=null}if(R.machine){R.machine.dispose();R.machine=null}if(R.spkMesh){scene.remove(R.spkMesh);R.spkMesh=null}if(R.plane){R.plane.dispose();R.plane=null}if(R.fighter){R.fighter.dispose();R.fighter=null}if(R.swRing){scene.remove(R.swRing);R.swRing.geometry.dispose();R.swRing.material.dispose();R.swRing=null}if(R.xveh){R.xveh.dispose();R.xveh=null}if(R.heli){R.heli.dispose();R.heli=null}if(R.boat){R.boat.dispose();R.boat=null}if(R.heldObj){shDisposeHeld(R.heldObj);R.heldObj=null}if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose();R.lo=null}if(R.P){scene.remove(R.P.root);R.P=null}if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose();R.tag.material.dispose();R.tag=null}if(R.bub){scene.remove(R.bub);if(R.bub.material.map)R.bub.material.map.dispose();R.bub.material.dispose();R.bub=null}},
   clearAll(){for(const R of this.peers.values())this.drop(R);this.peers.clear();this.renderList()},
   zone(){if(!PORTAL.cur)return '';const o=PORTAL.opt||{};return PORTAL.cur+(o.ent?':'+o.ent:'')+(o.floor?':'+o.floor:'')},
   mode(){if(MP.on)return MP.mode();if(PLN.cur)return 'sit';if(HELI.on)return 'heli';if(EXT.cur)return 'sit';if(PASS.host)return 'pass';if(MARINE.cur)return 'sit';if(typeof DRIVE!=='undefined'&&DRIVE.on)return 'car';if(RIDE.on){const k=RIDE.tram&&RIDE.tram.kind;return (k==='cable'||k==='funi'||k==='bus'||k==='pass'||k==='train')?'sit':'tram'}if(player.sit)return 'sit';if(player.air)return 'air';if(player.scoot)return 'scoot';return 'walk'},
@@ -8341,6 +8341,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     // swimming: [how flat I lie on the water, 0..1] (my own light plane below: parked or flown, everybody sees it)
     if(typeof SWIM!=='undefined'&&SWIM.on)st.sw=[r2(SWIM.tilt)];
     {const L=typeof AIRP!=='undefined'&&AIRP.mine&&AIRP.mine.light;if(L&&!L.crashed&&L.root.visible)st.pl=[r2(L.x),r2(L.y),r2(L.z),r2(L.yaw),r2(L.pitch),r2(L.roll),r2(L.thr),L.eng>.05?1:0,PLN.cur===L?1:0]}
+    {const F=typeof AIRP!=='undefined'&&AIRP.mine&&AIRP.mine.fighter;if(F&&!F.crashed&&F.root.visible)st.pf=[r2(F.x),r2(F.y),r2(F.z),r2(F.yaw),r2(F.pitch),r2(F.roll),r2(F.thr),F.eng>.05?1:0,PLN.cur===F?1:0]}   // my fighter jet (parked or flown) + a passenger seat for a friend
     // on the water: the hull position plus [type, pitch, roll, forward speed]
     if(PASS.host){st.pp=PASS.host;st.pi=PASS.idx}
     if(typeof SPC!=='undefined'&&SPC.coopState){const sx=SPC.coopState();if(sx)st.sx=sx}   // space2.js: my spacecraft (or the ship I am a passenger of)
@@ -8383,7 +8384,7 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
     const order=[...this.peers.values()].sort((a,b)=>(a.st&&a.st.m==='pass'?1:0)-(b.st&&b.st.m==='pass'?1:0));
     for(const R of order){const s=R.st;this.tickBubble(R,dt);SPK.receiveMedia(R);
       const show=!!(s&&s.in&&(s.zn||'')===zn&&typeof s.x==='number');
-      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.plane)R.plane.root.visible=false;if(R.swRing)R.swRing.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.xveh)R.xveh.v.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
+      if(!show){if(R.P)R.P.root.visible=false;if(R.lo)R.lo.visible=false;if(R.heli)R.heli.root.visible=false;if(R.plane)R.plane.root.visible=false;if(R.fighter)R.fighter.root.visible=false;if(R.swRing)R.swRing.visible=false;if(R.boat)R.boat.craft.root.visible=false;if(R.xveh)R.xveh.v.root.visible=false;if(R.tag)R.tag.visible=false;if(R.bub)R.bub.visible=false;R.has=false;continue}
       const lk=Array.isArray(s.lk)?s.lk.filter(x=>typeof x==='string').slice(0,4):[];
       const okey=s.cc?'c'+(s.cc|0):(s.ch?'h'+CHAR.clean(s.ch).join('.'):(s.o|0))+':'+lk.join(',');if(!R.P||R.outfit!==okey){if(R.heldObj)shDisposeHeld(R.heldObj);R.heldObj=null;R.heldName=null;if(R.P)scene.remove(R.P.root);R.outfit=okey;if(R.lo){scene.remove(R.lo);R.lo.geometry.dispose()}R.P=makePlayer(s.cc?camoOutfit('#'+(s.cc|0).toString(16).padStart(6,'0')):WARDROBE.outfit(s.ch?CHAR.opts(s.ch):(OUTFITS[s.o|0]||OUTFITS[0]).o,lk));R.P.can.visible=false;R.P.scooter.visible=false;R.P.speaker.visible=false;R.lo=bakeAvatar(R.P);scene.add(R.lo);mergeAvatar(R.P.root);R.P.root.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(R.P.root);R.has=false}
       {const hi=typeof s.hi==='string'?s.hi.slice(0,40):null;if(R.heldName!==hi){if(R.heldObj)shDisposeHeld(R.heldObj);R.heldObj=null;R.heldName=hi;if(hi){R.heldObj=shHeldModel(hi);R.P.arms[0].hand.add(R.heldObj);R.heldObj.position.set(0,-.045,.055);R.heldObj.rotation.set(0,.4,0)}}if(R.heldObj){R.heldObj.visible=!!R.P.root.visible;R.P.hdHold=[1,1];if(typeof hdGrip==='function')hdGrip(R.P,0,'can')}else R.P.hdHold=[0,0]}
@@ -8391,6 +8392,13 @@ const COOP={room:null,peers:new Map(),me:{name:'',outfit:0},sendT:0,last:'',say:
       const dd=Math.hypot((R.has?R.x:s.x)-player.x,((R.has?R.y:s.y)||0)-player.y,(R.has?R.z:s.z)-player.z),nm=(s.n||'Friend').slice(0,16)+(dd>25?' ['+Math.round(dd/5)*5+'m]':'');
       if(!R.tag||R.tagName!==nm){if(R.tag){scene.remove(R.tag);R.tag.material.map.dispose()}R.tag=labelSprite([nm],{w:512,h:120,size:72,color:'#0b1b22',bg:'rgba(242,193,78,.95)',round:50,depthTest:false,scale:1});R.tag.material.sizeAttenuation=false;R.tag.material.fog=false;R.tag.frustumCulled=false;R.tag.scale.multiplyScalar(.055);R.tag.renderOrder=998;scene.add(R.tag);R.tagName=nm}
       if(s.say&&s.sayT&&s.sayT!==R.sayT){const first=R.sayT===0&&!R.fresh;R.sayT=s.sayT;if(!first)this.showBubble(R,String(s.say).slice(0,80))}R.fresh=true;
+      // a friend's fighter jet (parked or flown): the pilot sits in it, a second friend can ride in the back seat (PASS)
+      if(Array.isArray(s.pf)){if(!R.fighter)R.fighter=new PeerFighter();if(R.pfst!==s){R.pfst=s;R.fighter.push(s)}
+        const q=R.fighter.update(dt),far=q?Math.hypot(q.x-player.x,q.z-player.z):1e9;R.fighter.root.visible=far<5000;
+        if(q&&s.pf[8]===1){R.wasPlane=true;R.x=q.x;R.y=q.y;R.z=q.z;R.yaw=q.yaw;R.has=true;R.lo.visible=false;R.P.root.visible=R.fighter.root.visible&&far<320;
+          if(R.P.root.visible){const w=MP.toWorld({root:R.fighter.root},R.fighter.seat.x,R.fighter.seat.y,R.fighter.seat.z,this._pv||(this._pv=new THREE.Vector3()));R.P.root.position.copy(w);R.P.root.quaternion.copy(R.fighter.root.quaternion);animPlayer(R.P,{spd:0,mode:'sit'},dt)}
+          R.tag.visible=R.fighter.root.visible&&!(typeof HS!=='undefined'&&HS.hideTag(R));R.tag.position.set(q.x,q.y+3.2,q.z);this.placeBubble(R,q.x,q.y+3.7,q.z);continue}}
+      else if(R.fighter){R.fighter.dispose();R.fighter=null;R.pfst=null}
       // a friend's light plane, parked or flying: drawn from the interpolation buffer; while they fly it the pilot sits inside (seated from the DRAWN plane, like the helicopter)
       if(Array.isArray(s.pl)){
         if(!PM.light){if(!this._pml){this._pml=1;PM.loadLight().catch(()=>{this._pml=0})}}
@@ -9636,6 +9644,13 @@ class PeerPlane{
     return q}
   dispose(){scene.remove(this.root)}   // geometry and materials are shared with the local plane
 }
+// a friend's fighter jet: the procedural fighter model driven from the network (pf = [x,y,z,yaw,pitch,roll,thr,engine,flying])
+class PeerFighter{
+  constructor(){const B=PM.buildFighter();this.root=B.root;this.parts=B.parts;this.seat=new THREE.Vector3(0,-.28,3.45);this.passengerSeat=new THREE.Vector3(-.5,-.28,2.55);this.root.userData.passengerSeat=this.passengerSeat;this.root.rotation.order='YXZ';this.net=new NetSnaps();scene.add(this.root)}
+  push(s){const a=s.pf;this.net.push({x:+a[0],y:+a[1],z:+a[2],yaw:+a[3]||0,p:+a[4]||0,r:+a[5]||0,th:+a[6]||0,en:+a[7]||0},s.ts)}
+  update(dt){const q=this.net.update(dt);if(!q)return null;this.root.position.set(q.x,q.y,q.z);this.root.rotation.set(-q.p,q.yaw,q.r,'YXZ');if(this.parts.flame){this.parts.flame.visible=q.en>.5&&q.th>.3;this.parts.flame.scale.set(1,.4+q.th,1)}return q}
+  dispose(){scene.remove(this.root)}
+}
 // a friend's speaker: the same built-in track (the notes are synthesised, so only track + start time travel over the network), played from where it stands
 // (or from the friend, while carried) through its own 3D panner; your own tracks (files) cannot be sent.
 class PeerSpeaker{
@@ -9671,6 +9686,7 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
   // what a friend is flying or driving that I could sit in: {root,kind,lv?} or null
   hostObj(R){if(!R||!R.st)return null;if(R.heli&&R.st.m==='heli')return {root:R.heli.root,kind:'heli'};
     if(R.plane&&R.st.pl&&R.st.pl[8]===1)return {root:R.plane.root,kind:'plane'};
+    if(R.fighter&&R.st.pf&&R.st.pf[8]===1)return {root:R.fighter.root,kind:'plane'};
     if(R.xveh&&Array.isArray(R.st.xv)&&R.xveh.v.seats.length>1)return {root:R.xveh.v.root,kind:R.xveh.kind,lv:R.xveh.v};
     if(R.boat&&Array.isArray(R.st.wc)&&R.boat.craft.seats.length>1)return {root:R.boat.craft.root,kind:R.boat.type,lv:R.boat.craft};return null},
   // first free passenger seat (-1 = full); the helicopter has just the front seat, cars seat 1..n-1 (0 is the driver)
@@ -9710,7 +9726,7 @@ const PASS={host:null,idx:0,cand:null,_v:new THREE.Vector3(),_q:new THREE.Quater
     if(!cam.init){cam.x=wx;cam.y=wy;cam.z=wz;cam.init=true}const b=Math.min(1,dt*5);cam.x+=(wx-cam.x)*b;cam.y+=(wy-cam.y)*b;cam.z+=(wz-cam.z)*b;
     camera.position.set(cam.x,cam.y,cam.z);camera.lookAt(p.x,p.y+(heli?1.4:1.1),p.z)},
   // the vehicle a passenger peer sits in, as seen here: mine while I fly or drive, or another friend's
-  hostRoot(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId){if(HELI.on)return HELI.root;if(PLN.cur&&PLN.cur.kind==='light')return PLN.cur.root;if(MARINE.cur&&MARINE.cur.seats.length>1)return MARINE.cur.root;return EXT.cur&&EXT.cur.seats.length>1?EXT.cur.root:null}
+  hostRoot(s){if(!s||typeof s.pp!=='string')return null;if(s.pp===COOP.myId){if(HELI.on)return HELI.root;if(PLN.cur&&(PLN.cur.kind==='light'||PLN.cur.kind==='fighter'))return PLN.cur.root;if(MARINE.cur&&MARINE.cur.seats.length>1)return MARINE.cur.root;return EXT.cur&&EXT.cur.seats.length>1?EXT.cur.root:null}
     const H=COOP.peers.get(s.pp),o=H&&this.hostObj(H);return o?o.root:null}
 };
 INTERACT.push({get x(){const o=PASS.cand&&PASS.hostObj(PASS.cand);return o?o.root.position.x:1e9},get z(){const o=PASS.cand&&PASS.hostObj(PASS.cand);return o?o.root.position.z:1e9},r:9,
