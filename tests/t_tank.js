@@ -27,6 +27,10 @@ exports.run = async (page, h) => {
   // the sea stops it
   await ev(() => { TANK.v = 0; let a = 0, best = null; for (let r = 60; r < 4000 && !best; r += 20) for (a = 0; a < 6.28; a += .2) { const x = player.x + Math.cos(a) * r, z = player.z + Math.sin(a) * r; if (groundH(x, z) < SL - 2 && groundH(x - Math.cos(a) * 15, z - Math.sin(a) * 15) > SL + .2) { best = [x, z, a]; break } } window.__sea = best; if (best) { TANK.x = best[0] - Math.cos(best[2]) * 14; TANK.z = best[1] - Math.sin(best[2]) * 14; TANK.yaw = Math.atan2(Math.cos(best[2]), Math.sin(best[2])) } });
   if (await ev(() => !!window.__sea)) { await ev(() => { inp.jy = 1 }); await h.wait(6000); await ev(() => { inp.jy = 0 }); const wet = await ev(() => groundH(TANK.x, TANK.z)); console.log('at the shore, ground', Math.round(wet * 10) / 10); assert(wet > await ev(() => SL) - 1.3, 'the tank drove into the sea') }
+  // first person (View button / V): the camera sits on the turret, close to the tank, looking along the gun
+  await ev(() => { TANK.v = 0; TANK.fp = false; TANK.aimYaw = TANK.yaw; document.getElementById('tankView').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })) }); await h.wait(600);
+  const fp = await ev(() => ({ fp: TANK.fp, d: Math.hypot(camera.position.x - TANK.x, camera.position.z - TANK.z), y: camera.position.y - TANK.y })); console.log('first person', JSON.stringify(fp)); assert(fp.fp && fp.d < 2 && fp.y > 3, 'no first-person view');
+  await shot('tank_fp', 600); await ev(() => { TANK.fp = false });
   // exit
   await ev(() => TANK.exit()); await h.wait(500); const ex = await ev(() => ({ on: TANK.on, vis: PLR.root.visible, cls: document.body.classList.contains('tankon'), d: Math.hypot(TANK.x - player.x, TANK.z - player.z) })); console.log('exit', JSON.stringify(ex));
   assert(!ex.on && ex.vis && !ex.cls && ex.d > 3, 'exit left stuck state');

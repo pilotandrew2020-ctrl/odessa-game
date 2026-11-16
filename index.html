@@ -4182,6 +4182,7 @@ function makePlayer(o){o=o||{};
   const M={shirt:std(shirtH,.85),tee:(TS==='over'||TS==='sailor')?new THREE.MeshStandardMaterial({map:stripeTex(o.tee1||'#f4f4f0',o.tee2||'#1d2f6a',TS==='sailor'?15:22),roughness:.8}):null,jeans:std(o.jeans||0x7ea3cc,.9),cuff:std(o.cuff||0xb9d0e8,.9),
     shoe:std(o.shoe||0xf6f6f2,.55),sole:std(o.sole||0xf08a24,.7),skin:std(parseInt(SK.slice(1),16),.65),hair:std(o.hair||0xe6c477,.75),hair2:std(o.hair2||0xf3dc9c,.7),glass:std(0x101418,.15,.4),bag:std(0x1c1d20,.6),strap:std(0x2a2b2e,.7),
     head:new THREE.MeshStandardMaterial({map:faceTex({bg:SK,iris:o.iris||'#3b7fd4',brow:o.brow||'#b88a3e',grin:true}),roughness:.6})};
+  if(o.faceImg&&typeof CHIGF!=='undefined')CHIGF.apply(M.head.map,o.faceImg);   // chigurh.js: the picture's face on the head
   if(typeof bdSkinRim==='function'){bdSkinRim(M.skin);bdSkinRim(M.head)}
   if(typeof bdFabric==='function'){bdFabric(M.shirt,'weave',.45);bdFabric(M.jeans,'twill',.6);bdFabric(M.cuff,'twill',.6)}   // cloth that catches the light (body.js)
   const hipY=.70;
@@ -8179,6 +8180,7 @@ function loop(t){
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
+  safe('bodycls',()=>{const h=!!(typeof HELI!=='undefined'&&HELI.on);if(document.body.classList.contains('heliOn')!==h)document.body.classList.toggle('heliOn',h)});
   safe('rails',()=>{if(typeof RAILS!=='undefined'){if(RAILS.on)RAILS.frame(dt);else RAILS.tick(dt)}});   // rails.js: coaster / slide rides
   safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt);if(typeof BLASTFX!=='undefined')BLASTFX.tick(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
   safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});   // drone.js: flight and camera of the kamikaze drone
@@ -8733,7 +8735,7 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
     for(let t=0;t<candidates.length&&spawned<want;t++){
       const [px,py,pz]=candidates[t];
       if(py<groundH(px,pz)+.6||!insideAny(px,pz,.1,py))continue;
-      const c=this.chunks.find(q=>!q.on);if(!c)break;spawned++;c.on=true;c.t=0;c.ph=0;c.o.set(px,py,pz);const sz=.5+R()*1.3*Math.max(1,r/10);c.m.scale.set(sz,sz*(.6+R()*.6),sz*(.6+R()*.8));c.m.position.copy(c.o);c.m.rotation.set(0,0,0);
+      const c=this.chunks.find(q=>!q.on);if(!c)break;spawned++;c.on=true;c.t=0;c.ph=0;c.rest=false;c.rub=r>=18;c.o.set(px,py,pz);const sz=.5+R()*1.3*Math.max(1,r/10);c.m.scale.set(sz,sz*(.6+R()*.6),sz*(.6+R()*.8));c.m.position.copy(c.o);c.m.rotation.set(0,0,0);
       const dx=px-x,dz=pz-z,dl=Math.hypot(dx,dz)||1,sp=(3+R()*8)*Math.max(1,r/8);c.v.set(dx/dl*sp,3+R()*8,dz/dl*sp);c.w.set(R()*6-3,R()*6-3,R()*6-3);c.m.visible=true;
       // dust where it left the wall
       this.puff({x:px,y:py,z:pz,vx:dx/dl*2,vy:1.2,vz:dz/dl*2,s0:1.2,s1:3.6,life:1.4,c0:[.7,.65,.55],c1:[.55,.5,.45],op:.55,add:false,drag:1.5,grow:1})}},
@@ -8777,6 +8779,12 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
       if(d.t>3.2){d.on=false;d.m.visible=false}}
     // Wall fragments fly out, then rewind to their original positions over five seconds.
     for(const c of this.chunks){if(!c.on)continue;c.t+=dt;const m=c.m;
+      if(c.rub){   // nuke rubble: fall, bounce, lie still on the ground, sink away after ~50 s (never hover, never fly back)
+        if(c.t<4&&!c.rest){c.v.y-=22*dt;m.position.addScaledVector(c.v,dt);m.rotation.x+=c.w.x*dt;m.rotation.y+=c.w.y*dt;m.rotation.z+=c.w.z*dt;
+          const g=groundH(m.position.x,m.position.z)+m.scale.y*.35;if(m.position.y<g){m.position.y=g;if(c.v.y<-2.5){c.v.y*=-.22;c.v.x*=.5;c.v.z*=.5;c.w.multiplyScalar(.5)}else{c.rest=true;m.rotation.x=m.rotation.z=.12*(c.w.x>0?1:-1)}}}
+        else if(!c.rest){c.rest=true;m.position.y=groundH(m.position.x,m.position.z)+m.scale.y*.35}
+        if(c.t>50){m.position.y-=dt*.5;if(c.t>56){c.on=false;c.rest=false;m.visible=false}}
+        continue}
       if(c.t<2.4){c.v.y-=18*dt;m.position.addScaledVector(c.v,dt);m.rotation.x+=c.w.x*dt*1.5;m.rotation.y+=c.w.y*dt*1.5;m.rotation.z+=c.w.z*dt*1.5;
         const g=groundH(m.position.x,m.position.z)+m.scale.y*.4;if(m.position.y<g){m.position.y=g;c.v.y*=-.25;c.v.x*=.5;c.v.z*=.5;c.w.multiplyScalar(.7)}
         c.back=m.position.clone()}
@@ -8798,9 +8806,9 @@ const WEAPONS=[
   {n:'Uzi',        k:'4',dmg:10,cd:.065,auto:true, spread:.04, col:0x222428},
   {n:'Bazooka',    k:'5',dmg:95,cd:2.4,auto:false,spread:0,   col:0x4d6b3a,rocket:true,rad:11},
   {n:'C4',         k:'6',dmg:100,cd:.6,auto:false,spread:0,   col:0xd8cfa8,c4:true},
-  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true},
+  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true,hid:1},
   {n:'Neon katana',k:'8',dmg:40,cd:.42,auto:false,spread:0,   col:0xff2a8a,melee:true},
-  {n:'Tactical Nuke',k:'9',dmg:100,cd:9,auto:false,spread:0,  col:0x4f5a47,tac:true},
+  {n:'Tactical Nuke',k:'9',dmg:100,cd:9,auto:false,spread:0,  col:0x4f5a47,tac:true,hid:1},
   // Battle Royale loot weapons (br.js): not on the Armed weapon bar, models from BRM
   {n:'Assault Rifle',k:'',dmg:30,cd:.125,auto:true, spread:.02, col:0x30343a,br:1,cls:'rifle',  bm:'ar'},
   {n:'Pump Shotgun', k:'',dmg:12,cd:.95, auto:false,spread:.07, col:0x6b4a2a,br:1,cls:'shotgun',bm:'shotgun'},
@@ -9126,7 +9134,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     this.armed=!!on;this.used=true;if(!on)this.held=false;if(on){this.spawn={x:player.x,z:player.z,yaw:player.yaw};this.hp=100;this.down=0;this.kills=0;this.deaths=0;toast('Armed','1–9 pick a weapon (8: neon katana · 9: tactical nuke) · F or the Fire button shoots or strikes')}
     else{this.c4=[];this.hits=[];this.exs=[];this.kb=null}
     this.sync();this.push()},
-  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent='Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;if(u.guard)u.guard.hidden=!(this.armed&&WEAPONS[this.w]&&WEAPONS[this.w].melee);u.hudw.hidden=!this.armed;if(u.ret){u.ret.hidden=!this.armed;u.ret.classList.toggle('aim',this.held)}
+  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent='Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;{const chig=!!(CHAR.cur&&CHAR.cur[17]===10);for(const b of u.bar.children){const W=WEAPONS[+b.dataset.i];if(W)b.hidden=!!(W.hid||(W.chg&&!chig))}}   // nukes live in the Spawn menu; Chigurh's tools only for Chigurh
+    if(u.guard)u.guard.hidden=!(this.armed&&WEAPONS[this.w]&&WEAPONS[this.w].melee);u.hudw.hidden=!this.armed;if(u.ret){u.ret.hidden=!this.armed;u.ret.classList.toggle('aim',this.held)}
     [...u.bar.children].forEach((b,i)=>b.classList.toggle('on',i===this.w));u.wn.textContent=WEAPONS[this.w].n;if(!this.armed)u.vig.style.opacity=0},
   pick(i){if(i<0||i>=WEAPONS.length)return;this.w=i;this.sync();this.push()},
   build(){
@@ -9154,7 +9163,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     const ui={};const mk=(t,id,p)=>{const e=document.createElement(t);e.id=id;(p||document.body).appendChild(e);return e};
     ui.vig=mk('div','gunVig');
     ui.ret=mk('div','gunReticle');ui.ret.hidden=true;for(let i=0;i<4;i++)ui.ret.appendChild(document.createElement('i'));
-    ui.bar=mk('div','gunBar');WEAPONS.forEach((W,i)=>{if(W.br)return;const b=document.createElement('button');b.textContent=W.k+' '+W.n.replace('Desert Eagle','Deagle').replace('.357 Magnum','.357').replace('Tactical Nuke','T-Nuke');b.onclick=()=>this.pick(i);ui.bar.appendChild(b)});
+    ui.bar=mk('div','gunBar');WEAPONS.forEach((W,i)=>{if(W.br)return;const b=document.createElement('button');b.dataset.i=i;b.hidden=!!(W.hid||W.chg);b.textContent=W.k+' '+W.n.replace('Desert Eagle','Deagle').replace('.357 Magnum','.357').replace('Tactical Nuke','T-Nuke');b.onclick=()=>this.pick(i);ui.bar.appendChild(b)});
     ui.fire=mk('button','gunFire');ui.fire.textContent='FIRE';
     // FIRE is its own pointer: the finger that holds it never interferes with the stick finger (move / gas) or the look finger
     let fid=null;    const dn=e=>{if(fid!==null)return;fid=e.pointerId;try{ui.fire.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault();this.held=true;ui.ret.classList.add('aim');this.fire()},up=e=>{if(e.pointerId!==fid)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};

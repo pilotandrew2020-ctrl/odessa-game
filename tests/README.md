@@ -54,7 +54,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_lod` | the "draw / keep only what is near" rules: parked GLB cars drop their model when far and get it back, text plates hidden beyond ~70 x their size (never inside an interior), instanced landmark props measured from their instances, chunk detail mesh near only, 1-9 chunks cast shadows, lazy label textures hold no canvas (`IPAD=1`) |
 | `t_dom` | per-frame DOM writes (MutationObserver) while standing, walking, driving and in Battle Royale, by element; fails above `LIMIT` (3) mutations per frame |
 | `t_volcano` | the volcano of Jungle Island: cone + crater, lava, eruption bombs hurt, lava carries you away (`VOLSHOT=1` screenshots) |
-| `t_drone` | the kamikaze drone + `BLAST.at`: launch, fly, dive explodes with a scorch mark, put back at the start, a blast next to you hurts (`DRONESHOT=1` screenshots) |
+| `t_drone` | the kamikaze drone + `BLAST.at`: launch, fly, dive explodes with a scorch mark, put back at the start, a blast next to you hurts, FIRE launches a rocket forward (`DRONESHOT=1` screenshots) |
 | `t_nuke` | the nuclear bomb: falls, flash, shock front collapses chunk buildings inside 300 m (colliders + shadows off in the zone), recovery (`NUKESHOT=1` screenshots; runs in the city centre) |
 | `t_sword` | weapon swap holsters the old weapon first, katana BLOCK cuts damage to a fifth (`SWORDSHOT=1`) |
 | `t_roof` | rooftop landing pads for the light plane + the plane camera cycle (chase / cockpit / cabin / orbit) (`ROOFSHOT=1`) |
@@ -62,11 +62,10 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_blastfx` | realistic explosions (light, fireball, dust wall) + the nuke flattening the home yard (`BLASTFXSHOT=1`) |
 | `t_shipx` | the cruise ship's bridge/helm, water slide, bar, shop, cabins (`SHIPXSHOT=1`) |
 | `t_coaster` | the Gorky Park mega coaster ride (`COASTERSHOT=1`) |
-| `t_skydeck` | the sky deck runway for the airliner (`SKYSHOT=1`) |
 | `t_chigurh` | Anton Chigurh body type + silenced shotgun (GLB), captive bolt, air tank (`CHIGSHOT=1`) |
 | `t_space2` | 100,000 m/s, instant speed, orbit/zoom/cockpit camera, aura + fire + lightning, ISS third person + float, Mercury, minimap over Earth (`SPACE2SHOT=1`) |
 | `t_space3` | Uranus, asteroid collisions, autopilot docking, flying together (simulated friend: JOIN / passenger / leave) (`SPACE3SHOT=1`) |
 | `t_fighterseat` | steering direction of the fighter jet + a friend's fighter with a rideable back seat (`FSEATSHOT=1`) |
-| `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, the sea stops it, exit (`TANKSHOT=1` screenshots) |
+| `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, first-person view, the sea stops it, exit (`TANKSHOT=1` screenshots) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
