@@ -11,6 +11,9 @@ exports.run = async (page, h) => {
   const sub = await ev(() => { const o = {}; for (const v0 of [8, 50, 139]) { const v = new LiteVehicle('sub', 0, 0, 0); v.v = v0; const y0 = v.yaw; for (let i = 0; i < 40; i++) { v.v = v0; v.step(.05, 1, 1, 0, 0, false) } o[v0] = +((v.yaw - y0) / 2).toFixed(2); v.kill && v.kill() } return o }); console.log('sub yaw rate rad/s', JSON.stringify(sub)); assert(Math.abs(sub[8]) > .6 && Math.abs(sub[50]) > .3 && Math.abs(sub[139]) > .12, 'the submarine still turns slowly');
   // Chigurh: slow walking speed + the still arms
   await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 10; CHAR.cur = c; CHAR.save(); WARDROBE.apply(); return 1 }); await h.wait(2500); const g2 = await ev(() => ({ chig: !!PLR.chig, body: CHAR.cur[17] })); console.log('chig', JSON.stringify(g2)); assert(g2.chig, 'Chigurh body not marked');
+  // round 29: a skin colour pick recolours Nolik / Booba (their texture colour is remapped)
+  for (const i of [3, 2]) { await ev(i => { const c = CHAR.clean(CHAR.cur); c[17] = i; c[0] = 6; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }, i); await h.wait(2800); assert(await ev(() => { let ok = false; PLR.real && PLR.real.M.traverse(o => { if (o.isMesh && o.material && o.material.userData && o.material.userData.tintU) ok = true }); return ok }), 'skin colour does not recolour body ' + i) }
+  await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 0; c[0] = 2; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }); await h.wait(1500);
   // phone: Home inside an app, the shade
   await ev(() => { toast('Hello', 'one'); PHONE.toggle() }); await h.wait(600); await ev(() => PHONE.go('snake')); await h.wait(300);
   assert(await ev(() => !document.getElementById('phnBack').hidden), 'no Home button in the app'); await ev(() => document.getElementById('phnBack').click()); await h.wait(200); assert.strictEqual(await ev(() => PHONE.screen), 'home');
