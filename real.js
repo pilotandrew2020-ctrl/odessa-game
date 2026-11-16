@@ -102,6 +102,7 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   paint(R,P,o){const M=R.M,SC=this.SC;o=o||{};const find=nm=>{let r=null;M.traverse(c=>{if(c.name===nm)r=c});return r},sh=(nm,v)=>{const c=find(nm);if(c)c.visible=v};
     const mat={};M.traverse(c=>{if(c.isMesh)mat[c.material.name]=c.material});
     // skin: the texture is baked around #f2c9a6, other tones tint it
+    if(mat.chead){mat.chead.color.setRGB(1.3,1.25,1.22);mat.chead.roughness=.7}   // Chigurh's textured head: a little brighter than the file (the game's light is dim on skin)
     if(mat.handskin){mat.handskin.color.copy(this.lin(o.skinRaw||o.skin||'#f2c9a6'));mat.handskin.roughness=.62}   // Chigurh: the sculpt's hands, untextured, in the colour of the face
     if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
       if(typeof bdSkinRim==='function')bdSkinRim(mat.skin)}
