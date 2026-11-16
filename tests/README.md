@@ -53,5 +53,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_gpu` | what the GPU REALLY holds: the WebGL calls are counted (textures, buffers, render buffers) on a tour home -> centre -> airport -> ship -> island -> launch pad -> space -> home, looking around at every stop; plus every 2D canvas alive (CPU pixels) by the line that made it. Fails when a repeated trip keeps growing GPU textures. `IPAD=1`, `TOP=<rows>`, `OWNERS=1` (group by owner), `STOPS=a,b`, `NOSPACE=1`, `TTL=<s>` |
 | `t_lod` | the "draw / keep only what is near" rules: parked GLB cars drop their model when far and get it back, text plates hidden beyond ~70 x their size (never inside an interior), instanced landmark props measured from their instances, chunk detail mesh near only, 1-9 chunks cast shadows, lazy label textures hold no canvas (`IPAD=1`) |
 | `t_dom` | per-frame DOM writes (MutationObserver) while standing, walking, driving and in Battle Royale, by element; fails above `LIMIT` (3) mutations per frame |
+| `t_volcano` | the volcano of Jungle Island: cone + crater, lava, eruption bombs hurt, lava carries you away (`VOLSHOT=1` screenshots) |
+| `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, the sea stops it, exit (`TANKSHOT=1` screenshots) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
