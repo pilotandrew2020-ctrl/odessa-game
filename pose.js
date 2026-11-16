@@ -134,7 +134,9 @@ function unpair(P){if(P._gw2){P._gw2.parent&&P._gw2.parent.remove(P._gw2);P._gw2
 function weapon(P,st,dt){
   let gp=P._gp;const gs=P._gs||(P._gs={t:0,rl:-1,rec:0,aim:0,w:-1,sw:0}),C=CLS[gp.cls||'pistol']||CLS.pistol,G=P.arms[1],S=P.arms[0],gw=P._gw;
   if(gs.w!==gp.w){gs.w=gp.w;gs.t=0}
-  gs.t=Math.min(1,gs.t+dt/(gp.draw||.45));
+  if(gs.hol){gs.t=Math.max(0,gs.t-dt/.22);if(gs.t<=0){gs.hol=0;gs.done=1}}      // weapon swap: put the old one away (GUN.hold then draws the new one)
+  else gs.t=Math.min(1,gs.t+dt/(gp.draw||.45));
+  gs.bk=(gs.bk||0)+((gp.block?1:0)-(gs.bk||0))*(1-Math.exp(-dt*14));
   if(gs.rec>(gs.prec||0)+.3)gs.side=gs.side?0:1;gs.prec=gs.rec;                            // a pair of pistols: the shots alternate between the hands
   if(gs.rec>0)gs.rec=Math.max(0,gs.rec-dt*7);
   gs.aim+=((gp.aim?1:0)-gs.aim)*(1-Math.exp(-dt*9));
@@ -144,7 +146,8 @@ function weapon(P,st,dt){
     if(gp.cls==='pick'||gp.cls==='bat'||gp.cls==='hammer'){swing(P,gp,gs,dt,dr)}
     else if(gp.cls==='melee'){const sl=gp.slash||0,k=sl>0?Math.sin(PI*(1-sl)):0;
       G.sh.rotation.x=lerp(-.2,-1.15-1.1*k,dr);G.sh.rotation.z=sl>0?.9*Math.cos(PI*(1-sl)):0;G.el.rotation.x=lerp(-.4,-.35,dr);
-      S.sh.rotation.x=lerp(-.2,-1.0-.6*k,dr);S.sh.rotation.z=.35*dr;S.el.rotation.x=lerp(-.4,-.6,dr);grip(P,0,'bar');grip(P,1,'bar')}
+      S.sh.rotation.x=lerp(-.2,-1.0-.6*k,dr);S.sh.rotation.z=.35*dr;S.el.rotation.x=lerp(-.4,-.6,dr);grip(P,0,'bar');grip(P,1,'bar');
+      const b=gs.bk;if(b>.01){G.sh.rotation.x+=(-1.75-G.sh.rotation.x)*b;G.sh.rotation.z+=(-.35-G.sh.rotation.z)*b;G.el.rotation.x+=(-1.5-G.el.rotation.x)*b;S.sh.rotation.x+=(-1.55-S.sh.rotation.x)*b;S.sh.rotation.z+=(.55-S.sh.rotation.z)*b;S.el.rotation.x+=(-1.3-S.el.rotation.x)*b}}   // guard: both forearms up, the blade across the chest
     else{G.sh.rotation.x=lerp(-.3,-1.42+(gs.rec||0)*.12,dr);G.sh.rotation.z=0;G.el.rotation.x=-.05;S.sh.rotation.x=lerp(-.3,-1.2,dr);S.sh.rotation.z=.25*dr;S.el.rotation.x=lerp(-.4,-.4,dr);grip(P,0,'bar');grip(P,1,'bar')}
     if(gw)gw.visible=true;return}
   // aim direction in the spine's space

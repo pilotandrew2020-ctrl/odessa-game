@@ -8798,9 +8798,13 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
   hold(P,w,on){
     if(!P||!P.arms)return;const A=P.arms[1];
     if(!on){if(P._gw){A.el.remove(P._gw);P._gw=null;P._gi=-1}P._gp=null;if(P._gs)P._gs.w=-1;return}
+    // swapping weapons: the old one is put away first (pose.js plays the draw backwards, 0.22 s), then the new one is drawn
+    if(P===PLR&&P._gw&&P._gi>=0&&P._gi!==w&&P._gs&&!P._gs.done){P._gs.hol=1;w=P._gi}else if(P._gs&&P._gi!==w)P._gs.done=0;
     if(P._gi!==w){if(P._gw)A.el.remove(P._gw);const m=this.model(w);P._gw=m.clone();P._gw.userData.base=m.scale.x;A.el.add(P._gw);P._gi=w}
     const W=WEAPONS[w]||WEAPONS[0],me=P===PLR;
-    P._gp={w,cls:W.cls||(W.melee?'melee':(w===4||w===6)?'tube':w===3?'smg':'pistol'),aim:me?(this.isAiming()?1:.15):.6,ap:me?this.aimPitch():(P._ap||0),slash:me?this.slash:0,draw:W.draw}},
+    P._gp={w,cls:W.cls||(W.melee?'melee':(w===4||w===6)?'tube':w===3?'smg':'pistol'),aim:me?(this.isAiming()?1:.15):.6,ap:me?this.aimPitch():(P._ap||0),slash:me?this.slash:0,draw:W.draw,block:me&&this.blocking()}},
+  // melee guard: hold the Block button (key B) with the katana out: the blade goes up across the chest, hits do a fifth of the damage and strike sparks
+  guard:false,blocking(){return !!(this.guard&&this.armed&&!this.down&&WEAPONS[this.w]&&WEAPONS[this.w].melee)},
   // ---------- ADS: holding Fire (or F) smoothly zooms the camera (75 -> 45 FOV) and centres the reticle ----------
   aimPitch(){return Math.max(-.5,Math.min(.8,-(cam.pitch-.2)*.9))},
   adsShow(on){const r=document.getElementById('gunReticle');if(r){r.hidden=!this.armed;r.classList.toggle('aim',on)}},   // the crosshair is on the whole time a weapon is out (Fortnite); holding Fire only tightens it
@@ -9009,7 +9013,8 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     const k=1-d/r;let v=Math.round(dmg*k*k*1.2+8);if(mine)v=Math.round(v*.5);this.damage(v,by)},
   damage(v,by){
     if(typeof BR!=='undefined'&&BR.on)return BR.hurt(v,by);
-    if(!this.armed||this.down||v<=0)return;this.hp=Math.max(0,this.hp-v);this.flash=.35;
+    if(!this.armed||this.down||v<=0)return;if(this.blocking()){v=Math.max(1,Math.round(v*.2));this.sfx('deagle',.5);this.blocks=(this.blocks||0)+1;try{FX.init();const fx=Math.sin(player.yaw),fz=Math.cos(player.yaw);FX.puff({x:player.x+fx*.6,y:player.y+1.2,z:player.z+fz*.6,vx:0,vy:0,vz:0,s0:.2,s1:1.1,life:.2,c0:[1,.9,.5],c1:[.3,.85,1],op:1,add:true,drag:0})}catch(e){}}
+    this.hp=Math.max(0,this.hp-v);this.flash=.35;
     if(this.hp<=0){this.deaths++;this.down=3.2;this.c4=[];this.kb=[++this.seq,by?by.peer:'',by?(by.st&&by.st.n)||'Friend':'yourself'];
       toast(by?'Tagged by '+((by.st&&by.st.n)||'a friend'):'You blew yourself up','respawning…');player.vx=player.vz=0;this.push(true)}
     else this.push()},
@@ -9091,7 +9096,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     this.armed=!!on;this.used=true;if(!on)this.held=false;if(on){this.spawn={x:player.x,z:player.z,yaw:player.yaw};this.hp=100;this.down=0;this.kills=0;this.deaths=0;toast('Armed','1–9 pick a weapon (8: neon katana · 9: tactical nuke) · F or the Fire button shoots or strikes')}
     else{this.c4=[];this.hits=[];this.exs=[];this.kb=null}
     this.sync();this.push()},
-  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent='Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;u.hudw.hidden=!this.armed;if(u.ret){u.ret.hidden=!this.armed;u.ret.classList.toggle('aim',this.held)}
+  sync(){const u=this.ui;if(!u)return;u.btn.classList.toggle('on',this.armed);u.btn.textContent='Armed';u.bar.hidden=!this.armed;u.fire.hidden=!this.armed;if(u.guard)u.guard.hidden=!(this.armed&&WEAPONS[this.w]&&WEAPONS[this.w].melee);u.hudw.hidden=!this.armed;if(u.ret){u.ret.hidden=!this.armed;u.ret.classList.toggle('aim',this.held)}
     [...u.bar.children].forEach((b,i)=>b.classList.toggle('on',i===this.w));u.wn.textContent=WEAPONS[this.w].n;if(!this.armed)u.vig.style.opacity=0},
   pick(i){if(i<0||i>=WEAPONS.length)return;this.w=i;this.sync();this.push()},
   build(){
@@ -9130,6 +9135,10 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     const tUp=e=>{if(fid!==-1)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};
     ui.fire.addEventListener('touchstart',tDn,{passive:false});ui.fire.addEventListener('touchend',tUp,{passive:false});ui.fire.addEventListener('touchcancel',tUp,{passive:false});
     ui.det=mk('button','gunDet');ui.det.onclick=()=>this.detonate();ui.det.hidden=true;
+    // BLOCK (katana only): hold it, or key B; its own pointer like FIRE
+    ui.guard=mk('button','gunGuard');ui.guard.textContent='BLOCK';ui.guard.hidden=true;ui.guard.style.cssText='position:absolute;right:max(290px,calc(env(safe-area-inset-right) + 290px));bottom:calc(142px + env(safe-area-inset-bottom,0px));width:72px;height:72px;border-radius:14px;border:1px solid rgba(255,255,255,.13);background:linear-gradient(180deg,#191c23,#07080b);color:#38e4d0;font:800 12px var(--f-disp,system-ui);letter-spacing:.08em;z-index:6;touch-action:none';
+    {const g=on=>e=>{e.preventDefault();this.guard=on};ui.guard.addEventListener('pointerdown',g(true));for(const n of ['pointerup','pointercancel','lostpointercapture','pointerleave'])ui.guard.addEventListener(n,g(false));
+     addEventListener('keydown',e=>{if(e.code==='KeyB'&&this.armed&&!e.repeat)this.guard=true});addEventListener('keyup',e=>{if(e.code==='KeyB')this.guard=false})}
     ui.hudw=mk('div','gunHud');ui.wn=document.createElement('div');ui.hp=document.createElement('i');const hb=document.createElement('div');hb.className='hpb';hb.appendChild(ui.hp);ui.kd=document.createElement('div');ui.hudw.append(ui.wn,hb,ui.kd);
     ui.board=mk('div','gunBoard');ui.down=mk('div','gunDown');ui.down.textContent='You were tagged — respawning…';ui.down.hidden=true;
     ui.btn=document.createElement('button');ui.btn.id='bGun';ui.btn.textContent='Armed';ui.btn.onclick=()=>this.setArmed(!this.armed);$('topBtns').appendChild(ui.btn);
