@@ -9,6 +9,8 @@ exports.run = async (page, h) => {
   const home = await ev(() => ({ x: player.x, z: player.z }));
   await ev(() => DRONE.spawn()); await h.wait(300); const l = await ev(() => ({ on: DRONE.on, cls: document.body.classList.contains('droneon'), vis: PLR.root.visible })); console.log('launched', JSON.stringify(l)); assert(l.on && l.cls && !l.vis, 'launch failed');
   await shot('drone_launch', 300);
+  // camera views: first person / behind / in front (the drone is drawn in the last two)
+  const vw = await ev(() => { const o = []; for (const v of [0, 1, 2]) { DRONE.view = v; for (let i = 0; i < 40; i++) DRONE.frame(.05); o.push({ v, d: +Math.hypot(camera.position.x - DRONE.x, camera.position.y - DRONE.y, camera.position.z - DRONE.z).toFixed(1), vis: DRONE.g.visible }) } DRONE.view = 0; return o }); console.log('views', JSON.stringify(vw)); assert(vw[1].d > 6 && vw[2].d > 6 && vw[1].vis && vw[2].vis, 'the third / second person views do not show the drone');
   // flies forward, turns, the nose follows the drag
   const p0 = await ev(() => ({ x: DRONE.x, z: DRONE.z, yaw: DRONE.yaw })); // (software GL draws ~1 frame per 2 s while flying: step the simulation by hand, 50 ms a step)
   const step = (n) => ev(n => { for (let i = 0; i < n; i++) DRONE.frame(.05) }, n);

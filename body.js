@@ -113,6 +113,9 @@ function bdHair(head,o,M,HR,HH){const st=o.hs||'swept';if(st==='bald')return;con
     head.add(new THREE.Mesh(back(-HR*.98,-.3,HH*.78,HR*1.02,HR*.33),M.hair));
     for(const s of [-1,1]){bdLock(head,M.hair,[V(s*HR*1.0,HH*.6,HR*.1),V(s*HR*1.06,HH*.3,HR*.14),V(s*HR*1.08,HH*.0,HR*.18),V(s*HR*1.05,-.12,HR*.2),V(s*HR*1.0,-.22,HR*.18)],.034,.014,.45);
       bdLock(head,M.hair2,[V(s*HR*.95,HH*.7,HR*.25),V(s*HR*1.02,HH*.42,HR*.35),V(s*HR*1.02,HH*.12,HR*.38),V(s*HR*.98,-.1,HR*.34)],.02,.008,.5)}}
+  else if(st==='bob'){shell([[0,.66],[.5,.66],[1.15,.58],[1.65,.46],[2.3,.34],[Math.PI,.26]],.014,.026,[[0,.78,.8,.19,.02],[.9,.7,.5,.2,.012],[-.9,.7,.5,.2,.012]],.003);   // Anton Chigurh's bowl cut: a low straight fringe, curtains to the jaw, the back cut straight at the nape
+    head.add(new THREE.Mesh(back(-HR*.98,-.34,HH*.82,HR*1.04,HR*.36),M.hair));
+    for(const s of [-1,1]){bdLock(head,M.hair,[V(s*HR*1.0,HH*.66,HR*.2),V(s*HR*1.07,HH*.36,HR*.25),V(s*HR*1.1,HH*.02,HR*.28),V(s*HR*1.07,-.07,HR*.28)],.05,.022,.4);bdLock(head,M.hair2,[V(s*HR*.9,HH*.78,HR*.5),V(s*HR*1.0,HH*.5,HR*.55),V(s*HR*1.02,HH*.2,HR*.5),V(s*HR*1.0,-.02,HR*.42)],.03,.014,.5)}}
   else if(st==='bun'){shell([[0,.8],[.55,.77],[1.2,.62],[1.65,.5],[2.3,.4],[Math.PI,.36]],.012,.02,[[0,.9,.7,.15,.014]],.003);if(!hatOn){sph(M.hair,0,yAt(HR*.45)+.02,-HR*.45,.07,.065,.07);sph(M.hair2,0,yAt(HR*.45)+.055,-HR*.45,.045,.03,.045)}}
   else if(st==='pony'){shell([[0,.8],[.55,.77],[1.2,.62],[1.65,.5],[2.3,.44],[Math.PI,.42]],.012,.02,[[0,.9,.7,.15,.014]],.003);
     bdLock(head,M.hair,[V(0,HH*.8,-HR*.88),V(0,HH*.66,-HR*1.35),V(0,HH*.3,-HR*1.5),V(0,-.04,-HR*1.55),V(0,-.15,-HR*1.5)],.04,.016,.9);sph(M.hair2,0,HH*.78,-HR*.9,.026,.026,.026)}
