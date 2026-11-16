@@ -15,6 +15,9 @@ function islN(x,z){const xi=Math.floor(x),zi=Math.floor(z),xf=x-xi,zf=z-zi,u=xf*
 function islFbm(x,z,o){let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*islN(x*f,z*f);a*=.5;f*=2.03}return s*(1/(1-Math.pow(.5,o)))*.5+.0}   // ~0..1
 function islRc(th){return 1650+420*Math.sin(2*th+1.1)+240*Math.sin(3*th+2.3)+130*Math.sin(5*th+.4)+170*(islN(Math.cos(th)*2.2+9,Math.sin(th)*2.2+4)-.5)}
 function islSmooth(a,b,x){const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)}
+// 2026-11-16: the volcano (volcano.js): a 175 m cone with a crater; ISLV.x/z is the crater's middle
+const ISLV={x:ISL.cx+380,z:ISL.cz-330};
+function islVolcano(x,z){const d=Math.hypot(x-ISLV.x,z-ISLV.z);if(d>900)return 0;let h=175*Math.exp(-Math.pow(d/340,2));if(d<84){const q=1-d*d/(84*84);h-=88*q*q}return h}
 // height above sea level; the shelf below the waterline is negative. Far from the island: null.
 function islH(x,z){
   const u=x-ISL.cx,v=z-ISL.cz,r2=u*u+v*v;if(r2>4200*4200)return null;const r=Math.sqrt(r2),th=Math.atan2(v,u),Rc=islRc(th),din=Rc-r;     // metres inland from the coast
@@ -23,6 +26,7 @@ function islH(x,z){
   const hill=islSmooth(30,520,din)*(16+66*islFbm(u/380+3,v/380-5,4))+islSmooth(500,1400,din)*28*islFbm(u/700+9,v/700+2,3);
   const pk=Math.exp(-(((x-ISL.cx+260)**2+(z-ISL.cz-160)**2)/(330*330)))*120;               // the mountain
   h+=hill+pk;
+  h+=islVolcano(x,z);   // volcano.js: a cone with a crater, east of the middle of the island
   // plateau under the temple, flat floor of the pond basin, flat camp ground on the beach
   const T=ISL.temple;if(T){const d=Math.hypot(x-T.x,z-T.z);if(d<110)h+=(T.h-h)*islSmooth(110,62,d);const p=ISL.pond;if(p){const dp=Math.hypot(x-p.x,z-p.z);if(dp<75){h+=(p.h-h)*islSmooth(75,48,dp);if(dp<30)h-=.85*islSmooth(30,10,dp)}}}
   const Cc=ISL.campC;if(Cc){const d=Math.hypot(x-Cc.x,z-Cc.z);if(d<32)h+=(Cc.h-h)*islSmooth(32,20,d)}   // camp.js: level sand under the beach camp
@@ -57,7 +61,7 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     {const px=tx+150,pz=tz+110;const h0=islH(px,pz);ISL.pond={x:px,z:pz,h:h0};}
     // keep the camp, the temple and the pond free of trees
     {const cx=ISL.beach[0]+14,cz=ISL.beach[1];ISL.campC=null;ISL.campC={x:cx,z:cz,h:Math.max(2.3,islH(cx,cz)||2.4)}}
-    ISL.clear=[[ISL.beach[0]+13,ISL.beach[1],29],[tx,tz,70],[ISL.pond.x,ISL.pond.z,44]];ISL.solids=[];
+    ISL.clear=[[ISL.beach[0]+13,ISL.beach[1],29],[tx,tz,70],[ISL.pond.x,ISL.pond.z,44],[ISLV.x,ISLV.z,230]];ISL.solids=[];
     FLAT.push({x:ISL.cx,z:ISL.cz,R:4300,fn:(x,z,h)=>{const r=islH(x,z);return r===null?h:SL+r}});
     this.root=new THREE.Group();this.root.visible=false;world.add(this.root);
     this.mats();this.buildCamp();this.buildTemple();this.buildPond();this.vegInit();
