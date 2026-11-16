@@ -22,5 +22,4 @@ exports.run = async (page, h) => {
   // nukes on the Armed bar again, nothing nuclear in Spawn, the Spawn menu is a small grid
   const ui = await ev(() => { GUN.armed = true; GUN.sync(); const names = [...document.querySelectorAll('#gunBar button')].filter(b => !b.hidden).map(b => b.textContent); AIRP.menu(); const m = document.getElementById('airPick'), ap = m.querySelector('.ap').getBoundingClientRect(), sp = m.textContent; const out = { names, spawnNuke: /nuke|nuclear/i.test(sp), w: Math.round(ap.width), hgt: Math.round(ap.height), vw: innerWidth, vh: innerHeight, tiles: m.querySelectorAll('.apg button').length }; m.hidden = true; return out });
   console.log('ui', JSON.stringify(ui)); assert(ui.names.some(n => /Mini-nuke/.test(n)) && ui.names.some(n => /T-Nuke/.test(n)) && ui.names.some(n => /N-Bomb/.test(n)), 'the nukes are not on the Armed bar'); assert(!ui.spawnNuke, 'nukes still in Spawn'); assert(ui.w < ui.vw * .4 && ui.hgt < ui.vh * .5, 'Spawn menu is still huge');
-  await ev(() => { AIRP.menu() }); await h.wait(600); await page.screenshot({ path: h.SCR + '/spawn_menu.png' });
 };

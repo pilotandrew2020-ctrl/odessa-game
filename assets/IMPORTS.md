@@ -48,3 +48,4 @@ Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the 
 | `models/space/uranus.glb` | owner upload `uranus.glb` (author unknown; upload was truncated, repaired) | not stated | `space2.js`: Uranus with rings, 0.5 MB, 8k tris |
 | `textures/chigurh_face.jpg` | crop of the owner's reference picture (Ernesto Perlingeiro, ArtStation) | all rights reserved (used at the owner's request) | `chigurh.js`: face painted on the Chigurh head texture |
 | `models/space/lunokhod.glb` | owner upload `lunokhod-2.glb` (author unknown) | not stated | `moonx.js`: the Moon vehicle "Lunokhod" (17k tris, 2.6 MB, loaded the first time you pick it) |
+| `models/avatar/Chigurh.glb` | owner's TRELLIS output (picture: FLUX.1 Kontext from the owner's reference) | unclear (see CREDITS) | `real.js` body `chigurh`: 1 MB, 28k tris, untextured colours + projected face (`look.js`) |
