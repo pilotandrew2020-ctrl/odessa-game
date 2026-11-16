@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -811,6 +811,7 @@ function signUV(i){i=i%SIGNS.length;const cx=(i%2)*.5,cy=((i/2)|0)/SIGN_ROWS;ret
 
 // ===================== materials (patched MeshStandardMaterial) =====================
 const UNI={
+  uNuke:{value:new THREE.Vector4(0,0,300,0)},uNukeK:{value:0},uNukeY:{value:0},
   uL:{value:Array.from({length:16},()=>new THREE.Vector4(0,-999,0,0))},
   uNight:{value:0},uTime:{value:0},uWinter:{value:0},uWet:{value:0},uIndoor:{value:0},
   uUW:{value:0},uSunUp:{value:1},   // water.js: 1 while the camera is under the sea; sun height 0..1 (caustics, shafts)
@@ -862,7 +863,12 @@ void lampLight(vec3 wp,vec3 wn,vec3 V,float rough,inout vec3 dif,inout vec3 spc)
   dif*=uNight;spc*=uNight;
 }
 `;
-const PATCH_VS_DECL=`varying vec3 vW; varying vec3 vNw;`;
+// nuke.js: uNuke = (ground zero x, z, radius, seconds since the flash), uNukeK 1 = ruined .. 0 = whole again, uNukeY ground height at zero. nukeK(xz) 0..1 = how destroyed a spot is (the shock front sweeps outwards at 330 m/s)
+const NUKE_GLSL=`uniform vec4 uNuke;uniform float uNukeK;uniform float uNukeY;float nukeK(vec2 p){if(uNukeK<.001)return 0.;float d=length(p-uNuke.xy);return clamp((uNuke.w*330.-d)/25.,0.,1.)*(1.-smoothstep(uNuke.z*.45,uNuke.z,d))*uNukeK;}float nukeH(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}`;
+// buildings: every vertex above a ragged stump height (per 5 m cell, lower the closer to zero) is pulled down onto it, so walls break off unevenly and roofs sink into rubble
+const NUKE_VB=`{vec4 _nw=modelMatrix*vec4(transformed,1.);float _nk=nukeK(_nw.xz);if(_nk>0.){float _nh=nukeH(floor(_nw.xz/5.));float _top=uNukeY+1.2+(_nh*15.+3.)*(1.-_nk)*(1.-_nk);transformed.y+=min(_nw.y,_top)-_nw.y;transformed.xz+=(_nh-.5)*1.6*_nk;}}`;
+const NUKE_SURF=`{float _nk=nukeK(vW.xz);sAlb=mix(sAlb,vec3(.04,.036,.033),_nk*.78);sRough=mix(sRough,.95,_nk);}`;
+const PATCH_VS_DECL=`varying vec3 vW; varying vec3 vNw;`+NUKE_GLSL;
 const PATCH_VS_MAIN=`{vec4 _wp=vec4(transformed,1.);
 #ifdef USE_INSTANCING
 _wp=instanceMatrix*_wp;
@@ -1271,18 +1277,18 @@ function initMats(){
   UNI.uSD.value=sdt;{const real=D.lu&&D.lu.length===tw*th*4;const lt=new THREE.DataTexture(real?D.lu:new Uint8Array([230,230,230,255]),real?tw:1,real?th:1,THREE.RGBAFormat,THREE.UnsignedByteType);lt.magFilter=lt.minFilter=THREE.LinearFilter;lt.generateMipmaps=false;lt.needsUpdate=true;UNI.uLU.value=lt}UNI.uSDT.value.set(BB[0],BB[2],tw*20,th*20);
   MATS.ground=patchMat(new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9,metalness:0,polygonOffset:true,polygonOffsetFactor:1}),{key:'ground',
     vDecl:'attribute vec2 aK;attribute vec4 aR;attribute float aU;varying vec2 vK;varying vec4 vR;varying float vU;',vMain:'vK=aK;vR=aR;vU=aU;',
-    fDecl:'varying vec2 vK;varying vec4 vR;varying float vU;',fSurf:GROUND_SURF});
+    fDecl:'varying vec2 vK;varying vec4 vR;varying float vU;'+NUKE_GLSL,fSurf:GROUND_SURF+NUKE_SURF});
   MATS.ground.envMapIntensity=.45;
-  MATS.bld=patchMat(new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,metalness:0,polygonOffset:true,polygonOffsetFactor:1}),{key:'bld',vDecl:BLD_VS_DECL,vMain:BLD_VS_MAIN,fDecl:BLD_DECL,fSurf:BLD_SURF});
+  MATS.bld=patchMat(new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,metalness:0,polygonOffset:true,polygonOffsetFactor:1}),{key:'bld',vDecl:BLD_VS_DECL,vBegin:NUKE_VB,vMain:BLD_VS_MAIN,fDecl:BLD_DECL+NUKE_GLSL,fSurf:BLD_SURF+NUKE_SURF});
   MATS.bld.envMapIntensity=.7;
   MATS.props=patchMat(new THREE.MeshStandardMaterial({vertexColors:true,roughness:.8,metalness:0}),{key:'props',
     vDecl:'attribute float aM;varying float vM;',vMain:'vM=aM;',fDecl:'varying float vM;',fSurf:PROP_SURF});
   MATS.signs=patchMat(new THREE.MeshStandardMaterial({map:TX.signs,roughness:.5,metalness:0}),{key:'signs',fSurf:'sEmis=sAlb*(.05+uNight*1.8);'});
   MATS.leaves=patchMat(new THREE.MeshStandardMaterial({map:TX.leaves,alphaTest:.3,alphaToCoverage:true,side:THREE.DoubleSide,roughness:.8,metalness:0}),{key:'leaves',vDecl:'uniform float uTime;',
-    vBegin:'{float sw=sin(uTime*1.4+instanceMatrix[3].x*.3+instanceMatrix[3].z*.21)*.06*max(position.y-2.,0.)*.12;transformed.x+=sw;transformed.z+=sw*.7;}',
+    vBegin:'{float sw=sin(uTime*1.4+instanceMatrix[3].x*.3+instanceMatrix[3].z*.21)*.06*max(position.y-2.,0.)*.12;transformed.x+=sw;transformed.z+=sw*.7;transformed*=1.-.97*smoothstep(.15,.5,nukeK(instanceMatrix[3].xz));}',   // (the last part: trees inside a nuke blast shrink away)
     fSurf:'if(uWinter>.5){if(vUv.y>.5)discard;sAlb=mix(sAlb,vec3(.55,.58,.62),.45);}sAlb*=1.45;sEmis=sAlb*.05;sAO=.85;'});
   MATS.leaves.vertexColors=false;
-  MATS.bark=patchMat(new THREE.MeshStandardMaterial({map:TX.bark,roughness:.95,metalness:0}),{key:'bark',fSurf:'if(uWinter>.5&&vNw.y>.35)sAlb=mix(sAlb,vec3(.85,.87,.9),.7);'});
+  MATS.bark=patchMat(new THREE.MeshStandardMaterial({map:TX.bark,roughness:.95,metalness:0}),{key:'bark',vBegin:'#ifdef USE_INSTANCING\ntransformed*=1.-.97*smoothstep(.15,.5,nukeK(instanceMatrix[3].xz));\n#endif',fSurf:'if(uWinter>.5&&vNw.y>.35)sAlb=mix(sAlb,vec3(.85,.87,.9),.7);'});
   TX.bark.encoding=THREE.sRGBEncoding;
   // real plane-tree bark photo (Poly Haven "Bark Platanus", CC0) replaces the procedural tile as soon as it has loaded; lightened a little towards Odesa's grey-beige plane trunks
   {const im=new Image();im.onload=()=>{try{const cv=document.createElement('canvas');cv.width=cv.height=512;const g=cv.getContext('2d');g.filter='brightness(1.35) saturate(.8)';g.drawImage(im,0,0,512,512);
@@ -7312,7 +7318,7 @@ function updateCityLOD(dt){
     const distance=Math.hypot(cx-x,cz-z);
     if(c.bld)c.bld.visible=c.bld.visible?distance<=buildingVisibility*HYS:distance<=buildingVisibility;
     if(c.props)c.props.visible=c.props.visible?distance<=propVisibility*HYS:distance<=propVisibility;
-    const box=Math.hypot(Math.max(0,Math.abs(cx-x)-CH/2),Math.max(0,Math.abs(cz-z)-CH/2)),cast=box<=castR;   // distance to the chunk's square, not to its centre
+    const box=Math.hypot(Math.max(0,Math.abs(cx-x)-CH/2),Math.max(0,Math.abs(cz-z)-CH/2)),cast=box<=castR&&!(typeof NUKE!=='undefined'&&NUKE.ruin&&NUKE.inZone(cx,cz,CH));   // distance to the chunk's square, not to its centre (ruins throw no shadows: the shadow pass does not know the collapse)
     if(c.det)c.det.visible=c.det.visible?box<=detVis*HYS:box<=detVis;
     if(c.bld)c.bld.castShadow=cast;if(c.props)c.props.castShadow=cast;if(c.det)c.det.castShadow=cast&&box<=Qp().sr;
     for(const m of [c.signs,c.grx])if(m)m.visible=distance<=chunkVisibility;
@@ -7452,7 +7458,7 @@ function insideAny(x,z,m,y){
   const spL=y===undefined?null:specialGround(x,z,y);const gyL=spL?spL.h:groundH(x,z);
   const low=y===undefined||y<gyL+1.75;
   if(low&&(insideOBB(LOW_OBB,x,z,m)||insideCircles(STATIC_CIR,x,z,m)||carAt(x,z,y===undefined?gyL:y,m)||insideOBB(CAR_OBB,x,z,m)))return true;
-  const near=nearChunks(x,z);if(!near.length)return false;
+  const near=(typeof NUKE!=='undefined'&&NUKE.ruin&&NUKE.inZone(x,z))?[]:nearChunks(x,z);if(!near.length)return false;   // inside a nuke blast the buildings are rubble: no walls
   for(const c of near){if(insideOBB(c.obb,x,z,m)||low&&(insideOBB(c.lobb,x,z,m)||insideCircles(c.cirs,x,z,m)))return true;
     for(const cp of c.cols){if(y!==undefined&&(y>cp.top||y<cp.y0-4))continue;if(colPolyHit(cp,x,z,m))return true}}
   return false;
@@ -8156,6 +8162,7 @@ function loop(t){
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
+  safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
   safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});   // drone.js: flight and camera of the kamikaze drone
   safe('tank',()=>{if(typeof TANK!=='undefined'&&TANK.on)TANK.frame(dt)});   // tank.js: the driver's camera and the tank's physics
   safe('spcAtmo',()=>{if(typeof SPC!=='undefined'&&SPC.atmo)SPC.frameAtmo(dt)});   // space.js: the shuttle's automatic ascent / the fighter in the atmosphere take over the camera
