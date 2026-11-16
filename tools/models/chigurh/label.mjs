@@ -11,7 +11,7 @@ export function classify(c){const [x,y,z]=c;
   if(x>0.2&&y<-0.065&&y>-0.2&&z>-0.08)return 'hand';
   if(y<-0.40)return (x>0.215||x<-0.14)?'cut':'boots';
   if(y<-0.105)return 'pants';
-  if(y>0.235)return 'cut';
+  if(y>(+process.env.COLLAR||0.235))return 'cut';
   return 'jacket';
 }
 export function build(path,out){const m=loadGlb(path),P=m.pos,I=m.idx;const pos=[],col=[],lab=[];const cnt={};

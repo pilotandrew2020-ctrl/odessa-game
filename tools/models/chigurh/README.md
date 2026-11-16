@@ -15,5 +15,5 @@ K=.58 node build2.mjs trellis_src.glb chg_src2.glb && node joints2.mjs && node m
 ## v3 (the owner's textured head, round 27)
 `head_raw.glb` (the owner's generated textured bust: caricature head, hair, neck, jacket, 96k tris, 2048 px WebP texture; WebP is not read by three r128, so `conv.mjs` turns it into JPEG first). `build3.mjs` takes the triangles above the neck (y >= 0.185), scales them by K (.58) onto the collar of the warped TRELLIS body, decimates them to ~16k with UVs kept, and writes the head as material `chead` (textured). `chg3.json` + `mk_char.mjs` rig it (`chead` texture 1536 px). The game does not project a face any more (`CHIG_LOOK.photo:false`); `real.js` brightens `chead` a little.
 ```
-node conv.mjs && K=.58 NTY=.205 node build3.mjs trellis_src.glb chg_src3.glb && node mk_char.mjs chg3.json    # -> Chigurh3.glb -> assets/models/avatar/Chigurh.glb
+node conv.mjs && COLLAR=.195 K=.58 NTY=.185 node build3.mjs trellis_src.glb chg_src3.glb && node mk_char.mjs chg3.json    # -> Chigurh3.glb -> assets/models/avatar/Chigurh.glb
 ```
