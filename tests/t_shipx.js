@@ -10,6 +10,13 @@ exports.run = async (page, h) => {
   console.log('plan', JSON.stringify(pl)); assert(pl.helm && pl.slide && pl.bar && pl.shop && pl.cabins.length >= 2, 'the deck grid has no room for something');
   // go aboard the moored ship: stand next to a point and look at it (a helper)
   const go = async (lx, lz, f, look) => { await ev(a => { const I = SHIP.A, [wx, wz] = SHIP.world(I, a.lx, a.lz); teleportRaw(wx, wz, I.th + Math.PI); window.__t = [wx, wz, I.g.position.y + a.f] }, { lx, lz, f }); await h.wait(2500); await ev(() => { player.x = __t[0]; player.z = __t[1]; player.y = __t[2] + .05; player.vy = 0; player.air = false; try { SWIM.reset() } catch (e) { } }); await h.wait(1200) };
+  // ---- the DECKS panel (the grid has no stairs between decks): aboard, the button shows; Bridge puts you at the helm, a deck number puts you on that deck
+  await go(0, 170, 22.8); await page.waitForFunction(() => { SHIPX.decksTick(1); return !document.getElementById('shipDecksBtn').hidden }, null, { timeout: 30000 });
+  const lv = await ev(() => SHIPX.levels()); console.log('decks', JSON.stringify(lv)); assert(lv.length >= 3, 'the deck list is empty');
+  await ev(() => SHIPX.panel(true)); await shot('shipx_decks_panel', 800);
+  await ev(() => document.querySelector('#shipDecks [data-k="h"]').click()); await h.wait(500); assert(await ev(() => !!SHIPX.near(I => I.helmSpot ? [I.helmSpot] : [], 2.6)), 'the Bridge button did not bring you to the helm');
+  const top = lv[lv.length - 1]; await ev(() => SHIPX.panel(true)); await ev(l => document.querySelector('#shipDecks [data-k="d:' + l + '"]').click(), top); await h.wait(500);
+  const dy = await ev(() => player.y - SHIP.A.g.position.y); console.log('on the top deck', dy, 'wanted', top); assert(Math.abs(dy - top) < 1.2, 'the deck button put you on the wrong level');
   // ---- bar: sit on a stool, order a drink
   await go(pl.bar.x, pl.bar.z + 1, pl.bar.f);
   const bar = await ev(() => { const I = SHIP.A; const s = I.seats.find(q => Math.abs(q.lx - I.barSpot.lx) < 4.5 && Math.abs(q.lz - I.barSpot.lz) < 3); const [wx, wz] = SHIP.world(I, s.lx, s.lz); player.x = wx; player.z = wz; player.y = I.g.position.y + s.f + .05; return { seats: I.seats.length, beds: I.beds.length, near: !!SHIPX.near(I2 => I2.seats, 1.3) } }); console.log('bar', JSON.stringify(bar)); assert(bar.near, 'no seat prompt at the bar');
