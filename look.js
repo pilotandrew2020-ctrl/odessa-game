@@ -44,13 +44,13 @@ const LOOK={
         'diffuseColor.rgb=mix(tbase,pow(texture2D(uTF,fuv).rgb,vec3(2.2)),tin);')}
     if(o.sleeves&&mat.skin)this.patch(mat.skin,'|sleeves',{uSlv:{value:new THREE.Color(o.sleeves).convertSRGBToLinear()}},'uniform vec3 uSlv;',   // long sleeves painted on the arms (the avatar only has a T-shirt): the arm hangs at |x| .19-.28 in the bind pose, the hand starts below y .985
       'float slv=step(.185,abs(vMP.x))*step(.99,vMP.y)*step(vMP.y,1.53)*smoothstep(.12,.4,1.-abs(vMN.y));diffuseColor.rgb=mix(diffuseColor.rgb,uSlv*(.8+.4*diffuseColor.g),slv);');
-    if(o.photo&&(o.faceData||this.face)&&mat.skin){const f=o.faceData||this.face,t=this.faceTex(f),d=Math.hypot(f.eR[0]-f.eL[0],f.eR[1]-f.eL[1])||1,a=Math.atan2(f.eR[1]-f.eL[1],f.eR[0]-f.eL[0]);
+    if(o.photo&&(o.faceData||this.face)&&mat.skin){const f=o.faceData||this.face,FC=Object.assign({ey:this.EY,eyd:this.EYD,cx:0,fcy:1.665,ru:.115,rd:.078,rx:.078},o.faceCfg||{}),t=this.faceTex(f),d=Math.hypot(f.eR[0]-f.eL[0],f.eR[1]-f.eL[1])||1,a=Math.atan2(f.eR[1]-f.eL[1],f.eR[0]-f.eL[0]);
       const rel=!!f.med,mc=rel?new THREE.Color().setRGB(f.med[0]/255,f.med[1]/255,f.med[2]/255).convertSRGBToLinear():null;
-      this.patch(mat.skin,rel?'|face2':'|face',{uFMed:{value:mc||new THREE.Color(1,1,1)},uFT:{value:t},uFMid:{value:new THREE.Vector2((f.eL[0]+f.eR[0])/2,(f.eL[1]+f.eR[1])/2)},uFSz:{value:new THREE.Vector2(f.w,f.h)},uFS:{value:d/this.EYD},uFSy:{value:f.fy||1},uFCos:{value:Math.cos(a)},uFSin:{value:Math.sin(a)}},
+      this.patch(mat.skin,rel?'|face2':'|face',{uFMed:{value:mc||new THREE.Color(1,1,1)},uFT:{value:t},uFMid:{value:new THREE.Vector2((f.eL[0]+f.eR[0])/2,(f.eL[1]+f.eR[1])/2)},uFSz:{value:new THREE.Vector2(f.w,f.h)},uFS:{value:d/FC.eyd},uFSy:{value:f.fy||1},uFCos:{value:Math.cos(a)},uFSin:{value:Math.sin(a)}},
         'uniform sampler2D uFT;uniform vec3 uFMed;uniform vec2 uFMid;uniform vec2 uFSz;uniform float uFS;uniform float uFSy;uniform float uFCos;uniform float uFSin;',
         // photo pixel for this surface point (eyes level, image y down), oval mask (wider above the eyes than below), fade where the skin turns from the camera
-        'vec2 frel=vec2(vMP.x,-(vMP.y-'+this.EY.toFixed(4)+')*uFSy)*uFS;vec2 fpp=uFMid+vec2(frel.x*uFCos-frel.y*uFSin,frel.x*uFSin+frel.y*uFCos);'+
-        'float fdy=vMP.y-1.665;float fry=fdy>0.?.115:.078;float fm=(1.-smoothstep(.7,1.,length(vec2(vMP.x/.078,fdy/fry))))*smoothstep(.25,.7,vMN.z)*step(0.,fpp.y)*step(fpp.y,uFSz.y)*step(0.,fpp.x)*step(fpp.x,uFSz.x);'+
+        'vec2 frel=vec2(vMP.x-('+FC.cx.toFixed(4)+'),-(vMP.y-'+FC.ey.toFixed(4)+')*uFSy)*uFS;vec2 fpp=uFMid+vec2(frel.x*uFCos-frel.y*uFSin,frel.x*uFSin+frel.y*uFCos);'+
+        'float fdy=vMP.y-'+FC.fcy.toFixed(4)+';float fry=fdy>0.?'+FC.ru.toFixed(4)+':'+FC.rd.toFixed(4)+';float fm=(1.-smoothstep(.7,1.,length(vec2((vMP.x-('+FC.cx.toFixed(4)+'))/'+FC.rx.toFixed(4)+',fdy/fry))))*smoothstep(.25,.7,vMN.z)*step(0.,fpp.y)*step(fpp.y,uFSz.y)*step(0.,fpp.x)*step(fpp.x,uFSz.x);'+
         'vec3 fph=pow(texture2D(uFT,fpp/uFSz).rgb,vec3(2.2));'+(rel?'fph=diffuseColor.rgb*clamp(fph/max(uFMed,vec3(.02)),vec3(.1),vec3(1.8));':'')+'diffuseColor.rgb=mix(diffuseColor.rgb,fph,fm);');
       if(R.Eyes)R.Eyes.visible=false;R.M.traverse(c=>{if(c.name==='Brows')c.visible=false})}},
   // ---- the avatar options for your own character: skin and hair from the photo

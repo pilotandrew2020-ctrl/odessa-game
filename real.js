@@ -25,7 +25,9 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
        halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
        leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
        ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9}},
-       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95}}},
+       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95}},
+       // round 23: Anton Chigurh from the owner's TRELLIS mesh (gun, tank and puddle cut off, the right hand mirrored onto the gun arm, decimated to 28k, rigged with mk_char): colours only, the face is projected by look.js
+       chigurh:{url:'assets/models/avatar/Chigurh.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.8,th:.9,ca:.9}}},
   kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
   load(){if(this.st)return;this.st=1;
     try{new THREE.GLTFLoader().load(this.url,g=>{this.tpl=g.scene;this.st=2;this.flush(null);
@@ -100,7 +102,8 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
   paint(R,P,o){const M=R.M,SC=this.SC;o=o||{};const find=nm=>{let r=null;M.traverse(c=>{if(c.name===nm)r=c});return r},sh=(nm,v)=>{const c=find(nm);if(c)c.visible=v};
     const mat={};M.traverse(c=>{if(c.isMesh)mat[c.material.name]=c.material});
     // skin: the texture is baked around #f2c9a6, other tones tint it
-    if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
+    if(mat.skin&&o.skinRaw){mat.skin.color.copy(this.lin(o.skinRaw));mat.skin.roughness=.62}   // an untextured body (Chigurh): the colour itself, not a tint of the baked texture
+    else if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
       if(typeof bdSkinRim==='function')bdSkinRim(mat.skin)}
     if(mat.eyes){const t=mat.eyes.map;if(t&&t.image&&o.iris&&o.iris.toLowerCase()!=='#3b7fd4'){const T=this.eye(t.image,o.iris);if(T)mat.eyes.map=T}mat.eyes.roughness=.18}
     if(mat.brow)mat.brow.color.copy(this.lin(o.brow||'#b88a3e'));
