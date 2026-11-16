@@ -60,6 +60,8 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_roof` | rooftop landing pads for the light plane + the plane camera cycle (chase / cockpit / cabin / orbit) (`ROOFSHOT=1`) |
 | `t_moon` | the Moon: landing patch on approach, touchdown over real ground, suit, walk, jet pack (`MOONSHOT=1`) |
 | `t_blastfx` | realistic explosions (light, fireball, dust wall) + the nuke flattening the home yard (`BLASTFXSHOT=1`) |
+| `t_shipx` | the cruise ship's bridge/helm, water slide, bar, shop, cabins (`SHIPXSHOT=1`) |
+| `t_coaster` | the Gorky Park mega coaster ride (`COASTERSHOT=1`) |
 | `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, the sea stops it, exit (`TANKSHOT=1` screenshots) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
