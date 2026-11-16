@@ -1,7 +1,7 @@
 // nuke.js — the nuclear bomb (2026-11-16). Spawn menu "Nuclear bomb": it falls 5 s onto a spot 300 m in front of where you look, then: white flash, a fireball, a shock ring + dust wall that sweeps outwards at 330 m/s, the mushroom cloud, a rumble that reaches you when the shock does.
 //   BUILDINGS: no new geometry. The shared building / ground / tree shaders in index.html (NUKE_GLSL, NUKE_VB, NUKE_SURF, the uniforms uNuke / uNukeK / uNukeY) pull every wall and roof vertex down onto a ragged stump height as the shock front passes (nukeK), char the ground and shrink the trees inside the radius (R = 300 m).
 //   While ruined: no wall colliders inside the zone (insideAny asks NUKE.inZone), no chunk shadows there, traffic cars inside are gone, pedestrians are thrown, you are shoved / hurt when the front reaches you. After 75 s the city grows back over 25 s. Cost: a handful of meshes while it lasts, one extra uniform test in the vertex shaders.
-const NUKE={st:'',t:0,R:300,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
+const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
   inZone(x,z,pad){return Math.hypot(x-this.gx,z-this.gz)<Math.min(this.t*330,this.R*.95)+(pad||0)},
   cloud(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');for(let i=0;i<46;i++){const x=64+(Math.random()-.5)*78,y=64+(Math.random()-.5)*78,r=14+Math.random()*26,q=g.createRadialGradient(x,y,0,x,y,r);q.addColorStop(0,'rgba(255,255,255,.55)');q.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=q;g.fillRect(0,0,128,128)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t},
   build(){if(this.g)return;const g=new THREE.Group(),tx=this.cloud(),MB=(o)=>new THREE.MeshBasicMaterial(Object.assign({transparent:true,depthWrite:false,fog:false,toneMapped:false},o));
@@ -15,30 +15,41 @@ const NUKE={st:'',t:0,R:300,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
     this.skirt=new THREE.Mesh(new THREE.TorusGeometry(1,.34,10,32),MB({map:tx,color:0xffb060,opacity:0}));this.skirt.rotation.x=Math.PI/2;this.skirt.visible=false;g.add(this.skirt);
     g.traverse(o=>{o.frustumCulled=false;o.renderOrder=3});scene.add(g);this.g=g;
     const d=document.createElement('div');d.id='nukeFlash';d.style.cssText='position:fixed;inset:0;z-index:70;background:#fff;opacity:0;pointer-events:none';document.body.appendChild(d);this.fl=d},
-  drop(dist){if(this.st&&this.st!=='')return;this.build();dist=dist||300;const y=(typeof cam!=='undefined'?cam.yaw:player.yaw);this.gx=player.x+Math.sin(y)*dist;this.gz=player.z+Math.cos(y)*dist;this.gy=Math.max(groundH(this.gx,this.gz),SL);this.t=0;this.st='fall';this.hit=false;this.bomb.visible=true;this.bomb.position.set(this.gx,this.gy+450,this.gz);
+  // landmarks, the home yard's flats and every other building that is not a chunk mesh use their own materials: give the ones near the blast the same collapse (vertex + char) the shared materials have. One shader compile per material, done while the bomb falls.
+  patchNear(x,z,R){const skip=new Set(Object.values(typeof MATS!=='undefined'?MATS:{})),box=new THREE.Box3();this.shadowOff=this.shadowOff||[];
+    const patch=m=>{if(!m||m.userData.nk||skip.has(m)||!(m.isMeshStandardMaterial||m.isMeshLambertMaterial||m.isMeshPhongMaterial)||m.blending===THREE.AdditiveBlending)return;m.userData.nk=1;const old=m.onBeforeCompile,key=m.customProgramCacheKey?m.customProgramCacheKey():'';
+      m.onBeforeCompile=(sh,r)=>{if(old)old.call(m,sh,r);if(sh.vertexShader.indexOf('nukeK')>=0)return;sh.uniforms.uNuke=UNI.uNuke;sh.uniforms.uNukeK=UNI.uNukeK;sh.uniforms.uNukeY=UNI.uNukeY;
+        sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL).replace('#include <begin_vertex>','#include <begin_vertex>\n'+NUKE_VB+'\nvNkW=modelMatrix*vec4(transformed,1.);').replace('void main() {','varying vec4 vNkW;\nvoid main() {');
+        sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL+'\nvarying vec4 vNkW;').replace('#include <color_fragment>','#include <color_fragment>\n{float _nk=nukeK(vNkW.xz);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.028,.026),_nk*.8);}')};
+      m.customProgramCacheKey=()=>key+'|nk';m.needsUpdate=true};
+    scene.traverse(o=>{if(!o.isMesh||o.isSkinnedMesh||!o.geometry||!o.material||!o.visible)return;if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();box.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);if(box.min.x>x+R+60||box.max.x<x-R-60||box.min.z>z+R+60||box.max.z<z-R-60)return;
+      const ms=Array.isArray(o.material)?o.material:[o.material];for(const m of ms)patch(m);if(o.castShadow&&!o.isInstancedMesh){this.shadowOff.push(o);}})},
+  // a strike anywhere (rockets, the tactical nuke): R = blast radius in metres (the falling bomb uses 300)
+  strike(x,z,R){if(this.st)return;this.build();this.R=R||300;this.sc=this.R/300;this.gx=x;this.gz=z;this.gy=Math.max(groundH(x,z),SL);this.hit=false;this.patchNear(x,z,this.R);this.boom()},
+  drop(dist){if(this.st&&this.st!=='')return;this.build();dist=dist||300;const y=(typeof cam!=='undefined'?cam.yaw:player.yaw);this.gx=player.x+Math.sin(y)*dist;this.gz=player.z+Math.cos(y)*dist;this.gy=Math.max(groundH(this.gx,this.gz),SL);this.R=300;this.sc=1;this.patchNear(this.gx,this.gz,300);this.t=0;this.st='fall';this.hit=false;this.bomb.visible=true;this.bomb.position.set(this.gx,this.gy+450,this.gz);
     toast('Nuclear bomb','Take cover: it hits 300 m ahead in 5 s');this.snd('fall')},
   snd(kind,delay){try{if(typeof AUD==='undefined'||!AUD.ok||!AUD.ctx||!AUD.noise)return;const c=AUD.ctx,T=c.currentTime+(delay||0),m=AUD.master||c.destination;
     if(kind==='fall'){const o=c.createOscillator();o.type='sawtooth';o.frequency.setValueAtTime(2400,T);o.frequency.exponentialRampToValueAtTime(500,T+4.6);const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=1500;const g=c.createGain();g.gain.setValueAtTime(.02,T);g.gain.linearRampToValueAtTime(.12,T+4.5);g.gain.linearRampToValueAtTime(0,T+4.8);o.connect(f);f.connect(g);g.connect(m);o.start(T);o.stop(T+5)}
     else{const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(900,T);f.frequency.exponentialRampToValueAtTime(70,T+9);const g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(1,T+.08);g.gain.exponentialRampToValueAtTime(.001,T+11);n.connect(f);f.connect(g);g.connect(m);n.start(T);n.stop(T+11.5);
       const o=c.createOscillator();o.frequency.setValueAtTime(70,T);o.frequency.exponentialRampToValueAtTime(22,T+3);const og=c.createGain();og.gain.setValueAtTime(.9,T);og.gain.exponentialRampToValueAtTime(.001,T+3.2);o.connect(og);og.connect(m);o.start(T);o.stop(T+3.4)}}catch(e){}},
-  flash(){const d=this.fl;d.style.transition='none';d.style.opacity='1';void d.offsetWidth;d.style.transition='opacity 3.5s ease-out';d.style.opacity='0'},
+  flash(){const d=this.fl;d.style.background=this.sc<.6?'#ffe9c4':'#fff';d.style.transition='none';d.style.opacity='1';void d.offsetWidth;d.style.transition='opacity 3.5s ease-out';d.style.opacity='0'},
   boom(){this.st='boom';this.t=0;this.K=1;this.ruin=true;this.bomb.visible=false;UNI.uNuke.value.set(this.gx,this.gz,this.R,0);UNI.uNukeK.value=1;UNI.uNukeY.value=this.gy;
-    for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt])m.visible=true;this.flash();BLAST.at(this.gx,this.gy+2,this.gz,this.R*.8,0,true);
+    for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt])m.visible=true;this.flash();for(const o of this.shadowOff||[])o.castShadow=false;BLAST.at(this.gx,this.gy+2,this.gz,this.R*.8,this.sc>.5?0:50,true);
     this.dp=Math.hypot(player.x-this.gx,player.z-this.gz);this.snd('boom',this.dp/330);toast('Nuclear bomb','Detonation')},
   update(dt){if(!this.st)return;dt=Math.min(dt,.1);this.t+=dt;const t=this.t;
     if(this.st==='fall'){const k=Math.min(1,t/4.6);this.bomb.position.y=this.gy+450*(1-k*k);this.bomb.rotation.y+=dt*2;if(t>=4.6)this.boom();return}
     // after the flash: effects follow the shock front
     UNI.uNuke.value.w=t;const R=this.R,front=Math.min(t*330,R*1.7),fade=1-front/(R*1.7);
-    const br=120*(1-Math.exp(-t*1.6));this.ball.position.set(this.gx,this.gy+br*.55+t*7,this.gz);this.ball.scale.setScalar(Math.max(.01,br));this.ball.material.opacity=Math.max(0,1-t/9);this.ball.material.color.setRGB(1,Math.max(.25,1-t*.14),Math.max(.1,1-t*.3));
+    const k0=this.sc,br=120*k0*(1-Math.exp(-t*1.6));this.ball.position.set(this.gx,this.gy+br*.55+t*7*k0,this.gz);this.ball.scale.setScalar(Math.max(.01,br));this.ball.material.opacity=Math.max(0,1-t/9);this.ball.material.color.setRGB(1,Math.max(.25,1-t*.14),Math.max(.1,1-t*.3));
     this.ring.position.set(this.gx,this.gy+1.2,this.gz);this.ring.scale.set(front,front,1);this.ring.material.opacity=.85*fade;this.ring.visible=fade>.02;
-    this.wall.position.set(this.gx,this.gy+(18+front*.06),this.gz);this.wall.scale.set(front,36+front*.12,front);this.wall.material.opacity=.55*fade;this.wall.visible=fade>.02;
-    const H=340*(1-Math.exp(-t/6)),rise=Math.min(1,t/1.5),life=t>50?Math.max(0,1-(t-50)/30):1,col=Math.min(1,t/20),op=rise*life*.85;
+    this.wall.position.set(this.gx,this.gy+(18+front*.06),this.gz);this.wall.scale.set(front,(36+front*.12)*Math.max(.4,k0),front);this.wall.material.opacity=.55*fade;this.wall.visible=fade>.02;
+    const H=340*k0*(1-Math.exp(-t/6)),rise=Math.min(1,t/1.5),life=t>50?Math.max(0,1-(t-50)/30):1,col=Math.min(1,t/20),op=rise*life*.85;
     for(const m of [this.stem,this.cap,this.skirt]){m.material.opacity=op;m.material.color.setRGB(1-.62*col,.69-.36*col,.38-.06*col)}
-    this.stem.position.set(this.gx,this.gy+H/2,this.gz);this.stem.scale.set(26+t*.6,Math.max(1,H),26+t*.6);
-    const cr=40+Math.min(150,t*9);this.cap.position.set(this.gx,this.gy+H+cr*.25,this.gz);this.cap.scale.set(cr,cr*.6,cr);this.skirt.position.set(this.gx,this.gy+H*.82,this.gz);this.skirt.scale.set(cr*.95,cr*.95,cr*.5);this.cap.rotation.y=this.stem.rotation.y=t*.05;
+    this.stem.position.set(this.gx,this.gy+H/2,this.gz);this.stem.scale.set((26+t*.6)*k0,Math.max(1,H),(26+t*.6)*k0);
+    const cr=(40+Math.min(150,t*9))*k0;this.cap.position.set(this.gx,this.gy+H+cr*.25,this.gz);this.cap.scale.set(cr,cr*.6,cr);this.skirt.position.set(this.gx,this.gy+H*.82,this.gz);this.skirt.scale.set(cr*.95,cr*.95,cr*.5);this.cap.rotation.y=this.stem.rotation.y=t*.05;
     // the shock reaches you: shove, hurt, shake (once)
     if(!this.hit&&front*1>=this.dp){this.hit=true;const dx=player.x-this.gx,dz=player.z-this.gz,d=Math.hypot(dx,dz)||1,k=Math.max(0,1-d/(R*1.8));player.vx+=dx/d*(8+22*k);player.vz+=dz/d*(8+22*k);if(typeof GUN!=='undefined'&&GUN.armed)GUN.damage(Math.round(100*k),'nuclear blast');if(typeof FX!=='undefined'){FX.shakeT=2.2;FX.shakeA=.07}}
     // the zone stays ruined for 75 s, then the city grows back over 25 s
     if(t>75){this.K=Math.max(0,1-(t-75)/25);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
     if(t>100)this.clear()},
-  clear(){this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
+  clear(){for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
