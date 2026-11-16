@@ -118,6 +118,7 @@ body.spc #hud,body.spc #joy,body.spc #actBtns,body.spc #bAct,body.spc #quickRow,
     if(this.cam0){camera.near=this.cam0.near;camera.far=this.cam0.far;camera.fov=this.cam0.fov;camera.updateProjectionMatrix()}
     if(typeof sky!=='undefined'){sky.visible=true}if(this._fogD!==undefined&&scene.fog){scene.fog.density=this._fogD;this._fogD=undefined}
     if(this.fly){scene.remove(this.fly);this.fly=null}if(this.stk)this.stk.visible=true;if(this.debris){for(const d of this.debris)scene.remove(d.o);this.debris=[]}if(this.smoke){for(const s of this.smoke)s.s.visible=false}
+    this.suit(false);
     if(PLR&&PLR.root){if(PLR.root.parent!==scene){PLR.root.parent&&PLR.root.parent.remove(PLR.root);scene.add(PLR.root)}PLR.root.scale.setScalar(1);PLR.root.visible=true}
     if(wasSpace||this.A){const p=PLACES.find(q=>q.id==='spacepad');if(p)teleportRaw(p.x,p.z,p.yaw)}this.A=null;
     toast('Back on Earth','the launch pad')},
@@ -228,16 +229,27 @@ Object.assign(SPC,{
   // ---------------------------------------------------------------------------------------------- astronaut (EVA) and the frame loop
   startEva(w){this.mode='eva';this.E1={w:w.clone(),v:new THREE.Vector3(),yaw:0};this.setHud('eva');this.avatarIn(this.sc);this.in.thr=0;
     this.V.yaw=Math.atan2(w.x,w.z);this.V.pitch=.12},
-  avatarIn(parent){if(!PLR||!PLR.root)return;if(PLR.root.parent!==parent){PLR.root.parent&&PLR.root.parent.remove(PLR.root);parent.add(PLR.root)}PLR.root.visible=true;PLR.root.scale.setScalar(1)},
+  // the space suit: a glass helmet with a gold visor and a life-support pack, put on whenever the astronaut is outside (removed on the way back to Earth)
+  suit(on){if(!PLR||!PLR.root)return;if(!this._suit){const g=new THREE.Group(),M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.5,metalness:.2},o||{}));
+      const h=new THREE.Mesh(new THREE.SphereGeometry(.3,18,14),M(0xffffff,{transparent:true,opacity:.28,roughness:.1,metalness:.5}));h.position.set(0,1.66,.02);g.add(h);
+      const v=new THREE.Mesh(new THREE.SphereGeometry(.285,18,12,-1.1,2.2,.55,1.05),M(0xc8962a,{roughness:.12,metalness:.9,side:THREE.DoubleSide}));v.position.set(0,1.66,.04);g.add(v);
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(.2,.04,8,16),M(0xdadde0));ring.position.set(0,1.44,0);ring.rotation.x=Math.PI/2;g.add(ring);
+      const pk=new THREE.Mesh(new THREE.BoxGeometry(.42,.56,.22),M(0xe8eaee));pk.position.set(0,1.18,-.24);g.add(pk);for(const x of [-.12,.12]){const t=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.4,8),M(0x9aa0a8,{metalness:.6}));t.position.set(x,1.2,-.38);g.add(t)}
+      g.traverse(o=>{o.frustumCulled=false});this._suit=g}
+    if(on){if(this._suit.parent!==PLR.root)PLR.root.add(this._suit)}else if(this._suit.parent)this._suit.parent.remove(this._suit)},
+  avatarIn(parent){if(!PLR||!PLR.root)return;this.suit(true);if(PLR.root.parent!==parent){PLR.root.parent&&PLR.root.parent.remove(PLR.root);parent.add(PLR.root)}PLR.root.visible=true;PLR.root.scale.setScalar(1)},
   look(dx,dy){const V=this.V;if(!V||this.mode==='fly'||this.mode==='ascent')return;V.yaw-=dx*.006;V.pitch=Math.max(-1.2,Math.min(1.3,V.pitch+dy*.005))},
   zoom(d){if(this.V)this.V.dist=Math.max(2.5,Math.min(30,this.V.dist+d*.01))},
   place(o){const w=o.userData.w;o.position.set(w.x-this.cam.x,w.y-this.cam.y,w.z-this.cam.z)},
   frame(dt){if(!this.built||!this.C)return;this._fc=(this._fc||0)+1;const I=this.in,C=this.C,P=this.P;let alt=0,body='';
-    if(this.mode==='fly'){const dM=C.w.distanceTo(this.M)-P.moonR,dE=C.w.distanceTo(this.E)-P.earthR;this.limit=0;
+    if(this.mode==='fly'){let dM=C.w.distanceTo(this.M)-P.moonR;const dE=C.w.distanceTo(this.E)-P.earthR;this.limit=0;
+      // the landing patch (craters, rocks) is built as soon as the Moon is close, so the last kilometres have real ground under the ship; touchdown is by the height above THAT ground
+      let sl=null;if(dM<9000&&!this.lgP)this.prep(C.w.clone().sub(this.M).normalize());
+      if(this.lgP&&this.lg){const lp=C.w.clone().sub(this.L).applyQuaternion(this.qF.clone().invert()),r=Math.hypot(lp.x,lp.z);if(r<2100){dM=Math.min(dM,lp.y-this.hgt(lp.x,lp.z));sl={x:lp.x,z:lp.z}}}
       if(dM<30000)this.limit=Math.max(14,14+dM*.06);if(dE<25000)this.limit=Math.max(30,30+dE*.04);
       this.flyStep(dt,false,0);
       if(dE<2500){const n=C.w.clone().sub(this.E).normalize();C.w.copy(this.E).addScaledVector(n,P.earthR+2500);C.sp*=.9;this.msg('Atmosphere','this is as low as the fighter goes: press Earth to go home',2500)}
-      if(dM<=3){this.land(C.w.clone().sub(this.M).normalize());return}
+      if(dM<=3){this.land(this.lgP?this.n:C.w.clone().sub(this.M).normalize(),sl);return}
       alt=dM<dE?dM:dE;body=dM<dE?'Moon':'Earth';this.shipMesh.position.set(0,0,0);this.camSpace(dt,C);
       this.shipMesh.position.set(C.w.x-this.cam.x,C.w.y-this.cam.y,C.w.z-this.cam.z);this.shipMesh.quaternion.copy(C.q)}
     else if(this.mode==='eva')this.evaStep(dt);
@@ -252,7 +264,7 @@ Object.assign(SPC,{
   camSpace(dt,C){this.cam.set(C.w.x,C.w.y,C.w.z);if(!C.cq)C.cq=C.q.clone();C.cq.slerp(C.q,1-Math.exp(-dt*5));const off=new THREE.Vector3(0,6,-30-Math.min(40,C.sp/600)).applyQuaternion(C.cq);this.cam.add(off);
     camera.position.set(0,0,0);camera.quaternion.copy(C.cq).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI));camera.rotateX(-.08);camera.near=.3;camera.updateProjectionMatrix()},
   hud(alt,body){const a=document.getElementById('spcAlt');if(!a)return;if(this.mode==='fly'){const dM=(this.C.w.distanceTo(this.M)-this.P.moonR),f=d=>d>=1e6?(d/1e3).toLocaleString('en',{maximumFractionDigits:0})+' km':d>=1e3?(d/1e3).toFixed(1)+' km':Math.round(d)+' m';a.textContent='Moon '+f(dM)+' · '+(dM<this.C.w.distanceTo(this.E)-this.P.earthR?'':'Earth '+f(this.C.w.distanceTo(this.E)-this.P.earthR))}
-    else if(this.mode==='moon'||this.mode==='landed')a.textContent='Gravity 1.62 m/s² · '+(this.mode==='moon'?'Distance to the ship '+Math.round(Math.hypot(this.W.x,this.W.z))+' m':'press Exit')},
+    else if(this.mode==='moon'||this.mode==='landed')a.textContent='Gravity 1.62 m/s² · '+(this.mode==='moon'?'Ship '+Math.round(Math.hypot(this.W.x,this.W.z))+' m · jet pack '+Math.round(this.W.fuel||0)+'% (hold Jump / tap in the air)':'press Exit')},
   evaStep(dt){const E=this.E1,I=this.in,V=this.V,m=this.C.w;const sx=Math.abs(I.lx)>.04?I.lx:(I.kx||0),sy=Math.abs(I.ly)>.04?I.ly:(I.ky||0);
     const fw=new THREE.Vector3(-Math.sin(V.yaw)*Math.cos(V.pitch)*-1,-Math.sin(V.pitch)*-1,0);const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(V.pitch,V.yaw,0,'YXZ'));
     // camera looks along its own -z; "forward" for the astronaut is where the camera looks
@@ -273,18 +285,19 @@ Object.assign(SPC,{
   // ---------------------------------------------------------------------------------------------- buttons
   act(){if(this.mode==='fly'){const dM=this.C.w.distanceTo(this.M)-this.P.moonR;if(dM<4000){this.limit=15;this.C.thr=0;this.msg('Landing assist','descend slowly: the speed is limited near the surface',2600)}else this.msg('Land','fly to the Moon first (it is far away)',2400);return}
     if(this.mode==='landed')return this.exitShip();if(this.mode==='eva'){if(this.E1.w.distanceTo(this.C.w)<40){this.mode='fly';this.setHud('fly');if(PLR)PLR.root.visible=false;this.msg('Space fighter','',1500)}else this.msg('Too far','fly closer to the fighter',2000);return}
-    if(this.mode==='moon'){if(!this.M2.air){this.M2.vy=3.4;this.M2.air=true}return}},
+    if(this.mode==='moon'){const M=this.M2;if(!M.air){M.vy=3.4;M.air=true}else if(M.fuel>12){M.vy=Math.min(8,M.vy+3);M.fuel-=12}return}},
   toStation(){if(!this.space)return;this.flash(1,350);setTimeout(()=>{this.C.w.set(70,6,-38);this.C.sp=0;this.C.thr=0;this.limit=0;this.C.q.setFromAxisAngle(new THREE.Vector3(0,1,0),2.6);this.C.cq=null;if(this.lg){this.lg.visible=false}this.shipMesh.visible=true;sc_attach(this);this.startEva(new THREE.Vector3(36,3,-96));this.flash(0,800);this.msg('Station','',1800)},380)},
 });
 function sc_attach(S){if(S.shipMesh.parent!==S.sc){S.shipMesh.parent&&S.shipMesh.parent.remove(S.shipMesh);S.sc.add(S.shipMesh)}S.shipMesh.scale.setScalar(1)}
 // ==================================================================================================== the Moon: landing, a curved patch of regolith, walking in low gravity
 Object.assign(SPC,{
   craters(seed){let s=seed>>>0;const r=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296},a=[];for(let i=0;i<16;i++){const d=90+r()*1300,q=r()*6.2832;a.push({x:Math.cos(q)*d,z:Math.sin(q)*d,r:14+Math.pow(r(),2)*110})}return a},
+  hg(x,z){return this.hgt(x+this.ho.x,z+this.ho.z)-this.ho.y},
   hgt(x,z){const Rm=this.P.moonR,r2=x*x+z*z,r=Math.sqrt(r2),fl=Math.min(1,Math.max(0,(r-10)/50)),n=this.pn,f=(a,b,sc)=>n(a/sc,b/sc)-.5;let h=-r2/(2*Rm);
     let d=5*f(x,z,150)+1.3*f(x+31,z-17,24)+.14*f(x-9,z+4,3.1);
     for(const c of this.cr){const q=Math.hypot(x-c.x,z-c.z)/c.r;if(q<1.5){if(q<1)d-=c.r*.16*(1-q*q);d+=c.r*.05*Math.exp(-Math.pow((q-1.04)/.17,2))}}
     return h+d*fl},
-  land(n){const P=this.P;this.mode='landed';this.n=n.clone();this.L=this.M.clone().addScaledVector(n,P.moonR);this.qF=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n);
+  prep(n){const P=this.P;this.lgP=1;this.n=n.clone();this.L=this.M.clone().addScaledVector(n,P.moonR);this.qF=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),n);
     const f=new THREE.Vector3(0,0,1).applyQuaternion(this.C.q);f.addScaledVector(n,-f.dot(n));if(f.lengthSq()<1e-4)f.set(1,0,0).addScaledVector(n,-n.x);f.normalize();const lf=f.applyQuaternion(this.qF.clone().invert());this.yaw0=Math.atan2(lf.x,lf.z);
     this.pn=this.noise2(5.5+Math.abs(this.L.x%7));this.cr=this.craters((Math.abs(this.L.x)*13+Math.abs(this.L.z)*7)|0);
     if(this.lg){this.sc.remove(this.lg);this.reg=this.reg.filter(o=>o!==this.lg)}
@@ -298,20 +311,24 @@ Object.assign(SPC,{
     const rk=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x6f6a64,roughness:1,flatShading:true}),260),m4=new THREE.Matrix4(),qq=new THREE.Quaternion(),sc3=new THREE.Vector3(),p3=new THREE.Vector3();let seed=7;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
     for(let i=0;i<260;i++){const r=9+Math.pow(rnd(),1.6)*1300,q=rnd()*6.2832,x=Math.cos(q)*r,z=Math.sin(q)*r,k=.25+Math.pow(rnd(),3)*2.4;p3.set(x,this.hgt(x,z)+k*.25,z);qq.setFromEuler(new THREE.Euler(rnd()*3,rnd()*3,rnd()*3));sc3.set(k*(1+rnd()*.6),k*.7,k*(1+rnd()*.6));m4.compose(p3,qq,sc3);rk.setMatrixAt(i,m4)}
     rk.frustumCulled=false;lg.add(rk);
+    this.lgc=[patch,rk];this.ho={x:0,y:0,z:0};if(this.moonM)this.moonM.traverse(o=>{if(o.material){o.material.polygonOffset=true;o.material.polygonOffsetFactor=3;o.material.polygonOffsetUnits=3}});patch.material.polygonOffset=true;patch.material.polygonOffsetFactor=-2;patch.material.polygonOffsetUnits=-2},
+  // touchdown: the ship stands where it came down (sl = its place in the patch); the patch is shifted so that this spot is the local origin
+  land(n,sl){if(!this.lgP)this.prep(n);sl=sl||{x:0,z:0};const P=this.P;this.mode='landed';const lg=this.lg;this.ho={x:sl.x,y:this.hgt(sl.x,sl.z),z:sl.z};for(const o of this.lgc)o.position.set(-this.ho.x,-this.ho.y,-this.ho.z);lg.visible=true;
     const ship=this.shipMesh;ship.parent&&ship.parent.remove(ship);lg.add(ship);ship.position.set(0,0,0);ship.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),this.yaw0);ship.scale.setScalar(1);this.moonM.visible=false;
     this._lt=performance.now()+1500;this._rel=false;this.C.sp=0;this.C.thr=0;this.limit=0;this.V={yaw:.6,pitch:.3,dist:34};this.setHud('landed');this.msg('Touchdown','you are on the Moon · Exit to walk',3500)},
   regTex(){if(this._rt)return this._rt;const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d'),im=x.createImageData(256,256),n=this.noise2(2.2);for(let j=0;j<256;j++)for(let i=0;i<256;i++){const v=170+ (n(i/6,j/6)-.5)*70+(n(i/1.7,j/1.7)-.5)*40,k=(j*256+i)*4;im.data[k]=v;im.data[k+1]=v*.97;im.data[k+2]=v*.93;im.data[k+3]=255}x.putImageData(im,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return this._rt=t},
-  lcam(target,dist){const V=this.V,cp=Math.cos(V.pitch),off=new THREE.Vector3(Math.sin(V.yaw)*cp,Math.sin(V.pitch),Math.cos(V.yaw)*cp).multiplyScalar(dist),ep=target.clone().add(off);const gy=this.hgt(ep.x,ep.z)+.6;if(ep.y<gy)ep.y=gy;
+  lcam(target,dist){const V=this.V,cp=Math.cos(V.pitch),off=new THREE.Vector3(Math.sin(V.yaw)*cp,Math.sin(V.pitch),Math.cos(V.yaw)*cp).multiplyScalar(dist),ep=target.clone().add(off);const gy=this.hg(ep.x,ep.z)+.6;if(ep.y<gy)ep.y=gy;
     const m=new THREE.Matrix4().lookAt(ep,target,new THREE.Vector3(0,1,0)),lq=new THREE.Quaternion().setFromRotationMatrix(m);this.cam.copy(ep).applyQuaternion(this.qF).add(this.L);camera.position.set(0,0,0);camera.quaternion.copy(this.qF).multiply(lq);camera.near=.1;camera.updateProjectionMatrix()},
   camLanded(dt){this.lcam(new THREE.Vector3(0,3,0),this.V.dist);const I=this.in;document.getElementById('spcSpd').textContent='0 m/s';document.getElementById('spcThr').style.width='0%';
     if(!I.thr&&!I.full)this._rel=true;if((I.thr>0||I.full)&&this._rel&&performance.now()>this._lt){// take off: back into the fighter, pointing away from the surface
       this.flash(0,0);const ship=this.shipMesh;ship.parent&&ship.parent.remove(ship);this.sc.add(ship);this.C.w.copy(this.L).addScaledVector(this.n,4);this.C.q.copy(this.qF).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.yaw0)).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-1.2));this.C.cq=null;this.C.sp=60;this.C.thr=.1;this.limit=0;
-      if(this.lg)this.lg.visible=false;this.moonM.visible=true;this.mode='fly';this.setHud('fly');this.msg('Lift-off','',1800)}},
-  exitShip(){this.mode='moon';this.M2={x:7,z:3,y:this.hgt(7,3),vy:0,air:false,yaw:-2};this.W=this.M2;this.avatarIn(this.sc);PLR.root.scale.setScalar(1);this.V={yaw:.5,pitch:.25,dist:6.5};this.setHud('moon');this._near=-1;this.msg('The Moon','walk with the stick · drag to look · jump is high here',3200)},
+      this.lgP=0;if(this.lg)this.lg.visible=false;this.moonM.visible=true;this.mode='fly';this.setHud('fly');this.msg('Lift-off','',1800)}},
+  exitShip(){this.mode='moon';this.M2={x:7,z:3,y:this.hg(7,3),vy:0,air:false,yaw:-2,fuel:100};this.W=this.M2;this.avatarIn(this.sc);PLR.root.scale.setScalar(1);this.V={yaw:.5,pitch:.25,dist:6.5};this.setHud('moon');this._near=-1;this.msg('The Moon','walk with the stick · drag to look · jump is high here',3200)},
   moonStep(dt){const M=this.M2,I=this.in,V=this.V,Rm=this.P.moonR;const sx=Math.abs(I.lx)>.04?I.lx:(I.kx||0),sy=Math.abs(I.ly)>.04?I.ly:(I.ky||0),len=Math.hypot(sx,sy),kk=len>1?1/len:1,ix=sx*kk,iy=sy*kk,mag=Math.min(1,len);
     const f=[-Math.sin(V.yaw),-Math.cos(V.yaw)],r=[Math.cos(V.yaw),-Math.sin(V.yaw)],spd=(mag>.92||I.thr>0?5.6:3.3),vx=(f[0]*iy+r[0]*ix)*spd,vz=(f[1]*iy+r[1]*ix)*spd;
     M.x+=vx*dt;M.z+=vz*dt;const d=Math.hypot(M.x,M.z);if(d>1700){M.x*=1700/d;M.z*=1700/d}
-    if(I.jump&&!M.air){M.vy=3.4;M.air=true}M.vy-=this.P.g*dt;M.y+=M.vy*dt;const gy=this.hgt(M.x,M.z);if(M.y<=gy){M.y=gy;M.vy=0;M.air=false}
+    if(I.jump&&!M.air){M.vy=3.4;M.air=true}else if(I.jump&&M.air&&M.fuel>0){M.vy=Math.min(8,M.vy+10*dt);M.fuel-=dt*16}   // hold Jump in the air: the jet pack
+    if(!M.air)M.fuel=Math.min(100,M.fuel+dt*45);M.vy-=this.P.g*dt;M.y+=M.vy*dt;const gy=this.hg(M.x,M.z);if(M.y<=gy){M.y=gy;M.vy=0;M.air=false}
     if(mag>.05){const yw=Math.atan2(vx,vz);M.yaw+=((((yw-M.yaw+Math.PI)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)-Math.PI)*Math.min(1,dt*8)}
     const root=PLR.root;if(!this.noAnim)try{animPlayer(PLR,{spd:Math.hypot(vx,vz),mode:M.air?'air':'walk'},dt)}catch(e){if(!this._ae){this._ae=1;console.warn('[space] animPlayer',e)}}
     this.lcam(new THREE.Vector3(M.x,M.y+1.25,M.z),V.dist);
