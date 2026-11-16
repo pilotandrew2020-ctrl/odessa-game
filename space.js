@@ -168,7 +168,7 @@ Object.assign(SPC,{
   debrisStep(dt){if(!this.debris)return;for(const d of this.debris){d.t+=dt;d.v.y-=22*dt;d.o.position.addScaledVector(d.v,dt);d.o.rotateX(d.w.x*dt);d.o.rotateY(d.w.y*dt);d.o.rotateZ(d.w.z*dt);if(d.t>16)d.o.visible=false}},
   // ---------------------------------------------------------------------------------------------- the fighter in the atmosphere
   board(){if(this.on||!this.fgt||!this.fgtMesh)return;this.begin('atmo');this.atmo=true;const m=this.fgtMesh;this.C={w:{x:m.position.x,y:m.position.y,z:m.position.z},q:new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.fgt.yaw),sp:0,thr:0,cq:null};
-    this.msg('Space fighter','throttle up and climb: the Moon is far away',3200)},
+    this.msg('Space fighter','stick forward (or Fwd) to fly, Up and Down to climb and sink · drag to turn · the Moon is far away',3200)},
   frameAtmo(dt){if(this.mode==='ascent')return this.ascent(dt);if(this.mode!=='atmo'||!this.C)return;this.sound(dt);const C=this.C,alt=C.w.y-SL;this.flyStep(dt,true,alt);
     const gh=Math.max(groundH(C.w.x,C.w.z),SL);if(C.w.y<gh+3.5){C.w.y=gh+3.5;if(C.q){const f=new THREE.Vector3(0,0,1).applyQuaternion(C.q);if(f.y<0){f.y=0;f.normalize();C.q.setFromUnitVectors(new THREE.Vector3(0,0,1),f)}}C.sp*=.98}
     const m=this.fgtMesh;m.position.set(C.w.x,C.w.y,C.w.z);m.quaternion.copy(C.q);this.camFollow(dt,camera,C,0);player.x=C.w.x;player.z=C.w.z;player.y=C.w.y;player.vx=player.vz=0;
@@ -246,7 +246,7 @@ Object.assign(SPC,{
       // the landing patch (craters, rocks) is built as soon as the Moon is close, so the last kilometres have real ground under the ship; touchdown is by the height above THAT ground
       let sl=null;if(dM<9000&&!this.lgP)this.prep(C.w.clone().sub(this.M).normalize());
       if(this.lgP&&this.lg){const lp=C.w.clone().sub(this.L).applyQuaternion(this.qF.clone().invert()),r=Math.hypot(lp.x,lp.z);if(r<2100){dM=Math.min(dM,lp.y-this.hgt(lp.x,lp.z));sl={x:lp.x,z:lp.z}}}
-      if(dM<30000)this.limit=Math.max(14,14+dM*.06);if(dE<25000)this.limit=Math.max(30,30+dE*.04);
+      if(dM<30000)this.limit=Math.max(14,14+dM*.15);if(dE<25000)this.limit=Math.max(30,30+dE*.04);
       this.flyStep(dt,false,0);
       if(dE<2500){const n=C.w.clone().sub(this.E).normalize();C.w.copy(this.E).addScaledVector(n,P.earthR+2500);C.sp*=.9;this.msg('Atmosphere','this is as low as the fighter goes: press Earth to go home',2500)}
       if(dM<=3){this.land(this.lgP?this.n:C.w.clone().sub(this.M).normalize(),sl);return}
@@ -337,4 +337,4 @@ Object.assign(SPC,{
     const near=Math.hypot(M.x,M.z)<9?1:0;if(near!==this._near){this._near=near;const a=document.getElementById('spcAct');if(a)a.innerHTML=near?'<b>🚀</b>Board':'<b>⇱</b>Jump'}
     document.getElementById('spcSpd').textContent=Math.hypot(vx,vz).toFixed(1)+' m/s';document.getElementById('spcThr').style.width='0%'},
 });
-const _spcAct=SPC.act;SPC.act=function(){if(this.mode==='moon'&&Math.hypot(this.M2.x,this.M2.z)<9){this.mode='landed';this.setHud('landed');if(PLR)PLR.root.visible=false;this.V={yaw:.6,pitch:.3,dist:34};this.msg('Space fighter','press Throttle to take off',2200);return}return _spcAct.call(this)};
+const _spcAct=SPC.act;SPC.act=function(){if(this.mode==='moon'&&Math.hypot(this.M2.x,this.M2.z)<9){this.mode='landed';this.setHud('landed');if(PLR)PLR.root.visible=false;this.V={yaw:.6,pitch:.3,dist:34};this.msg('Space fighter','press Up to take off',2200);return}return _spcAct.call(this)};

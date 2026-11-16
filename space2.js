@@ -1,5 +1,5 @@
 // space2.js — the owner's space list (2026-11-16), an extension of space.js / spaceint.js (loaded after them):
-//   * SPEED: 100,000 m/s in space, 900 m/s in the atmosphere (over the Earth); the speed follows the throttle INSTANTLY (no slow ramp, instant brake), the throttle itself rises 6x faster.
+//   * SPEED: 100,000 m/s in space, 222 m/s (800 km/h) in the atmosphere (over the Earth); the speed follows the throttle INSTANTLY (no slow ramp, instant brake), the throttle itself rises 6x faster.
 //   * CAMERA: drag on the right side = orbit round the ship (any side, up / down / left / right), pinch or wheel = zoom in / out, all the way into the COCKPIT (look round inside); inside the stations / the ship the avatar can be seen walking, jumping and floating (third person, zoom to 0 for the eyes).
 //   * FIGHTER LOOK: a blue aura, engine fire that grows with the throttle and lightning arcs round the hull while it flies.
 //   * ISS: more rooms inside: crew beds, a bathroom, desks with computers and chairs, cabinets, cables and wires.
@@ -14,14 +14,15 @@ Object.assign(SPC,{
   zoom(d){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
     if(this.mode==='fly'||this.mode==='atmo'){const F=this.FV;F.dist=clamp(F.dist*(1+d*.0015)+(d>0?.01:-.01),0,160);return}
     const V=this.V;if(!V)return;V.dist=clamp(V.dist+d*.01,this.mode==='interior'?0:2.5,this.mode==='interior'?7:30)},
-  // ---- the flight model: 100,000 m/s in space, 900 m/s in the atmosphere, speed = throttle x max at once
-  flyStep(dt,atmo,alt){const C=this.C,I=this.in,q=C.q,sx=Math.abs(I.lx)>.04?I.lx:(I.kx||0),sy=Math.abs(I.ly)>.04?I.ly:(I.ky||0);
-    const pv=(typeof S!=='undefined'&&S.flyPilot)?1:-1;   // like the planes: stick up = nose up (Menu -> Flight: PILOT style turns it round)
-    q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(pv*sy*1.05*dt,-sx*.9*dt,I.roll*1.5*dt,'XYZ'))).normalize();
-    if(I.full)C.thr=1;else C.thr=Math.min(1,Math.max(0,C.thr+I.thr*dt*2));
-    let vmax=atmo?Math.min(900,120+Math.max(0,alt)*.08):this.P.vmax;if(this.limit)vmax=Math.min(vmax,this.limit);
-    C.sp=I.brake?0:C.thr*vmax;   // instant
-    const f=new THREE.Vector3(0,0,1).applyQuaternion(q);C.w.x+=f.x*C.sp*dt;C.w.y+=f.y*C.sp*dt;C.w.z+=f.z*C.sp*dt;C.f=f;
+  // ---- the flight model: 100,000 m/s in space, 222 m/s (800 km/h) in the atmosphere, speed = throttle x max at once
+  flyStep(dt,atmo,alt){const C=this.C,I=this.in,q=C.q,V=THREE.Vector3,sx=Math.abs(I.lx)>.04?I.lx:(I.kx||0),sy=Math.abs(I.ly)>.04?I.ly:(I.ky||0);
+    // round 19: HELICOPTER-STYLE controls (the owner: "same as the helicopter"). Stick up / down = forward / back, left / right = strafe, UP / DOWN buttons (Space / Shift) climb and sink, TURN buttons (Q / E) yaw, dragging the view turns the nose (look()), FULL = hold full speed ahead, BRAKE = stop. Let go and it hovers. The ship levels itself, so left is always left.
+    q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,I.roll*1.1*dt,0,'XYZ'))).normalize();
+    {const f0=new V(0,0,1).applyQuaternion(q),up0=new V(0,1,0);up0.addScaledVector(f0,-up0.dot(f0));if(up0.lengthSq()>.01){up0.normalize();q.slerp(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(f0,new V(),up0)),Math.min(1,dt*3)).normalize()}}
+    let vmax=atmo?Math.min(222,120+Math.max(0,alt)*.08):this.P.vmax;if(this.limit)vmax=Math.min(vmax,this.limit);   // 222 m/s = 800 km/h over the Earth (round 19)
+    const f=new V(0,0,1).applyQuaternion(q),r=new V(-1,0,0).applyQuaternion(q),u=new V(0,1,0).applyQuaternion(q),fw=Math.max(sy,I.full?1:0),cl=(I.jump?1:0)+(I.thr>0?1:0)-(I.thr<0?1:0),v=new V();
+    v.addScaledVector(f,fw>=0?fw:fw*.5).addScaledVector(r,sx*.6).addScaledVector(u,cl*.6);if(v.length()>1)v.normalize();if(I.brake)v.set(0,0,0);
+    C.sp=v.length()*vmax;C.thr=Math.min(1,v.length());C.w.addScaledVector(v,vmax*dt);C.f=f;
     this.fxTick(dt,atmo);
     document.getElementById('spcSpd').textContent=(atmo?Math.round(C.sp*3.6)+' km/h':Math.round(C.sp).toLocaleString('en')+' m/s');document.getElementById('spcThr').style.width=(C.thr*100)+'%'},
   // ---- cameras: one function for both scenes; mode 'space' keeps the camera at the origin (floating origin), 'atmo' places it in the world
@@ -47,7 +48,7 @@ Object.assign(SPC,{
     for(const s of [-1,1]){const o=new THREE.Mesh(new THREE.ConeGeometry(L*.035,1,12,1,true),fireMat(0xff8a2a));o.rotation.x=-Math.PI/2;o.position.set(s*L*.1,0,-L*.48);g.add(o);const i=new THREE.Mesh(new THREE.ConeGeometry(L*.02,1,10,1,true),fireMat(0x9fd8ff));i.rotation.x=-Math.PI/2;i.position.copy(o.position);g.add(i);fires.push(o,i)}
     const N=14,pos=new Float32Array(N*6*3),ln=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xbfe4ff,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));ln.geometry.setAttribute('position',new THREE.BufferAttribute(pos,3));ln.frustumCulled=false;g.add(ln);
     g.userData.aura=aura;g.userData.fires=fires;g.userData.ln=ln;g.userData.L=L;g.userData.N=N;g.visible=false;mesh.add(g);mesh.userData.fx=g;return g},
-  fxTick(dt,atmo){const mesh=atmo?this.fgtMesh:this.shipMesh;if(!mesh||!this.C)return;this.fxUpdate(mesh,this.C.thr||0,Math.min(1,this.C.sp/(atmo?900:100000)),dt)},
+  fxTick(dt,atmo){const mesh=atmo?this.fgtMesh:this.shipMesh;if(!mesh||!this.C)return;this.fxUpdate(mesh,this.C.thr||0,Math.min(1,this.C.sp/(atmo?222:100000)),dt)},
   fxUpdate(mesh,thr,spd,dt){const g=this.fxBuild(mesh),U=g.userData;g.visible=true;U.t+=dt;
     const aur=U.aura.material.uniforms;aur.uI.value=.25+.55*Math.max(thr,spd);aur.uT.value=U.t;
     const L=U.L;U.fires.forEach((o,i)=>{const len=L*(.05+.55*thr)*(.8+.4*Math.random()),isIn=i%2===1;o.scale.set(1,len*(isIn?.7:1),1);o.position.z=-L*.48-len*(isIn?.35:.5)});
@@ -179,12 +180,12 @@ Object.assign(SPC,{
 
 // ================================================================= URANUS, rock collisions, DOCKING, FLYING TOGETHER (2026-11-16)
 SPC.URL.uranus='assets/models/space/uranus.glb';
-// ---- Uranus (the owner's model: planet, cloud shell, rings): a gas giant 55,000 km out, no surface (the ship is pushed out of its atmosphere)
+// ---- Uranus (the owner's model: planet, cloud shell, rings): a gas giant 1,000,000 km out, no surface (the ship is pushed out of its atmosphere)
 {const _bsol=SPC.buildSolar;SPC.buildSolar=function(){_bsol.call(this);this.shipTpl=this.shipMesh.clone(true);this.rs=this.rs||{};this.gas=[];this.loadUranus()}}
 Object.assign(SPC,{
   async loadUranus(){try{const u=(await this.load('uranus')).clone(true),R=2.4e6,k=R/44106;const g=new THREE.Group();g.add(u);g.scale.setScalar(k);u.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;const m=o.material;if(/clouds/i.test(o.name)){m.transparent=true;m.opacity=.35;m.depthWrite=false;m.transmission=0}
         if(/ring/i.test(o.name)){m.transparent=true;m.opacity=1;m.alphaTest=.02;m.depthWrite=false;m.side=THREE.DoubleSide}else m.side=THREE.FrontSide});
-      const c=new THREE.Vector3(.4,-.08,.91).normalize().multiplyScalar(5.0e7);g.userData.w=c;this.reg.push(g);this.sc.add(g);this.uranusM=g;this.gas.push({id:'uranus',name:'Uranus',c,R:R*1.0,atm:2.6e4,mesh:g});console.log('[space] Uranus ready')}catch(e){console.warn('[space] uranus',e)}},
+      const c=new THREE.Vector3(.4,-.08,.91).normalize().multiplyScalar(1.0e9);g.userData.w=c;this.reg.push(g);this.sc.add(g);this.uranusM=g;this.gas.push({id:'uranus',name:'Uranus',c,R:R*1.0,atm:2.6e4,mesh:g});console.log('[space] Uranus ready')}catch(e){console.warn('[space] uranus',e)}},
   // gas giants: slow down near them, never fly through
   gasGuard(){if(!this.gas||!this.C||this.mode!=='fly')return;const C=this.C;for(const b of this.gas){const d=C.w.distanceTo(b.c)-b.R;this.limit2=d<9e4?Math.max(40,40+d*.05):0;if(d<b.atm){const n=C.w.clone().sub(b.c).normalize();C.w.copy(b.c).addScaledVector(n,b.R+b.atm);C.sp=0;if(!this._gm||performance.now()-this._gm>4000){this._gm=performance.now();this.msg(b.name,'a gas giant: there is no surface, the ship turns back',2600)}}}},
   // giant rocks are solid

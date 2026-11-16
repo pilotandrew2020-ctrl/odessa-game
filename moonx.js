@@ -1,7 +1,7 @@
 // moonx.js — round 18 (2026-11-16): the owner's "walk on the Moon / Uranus, spawn things there, the Lunokhod, a faster trip to Uranus". Loaded after space2.js (extension pattern: wraps SPC methods).
 //   * TRAVEL (button in the space HUD, flying or on a spacewalk): MOON / MERCURY / URANUS jump you straight onto the surface and let you out at once (no hunting for the landing).
 //   * URANUS is landable now: a gas giant has no real ground, so it gets a pale-ice crust (a made-up surface, lighter gravity than the real one: 3 m/s2).
-//   * WARP: x10 speed (1,000,000 m/s) far from every body, slows down by itself near one (so the Uranus trip, 50,000 km, takes ~50 s instead of ~8 min).
+//   * WARP: 20% of the speed of light (60,000,000 m/s) far from every body, slows down by itself near one (so the Uranus trip, 50,000 km, takes ~50 s instead of ~8 min).
 //   * VEHICLES on a world: + Lunokhod-2 (the owner's GLB) and a rover car; a vehicle you leave stays parked where it is (it is still there when you come back by TRAVEL to the same place).
 SPC.URL.luna='assets/models/space/lunokhod.glb';
 Object.assign(SPC,{
@@ -28,8 +28,18 @@ Object.assign(SPC.VEH,{luna:{n:'Lunokhod',v:16,j:2.5,fly:0},car:{n:'Rover car',v
 // ---- Uranus: a landable world (pale ice crust), no more "the ship turns back"
 {const _lu=SPC.loadUranus;SPC.loadUranus=async function(){await _lu.call(this);const i=(this.gas||[]).findIndex(b=>b.id==='uranus');if(i<0)return;const b=this.gas.splice(i,1)[0];this.bodies.push({id:'uranus',name:'Uranus',c:b.c,R:b.R,mesh:b.mesh,g:3,tint:0xa9e6ee})}}
 {const _p=SPC.prep;SPC.prep=function(n){const r=_p.apply(this,arguments);const t=this.curBody&&this.curBody.tint;if(t&&this.lgc){this.lgc[0].material.color.setHex(t);this.lgc[1].material.color.setHex(0xbfe9f0)}return r}}
+// ---- helicopter-style flying: dragging the view turns the nose; the buttons are named like the helicopter's; Shift = down, Space = up
+{const _lk=SPC.look;SPC.look=function(dx,dy){if(this.mode==='fly'||this.mode==='atmo'){this.C.q.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(dy*.004,-dx*.005,0,'XYZ'))).normalize();return}return _lk.call(this,dx,dy)}}
+{const _k=SPC.key;SPC.key=function(e,dn){if(this.on&&(this.mode==='fly'||this.mode==='atmo')&&(e.code==='ShiftLeft'||e.code==='ShiftRight'||e.code==='ControlLeft'||e.code==='ControlRight')){this.in.thr=dn?-1:0;e.preventDefault();e.stopPropagation();return}return _k.call(this,e,dn)}}
+{const _h=SPC.setHud;SPC.setHud=function(mode){const r=_h.call(this,mode);if(!this._lbl){const b=k=>document.querySelector('#spcBtns [data-k="'+k+'"]');if(b('thrUp')&&b('rollL')){this._lbl=1;b('thrUp').innerHTML='<b>▲</b>Up';b('thrDn').innerHTML='<b>▼</b>Down';b('rollL').innerHTML='<b>◀</b>Turn';b('rollR').innerHTML='<b>▶</b>Turn';b('full').innerHTML='<b>⚡</b>Fwd'}}return r}}
 // ---- WARP
-{const _w=SPC.flyStep;SPC.flyStep=function(dt,atmo,alt){if(this.warp&&!atmo&&!this.dk&&this.C){const P=this.P,v0=P.vmax;let dm=this.C.w.distanceTo(this.E)-P.earthR;for(const b of this.bodies||[])dm=Math.min(dm,this.C.w.distanceTo(b.c)-b.R);P.vmax=Math.min(1e6,Math.max(v0,dm*2));try{return _w.call(this,dt,atmo,alt)}finally{P.vmax=v0}}return _w.call(this,dt,atmo,alt)}}
+{const _w=SPC.flyStep;SPC.flyStep=function(dt,atmo,alt){if(this.warp&&!atmo&&!this.dk&&this.C){const P=this.P,v0=P.vmax,C=this.C;let dm=C.w.distanceTo(this.E)-P.earthR;for(const b of this.bodies||[])dm=Math.min(dm,C.w.distanceTo(b.c)-b.R);for(const m of this.rocks||[]){const c=m.userData.w;if(c)dm=Math.min(dm,C.w.distanceTo(c)-(m.userData.rad||1e5))}
+      P.vmax=Math.min(this.WARPV,Math.max(v0,dm*2));let r;try{r=_w.call(this,dt,atmo,alt)}finally{P.vmax=v0}
+      if(C.sp>2e6){const e=document.getElementById('spcSpd');if(e)e.textContent=(C.sp/2.998e8*100).toFixed(1)+'% of light speed'}return r}return _w.call(this,dt,atmo,alt)}}
+// Uranus is 1,000,000 km away, past the camera's far plane: far away it is drawn smaller and nearer (same angular size), like the other planets in the sky
+{const _pl=SPC.place;SPC.place=function(o){if(o!==this.uranusM)return _pl.call(this,o);const w=o.userData.w,dx=w.x-this.cam.x,dy=w.y-this.cam.y,dz=w.z-this.cam.z,d=Math.hypot(dx,dy,dz),LIM=3.5e7;if(!o.userData.s0)o.userData.s0=o.scale.x;
+  if(d>LIM){const k=LIM/d;o.position.set(dx*k,dy*k,dz*k);o.scale.setScalar(o.userData.s0*k)}else{o.position.set(dx,dy,dz);o.scale.setScalar(o.userData.s0)}}}
+SPC.WARPV=6e7;   // 20% of the speed of light
 // ---- TRAVEL
 Object.assign(SPC,{
   travel(id){if(!['fly','eva','moon','landed'].includes(this.mode))return;const b=(this.bodies||[]).find(q=>q.id===id);if(!b)return;this._tm=0;
@@ -39,9 +49,9 @@ Object.assign(SPC,{
       const n=new THREE.Vector3(.25,.93,.27).normalize();this.C.w.copy(b.c).addScaledVector(n,b.R+60);this.C.sp=0;this.C.thr=0;this.C.cq=null;
       this.prep(n);this.land(n,{x:0,z:0});this.exitShip();this.flash(0,700);this.msg(b.name,'you are standing on it · walk with the stick, Jump hops',3500)},340)},
   tmx(){this.extraUI();const d=this._xu;if(!d)return;
-    if(!this._tb){d.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;if(k==='tmenu'){this._tm=!this._tm;this._xt=0}else if(k.startsWith('trv:'))this.travel(k.slice(4));else if(k==='warp'){this.warp=!this.warp;this._xt=0;this.msg(this.warp?'WARP ×10':'Warp off',this.warp?'1,000,000 m/s far from planets · slows down near them':'',2200)}});this._tb=1}
+    if(!this._tb){d.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;if(k==='tmenu'){this._tm=!this._tm;this._xt=0}else if(k.startsWith('trv:'))this.travel(k.slice(4));else if(k==='warp'){this.warp=!this.warp;this._xt=0;this.msg(this.warp?'WARP 20% c':'Warp off',this.warp?'60,000 km/s far from planets · slows down near them':'',2200)}});this._tb=1}
     if(!this.space||!this.on||!['fly','eva','moon','landed'].includes(this.mode))return;
     const btn=(k,t,on)=>`<button data-k="${k}" style="min-width:140px;height:44px;padding:0 14px;border-radius:12px;border:1px solid ${on?'#38e4d0':'rgba(255,255,255,.13)'};background:linear-gradient(180deg,#191c23,#07080b);color:${on?'#38e4d0':'#e3edf1'};font:800 12px var(--f-disp,system-ui);letter-spacing:.08em">${t}</button>`;
     let h=btn('tmenu','🪐 TRAVEL',this._tm);if(this._tm)for(const b of this.bodies||[])h+=btn('trv:'+b.id,'→ '+b.name.toUpperCase());
-    if(this.mode==='fly')h+=btn('warp','WARP ×10 '+(this.warp?'ON':'off'),this.warp);d.insertAdjacentHTML('beforeend',h)}});
+    if(this.mode==='fly')h+=btn('warp','WARP 20% c '+(this.warp?'ON':'off'),this.warp);d.insertAdjacentHTML('beforeend',h)}});
 {const _et=SPC.extraTick;SPC.extraTick=function(dt){const t0=this._xt;_et.call(this,dt);if(this._xt===.4&&!(t0>0))this.tmx()}}
