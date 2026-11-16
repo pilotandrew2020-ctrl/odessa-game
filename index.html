@@ -9026,7 +9026,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     this.cd=W.cd;this.shots++;const {o,d}=this.aimRay();
     d.x+=(Math.random()-.5)*W.spread;d.y+=(Math.random()-.5)*W.spread;d.z+=(Math.random()-.5)*W.spread;d.normalize();
     // a rocket leaves the tube, not the camera: aim it at the point the crosshair is on (first wall / ground / player along the camera ray), otherwise it flies parallel to the view and lands beside the target
-    if(W.rocket){const wd=this.wallDist(o,d,250),hr=this.raycast(o,d,wd),tg=o.clone().addScaledVector(d,hr?hr.t:wd).sub(this.muzzle());if(tg.lengthSq()>4)d.copy(tg.normalize())}
+    if(W.rocket&&!(MARINE.cur||DRIVE.on||EXT.cur)){const wd=this.wallDist(o,d,250),hr=this.raycast(o,d,wd),tg=o.clone().addScaledVector(d,hr?hr.t:wd).sub(this.muzzle());if(tg.lengthSq()>4)d.copy(tg.normalize())}
     this.last.ax=d.x;this.last.az=d.z;this.last.ay2=d.y;
     const m=this.muzzle();if(W.rocket){FX.init();FX.launch()}else{this.sfx(W.auto?'uzi':this.w===1?'deagle':this.w===2?'magnum':'shot',W.quiet?.28:1);this.muzzleFlash(m.x,m.y,m.z,d.x,d.y,d.z,this.w===1||this.w===2);this.rec=1;if(PLR._gs)PLR._gs.rec=1}
     if(W.rocket){const nk=!!W.nuke,start=m.clone().addScaledVector(d,1.25),mesh=this.rocketMesh(nk),host=typeof PASS!=='undefined'&&PASS.host?PASS.hostObj(COOP.peers.get(PASS.host)):null,owner=typeof HELI!=='undefined'&&HELI.on?'heli-me':(host&&host.kind==='heli'?'heli-'+PASS.host:(typeof PLN!=='undefined'&&PLN.cur?'plane-'+PLN.cur.id:null));mesh.position.copy(start);mesh.lookAt(start.clone().add(d));this.rockets.push({p:start,d:d.clone(),t:0,nuke:nk,mesh,tp:0,W,owner});
