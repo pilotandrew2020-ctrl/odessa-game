@@ -12,8 +12,9 @@ exports.run = async (page, h) => {
     const p = PLACES.find(q => q.id === 'airport');
     teleportRaw(p.x, p.z, p.yaw);
   });
+  await page.waitForFunction(() => AIRP.ready, null, { timeout: 240000 });   // the airport is built in small steps: wait for it, a fixed 3 s was not enough on slow machines (the screenshot then timed out)
   await page.waitForTimeout(3000);
-  await page.screenshot({ path: `${h.SCR}/air_1_terminal.png` });
+  await page.screenshot({ timeout: 180000, path: `${h.SCR}/air_1_terminal.png` });
 
   // 2. Apron view (airliner + fighter)
   await ev(() => {
@@ -23,7 +24,7 @@ exports.run = async (page, h) => {
     teleportRaw(pos[0], pos[1], yaw);
   });
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: `${h.SCR}/air_2_apron.png` });
+  await page.screenshot({ timeout: 180000, path: `${h.SCR}/air_2_apron.png` });
 
   // 3. Runway view
   await ev(() => {
@@ -32,7 +33,7 @@ exports.run = async (page, h) => {
     teleportRaw(pos[0], pos[1], yaw);
   });
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: `${h.SCR}/air_3_runway.png` });
+  await page.screenshot({ timeout: 180000, path: `${h.SCR}/air_3_runway.png` });
 
   console.log('Screenshots captured: air_1_terminal.png, air_2_apron.png, air_3_runway.png');
 };
