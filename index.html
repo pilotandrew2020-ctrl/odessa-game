@@ -4442,7 +4442,7 @@ function mergeG(list){const g=new GB({position:3,normal:3});for(const ge of list
 function linHex(h){_c.setHex(h);_c.convertSRGBToLinear();return _c}
 // ---------- speech bubbles ----------
 const PHRASES=['Whaddya say!','Oh, I beg you!','Yes, indeed.','Don\'t make me nervous!','Oh, please…','Two big differences!','Where are you rushing to?','How much are the gobies at Pryvoz today?','This is Odesa!','Listen here…','Don\'t mess with my head','The sea is warm as fresh milk today','Where\'s the stop for Arkadia?','You\'ll laugh, but…','Mum said be home by six','What, roadworks again?','Let\'s go to the beach!','What weather, eh!'];
-const BUBBLES={pool:[],init(scene){for(let i=0;i<6;i++){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
+const BUBBLES={pool:[],init(scene){for(let i=0;i<9;i++){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const tex=new THREE.CanvasTexture(cv);tex.encoding=THREE.sRGBEncoding;
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:true,toneMapped:false,fog:false}));s.scale.set(3.2,.8,1);s.visible=false;scene.add(s);this.pool.push({s,cv,tex,txt:''})}},
   show(i,x,y,z,txt){const b=this.pool[i];if(!b)return;if(b.txt!==txt){b.txt=txt;const c=b.cv.getContext('2d');c.clearRect(0,0,512,128);c.fillStyle='rgba(255,255,255,.94)';
     c.beginPath();c.roundRect?c.roundRect(8,8,496,92,26):c.rect(8,8,496,92);c.fill();c.beginPath();c.moveTo(240,98);c.lineTo(256,124);c.lineTo(276,98);c.fill();
