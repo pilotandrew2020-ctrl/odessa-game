@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="ship.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -7448,6 +7448,7 @@ function insideCircles(circles,x,z,m){
 }
 function insideAny(x,z,m,y){
   if(ISLE.on&&ISLE.blocked(x,z,m,y))return true;
+  if(typeof NUKE!=='undefined'&&NUKE.ruin&&PORTAL.cur!=='flat'&&NUKE.inZone(x,z))return y!==undefined&&carAt(x,z,y,m);   // a nuke flattened everything here: landmarks, the home flats and the city shell have no walls left
   // the flat is a room inside the real building's footprint: the city shell, chunk colliders and parked cars around it must not count, only its own walls and furniture
   if(PORTAL.cur==='flat'){
     for(const o of STATIC_WALLS){if(y!==undefined&&(y<o.y0||y>o.y1+1))continue;const dx=x-o.cx,dz=z-o.cz;const u=dx*o.ca+dz*o.sa,v=-dx*o.sa+dz*o.ca;if(Math.abs(u)<o.hw+m&&Math.abs(v)<o.hd+m)return true}
@@ -8117,6 +8118,7 @@ async function boot(){
   try{if(typeof TANK!=='undefined'&&TANK&&TANK.init)TANK.init()}catch(e){console.error('[boot] tank',e)}
   try{if(typeof DRONE!=='undefined'&&DRONE&&DRONE.init)DRONE.init()}catch(e){console.error('[boot] drone',e)}
   try{if(typeof ROOFPADS!=='undefined'&&ROOFPADS.init)ROOFPADS.init()}catch(e){console.error('[boot] roofpads',e)}
+  try{if(typeof BLASTFX!=='undefined')BLASTFX.init()}catch(e){console.error('[boot] blastfx',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
@@ -8163,7 +8165,7 @@ function loop(t){
   safe('ads',()=>{if(!camera||!camera.isPerspectiveCamera)return;const aim=!!(GUN&&GUN.isAiming&&GUN.isAiming());const fp=cam.dist<=.75&&!(typeof EXT!=='undefined'&&EXT.cur&&EXT.cur.kind!=='sub')&&!(typeof DRIVE!=='undefined'&&DRIVE.on);if(!fp)cam.fpz=1;   // first person: the pinch zoom is a longer lens
     const target=aim?45:(fp?75/(cam.fpz||1):75);const step=dt*260;if(Math.abs(camera.fov-target)>.05){camera.fov+=(target-camera.fov)*Math.min(1,step/60);if(camera.fov<12||camera.fov>75)camera.fov=Math.min(75,Math.max(12,camera.fov));camera.updateProjectionMatrix()}
     if(GUN&&GUN.adsShow)GUN.adsShow(aim)});
-  safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
+  safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt);if(typeof BLASTFX!=='undefined')BLASTFX.tick(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
   safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});   // drone.js: flight and camera of the kamikaze drone
   safe('tank',()=>{if(typeof TANK!=='undefined'&&TANK.on)TANK.frame(dt)});   // tank.js: the driver's camera and the tank's physics
   safe('spcAtmo',()=>{if(typeof SPC!=='undefined'&&SPC.atmo)SPC.frameAtmo(dt)});   // space.js: the shuttle's automatic ascent / the fighter in the atmosphere take over the camera
@@ -8770,7 +8772,7 @@ const WEAPONS=[
   {n:'Desert Eagle',k:'2',dmg:46,cd:.55,auto:false,spread:.006,col:0xb9bcc2},
   {n:'.357 Magnum',k:'3',dmg:55,cd:.85,auto:false,spread:.004,col:0x8d9298},
   {n:'Uzi',        k:'4',dmg:10,cd:.065,auto:true, spread:.04, col:0x222428},
-  {n:'Bazooka',    k:'5',dmg:95,cd:2.4,auto:false,spread:0,   col:0x4d6b3a,rocket:true},
+  {n:'Bazooka',    k:'5',dmg:95,cd:2.4,auto:false,spread:0,   col:0x4d6b3a,rocket:true,rad:11},
   {n:'C4',         k:'6',dmg:100,cd:.6,auto:false,spread:0,   col:0xd8cfa8,c4:true},
   {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true},
   {n:'Neon katana',k:'8',dmg:40,cd:.42,auto:false,spread:0,   col:0xff2a8a,melee:true},
@@ -9072,7 +9074,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
       }
       if(r.dr!==undefined){r.dr-=dt;if(r.dr<=0)hitT='wall'}
       this.rocketFx(r,dt);
-      if(hitT||r.t>(r.nuke?5:3)){this.rockets.splice(i,1);scene.remove(r.mesh);const W=r.W||WEAPONS[r.nuke?6:4];this.addBoom(r.p.x,r.p.y,r.p.z,r.nuke?24:(W.rad||7),W.dmg,r.owner);this.push();continue}}
+      if(hitT||r.t>(r.nuke?5:3)){this.rockets.splice(i,1);scene.remove(r.mesh);const W=r.W||WEAPONS[r.nuke?6:4];this.addBoom(r.p.x,r.p.y,r.p.z,r.nuke?24:(W.rad||7),W.dmg,r.owner);if(r.nuke&&typeof NUKE!=='undefined')NUKE.strike(r.p.x,r.p.z,110);this.push();continue}}
     // rockets fired by other players (only drawn)
     for(let i=this.remoteR.length-1;i>=0;i--){const r=this.remoteR[i];r.t+=dt;r.p.addScaledVector(r.d,(r.nuke?30:42)*dt);this.rocketFx(r,dt);
       if(r.t>5||r.p.y<groundH(r.p.x,r.p.z)+.1||insideAny(r.p.x,r.p.z,.1,r.p.y)){this.remoteR.splice(i,1);scene.remove(r.mesh)}}
@@ -10104,7 +10106,7 @@ const TAC={list:[],waves:[],box:new THREE.Box3(),ctr:new THREE.Vector3(),
   launch(){const {o,d}=GUN.aimRay(),hl=Math.hypot(d.x,d.z)||1,dist=d.y<-.04?Math.min(GUN.wallDist(o,d,160),160)*hl:55;
     const hx=o.x+d.x/hl*dist,hz=o.z+d.z/hl*dist,sy=Math.max(player.y,groundH(hx,hz),SL)+60;
     const m=this.mesh();m.position.set(hx,sy,hz);this.list.push({m,vy:-5,t:0,tp:0});GUN.sfx('boom',.5);toast('Tactical nuke away','it drops from the sky — get clear!')},
-  detonate(x,y,z){GUN.addBoom(x,y+.5,z,30,100);GUN.push();
+  detonate(x,y,z){GUN.addBoom(x,y+.5,z,30,100);GUN.push();if(typeof NUKE!=='undefined')NUKE.strike(x,z,260);
     const sh=new THREE.Mesh(new THREE.SphereGeometry(1,28,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false,toneMapped:false}));
     sh.position.set(x,y,z);scene.add(sh);this.waves.push({m:sh,x,y,z,r:2,t:0,hit:new Set()})},
   tick(dt){
