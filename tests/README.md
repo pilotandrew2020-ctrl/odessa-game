@@ -55,6 +55,7 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 | `t_dom` | per-frame DOM writes (MutationObserver) while standing, walking, driving and in Battle Royale, by element; fails above `LIMIT` (3) mutations per frame |
 | `t_volcano` | the volcano of Jungle Island: cone + crater, lava, eruption bombs hurt, lava carries you away (`VOLSHOT=1` screenshots) |
 | `t_drone` | the kamikaze drone + `BLAST.at`: launch, fly, dive explodes with a scorch mark, put back at the start, a blast next to you hurts (`DRONESHOT=1` screenshots) |
+| `t_nuke` | the nuclear bomb: falls, flash, shock front collapses chunk buildings inside 300 m (colliders + shadows off in the zone), recovery (`NUKESHOT=1` screenshots; runs in the city centre) |
 | `t_tank` | the Tiger tank (`tank.js`): spawn, board, drive, turn, shell lands, the sea stops it, exit (`TANKSHOT=1` screenshots) |
 
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
