@@ -14,4 +14,9 @@ await ev(()=>{SPC.in.full=1});await page.waitForFunction(()=>SPC.mode==='landed'
 await ev(()=>SPC.act());await h.wait(1500);const mo=await ev(()=>({m:SPC.mode,y:SPC.M2.y,gy:SPC.hg(SPC.M2.x,SPC.M2.z),suit:!!SPC._suit.parent}));console.log('moon',JSON.stringify(mo));assert(mo.m==='moon'&&mo.suit&&Math.abs(mo.y-mo.gy)<.3,'not standing on the Moon in the suit');
 await ev(()=>{SPC.in.ly=1});await h.wait(3500);await ev(()=>{SPC.in.ly=0});await shotp('moon_c_walk');const wk=await ev(()=>({d:Math.hypot(SPC.M2.x,SPC.M2.z),y:SPC.M2.y,gy:SPC.hg(SPC.M2.x,SPC.M2.z)}));assert(wk.d>3&&wk.y>=wk.gy-.01,'cannot walk / sank into the ground: '+JSON.stringify(wk));
 await ev(()=>{SPC.in.jump=1});await h.wait(3500);const jp=await ev(()=>({y:SPC.M2.y,gy:SPC.hg(SPC.M2.x,SPC.M2.z),fuel:Math.round(SPC.M2.fuel)}));await shotp('moon_d_jet');await ev(()=>{SPC.in.jump=0});console.log('jet',JSON.stringify(jp));assert(jp.y>6&&jp.fuel<100,'the jet pack does not lift: '+JSON.stringify(jp));
+// vehicles from the Earth on the Moon
+await ev(()=>{SPC.vehPanel(true)});assert(await ev(()=>!document.getElementById('spcVeh').hidden),'no vehicles panel');
+const veh=await ev(()=>{const o={};for(const k of ['scooter','moto','heli','plane']){SPC.ride(k);const M=SPC.M2;M.x=M.z=300;M.y=SPC.hg(300,300);M.vy=0;M.air=false;SPC.in.ly=1;SPC.in.jump=(k==='heli'||k==='plane')?1:0;const x0=M.x,z0=M.z;for(let i=0;i<60;i++)SPC.moonStep(.05);o[k]={d:Math.round(Math.hypot(M.x-x0,M.z-z0)),h:Math.round(M.y-SPC.hg(M.x,M.z)),mesh:!!M.vm};SPC.in.ly=0;SPC.in.jump=0}SPC.ride(null);return o});
+console.log('vehicles',JSON.stringify(veh));assert(veh.moto.d>veh.scooter.d*2&&veh.heli.h>20&&veh.plane.d>150&&veh.scooter.mesh,'vehicles do not move / fly');
+await shotp('moon_e_vehicles');
 }

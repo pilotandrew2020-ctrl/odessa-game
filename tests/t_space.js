@@ -46,8 +46,8 @@ exports.run = async (page, h) => {
   assert.strictEqual(await ev(() => SPC.mode), 'fly', 'could not board the fighter');
   await ev(() => { SPC.C.q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), SPC.M.clone().sub(SPC.C.w).normalize()); SPC.C.cq = null; SPC.in.full = 1 }); await h.wait(6000);
   const fl = await ev(() => ({ sp: Math.round(SPC.C.sp), thr: SPC.C.thr, dM: Math.round(SPC.C.w.distanceTo(SPC.M) - SPC.P.moonR) }));
-  console.log('flying', JSON.stringify(fl)); assert(fl.sp > 20000 && fl.sp <= 25000, 'speed ' + fl.sp);
-  const eta = await ev(() => Math.round(SPC.C.w.distanceTo(SPC.M) / 25000)); console.log('seconds to the Moon at full speed ~', eta); assert(eta > 150 && eta < 400, 'the Moon is not "far": ' + eta + ' s');
+  console.log('flying', JSON.stringify(fl)); assert(fl.sp > 90000 && fl.sp <= 100000, 'speed ' + fl.sp);
+  const eta = await ev(() => Math.round(SPC.C.w.distanceTo(SPC.M) / 100000)); console.log('seconds to the Moon at full speed ~', eta); assert(eta > 40 && eta < 150, 'the Moon is not "far": ' + eta + ' s');
   await shot('space_fly', 3000);
   // jump near the Moon: the landing assist slows the ship, it touches down by itself
   await ev(() => { const n = SPC.M.clone().add(new THREE.Vector3(0.3, 1, 0.2).normalize().multiplyScalar(SPC.P.moonR + 2500)); SPC.C.w.copy(n); SPC.C.q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), SPC.M.clone().sub(n).normalize()); SPC.C.cq = null; SPC.C.sp = 900; SPC.in.full = 1 });
