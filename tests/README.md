@@ -71,3 +71,5 @@ BASE=http://localhost:8765 node tests/harness.js tests/t_final.js
 Some tests freeze a timed step with `KIT.freeze = true` to take a screenshot at an exact moment, and look at screenshots by eye: open the PNGs in `tests/out/`.
 | `t_moonx` | TRAVEL to Moon / Mercury / Uranus + walking there, Lunokhod / rover car, parked vehicles stay, WARP (`MOONXSHOT=1`) |
 | `t_r18` | scooter can fire, bike 350 km/h, submarine yaw rates, Chigurh gait flag, phone Home button + shade |
+| `t_gtaped` | street people hear / take shots, die, explosions; nukes on the Armed bar, compact Spawn grid |
+

@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="moonx.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="moonx.js"></script><script src="gtaped.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -6871,9 +6871,10 @@ function recommendedQuality(){
 }
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const MOBILE=IOS||(TOUCH&&/Android|Mobi/i.test(navigator.userAgent));
-const S={time:'day',season:'summer',q:MOBILE?'mid':(TOUCH?'low':recommendedQuality()),polish:MOBILE?'lite':'max'};
+const S={time:'day',season:'summer',q:MOBILE?'high':(TOUCH?'low':recommendedQuality()),polish:'max'};   // round 22: the owner wants everything at the highest quality, also on the iPad
 if(!S.polish)S.polish=MOBILE?'lite':'max';
 try{const o=JSON.parse(localStorage.getItem('odesa2')||'{}');Object.assign(S,o)}catch(e){}
+try{if(!localStorage.getItem('odesa_hq2')){S.q='high';S.polish='max';localStorage.setItem('odesa_hq2','1');localStorage.setItem('odesa2',JSON.stringify(S))}}catch(e){}   // once: older saved settings (mid / lite) are raised to the maximum; after that the owner's own choice stays
 function saveS(){try{localStorage.setItem('odesa2',JSON.stringify(S))}catch(e){}}
 let renderer,scene,camera,composer=null,bloomPass=null,fxaaPass=null,sunL,hemiL,sky,nightSky,seaMesh,pmrem,envRT=null,snowPts=null,PLR,started=false;
 const chunks=new Map();
@@ -6937,10 +6938,10 @@ const QUAL={low:{pr:.7,shadow:512,sr:26,bloom:false,R:300,trees:90,tdens:.25,car
 if(!QUAL[S.q])S.q=recommendedQuality();
 // Mobile Safari budget: one 1024 shadow map, no half-float bloom target, chunks within 450 m.
 // Above this the tab runs out of GPU memory and iOS silently drops the WebGL context.
-const MOBILE_CAP={pr:1.5,shadow:1024,sr:42,R:450,trees:260,cars:10,peds:16};
+const MOBILE_CAP={pr:2,shadow:2048,sr:60,R:560,trees:340,cars:16,peds:26};   // round 22: raised for the owner's 'highest quality' (was pr 1.5, shadow 1024, R 450); a lost WebGL context still steps the quality down by itself
 const QUAL_MOBILE={};
 function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q]?S.q:'mid';
-  if(!QUAL_MOBILE[key]){const m=Object.assign({},q,{bloom:false});for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
+  if(!QUAL_MOBILE[key]){const m=Object.assign({},q);for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
   return QUAL_MOBILE[key]}
 let lowRenderScale=1;
 function renderRadius(){return Qp().R*(S.q==='low'?lowRenderScale:1)*((MOBILE&&typeof BR!=='undefined'&&BR.on)?.7:1)}   // Battle Royale on a phone: 30% shorter view = about half the chunks to build and keep
@@ -8044,7 +8045,7 @@ let ADAPT_GRACE=0;
 function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;
   if(S.polish==='max'){
     if(dt>1/28)fpsLowT+=dt; else fpsLowT=Math.max(0,fpsLowT-dt*0.5);
-    if(fpsLowT>=4.0){
+    if(false&&fpsLowT>=4.0){   // round 22: no automatic step-down to Lite (the owner wants the maximum); a lost GPU context still resets the graphics
       fpsLowT=0;S.polish='lite';saveS();
       if(typeof applyTime==='function')applyTime();
       if(typeof HUDM!=='undefined'&&HUDM.syncPolish)HUDM.syncPolish();
@@ -8052,7 +8053,8 @@ function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;
     }
   }else fpsLowT=0;
   if(ftT<2.5)return;const avg=ftAcc/ftN;ftAcc=ftN=ftT=0;
-  if(pixelScale<=.56&&avg>.05&&S.q!=='low'&&performance.now()>ADAPT_GRACE){adaptRes.slow=(adaptRes.slow||0)+1;if(adaptRes.slow>=2){adaptRes.slow=0;S.q=S.q==='high'?'mid':'low';saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));pixelScale=1;applyQuality(true);applyTime();toast('Graphics lowered','to keep the game smooth');return}}else adaptRes.slow=0;
+  if(false&&pixelScale<=.56&&avg>.05&&S.q!=='low'&&performance.now()>ADAPT_GRACE){   // round 22: no automatic step-down of S.q (the owner wants the maximum)
+    adaptRes.slow=(adaptRes.slow||0)+1;if(adaptRes.slow>=2){adaptRes.slow=0;S.q=S.q==='high'?'mid':'low';saveS();document.querySelectorAll('[data-g]').forEach(q=>q.classList.toggle('on',q.dataset.g===S.q));pixelScale=1;applyQuality(true);applyTime();toast('Graphics lowered','to keep the game smooth');return}}else adaptRes.slow=0;
   // every change reallocates the drawing buffer (a hitch, and on iPad a memory spike): step down quickly, step up only after three calm windows in a row, and never twice within 6 s
   let ns=pixelScale;const now=performance.now();
   // 2026-11-12: it used to step up after every 3 calm windows even when the higher scale was exactly what had just been too slow: a resolution change every ~8 s, each one a drawing-buffer
@@ -8807,9 +8809,9 @@ const WEAPONS=[
   {n:'Uzi',        k:'4',dmg:10,cd:.065,auto:true, spread:.04, col:0x222428},
   {n:'Bazooka',    k:'5',dmg:95,cd:2.4,auto:false,spread:0,   col:0x4d6b3a,rocket:true,rad:11},
   {n:'C4',         k:'6',dmg:100,cd:.6,auto:false,spread:0,   col:0xd8cfa8,c4:true},
-  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true,hid:1},
+  {n:'Mini-nuke',  k:'7',dmg:100,cd:7,auto:false,spread:0,   col:0x5a5f52,rocket:true,nuke:true},
   {n:'Neon katana',k:'8',dmg:40,cd:.42,auto:false,spread:0,   col:0xff2a8a,melee:true},
-  {n:'Tactical Nuke',k:'9',dmg:100,cd:9,auto:false,spread:0,  col:0x4f5a47,tac:true,hid:1},
+  {n:'Tactical Nuke',k:'9',dmg:100,cd:9,auto:false,spread:0,  col:0x4f5a47,tac:true},
   // Battle Royale loot weapons (br.js): not on the Armed weapon bar, models from BRM
   {n:'Assault Rifle',k:'',dmg:30,cd:.125,auto:true, spread:.02, col:0x30343a,br:1,cls:'rifle',  bm:'ar'},
   {n:'Pump Shotgun', k:'',dmg:12,cd:.95, auto:false,spread:.07, col:0x6b4a2a,br:1,cls:'shotgun',bm:'shotgun'},
@@ -8817,6 +8819,7 @@ const WEAPONS=[
 if(typeof BRX!=='undefined')BRX.setup();
 WEAPONS.push({n:"Chigurh's shotgun",k:'0',dmg:62,cd:.95,auto:false,spread:.012,col:0x23272b,cls:'shotgun',chg:'sg',quiet:true},{n:'Captive bolt',k:'-',dmg:100,cd:.9,auto:false,spread:0,col:0x2a2d31,cls:'pistol',chg:'bolt',melee:true});   // chigurh.js: the silenced shotgun, the stunner (the air tank follows him while they are out)
 const CHG_SG=WEAPONS.length-2;      // brarms.js: the Fortnite-style exotics, the pickaxe and the swung tools join the table (indexes 12+)
+WEAPONS.push({n:'Nuclear bomb',k:'',dmg:100,cd:12,auto:false,spread:0,col:0x3a3d32,cls:'pistol',bomb:true});   // Armed bar: the nuclear bomb that drops 300 m ahead (it used to be in Spawn)
 const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],exs:[],c4:[],kb:null,down:0,spawn:null,
   seen:new Map(),held:false,rockets:[],tracers:[],booms:[],c4m:new Map(),remoteR:[],models:[],ac:null,flash:0,last:{},ui:null,lastTag:0,
   // ---------- models ----------
@@ -9023,6 +9026,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     if(W.c4){this.placeC4();return}
     if(W.melee){this.strike(W);return}
     if(W.tac){this.cd=W.cd;this.shots++;TAC.launch();this.push();return}
+    if(W.bomb){this.cd=W.cd;this.shots++;NUKE.drop();this.push();return}
     this.cd=W.cd;this.shots++;const {o,d}=this.aimRay();
     d.x+=(Math.random()-.5)*W.spread;d.y+=(Math.random()-.5)*W.spread;d.z+=(Math.random()-.5)*W.spread;d.normalize();
     // a rocket leaves the tube, not the camera: aim it at the point the crosshair is on (first wall / ground / player along the camera ray), otherwise it flies parallel to the view and lands beside the target
@@ -9164,7 +9168,7 @@ const GUN={armed:false,w:0,hp:100,kills:0,deaths:0,cd:0,shots:0,seq:0,hits:[],ex
     const ui={};const mk=(t,id,p)=>{const e=document.createElement(t);e.id=id;(p||document.body).appendChild(e);return e};
     ui.vig=mk('div','gunVig');
     ui.ret=mk('div','gunReticle');ui.ret.hidden=true;for(let i=0;i<4;i++)ui.ret.appendChild(document.createElement('i'));
-    ui.bar=mk('div','gunBar');WEAPONS.forEach((W,i)=>{if(W.br)return;const b=document.createElement('button');b.dataset.i=i;b.hidden=!!(W.hid||W.chg);b.textContent=W.k+' '+W.n.replace('Desert Eagle','Deagle').replace('.357 Magnum','.357').replace('Tactical Nuke','T-Nuke');b.onclick=()=>this.pick(i);ui.bar.appendChild(b)});
+    ui.bar=mk('div','gunBar');WEAPONS.forEach((W,i)=>{if(W.br)return;const b=document.createElement('button');b.dataset.i=i;b.hidden=!!(W.hid||W.chg);b.textContent=W.k+' '+W.n.replace('Desert Eagle','Deagle').replace('.357 Magnum','.357').replace('Tactical Nuke','T-Nuke').replace('Nuclear bomb','N-Bomb');b.onclick=()=>this.pick(i);ui.bar.appendChild(b)});
     ui.fire=mk('button','gunFire');ui.fire.textContent='FIRE';
     // FIRE is its own pointer: the finger that holds it never interferes with the stick finger (move / gas) or the look finger
     let fid=null;    const dn=e=>{if(fid!==null)return;fid=e.pointerId;try{ui.fire.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault();this.held=true;ui.ret.classList.add('aim');this.fire()},up=e=>{if(e.pointerId!==fid)return;fid=null;this.held=false;ui.ret.classList.remove('aim')};
