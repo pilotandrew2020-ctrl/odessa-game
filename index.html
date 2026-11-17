@@ -7713,7 +7713,9 @@ function updateHUD(dt){
   // interaction prompt
   let rayPick=null;if(PORTAL.cur){_shopPickRay.setFromCamera(_shopPickNdc,camera);const targets=INTERACT.filter(it=>it.rayObj).map(it=>it.rayObj);
     const hit=_shopPickRay.intersectObjects(targets,false)[0];if(hit&&hit.distance<5)rayPick=hit.object}
-  let best=null,bd=1e9;for(const it of INTERACT){if(it.cond&&!it.cond()||(it.rayObj&&it.rayObj!==rayPick))continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
+  // round 34: in the air (helicopter, plane, drone, space craft, parachute, high jump) no door / shop / stall / vehicle prompt of the ground shows ("Enter the house" over a roof); an entry that names its own height (y) still works
+  const inAir=!PORTAL.cur&&(HELI.on||PLN.cur||(typeof DRONE!=='undefined'&&DRONE.on)||(typeof SPC!=='undefined'&&SPC.on)||player.y-Math.max(groundH(player.x,player.z),SL)>7);
+  let best=null,bd=1e9;for(const it of INTERACT){if(inAir&&it.y===undefined)continue;if(it.cond&&!it.cond()||(it.rayObj&&it.rayObj!==rayPick))continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
   if(DRIVE.on)best={label:'Get out of the car',fn:exitCar};
   if(RIDE.on)best={label:RIDE.tram&&RIDE.tram.kind==='custom'?RIDE.tram.leaveLabel:RIDE.tram&&RIDE.tram.kind==='cable'?'Get off the cable car':RIDE.tram&&RIDE.tram.kind==='funi'?'Get off the funicular':RIDE.tram&&RIDE.tram.kind==='bus'?'Get off the bus':RIDE.tram&&RIDE.tram.kind==='pass'?'Get out of the car':RIDE.tram&&RIDE.tram.kind==='train'?'Get off the train':'Get off the tram',fn:leaveTram};
@@ -9898,7 +9900,7 @@ const EXT={cur:null,veh:[],debris:null,fires:[],houses:[],island:null,boatBtn:nu
   enter(v){if(this.cur||v.dead||PASS.host||MP.on||PLN.cur)return;if(player.scoot){player.scoot=false;$('bScoot').classList.remove('on');if((typeof AUD!=='undefined')&&AUD)AUD.scoot(false)}
     this.cur=v;v.loadModel();v.occupied=true;cam.init=false;cam.vz=1;$('spd').hidden=false;PLR.root.visible=true;LVSND.start(v.kind);
     const keys=v.kind==='bike'?'W pedal · S brake · A/D steer · Shift sprint · Space skid':v.kind==='moto'?'W gas · S brake · A/D steer · Space skid':v.kind==='sub'?'W/S throttle · A/D steer · Q dive · E rise · B walk inside · F exit':'W gas · S brake/reverse · A/D steer · Space handbrake (drift)';
-    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+(v.kind==='sub'?'':' · E to get off')+(v.seats.length>1?(v.kind==='bike'?' · a friend can ride pillion on the back (E / F near the bike)':v.kind==='sub'?' · pilot + co-op passenger seats':' · a friend can climb in (E / F near the car)'):''))},
+    toast(v.spec.name[0].toUpperCase()+v.spec.name.slice(1),(TOUCH?(v.kind==='sub'?'joystick: drive · hold ▼ DIVE to go down, ▲ RISE to come up':'joystick: drive'):keys)+(v.kind==='sub'?'':' · E to get off')+(v.seats.length>1?(v.kind==='bike'||v.kind==='moto'?' · a friend can ride pillion on the back (E / F near the bike)':v.kind==='sub'?' · pilot + co-op passenger seats':' · a friend can climb in (E / F near the car)'):''))},
   // shared clean-up for getting out, destruction and teleports
   leave(v,destroyed){if(this.cur!==v)return;this.cur=null;v.setCabinView(false);v.cabinWalk=false;const reticle=$('subReticle');if(reticle)reticle.remove();depthHud(0,false);v.occupied=false;v.halt();$('spd').hidden=true;LVSND.stop();PLR.root.visible=true;PLR.root.rotation.set(0,v.yaw,0,'XYZ');cam.init=false;player.vx=player.vz=0;
     if(destroyed)toast('Your '+v.spec.name+' was destroyed','')},

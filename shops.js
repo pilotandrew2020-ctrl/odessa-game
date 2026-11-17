@@ -19,7 +19,8 @@ const SH_BRANDS={
   coffee:{name:'COFFEE',bg:'#4a2f1d',fg:'#f6e7cf'},bakery:{name:'BAKERY',bg:'#c98a3a',fg:'#fff4de'},tea:{name:'BUBBLE TEA',bg:'#35b6a8',fg:'#ffffff'},smoothie:{name:'SMOOTHIES',bg:'#78b52c',fg:'#ffffff'},
   flowers:{name:'FLOWERS',bg:'#c2417b',fg:'#ffffff'},pharmacy:{name:'АПТЕКА',bg:'#1f9d55',fg:'#ffffff'},phones:{name:'iSTORE · PHONES',bg:'#1b1b1f',fg:'#ffffff'},sweets:{name:'SWEETS',bg:'#e05a8b',fg:'#fff1f6'},
   books:{name:'BOOKS',bg:'#2b4a7a',fg:'#ffe9b0'},eva:{name:'EVA · BEAUTY',bg:'#d63a8c',fg:'#ffffff'},jewel:{name:'JEWELRY',bg:'#14213d',fg:'#f2c14e'},optics:{name:'OPTICS',bg:'#1f6fa8',fg:'#ffffff'},
-  gifts:{name:'GIFTS',bg:'#8a2be2',fg:'#ffffff'},salon:{name:'HAIR SALON',bg:'#222831',fg:'#ffd369'},fashion:{name:'FASHION HALL',bg:'#7a1fa2',fg:'#ffffff'},zabka:{name:'żabka',bg:'#00843d',fg:'#ffffff'}
+  gifts:{name:'GIFTS',bg:'#8a2be2',fg:'#ffffff'},salon:{name:'HAIR SALON',bg:'#222831',fg:'#ffd369'},fashion:{name:'FASHION HALL',bg:'#7a1fa2',fg:'#ffffff'},zabka:{name:'żabka',bg:'#00843d',fg:'#ffffff'},
+  epicentr:{name:'ЕПІЦЕНТР К',bg:'#0b3d91',fg:'#ffb400'},club:{name:'NIGHT CLUB',bg:'#14061f',fg:'#ff3df2'}
 };
 // a signboard: logo shapes for the big names, plain colour + lettering for the rest
 function shLogoCanvas(key,W,H){const b=SH_BRANDS[key]||{name:key.toUpperCase(),bg:'#333',fg:'#fff'};const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
@@ -600,6 +601,8 @@ function installShops(grp,G,P,Sg,GR){
     {brand:'pub',key:'shop_sea_pub',idx:20,title:'Sea Pub',sub:'seafood and local drinks · coastal district',at:geo(46.428,30.74),size:[30,24],W:18,Dp:12,H:5,poi:['P','#18384a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'pub');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
     {brand:'bar',key:'shop_river_bar',idx:21,title:'River Bar',sub:'grill and late-night food · Peresyp',at:geo(46.505,30.72),size:[30,24],W:18,Dp:12,H:5,poi:['B','#442627'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-5,U.D),'bar');shBurgerSeating(U)},room:{w:18,d:14,h:3.8}},
     {brand:'bowling',key:'shop_bowling',idx:22,title:'Bowling Club',sub:'four lanes and a lounge · Odesa',at:geo(46.466,30.765),size:[44,34],W:32,Dp:24,H:6,poi:['B','#213d66'],fill:(U,E)=>shBowling(U),room:{w:32,d:26,h:4.8}},
+    {brand:'epicentr',key:'shop_epicentr',idx:80,title:'Epicentr K',sub:'hypermarket for the home, garden and repairs · Tairove',at:geo(46.395,30.7),size:[60,44],W:44,Dp:32,H:9,poi:['E','#0b3d91'],wall:'#e8e4da',fill:(U,E)=>shEpicentr(U),room:{w:44,d:34,h:6.5,floor:0xb9b5aa}},
+    {brand:'club',key:'shop_night_club',idx:81,title:'Night Club',sub:'dance floor, DJ and a bar · Arkadia',at:geo(46.424,30.762),size:[36,30],W:24,Dp:20,H:7,poi:['N','#ff3df2'],wall:'#1a1224',fill:(U,E)=>shClub(U),room:{w:26,d:22,h:5.4,floor:0x150c20,wall:0x1a1224,ceil:0x0d0814,lights:[3.5,9],lcol:0xb070ff,li:1.3}},
     // two more bars on free lots (user request: fill the empty zones with real infrastructure)
     {brand:'bar',key:'shop_old_port_bar',idx:23,title:'Old Port Bar',sub:'brandy, mussels and sea stories · Old Port',at:geo(46.487,30.735),size:[30,24],W:16,Dp:11,H:4.6,poi:['B','#2b3d54'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'bar')},room:{w:16,d:12,h:3.6}},
     {brand:'pub',key:'shop_mold_pub',idx:24,title:'Moldavanka Pub',sub:'kvass, shashlik and chess · Moldavanka',at:geo(46.473,30.702),size:[30,24],W:16,Dp:11,H:4.6,poi:['P','#3d2a1a'],fill:(U,E)=>{shFood(shUnit(E,'N',U.x0,U.x1,U.D-4,U.D),'pub')},room:{w:16,d:12,h:3.6}}
@@ -611,6 +614,46 @@ function installShops(grp,G,P,Sg,GR){
   {const z=shFindLot(...geo(46.553,30.746),24,20,900);buildZabka(grp,P,GR,z||undefined);
    const d=shFindLot(...geo(46.575,30.72),48,36,900);buildDealer(grp,P,GR,d||undefined)}
 }
+
+// ---------- round 34: Epicentr K (a big DIY / home hypermarket) and a night club ----------
+// Epicentr: the supermarket aisles (real packs, chillers, checkouts) + tall pallet racking along both side walls (boxes, paint tins, planks) + a garden / furniture corner. Real hall size: 44 x 32 m, 6.5 m ceiling.
+function shEpicentr(U){const W=U.W,D=U.D;shMarket(U,'epicentr',{cross:12,goods:['milk','bread','juice','apples','crisps','cheese','chocolate','cola','water','sausage']});
+  const cc=['#b98a4a','#c9a26a','#a8793e','#d8b27a'],tin=['#d8372a','#2f6db0','#3f9a4a','#f2c418'];
+  for(const s of [-1,1]){const u=s*(W/2-2.6);
+    for(const v of [5,9,13,17,21]){   // five racks per side: steel uprights, four beam levels, boxes and paint tins on them
+      for(const du of [-.5,.5])for(const dv of [-1.1,1.1])U.box(u+du,1.4,v+dv,.07,2.8,.07,'#1f5fb4',6);
+      for(const y of [.35,1.0,1.65,2.3]){U.box(u,y,v-1.1,1.2,.08,.07,'#e8590c',6);U.box(u,y,v+1.1,1.2,.08,.07,'#e8590c',6)
+        for(let k=0;k<3;k++)U.box(u-.38+k*.38,y+.2,v-.55+(k%2)*.5,.34,.3,.9-(k%2)*.2,cc[(k+Math.round(y*3)+v)%4],5)}
+      U.box(u,.2,v,.9,.3,2.0,'#8a8f94',6);U.obb(u,v,.7,1.3)}
+    // paint tins on a low display, planks leaning at the end of the rack run
+    for(let k=0;k<6;k++)U.box(u-.7+(k%3)*.45,.3+Math.floor(k/3)*.32,25.5,.34,.3,.34,tin[k%4],1);U.obb(u,25.5,.9,.5)
+    for(let k=0;k<8;k++)U.box(u+(k-4)*.12,1.0,27.4,.1,2.0,.05,k%2?'#d9b27a':'#c79a5c',5)}
+  // garden corner: plant stands and a bag pallet; furniture corner: two sofas and a bed with a headboard
+  for(let k=0;k<4;k++){const u=-W/2+3+k*1.2;U.box(u,.45,D-3.4,.9,.9,.9,'#7b4a2b',5);U.box(u,1.1,D-3.4,.8,.5,.8,'#3f9a4a',0)}
+  U.box(W/2-6,.25,D-4,2.2,.5,1.0,'#8a5a3a',5);U.box(W/2-6,.75,D-4.5,2.2,.8,.2,'#6b4a30',5);U.box(W/2-6,.45,D-3.7,2.0,.2,.8,'#eae6dc',1)
+  U.plate(['ЕПІЦЕНТР К','Все для дому, саду та ремонту'],0,4.9,D-.4,Math.PI,18,2.2,{bg:'#0b3d91',color:'#ffb400',sizes:[110,44]})}
+
+// Night club: a dark hall, a lit dance floor whose tiles change colour, a DJ stage with speakers and a truss, a bar with real bottles, lounge sofas, light beams that sweep the room
+function shClub(U){const E=U.E,W=U.W,D=U.D,key='shop_night_club';
+  U.box(0,.06,D/2,W-.4,.12,D-.4,'#150c20',1);
+  const mats=[0xff2bd6,0x2bd6ff,0xffe02b,0x7a2bff].map(c=>new THREE.MeshBasicMaterial({color:c})),tiles=[];
+  for(let i=0;i<8;i++)for(let j=0;j<8;j++){const m=new THREE.Mesh(new THREE.BoxGeometry(1.5,.05,1.5),mats[(i+j)%4]);const p=U.P(-5.25+i*1.5,5.5+j*1.5);m.position.set(E.ox+p[0],INT_Y+.14,E.oz+p[1]);E.grp.add(m);tiles.push(m)}
+  U.box(0,.55,D-2.2,W-3,1.1,3.6,'#1b1426',1);U.box(0,1.12,D-2.2,W-3,.06,3.6,'#3a2a52',8);   // DJ stage
+  U.box(0,1.55,D-1.6,3.2,.95,.9,'#0f0f14',1);U.box(0,2.05,D-1.6,3.0,.05,.8,'#32c8ff',8);for(const du of [-.8,.8])U.box(du,2.15,D-1.8,.5,.3,.04,'#9be4ff',8);   // booth, decks, screens
+  for(const s of [-1,1]){U.box(s*(W/2-2.2),1.9,D-1.6,1.3,2.6,1.1,'#0b0b0e',1);for(let k=0;k<3;k++)U.box(s*(W/2-2.2),1.0+k*.9,D-2.2,.9,.55,.04,'#3b3b44',6);U.obb(s*(W/2-2.2),D-1.6,.7,.6)}
+  U.box(0,5.0,D-2.2,W-3,.12,.12,'#9aa0a6',6);for(const s of [-1,1])U.box(s*(W/2-1.6),2.6,D-2.2,.12,5,.12,'#9aa0a6',6);   // truss
+  // bar along the left wall: counter, back shelf with bottles, stools
+  {const u=-W/2+1.2;U.box(u,.55,9,1.0,1.1,12,'#2a1a3a',1);U.box(u,1.13,9,1.15,.06,12.1,'#6a2cff',8);U.obb(u,9,.6,6);U.box(-W/2+.4,1.3,9,.4,2.6,12,'#1a1226',1)
+    for(const y of [.9,1.5,2.1])U.row('drinks',-W/2+.62,y,3.2,0,1,11.6,1,0,70+Math.round(y*10),{gap:.02});U.box(-W/2+.62,2.62,9,.06,.06,12,'#ff3df2',8)
+    for(let k=0;k<6;k++){const v=4+k*1.9;U.box(u+1.0,.4,v,.4,.8,.4,'#33203f',1);U.box(u+1.0,.82,v,.5,.08,.5,'#ff3df2',1)}}
+  // lounge: sofas and low tables along the right wall
+  for(const v of [5,9,13,17]){const u=W/2-2;U.box(u,.28,v,1.6,.56,2.2,'#4a1f6b',1);U.box(u+.7,.7,v,.2,.6,2.2,'#3a1555',1);U.box(u-1.3,.2,v,.7,.4,.8,'#1b1426',1);U.box(u-1.3,.42,v,.7,.04,.8,'#32c8ff',8);U.obb(u,v,.9,1.2)}
+  U.plate(['NIGHT CLUB','ODESA · open till the morning'],0,4.4,.35,0,12,1.6,{bg:'#14061f',color:'#ff3df2',sizes:[96,36]},true);
+  // sweeping light beams: four cones from the truss, tinted
+  const beams=[];for(let k=0;k<4;k++){const c=new THREE.Mesh(new THREE.ConeGeometry(1.2,5,14,1,true).translate(0,-2.5,0),new THREE.MeshBasicMaterial({color:[0xff2bd6,0x2bd6ff,0xffe02b,0x7a2bff][k],transparent:true,opacity:.16,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending}));
+    const p=U.P(-5.4+k*3.6,D-2.4);c.position.set(E.ox+p[0],INT_Y+5,E.oz+p[1]);c.userData.px=p[0];c.userData.pz=p[1];E.grp.add(c);beams.push(c)}
+  let t=0;ANIM.push(dt=>{if(PORTAL.cur!==key)return;t+=dt;mats.forEach((m,i)=>m.color.setHSL(((t*.12)+i*.25)%1,.9,.55));beams.forEach((c,i)=>{c.rotation.z=Math.sin(t*.9+i*1.7)*.7;c.rotation.x=Math.cos(t*.7+i)*.5;})});
+  E.key=key}
 // seating inside the burger shop
 function shBurgerSeating(U){for(const u of [-5.5,0,5.5]){const v=U.D*.4;U.obb(u,v,.65,.65);if(U.glb){U.m('sh_courttable',u,v,0,{tints:{tint_a:'#da291c'}});continue}
   U.box(u,.74,v,1.1,.06,1.1,'#f2f0ea',1);U.box(u,.37,v,.12,.74,.12,'#8a8f94',6);for(const [du,dv] of [[-.85,0],[.85,0]])U.box(u+du,.22,v+dv,.44,.44,.44,'#da291c',1)}}
