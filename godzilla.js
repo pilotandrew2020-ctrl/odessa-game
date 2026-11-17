@@ -4,7 +4,7 @@
 // Model: the owner's export of "Godzilla Minus One" by Nelzonis2 (CGTrader, free, credit required, not for sale): 44k triangles, a 143-bone skeleton, NO animation in
 //   the file, so every movement here is made by turning bones about the model's own axes (x = side, y = up, z = forward): legs + knees + ankles for the walk, a tail
 //   wave, breathing, the head / jaw for the beam. Textures were shrunk to <= 1536 px (tools/models/goji.mjs): 3.3 MB, loaded only the first time he is called.
-const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.32,fire:false,ch:0,hitT:0,stepT:0,K:2.73,
+const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:false,ch:0,hitT:0,stepT:0,K:2.73,
   URL:'assets/models/godzilla.glb',
   load(){return this._p||(this._p=new Promise((res,rej)=>new THREE.GLTFLoader().load(this.URL,g=>{const S=g.scene,B={};
     S.traverse(o=>{if(o.isBone)B[o.name]=o;if(o.isMesh){o.frustumCulled=false;o.castShadow=/Body|Thorn/.test(o.name);o.receiveShadow=false;
@@ -80,8 +80,8 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.32,fire:f
     const hit=L<700;this.splash.visible=hit;if(hit){this.splash.position.copy(e);this.splash.scale.setScalar(.7+Math.random()*.6)}
     if(typeof FX!=='undefined'){FX.shakeT=Math.max(FX.shakeT||0,.12);FX.shakeA=Math.max(FX.shakeA||0,.025)}
     this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.35;try{BLAST.at(e.x,e.y,e.z,10,90);if(typeof NUKE!=='undefined'&&!NUKE.st)NUKE.strike(e.x,e.z,45)}catch(err){console.warn('[godzilla] beam',err)}}},
-  // the camera: behind, above the head and a little to the right (over the shoulder), so the beam in front of him is not hidden by his own back
-  camera(dt){const a=this.yaw+this.cy+Math.PI,D=135,sd=this.yaw+this.cy-Math.PI/2,h=this.y+98;const tx=this.x+Math.sin(a)*D+Math.sin(sd)*32,tz=this.z+Math.cos(a)*D+Math.cos(sd)*32,ty=Math.max(h,this.gy(tx,tz)+6);
+  // the camera: behind, above the head and a little to the right (over the shoulder); while the beam charges it swings round to a 3/4 view from his right, so the beam runs across the screen instead of away from you
+  camera(dt){const a=this.yaw+this.cy+Math.PI-this.ch*1.05,D=135,sd=this.yaw+this.cy-Math.PI/2,h=this.y+98;const tx=this.x+Math.sin(a)*D+Math.sin(sd)*32,tz=this.z+Math.cos(a)*D+Math.cos(sd)*32,ty=Math.max(h,this.gy(tx,tz)+6);
     if(!this._cp)this._cp=new THREE.Vector3(tx,ty,tz);this._cp.lerp(this._e.set(tx,ty,tz),Math.min(1,dt*3));camera.position.copy(this._cp);
     const fa=this.yaw+this.cy;camera.lookAt(this.x+Math.sin(fa)*70,this.y+28+this.aim*60,this.z+Math.cos(fa)*70)}
 };
