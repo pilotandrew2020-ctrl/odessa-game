@@ -171,7 +171,7 @@ function dress(c){
       const o=c.obb;   // roof: a mansard on some rectangular blocks (no lift-house box, no dome, one ring), chimney stacks on all of them
       if(st===HIST&&c.g&&o&&c.rect&&c.rings.length===1&&c.lv>=3&&c.lv<=6&&!(c.lv>=5&&c.area>220)&&!(c.fl&4)&&o.w>=9&&o.d>=8&&c.area<1500&&c.R()<.4){mansard(c.g,P,k,c);stat.mans++;FAC.lastMans=[o.cx,o.cz,c.y0+c.H,o.w,o.d]}
       if(c.area>45)chimneys(P,k,c)}
-    if(st===MOLD&&c.lv>=2){plinth(P,k,c);archway(P,k,c)}
+    if(st===MOLD&&c.lv>=2){plinth(P,k,c);archway(P,k,c);if(c.obb&&(FAC.molds=FAC.molds||[]).length<60)FAC.molds.push([c.obb.cx,c.obb.cz,c.H,c.lv])}   // FAC.molds: where they are (tests look at them)
     if((st===KHRU||st===PANEL||st===TOWER)&&c.lv>=3){entrances(P,k,c);parapet(P,k,c)}
     if(c.signPl&&c.signPl.length)awnings(P,k,c);
     if(st===HOUSE)porch(P,k,c)}
