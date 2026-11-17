@@ -6298,7 +6298,7 @@ const HELI={
       this.root.position.set(player.x,player.y+2.2,player.z);this.root.rotation.set(0,this.yaw,0);
       this.root.visible=true;PLR.root.visible=true;cam.init=false;   // the pilot sits inside the cockpit (placed every frame in update)
       $('heliControls').hidden=false;$('heliAim').hidden=false;
-      cam.yaw=this.yaw;this.yawRate=0;toast('Apache helicopter','the nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E or mouse turn');
+      cam.yaw=this.yaw;this.yawRate=0;toast('Cobra helicopter','the nose follows the camera · W/S fly · A/D strafe · Space/Shift up·down · Q/E or mouse turn');
     }else{
       if(this.engine&&AUD.ok)this.engine.update(this.root.position.x,this.root.position.y,this.root.position.z,this.velocity.length(),this.throttle,false,0);
       $('heliControls').hidden=true;$('heliAim').hidden=true;this.liftInput=0;
