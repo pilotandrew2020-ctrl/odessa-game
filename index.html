@@ -444,7 +444,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="plane.js"></script>
 <script src="airp.js"></script>
 <script src="buddy.js"></script>
-<script src="isle.js"></script><script src="camp.js"></script><script src="arsenal.js"></script><script src="volcano.js"></script>
+<script src="isle.js"></script><script src="camp.js"></script><script src="arsenal.js"></script><script src="volcano.js"></script><script src="fun.js"></script>
 <script src="fauna.js"></script>
 <script src="ybuild.js"></script>
 <script src="yacht.js"></script>
@@ -8105,7 +8105,7 @@ async function boot(){
   try{if(typeof SPKUI!=='undefined'&&SPKUI&&SPKUI.init)SPKUI.init()}catch(e){console.error('[boot] speaker ui',e)}
   try{if(typeof SPC!=='undefined'&&SPC&&SPC.init)SPC.init()}catch(e){console.error('[boot] space',e)}
   try{if(typeof SHIP!=='undefined'&&SHIP&&SHIP.init)SHIP.init()}catch(e){console.error('[boot] ship',e)}
-  try{if(typeof ARS!=='undefined')ARS.init();if(typeof VOLC!=='undefined')VOLC.init()}catch(e){console.error('[boot] arsenal',e)}
+  try{if(typeof ARS!=='undefined')ARS.init();if(typeof VOLC!=='undefined')VOLC.init();if(typeof FUN!=='undefined')FUN.init()}catch(e){console.error('[boot] arsenal',e)}
   bootMark('ready');$('bStart').disabled=false;$('bChar').disabled=false;$('bBRm').disabled=false;$('bStart').textContent='Play';$('bStart').title='build 2026-11-09 shader-fix';
   requestAnimationFrame(loop);
   $('bStart').title='Starting…';
