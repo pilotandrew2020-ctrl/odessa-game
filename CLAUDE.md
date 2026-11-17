@@ -28,3 +28,9 @@ The real game is the Vercel project **`odessa_chick`** (https://odessachick.verc
 - Subagents (only when a task is big or parallel; the owner allowed it): easy search / mechanical edits -> `model: "haiku"` or `"sonnet"`; hard design / debugging -> `"opus"`. The main session's model is the owner's `/model` choice: suggest `/model opus` for hard tasks, `/model sonnet` for easy ones; never switch it silently.
 - Music: only royalty-free / CC0 tracks go into `assets/music/` (the owner's Weeknd video was NOT used: copyrighted, the site is public).
 
+
+## Which model for what (the owner forgets: remind him at the start of a task, in one line)
+- **Sonnet** (`/model sonnet`): everyday work. Colours, small fixes, UI texts, adding a button, tests, PRs, merges, notes, short answers. Cheapest on the limit.
+- **Opus** (`/model opus`): hard work. Performance / crashes (profiling), tricky bugs with no clear cause, shader and rendering changes, rigging / model pipelines, big refactors, anything where two attempts with Sonnet failed.
+- **Fable** (`/model fable`): the heaviest. Only for a big design job done once (a whole new system such as a new city district generator, a new game mode) or a very hard debugging session. It eats the limit fast: never for routine edits.
+- Rule of thumb: start with Sonnet; switch up only when the task is hard; switch back down afterwards. Say which one before starting a task.

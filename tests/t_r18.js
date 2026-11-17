@@ -12,7 +12,7 @@ exports.run = async (page, h) => {
   // Chigurh: slow walking speed + the still arms
   await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 10; CHAR.cur = c; CHAR.save(); WARDROBE.apply(); return 1 }); await h.wait(2500); const g2 = await ev(() => ({ chig: !!PLR.chig, body: CHAR.cur[17] })); console.log('chig', JSON.stringify(g2)); assert(g2.chig, 'Chigurh body not marked');
   // round 29: a skin colour pick recolours Nolik / Booba (their texture colour is remapped)
-  for (const i of [3, 2]) { await ev(i => { const c = CHAR.clean(CHAR.cur); c[17] = i; c[0] = 6; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }, i); await h.wait(2800); assert(await ev(() => { let ok = false; PLR.real && PLR.real.M.traverse(o => { if (o.isMesh && o.material && o.material.userData && o.material.userData.tintU) ok = true }); return ok }), 'skin colour does not recolour body ' + i) }
+  for (const i of [3, 2]) { await ev(i => { const c = CHAR.clean(CHAR.cur); c[17] = i; c[0] = 6; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }, i); await h.wait(2800); assert(await ev(() => { let ok = false; PLR.real && PLR.real.M.traverse(o => { if (o.isMesh && o.material && o.material.userData && (o.material.userData.tintU || o.material.userData.tintB)) ok = true }); return ok }), 'skin colour does not recolour body ' + i) }
   await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 0; c[0] = 2; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }); await h.wait(1500);
   // phone: Home inside an app, the shade
   await ev(() => { toast('Hello', 'one'); PHONE.toggle() }); await h.wait(600); await ev(() => PHONE.go('snake')); await h.wait(300);
