@@ -155,6 +155,14 @@ function entrances(P,k,c){const {walls,y0,GF}=c,CAP=MOBILE?6:16;let cnt=0;
 function parapet(P,k,c){const {walls,y0,H}=c;for(const W of walls){if(W.ri>0||W.L<4)continue;strip(P,W.x1,W.z1,W.x2,W.z2,W.nx,W.nz,y0+H-.05,.55,.14,k.conc,9)}}
 // Moldavanka: a stone plinth along the street walls and an arched gateway into the courtyard (a dark round-topped opening in a stone frame, like the real "arka")
 function plinth(P,k,c){const {walls,y0}=c;for(const W of walls){if(W.ri>0||W.L<4)continue;strip(P,W.x1,W.z1,W.x2,W.z2,W.nx,W.nz,y0,.9,.06,k.stone2,9)}}
+
+// Moldavanka: a stone sill under every window and a projecting lintel over it (the windows are drawn by the wall shader on the grid CS2 / FH, so the stone is put on the same grid)
+function sills(P,k,c){const {walls,y0,GF,FH,lv,st}=c,CS=CS2[st],CAP=MOBILE?14:44;let n=0;const WW=1.1,SILL=.9,WH=1.6,gf=GF>0?GF:0;
+  for(const W of walls){if(W.ri>0||W.L<5)continue;const nC=Math.max(1,Math.floor(W.L/CS+.3)),cs=W.L/nC;if(nC<2)continue;
+    for(let r=0;r<lv&&n<CAP;r++){const ys=y0+gf+r*FH+SILL-.05,yl=y0+gf+r*FH+SILL+WH+.02;
+      for(let ci=0;ci<nC&&n<CAP;ci++){const u=(ci+.5)*cs,hx=W.tx*(WW+.5)/2,hz=W.tz*(WW+.5)/2,bx=W.x1+W.tx*u,bz=W.z1+W.tz*u;
+        strip(P,bx-hx,bz-hz,bx+hx,bz+hz,W.nx,W.nz,ys,.07,.13,k.stone,9);
+        strip(P,bx-hx,bz-hz,bx+hx,bz+hz,W.nx,W.nz,yl,.1,.1,k.stone,9);n++}}}}
 function archway(P,k,c){const {walls,y0,H}=c;if(H<5.5||c.area<70)return;let best=null;for(const W of walls)if(W.ri===0&&W.L>=9&&(!best||W.L>best.L))best=W;if(!best)return;
   const W=best,R=c.R,u=2.4+R()*(W.L-4.8),px=W.x1+W.tx*u+W.nx*.05,pz=W.z1+W.tz*u+W.nz*.05,hw=1.5,hY=2.2,out=[W.nx,0,W.nz];
   const A=(a,y)=>[px+W.tx*a,y0+y,pz+W.tz*a];
@@ -171,7 +179,7 @@ function dress(c){
       const o=c.obb;   // roof: a mansard on some rectangular blocks (no lift-house box, no dome, one ring), chimney stacks on all of them
       if(st===HIST&&c.g&&o&&c.rect&&c.rings.length===1&&c.lv>=3&&c.lv<=6&&!(c.lv>=5&&c.area>220)&&!(c.fl&4)&&o.w>=9&&o.d>=8&&c.area<1500&&c.R()<.4){mansard(c.g,P,k,c);stat.mans++;FAC.lastMans=[o.cx,o.cz,c.y0+c.H,o.w,o.d]}
       if(c.area>45)chimneys(P,k,c)}
-    if(st===MOLD&&c.lv>=2){plinth(P,k,c);archway(P,k,c)}
+    if(st===MOLD&&c.lv>=2){plinth(P,k,c);archway(P,k,c);sills(P,k,c);if(c.obb&&(FAC.molds=FAC.molds||[]).length<60)FAC.molds.push([c.obb.cx,c.obb.cz,c.H,c.lv])}   // FAC.molds: where they are (tests look at them)
     if((st===KHRU||st===PANEL||st===TOWER)&&c.lv>=3){entrances(P,k,c);parapet(P,k,c)}
     if(c.signPl&&c.signPl.length)awnings(P,k,c);
     if(st===HOUSE)porch(P,k,c)}
