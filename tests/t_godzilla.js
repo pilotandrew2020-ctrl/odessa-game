@@ -10,7 +10,7 @@ exports.run = async (page, h) => {
   const a = await ev(() => { GOJI.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(GOJI.S); return { h: +(b.max.y - b.min.y).toFixed(1), y0: +(b.min.y - GOJI.y).toFixed(1), bones: Object.keys(GOJI.B).length, hud: !GOJI.el.hidden, plr: PLR.root.visible } });
   console.log('spawned', JSON.stringify(a)); assert(a.h > 50 && a.bones > 100 && a.hud && !a.plr, 'Godzilla did not appear right');
   if (SH) await h.shot('goji_stand', 5000);
-  const w = await ev(() => { const x0 = GOJI.x, z0 = GOJI.z, q0 = GOJI.B['leg.L'].quaternion.clone(); inp.jy = 1; for (let i = 0; i < 80; i++) GOJI.frame(.05); inp.jy = 0; return { d: +Math.hypot(GOJI.x - x0, GOJI.z - z0).toFixed(1), leg: +q0.angleTo(GOJI.B['leg.L'].quaternion).toFixed(3) } });
+  const w = await ev(() => { const x0 = GOJI.x, z0 = GOJI.z, q0 = GOJI.B.legL.quaternion.clone(); inp.jy = 1; for (let i = 0; i < 80; i++) GOJI.frame(.05); inp.jy = 0; return { d: +Math.hypot(GOJI.x - x0, GOJI.z - z0).toFixed(1), leg: +q0.angleTo(GOJI.B.legL.quaternion).toFixed(3) } });
   console.log('walked', JSON.stringify(w)); assert(w.d > 10 && w.leg > .02, 'he does not walk / the legs do not move');
   const l = await ev(() => { BLAST.hits = 0; const j0 = GOJI.B.jaw.quaternion.clone(); GOJI.aim = -.45; GOJI.fire = true; for (let i = 0; i < 60; i++) GOJI.frame(.05); const r = { beam: GOJI.beam.visible, len: +GOJI.beam.scale.y.toFixed(0), hit: GOJI.splash.visible, blasts: BLAST.hits, nuke: NUKE.st, jaw: +j0.angleTo(GOJI.B.jaw.quaternion).toFixed(3), glow: +GOJI.spine.emissiveIntensity.toFixed(2) }; return r });
   console.log('laser', JSON.stringify(l)); assert(l.beam && l.hit && l.blasts > 0 && l.jaw > .2, 'the laser does not fire / hit / open the jaw');

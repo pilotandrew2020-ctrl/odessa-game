@@ -14,7 +14,8 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.32,fire:f
   prep(){const S=this.S,root=this.g;root.position.set(0,0,0);root.rotation.set(0,0,0);root.scale.setScalar(1);root.updateMatrixWorld(true);const q=new THREE.Quaternion();this.R={};
     for(const n in this.B){const b=this.B[n],P=b.parent;P.getWorldQuaternion(q);this.R[n]={rest:b.quaternion.clone(),pinv:q.clone().invert(),pos:b.position.clone()}}},
   _q:new THREE.Quaternion(),_a:new THREE.Vector3(),
-  turn(n,ax,ay,az,ang){const b=this.B[n],r=this.R&&this.R[n];if(!b||!r)return;const a=this._a.set(ax,ay,az).applyQuaternion(r.pinv).normalize();b.quaternion.copy(this._q.setFromAxisAngle(a,ang)).multiply(r.rest)},
+  // (three's loader drops the dots of node names: leg.L -> legL)
+  turn(n,ax,ay,az,ang){n=n.replace(/\./g,'');const b=this.B[n],r=this.R&&this.R[n];if(!b||!r)return;const a=this._a.set(ax,ay,az).applyQuaternion(r.pinv).normalize();b.quaternion.copy(this._q.setFromAxisAngle(a,ang)).multiply(r.rest)},
   build(){if(this.g)return;const g=this.g=new THREE.Group();g.visible=false;scene.add(g);
     // the beam: a bright core + a wide soft glow (two additive cylinders along +y, stretched each frame) + a flare at the mouth and a splash where it lands
     const add=(r,c,o)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,14,1,true).translate(0,.5,0),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false,side:THREE.DoubleSide}));m.frustumCulled=false;return m};
