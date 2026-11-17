@@ -80,7 +80,8 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.32,fire:f
     const hit=L<700;this.splash.visible=hit;if(hit){this.splash.position.copy(e);this.splash.scale.setScalar(.7+Math.random()*.6)}
     if(typeof FX!=='undefined'){FX.shakeT=Math.max(FX.shakeT||0,.12);FX.shakeA=Math.max(FX.shakeA||0,.025)}
     this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.35;try{BLAST.at(e.x,e.y,e.z,10,90);if(typeof NUKE!=='undefined'&&!NUKE.st)NUKE.strike(e.x,e.z,45)}catch(err){console.warn('[godzilla] beam',err)}}},
-  camera(dt){const a=this.yaw+this.cy+Math.PI,D=125,h=this.y+62;const tx=this.x+Math.sin(a)*D,tz=this.z+Math.cos(a)*D,ty=Math.max(h,this.gy(tx,tz)+6);
+  // the camera: behind, above the head and a little to the right (over the shoulder), so the beam in front of him is not hidden by his own back
+  camera(dt){const a=this.yaw+this.cy+Math.PI,D=135,sd=this.yaw+this.cy-Math.PI/2,h=this.y+98;const tx=this.x+Math.sin(a)*D+Math.sin(sd)*32,tz=this.z+Math.cos(a)*D+Math.cos(sd)*32,ty=Math.max(h,this.gy(tx,tz)+6);
     if(!this._cp)this._cp=new THREE.Vector3(tx,ty,tz);this._cp.lerp(this._e.set(tx,ty,tz),Math.min(1,dt*3));camera.position.copy(this._cp);
-    camera.lookAt(this.x+Math.sin(this.yaw)*40,this.y+38+this.aim*40,this.z+Math.cos(this.yaw)*40)}
+    const fa=this.yaw+this.cy;camera.lookAt(this.x+Math.sin(fa)*70,this.y+28+this.aim*60,this.z+Math.cos(fa)*70)}
 };
