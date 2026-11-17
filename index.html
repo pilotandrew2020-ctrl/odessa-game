@@ -1001,7 +1001,7 @@ varying vec2 vUV; varying vec4 vP; varying float vQ; varying vec3 vT;
 vec3 palette(float s,float h){
  if(s<.5){ if(h<.16)return vec3(.80,.64,.40); if(h<.30)return vec3(.86,.78,.62); if(h<.44)return vec3(.84,.64,.52);
    if(h<.58)return vec3(.88,.78,.50); if(h<.70)return vec3(.76,.62,.58); if(h<.80)return vec3(.66,.70,.58); if(h<.9)return vec3(.70,.74,.76); return vec3(.90,.87,.80);}
- if(s<1.5){ if(h<.4)return vec3(.88,.86,.78); if(h<.7)return vec3(.84,.74,.52); return vec3(.75,.77,.80);}
+ if(s<1.5){ if(h<.14)return vec3(.90,.76,.42); if(h<.28)return vec3(.82,.52,.38); if(h<.40)return vec3(.90,.70,.62); if(h<.52)return vec3(.93,.88,.66); if(h<.64)return vec3(.70,.78,.62); if(h<.74)return vec3(.66,.78,.86); if(h<.86)return vec3(.92,.89,.80); return vec3(.78,.60,.44);}   // round 39: Moldavanka walls are ochre, terracotta, salmon, pale yellow, pistachio, soft blue and cream (they were three tones: cream, sand and a blue-grey)
  if(s<2.5){ if(h<.4)return vec3(.80,.78,.74); if(h<.6)return vec3(.62,.36,.28); if(h<.8)return vec3(.74,.72,.68); return vec3(.82,.76,.62);}
  if(s<3.5){ if(h<.5)return vec3(.78,.77,.74); if(h<.75)return vec3(.72,.73,.74); return vec3(.80,.76,.68);}
  if(s<4.5){ if(h<.3)return vec3(.82,.50,.32); if(h<.55)return vec3(.40,.52,.66); if(h<.8)return vec3(.84,.82,.78); return vec3(.60,.64,.56);}
