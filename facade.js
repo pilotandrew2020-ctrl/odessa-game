@@ -159,7 +159,7 @@ function plinth(P,k,c){const {walls,y0}=c;for(const W of walls){if(W.ri>0||W.L<4
 // Moldavanka: a stone sill under every window and a projecting lintel over it (the windows are drawn by the wall shader on the grid CS2 / FH, so the stone is put on the same grid)
 function sills(P,k,c){const {walls,y0,GF,FH,lv,st}=c,CS=CS2[st],CAP=MOBILE?14:44;let n=0;const WW=1.1,SILL=.9,WH=1.6,gf=GF>0?GF:0;
   for(const W of walls){if(W.ri>0||W.L<5)continue;const nC=Math.max(1,Math.floor(W.L/CS+.3)),cs=W.L/nC;if(nC<2)continue;
-    for(let r=(GF>0?0:1);r<lv&&n<CAP;r++){const ys=y0+gf+r*FH+SILL-.05,yl=y0+gf+r*FH+SILL+WH+.02;
+    for(let r=0;r<lv&&n<CAP;r++){const ys=y0+gf+r*FH+SILL-.05,yl=y0+gf+r*FH+SILL+WH+.02;
       for(let ci=0;ci<nC&&n<CAP;ci++){const u=(ci+.5)*cs,hx=W.tx*(WW+.5)/2,hz=W.tz*(WW+.5)/2,bx=W.x1+W.tx*u,bz=W.z1+W.tz*u;
         strip(P,bx-hx,bz-hz,bx+hx,bz+hz,W.nx,W.nz,ys,.07,.13,k.stone,9);
         strip(P,bx-hx,bz-hz,bx+hx,bz+hz,W.nx,W.nz,yl,.1,.1,k.stone,9);n++}}}}
