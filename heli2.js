@@ -60,5 +60,15 @@ const WARHELI={
     // the ONE small tail rotor: an outer group turns the axle to point along x, the inner group `tail` spins about its own z
     const tout=new THREE.Group();tout.position.set(.42,1.95,-7.85);tout.rotation.y=Math.PI/2;root.add(tout);const tail=new THREE.Group();tail.name='tail rotor';tout.add(tail);
     {const tb=new MB();tb.cyl('metal',.09,.09,.12,8,0,0,0,Math.PI/2);tb.box('blade',1.2,.14,.03,0,0,.05);tb.box('blade',.14,1.2,.03,0,0,.05);tb.build(tail,M,{static:false})}
-    return {root,main,tail,turret}}
+    const B={root,main,tail,turret,tout};WARHELI.cobra(B);return B},
+  // round 34: the owner's AH-1 Cobra (assets/models/cobra.glb: his 240k-triangle OBJ welded, simplified to ~43k triangles, split into body / dark detail / canopy / main rotor / tail rotor, rebuilt in this frame by tools/models/cobra.mjs). The procedural helicopter above is the placeholder until the file arrives (and stays if it fails).
+  cobra(B){try{new THREE.GLTFLoader().load('assets/models/cobra.glb?v=2',g=>{const keep=new Set([B.main,B.tout,B.turret]),old=B.root.children.slice();
+      const get=n=>{let r=null;g.scene.traverse(o=>{if(o.name===n&&o.isMesh)r=o;else if(o.name===n&&o.children[0]&&o.children[0].isMesh)r=o.children[0]});return r};
+      const part=(n,parent,shadow)=>{const m=get(n);if(!m)return null;m.parent.remove(m);m.position.set(0,0,0);m.castShadow=!!shadow;m.frustumCulled=false;parent.add(m);return m};
+      for(const ch of old)if(!keep.has(ch))ch.visible=false;
+      for(const grp of [B.main,B.tail,B.turret])grp.children.slice().forEach(c=>grp.remove(c));
+      const mn=get('main'),tl=get('tail');const hub=mn&&g.scene.getObjectByName('main'),th=tl&&g.scene.getObjectByName('tail');
+      if(hub)B.main.position.copy(hub.position);if(th)B.tout.position.copy(th.position);
+      part('olive',B.root,true);part('dark',B.root,true);const gl=part('glass',B.root,false);if(gl){gl.material.transparent=true;gl.material.depthWrite=false;gl.renderOrder=2}
+      part('main',B.main,false);part('tail',B.tail,false);B.cobraLoaded=true},undefined,e=>console.warn('[heli2] cobra.glb',e))}catch(e){console.warn('[heli2] cobra',e)}}
 };
