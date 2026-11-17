@@ -14,7 +14,7 @@ const LV_SEATS={
   lambo:[{p:[.34,.17,.02],pose:'drive'},{p:[-.34,.17,.02],pose:'drive'}],
   gwagon:[{p:[.42,.4,.36],pose:'suv'},{p:[-.42,.4,.36],pose:'suv'},{p:[.42,.4,-.62],pose:'suv'},{p:[-.42,.4,-.62],pose:'suv'}],
   bike:[{p:[0,.67,-.34],pose:'bike'},{p:[0,.55,-.76],pose:'bike2'}],   // the second seat is the rear rack: a friend rides pillion
-  moto:[{p:[0,.5,-.4],pose:'moto'}],                                   // Ducati MotoGP seat: hips = root + .24 in the pose below
+  moto:[{p:[0,.5,-.4],pose:'moto'},{p:[0,.58,-.86],pose:'bike2'}],   // Ducati MotoGP seat (hips = root + .24 in the pose); round 34: a friend rides pillion behind
   gtr:[{p:[.37,.22,-.2],pose:'drive'},{p:[-.37,.22,-.2],pose:'drive'}],   // Nissan GT-R: driver on the left (+x) and one passenger
   p911:[{p:[.36,.22,-.42],pose:'drive'},{p:[-.36,.22,-.42],pose:'drive'}],   // Porsche 911 Turbo (1975): the cabin sits far back
   p918:[{p:[.33,.2,-.3],pose:'drive'},{p:[-.33,.2,-.3],pose:'drive'}],       // Porsche 918 Spyder

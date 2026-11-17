@@ -167,7 +167,7 @@ Object.assign(SPC,{
     v.addScaledVector(ax,side*14);(this.debris=this.debris||[]).push({o,v,w:new THREE.Vector3((Math.random()-.5)*.4,(Math.random()-.5)*.2,side*.25+(Math.random()-.5)*.2),t:0})},
   debrisStep(dt){if(!this.debris)return;for(const d of this.debris){d.t+=dt;d.v.y-=22*dt;d.o.position.addScaledVector(d.v,dt);d.o.rotateX(d.w.x*dt);d.o.rotateY(d.w.y*dt);d.o.rotateZ(d.w.z*dt);if(d.t>16)d.o.visible=false}},
   // ---------------------------------------------------------------------------------------------- the fighter in the atmosphere
-  board(){if(this.on||!this.fgt||!this.fgtMesh)return;this.begin('atmo');this.atmo=true;const m=this.fgtMesh;this.C={w:{x:m.position.x,y:m.position.y,z:m.position.z},q:new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.fgt.yaw),sp:0,thr:0,cq:null};
+  board(){if(this.on||!this.fgt||!this.fgtMesh)return;this.begin('atmo');this.atmo=true;const m=this.fgtMesh;this.C={w:m.position.clone(),q:new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),this.fgt.yaw),sp:0,thr:0,cq:null};
     this.msg('Space fighter','stick forward (or Fwd) to fly, Up and Down to climb and sink · drag to turn · the Moon is far away',3200)},
   frameAtmo(dt){if(this.mode==='ascent')return this.ascent(dt);if(this.mode!=='atmo'||!this.C)return;this.sound(dt);const C=this.C,alt=C.w.y-SL;this.flyStep(dt,true,alt);
     const gh=Math.max(groundH(C.w.x,C.w.z),SL);if(C.w.y<gh+3.5){C.w.y=gh+3.5;if(C.q){const f=new THREE.Vector3(0,0,1).applyQuaternion(C.q);if(f.y<0){f.y=0;f.normalize();C.q.setFromUnitVectors(new THREE.Vector3(0,0,1),f)}}C.sp*=.98}

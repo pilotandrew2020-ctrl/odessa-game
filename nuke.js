@@ -1,6 +1,6 @@
 // nuke.js — the nuclear bomb (2026-11-16). Spawn menu "Nuclear bomb": it falls 5 s onto a spot 300 m in front of where you look, then: white flash, a fireball, a shock ring + dust wall that sweeps outwards at 330 m/s, the mushroom cloud, a rumble that reaches you when the shock does.
 //   BUILDINGS: no new geometry. The shared building / ground / tree shaders in index.html (NUKE_GLSL, NUKE_VB, NUKE_SURF, the uniforms uNuke / uNukeK / uNukeY) pull every wall and roof vertex down onto a ragged stump height as the shock front passes (nukeK), char the ground and shrink the trees inside the radius (R = 300 m).
-//   While ruined: no wall colliders inside the zone (insideAny asks NUKE.inZone), no chunk shadows there, traffic cars inside are gone, pedestrians are thrown, you are shoved / hurt when the front reaches you. After 75 s the city grows back over 25 s. Cost: a handful of meshes while it lasts, one extra uniform test in the vertex shaders.
+//   While ruined: no wall colliders inside the zone (insideAny asks NUKE.inZone), no chunk shadows there, traffic cars inside are gone, pedestrians are thrown, you are shoved / hurt when the front reaches you. After 22 s the city grows back over 10 s. Cost: a handful of meshes while it lasts, one extra uniform test in the vertex shaders.
 const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
   inZone(x,z,pad){return Math.hypot(x-this.gx,z-this.gz)<Math.min(this.t*330,this.R*.95)+(pad||0)},
   cloud(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');for(let i=0;i<46;i++){const x=64+(Math.random()-.5)*78,y=64+(Math.random()-.5)*78,r=14+Math.random()*26,q=g.createRadialGradient(x,y,0,x,y,r);q.addColorStop(0,'rgba(255,255,255,.55)');q.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=q;g.fillRect(0,0,128,128)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t},
@@ -50,7 +50,7 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
     // the shock reaches you: shove, hurt, shake (once)
     if(!this.hit&&front*1>=this.dp){this.hit=true;const dx=player.x-this.gx,dz=player.z-this.gz,d=Math.hypot(dx,dz)||1,k=Math.max(0,1-d/(R*1.8));player.vx+=dx/d*(8+22*k);player.vz+=dz/d*(8+22*k);if(typeof GUN!=='undefined'&&GUN.armed)GUN.damage(Math.round(100*k),'nuclear blast');if(typeof FX!=='undefined'){FX.shakeT=2.2;FX.shakeA=.07}}
     // the zone stays ruined for 75 s, then the city grows back over 25 s
-    const hold=Math.max(10,75*k0),rec=Math.max(5,25*k0);   // small strikes (a tank shell) are over in ~15 s
+    const hold=Math.max(6,22*k0),rec=Math.max(4,10*k0);   // round 34: the city is back after ~30 s (it was 100 s)   // small strikes (a tank shell) are over in ~15 s
     if(t>hold){this.K=Math.max(0,1-(t-hold)/rec);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg&&k0>.3){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
     if(t>hold+rec)this.clear()},
   clear(){for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
