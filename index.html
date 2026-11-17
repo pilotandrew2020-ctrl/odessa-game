@@ -6943,7 +6943,7 @@ const QUAL={low:{pr:.7,shadow:512,sr:26,bloom:false,R:300,trees:90,tdens:.25,car
 if(!QUAL[S.q])S.q=recommendedQuality();
 // Mobile Safari budget: one 1024 shadow map, no half-float bloom target, chunks within 450 m.
 // Above this the tab runs out of GPU memory and iOS silently drops the WebGL context.
-const MOBILE_CAP={pr:2,shadow:2048,sr:60,R:560,trees:340,cars:16,peds:26};   // round 22: raised for the owner's 'highest quality' (was pr 1.5, shadow 1024, R 450); a lost WebGL context still steps the quality down by itself
+const MOBILE_CAP={pr:1.6,shadow:2048,sr:60,R:560,trees:340,cars:16,peds:26};   // round 22: raised for the owner's 'highest quality' (was pr 1.5, shadow 1024, R 450); a lost WebGL context still steps the quality down by itself
 const QUAL_MOBILE={};
 function Qp(){const q=QUAL[S.q]||QUAL.mid;if(!MOBILE)return q;const key=QUAL[S.q]?S.q:'mid';
   if(!QUAL_MOBILE[key]){const m=Object.assign({},q);for(const k in MOBILE_CAP)m[k]=Math.min(q[k],MOBILE_CAP[k]);QUAL_MOBILE[key]=m}
@@ -7025,10 +7025,10 @@ function applyQuality(soft){   // soft: keep the chunks that are built (the auto
     sunL.shadow.bias=-.0004;sunL.shadow.normalBias=.28;if(sunL.shadow.map){sunL.shadow.map.dispose();sunL.shadow.map=null}}
   if(q.bloom&&THREE.EffectComposer){
     const w=innerWidth,h=innerHeight,pr=renderer.getPixelRatio();
-    const rt=new THREE.WebGLRenderTarget(w*pr,h*pr,{type:THREE.HalfFloatType,format:THREE.RGBAFormat,depthBuffer:true,stencilBuffer:true,samples:renderer.capabilities.isWebGL2?(pr>1.2?2:4):0}); // 24-bit depth (16-bit made textures shimmer)
+    const rt=new THREE.WebGLRenderTarget(w*pr,h*pr,{type:THREE.HalfFloatType,format:THREE.RGBAFormat,depthBuffer:true,stencilBuffer:true,samples:(renderer.capabilities.isWebGL2&&!MOBILE)?(pr>1.2?2:4):0}); // 24-bit depth (16-bit made textures shimmer); round 39: no MSAA on tablets (FXAA does the edges): EffectComposer clones this target, so 2x MSAA at retina size was paid three times (~300 MB of GPU memory on an iPad = the tab got killed on High)
     composer=new THREE.EffectComposer(renderer,rt);composer.setPixelRatio(pr);composer.setSize(w,h);
     composer.addPass(new THREE.RenderPass(scene,camera));
-    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(w/2,h/2),.5,.55,.86);composer.addPass(bloomPass);
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(w/2,h/2),.5,.55,.86);if(MOBILE){const bs=bloomPass.setSize.bind(bloomPass);bloomPass.setSize=(W,H)=>bs(W/2,H/2)}composer.addPass(bloomPass);   // round 39: tablets blur at a quarter of the screen (the glow looks the same, 4x fewer pixels in its 5 blur levels)
     composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
     if(window.GFX)composer.addPass(GFX.gradePass());   // colour grade, sun shafts, vignette, grain (gfx.js)
     fxaaPass=new THREE.ShaderPass(THREE.FXAAShader);fxaaPass.uniforms.resolution.value.set(1/(w*pr),1/(h*pr));composer.addPass(fxaaPass);
@@ -8066,8 +8066,9 @@ function adaptRes(dt){ftAcc+=dt;ftN++;ftT+=dt;
   let ns=pixelScale;const now=performance.now();
   // 2026-11-12: it used to step up after every 3 calm windows even when the higher scale was exactly what had just been too slow: a resolution change every ~8 s, each one a drawing-buffer
   // reallocation (a hitch, and a memory spike on iPad). Now the scale that was too heavy is remembered for 90 s, and every up-then-down cycle doubles the calm time needed.
-  if(avg>.045){adaptRes.calm=0;ns=Math.max(.55,pixelScale-.15);if(ns<pixelScale){adaptRes.bad=pixelScale;adaptRes.badAt=now;if(now-(adaptRes.upAt||0)<30000)adaptRes.need=Math.min(12,(adaptRes.need||3)*2)}}
-  else if(avg<.022){adaptRes.calm=(adaptRes.calm||0)+1;if(adaptRes.calm>=(adaptRes.need||3)){adaptRes.calm=0;const up=Math.min(1,pixelScale+.1);
+  const SLOW=MOBILE?1/48:.045,FAST=MOBILE?1/66:.022;   // round 39: tablets aim at a smooth 60 (it only reacted below 22 fps before)
+  if(avg>SLOW){adaptRes.calm=0;ns=Math.max(MOBILE?.7:.55,pixelScale-(MOBILE?.1:.15));if(ns<pixelScale){adaptRes.bad=pixelScale;adaptRes.badAt=now;if(now-(adaptRes.upAt||0)<30000)adaptRes.need=Math.min(12,(adaptRes.need||3)*2)}}
+  else if(avg<FAST){adaptRes.calm=(adaptRes.calm||0)+1;if(adaptRes.calm>=(adaptRes.need||3)){adaptRes.calm=0;const up=Math.min(1,pixelScale+.1);
     if(!(adaptRes.bad&&up>=adaptRes.bad-.001&&now-adaptRes.badAt<90000)){ns=up;adaptRes.upAt=now}}}
   else adaptRes.calm=0;
   if(now-(adaptRes.upAt||0)>120000)adaptRes.need=3;
@@ -8152,7 +8153,7 @@ async function boot(){
 }
 let last=performance.now(),_shadowTick=0;
 const _loopErr={};
-function safe(name,fn){try{fn()}catch(e){const n=performance.now();if(!_loopErr[name]||n-_loopErr[name]>5000){_loopErr[name]=n;console.error('[loop:'+name+']',e)}}}
+function safe(name,fn){const P=window.PROF,t0=P?performance.now():0;try{fn()}catch(e){const n=performance.now();if(!_loopErr[name]||n-_loopErr[name]>5000){_loopErr[name]=n;console.error('[loop:'+name+']',e)}};if(P)P[name]=(P[name]||0)+performance.now()-t0}   // window.PROF={} (tests): milliseconds spent per loop section
 function loop(t){
   requestAnimationFrame(loop);
   if(CREATOR.on){last=t;safe('creator',()=>CREATOR.frame(t));return}
