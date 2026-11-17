@@ -7549,7 +7549,7 @@ function stepPlayer(dt){
       // indoors your head stops at the ceiling (before, a jump took the camera through the roof)
       if(player.vy>0&&curIndoor&&curIndoor.ceil){const cl=curIndoor.ceil(player.x,player.z,player.y);if(typeof cl==='number'&&cl>player.y+1.2&&player.y+1.78>cl){player.y=cl-1.78;player.vy=0}}}}
   else{if(g<player.y-.6){if(PORTAL.cur&&player.y-g>2.2){player.vx*=.3;player.vz*=.3}else{player.air=true;player.vy=0}}
-    else player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20))}
+    else{player.y+=(g-player.y)*Math.min(1,dt*(Math.abs(g-player.y)>.3?12:20));if(g-player.y>.05)player.y=g-.05}}   // round 34: going UP a slope / a kerb the smoothing used to leave the feet up to 30 cm inside the ground: never more than 5 cm below it now
   if(player.y<SL-.7)player.y=Math.max(player.y,SL-.75);
   // anti-fall layer: if a stair / floor edge let the feet sink more than 1.5 m under the floor found from head height, lift back onto it
   if(!PORTAL.cur&&!player.air&&started&&!(typeof BLD!=='undefined'&&BLD.n)){const gs=groundAt(player.x,player.z,player.y+2);if(Number.isFinite(gs)&&gs>SL&&player.y<gs-1.5){player.y=gs;player.vy=0}}

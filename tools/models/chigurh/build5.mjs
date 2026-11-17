@@ -45,15 +45,15 @@ const hm=D.createMaterial('chead').setBaseColorFactor([1,1,1,1]).setRoughnessFac
 mesh.addPrimitive(D.createPrimitive().setAttribute('POSITION',acc('VEC3',new Float32Array(PP))).setAttribute('TEXCOORD_0',acc('VEC2',new Float32Array(UU))).setIndices(acc('SCALAR',IF)).setMaterial(hm));
 // eyes: the sculpt has no readable pupils, so two eyes are drawn on the sockets (white, brown iris, black pupil, a white glint), flat discs just in front of the surface
 {const EY=.358,EC=[[-.054,EY],[.034,EY]],mk=(n,c)=>D.createMaterial(n).setBaseColorFactor(c).setRoughnessFactor(.35).setMetallicFactor(0).setDoubleSided(true);
- const mw=mk('eye_w',[.86,.84,.78,1]),mi=mk('eye_i',[.16,.09,.04,1]),mp=mk('eye_p',[.01,.01,.012,1]),mh=mk('eye_h',[1,1,1,1]);
+ const mw=mk('eye_w',[.56,.5,.44,1]),mi=mk('eye_i',[.12,.07,.035,1]),mp=mk('eye_p',[.008,.008,.01,1]),mh=mk('eye_h',[.75,.75,.75,1]);   // round 34: less bright (the owner: between dark and light, like ordinary eyes)
  const zAt=(x,y)=>{let z=-9,c=0;for(let i=0;i<ha.length;i+=3){if(Math.hypot(ha[i]-x,ha[i+1]-y)<.009&&ha[i+2]>0){z=Math.max(z,ha[i+2]);c++}}return c?z:null};
  const disc=(cx,cy,z,rx,ry,mat)=>{const pos=[],idx=[],N=18;pos.push(...B([cx,cy,z]));for(let i=0;i<N;i++){const a=i/N*Math.PI*2;pos.push(...B([cx+Math.cos(a)*rx,cy+Math.sin(a)*ry,z]))}for(let i=0;i<N;i++)idx.push(0,1+i,1+(i+1)%N);
    mesh.addPrimitive(D.createPrimitive().setAttribute('POSITION',acc('VEC3',new Float32Array(pos))).setIndices(acc('SCALAR',Uint32Array.from(idx))).setMaterial(mat))};
  for(const [ex,ey] of EC){const z0=zAt(ex,ey);console.log('eye z',z0);if(z0===null)continue;
-   disc(ex,ey,z0+.0012,.024,.0105,mw);disc(ex+.002,ey-.0005,z0+.0022,.0105,.0105,mi);disc(ex+.002,ey-.0005,z0+.0032,.0052,.0052,mp);disc(ex+.006,ey+.0035,z0+.0042,.002,.002,mh)}}
+   disc(ex,ey,z0+.0004,.021,.0085,mw);disc(ex+.002,ey-.0004,z0+.0008,.0098,.0085,mi);disc(ex+.002,ey-.0004,z0+.0012,.0048,.0048,mp);disc(ex+.005,ey+.003,z0+.0016,.0014,.0014,mh)}}   // flat to the socket (they stood out like bulging eyes)
 // hands: the real hands of Man.glb (CC0), fingers and all: triangles of its Body below the wrist (y < .985) outside the torso (|x| > .19), put on the wrists of the bust's sleeves
 {const md=await new NodeIO().registerExtensions(ALL_EXTENSIONS).read('/home/user/odessa-game/assets/models/avatar/Man.glb'),node=md.getRoot().listNodes().find(n=>n.getName()==='Body'),pr=node.getMesh().listPrimitives()[0],pa=pr.getAttribute('POSITION').getArray(),ia=pr.getIndices().getArray();
- const fm=D.createMaterial('handskin2').setBaseColorFactor([.78,.56,.45,1]).setRoughnessFactor(.75).setMetallicFactor(0).setDoubleSided(true),KH=+(process.env.KH||.56);
+ const fm=D.createMaterial('handskin2').setBaseColorFactor([.46,.27,.2,1]).setRoughnessFactor(.75).setMetallicFactor(0).setDoubleSided(true),KH=+(process.env.KH||.56);
  for(const sd of [1,-1]){const sel=[];for(let t=0;t<ia.length;t+=3){const a=ia[t],b=ia[t+1],c=ia[t+2],cy=(pa[a*3+1]+pa[b*3+1]+pa[c*3+1])/3,cx=(pa[a*3]+pa[b*3]+pa[c*3])/3;if(cy<.985&&cy>.8&&sd*cx>.19)sel.push(a,b,c)}
    const rmap=new Map(),pos=[],idx=[];const W=sd>0?B([.30,-.36,.09]):B([-.31,-.37,.09]);   // wrist in the body's frame
    for(const i2 of sel){let r=rmap.get(i2);if(r===undefined){r=pos.length/3;rmap.set(i2,r);const y=pa[i2*3+1]-.985,z=pa[i2*3+2]+.065;pos.push(W[0]+(pa[i2*3]-sd*.272)*KH,W[1]+y*KH+(+process.env.HY||.025),W[2]+z*KH)}idx.push(r)}
