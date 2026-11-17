@@ -19,9 +19,9 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.32,fire:f
   build(){if(this.g)return;const g=this.g=new THREE.Group();g.visible=false;scene.add(g);
     // the beam: a bright core + a wide soft glow (two additive cylinders along +y, stretched each frame) + a flare at the mouth and a splash where it lands
     const add=(r,c,o)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,14,1,true).translate(0,.5,0),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false,side:THREE.DoubleSide}));m.frustumCulled=false;return m};
-    const beam=this.beam=new THREE.Group();beam.add(add(1.1,0xeaffff,.95),add(3.2,0x38d8ff,.38),add(6.5,0x1a8cff,.14));beam.visible=false;scene.add(beam);
+    const beam=this.beam=new THREE.Group();beam.add(add(2.2,0xeaffff,1),add(5.5,0x38d8ff,.5),add(11,0x1a8cff,.2));beam.visible=false;scene.add(beam);
     const sp=(r,c,o)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,10),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}));m.frustumCulled=false;return m};
-    this.flare=sp(4,0x9ff4ff,.7);this.splash=sp(14,0x5fe6ff,.45);this.flare.visible=this.splash.visible=false;scene.add(this.flare,this.splash);
+    this.flare=sp(7,0x66e8ff,.8);this.splash=sp(18,0x5fe6ff,.5);this.flare.visible=this.splash.visible=false;scene.add(this.flare,this.splash);
     const s=document.createElement('style');s.textContent=`body.gojion #hud *{visibility:hidden}body.gojion #joy,body.gojion #joy *{visibility:visible}body.gojion #actBtns,body.gojion #bAct,body.gojion #quickRow,body.gojion #gunBar{display:none!important}
 #gojiHud{position:fixed;inset:0;z-index:39;pointer-events:none;font:800 12px var(--f-disp,system-ui);color:#dffbff;text-shadow:0 0 6px #000}#gojiHud[hidden]{display:none}
 #gojiLook{position:absolute;right:0;top:0;width:62%;height:100%;pointer-events:auto;touch-action:none}
