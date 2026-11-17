@@ -40,7 +40,8 @@ const GRADE={
   uniforms:{tDiffuse:{value:null},uTime:{value:0},uSun:{value:new THREE.Vector2(.5,.5)},uRays:{value:0},uRayC:{value:new THREE.Vector3(1,.9,.7)},
     uTS:{value:new THREE.Vector3(1,1,1)},uTH:{value:new THREE.Vector3(1,1,1)},uSat:{value:1},uCon:{value:0},uVig:{value:0},uGrain:{value:0},uCA:{value:0},uFlash:{value:0},uAsp:{value:1}},
   vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform sampler2D tDiffuse;uniform float uTime,uRays,uSat,uCon,uVig,uGrain,uCA,uFlash,uAsp;
+  // round 39: touch devices (tablets / phones; gfx.js loads before MOBILE exists) march the sun rays in 7 steps instead of 14 (14 texture reads per pixel at retina size)
+  fragmentShader:((navigator.maxTouchPoints||0)>1?'#define RAYN 7\n#define RAYW .79\n':'#define RAYN 14\n#define RAYW .89\n')+`uniform sampler2D tDiffuse;uniform float uTime,uRays,uSat,uCon,uVig,uGrain,uCA,uFlash,uAsp;
 uniform vec2 uSun;uniform vec3 uRayC,uTS,uTH;varying vec2 vUv;
 float hh(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
 void main(){
@@ -48,10 +49,10 @@ void main(){
  vec3 col=vec3(texture2D(tDiffuse,uv+d*uCA*r2).r,texture2D(tDiffuse,uv).g,texture2D(tDiffuse,uv-d*uCA*r2).b);
  if(uRays>.002){                                  // crepuscular rays: march toward the sun, gather the unoccluded bright sky
    vec2 dl=uSun-uv;float dist=length(dl*vec2(uAsp,1.));
-   vec2 stp=dl*(.8/14.);vec2 p=uv+stp*hh(gl_FragCoord.xy+uTime);
+   vec2 stp=dl*(.8/float(RAYN));vec2 p=uv+stp*hh(gl_FragCoord.xy+uTime);
    vec3 acc=vec3(0.);float w=1.;
-   for(int i=0;i<14;i++){p+=stp;vec3 s=texture2D(tDiffuse,p).rgb;float m=max(max(s.r,s.g),s.b);acc+=s*smoothstep(.66,1.,m)*w;w*=.89;}
-   col+=acc*(1./14.)*uRays*exp(-dist*1.5)*uRayC;
+   for(int i=0;i<RAYN;i++){p+=stp;vec3 s=texture2D(tDiffuse,p).rgb;float m=max(max(s.r,s.g),s.b);acc+=s*smoothstep(.66,1.,m)*w;w*=RAYW;}
+   col+=acc*(1./float(RAYN))*uRays*exp(-dist*1.5)*uRayC;
  }
  float l=dot(col,vec3(.2126,.7152,.0722));
  col=mix(vec3(l),col,uSat);                                        // saturation
