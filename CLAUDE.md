@@ -21,3 +21,10 @@ The ponytail plugin ("write only what the task needs") is enabled in `.claude/se
 The real game is the Vercel project **`odessa_chick`** (https://odessachick.vercel.app, production = branch `main`, every merge deploys by itself). That is the only place the owner plays (on an iPad). After merging a PR, check its latest production deployment (Vercel connector: `list_deployments`, project `prj_1AHUe5gTv4PihMekPBofy6Q52EAO`, target `production`) and tell the owner to clear the site data in Safari.
 - Not used by the owner, do not report on them: the Vercel project `good_odessa` (a second copy), GitHub Pages, Cloudflare (the owner left it; there is an old Worker `odessa`, leave it alone).
 - Connectors that are worth using here: Vercel (deployments, errors) and MDN (web docs). Sentry has no project yet; Hugging Face ("Pictures") and Higgsfield only when the owner wants generated media.
+
+## Cost rules (the owner's request, 2026-11-17: fewer credits, less talk, more work)
+- Reply short: what was done, what is NOT verified, what the owner must do. No recaps, no option lists, no long explanations unless asked.
+- Do not call MCP tools or screenshot / re-read images unless the task needs them; one look per change, not five. Do not poll or re-run tests that already passed.
+- Subagents (only when a task is big or parallel; the owner allowed it): easy search / mechanical edits -> `model: "haiku"` or `"sonnet"`; hard design / debugging -> `"opus"`. The main session's model is the owner's `/model` choice: suggest `/model opus` for hard tasks, `/model sonnet` for easy ones; never switch it silently.
+- Music: only royalty-free / CC0 tracks go into `assets/music/` (the owner's Weeknd video was NOT used: copyrighted, the site is public).
+
