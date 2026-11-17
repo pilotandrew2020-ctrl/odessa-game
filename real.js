@@ -21,11 +21,11 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
        nolik:{url:'assets/models/avatar/Nolik.glb',sc:1.3,tpl:null,st:0,lim:{ua:.3,la:.35,th:.75,ca:.75},acc:{kh:1.9,dy:.14,dz:.1,hdy:.48,hdz:-.14,ks:.5,sy:.0,sz:-.02},tint:['nolik']},
        // 2026-11-12: the owner's character models (tools/models/mk_char.mjs; a skeleton of the 22 bones, arms down). lim = how much of the walking swing the armour / clothes can take without clipping
        steve:{url:'assets/models/avatar/Steve.glb',sc:1,tpl:null,st:0,acc:{kh:1.6,dy:.085,dz:.19}},
-       mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0,tint:['M_MED_Lettuce_Head']},
-       halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85}},
-       leon:{url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
-       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9},tint:['Head_diff_000_a_whi','hand_diff_002_a_whi_003','hand_diff_001_a_whi_003']},
-       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95},tint:['Head'],acc:{dy:.035}},
+       mrbeast:{url:'assets/models/avatar/MrBeast.glb',sc:1,tpl:null,st:0,tint:['M_MED_Lettuce_Head'],reg:{top:['M_MED_Lettuce_Body']}},
+       halo:{url:'assets/models/avatar/Halo.glb',sc:1,tpl:null,st:0,lim:{ua:.55,la:.6,th:.85,ca:.85},tint:['MKV_Limbs'],reg:{top:['MKV_Torso'],bottom:['MKV_Legs'],hair:['MKV_Helmet']}},
+       leon:{tint:['Material10','Material11','Material12','Material13'],url:'assets/models/avatar/Leon.glb',sc:1,tpl:null,st:0,lim:{ua:.65,la:.8,th:.9,ca:.9}},
+       ghost:{url:'assets/models/avatar/Ghost.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.85,th:.9,ca:.9},tint:['Head_diff_000_a_whi','hand_diff_002_a_whi_003','hand_diff_001_a_whi_003'],reg:{top:['uppr_diff_000_a_uni'],bottom:['lowr_diff_000_a_uni'],shoe:['feet_diff_000_a_uni'],hair:['hair_diff_000_a_whi','hair_diff_000_a_whi_001','hair_diff_000_a_whi_002']}},
+       walter:{url:'assets/models/avatar/Walter.glb',sc:1,tpl:null,st:0,lim:{ua:.75,la:.85,th:.95,ca:.95},tint:['Head'],acc:{dy:.035},reg:{top:['Body']}},
        // round 23: Anton Chigurh from the owner's TRELLIS mesh (gun, tank and puddle cut off, the right hand mirrored onto the gun arm, decimated to 28k, rigged with mk_char): colours only, the face is projected by look.js
        chigurh:{url:'assets/models/avatar/Chigurh.glb',sc:1,tpl:null,st:0,lim:{ua:.7,la:.8,th:.9,ca:.9}}},
   kind(o){return o.bodyK||(o.booba?'booba':o.nolik?'nolik':null)},
@@ -107,6 +107,17 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
       mat.onBeforeCompile=(sh,r)=>{if(prev)prev.call(mat,sh,r);Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 uTB;uniform vec3 uTC;uniform float uTL;').replace('#include <map_fragment>','#include <map_fragment>\n{vec3 tc=max(diffuseColor.rgb,vec3(.001));float sim=dot(normalize(tc),normalize(uTB)),lum=dot(tc,vec3(.299,.587,.114));float tm=smoothstep(.9,.985,sim)*step(.0,lum);diffuseColor.rgb=mix(diffuseColor.rgb,uTC*(lum/uTL),tm);}');};
       const k=mat.customProgramCacheKey?mat.customProgramCacheKey():'';mat.customProgramCacheKey=()=>k+'|tint';mat.needsUpdate=true}
     mat.userData.tintU.uTC.value.copy(tc);mat.userData.tintU.uTB.value.copy(bl);mat.userData.tintU.uTL.value=bL},
+  // round 34: Chigurh's head texture holds face, hair and jacket in one picture: warm-hued pixels (skin) and neutral dark pixels (the jacket) are remapped separately, shading kept
+  tint2(mat,skin,dark){const im=mat.map&&mat.map.image;if(!im||!im.width)return false;
+    if(!mat.userData.t2){let sl=.3,dl=.04;try{const N=64,cv=document.createElement('canvas');cv.width=cv.height=N;const g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,N,N);const d=g.getImageData(0,0,N,N).data;let a=0,an=0,b=0,bn=0;const f=c=>Math.pow(c/255,2.2);
+        for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const r=f(d[i]),gg=f(d[i+1]),bb=f(d[i+2]),mx=Math.max(r,gg,bb),mn=Math.min(r,gg,bb),l=.299*r+.587*gg+.114*bb,st=mx>0?(mx-mn)/mx:0;if(gg<=r&&bb<=gg&&st>.18&&l>.03){a+=l;an++}else if(l<.1&&st<.25){b+=l;bn++}}
+        if(an)sl=a/an;if(bn)dl=Math.max(.012,b/bn)}catch(e){}
+      const U=mat.userData.t2={uSk:{value:new THREE.Color()},uDk:{value:new THREE.Color()},uSkOn:{value:0},uDkOn:{value:0},uSkL:{value:sl},uDkL:{value:dl}},prev=mat.onBeforeCompile;
+      mat.onBeforeCompile=(sh,r)=>{if(prev)prev.call(mat,sh,r);Object.assign(sh.uniforms,U);sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 uSk;uniform vec3 uDk;uniform float uSkOn;uniform float uDkOn;uniform float uSkL;uniform float uDkL;').replace('#include <map_fragment>','#include <map_fragment>\n{vec3 c=max(diffuseColor.rgb,vec3(.0008));float lum=dot(c,vec3(.299,.587,.114));float mx=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b));float sat=(mx-mn)/mx;float sk=uSkOn*step(c.g,c.r)*step(c.b,c.g)*smoothstep(.1,.22,sat)*smoothstep(.015,.05,lum);float dk=uDkOn*(1.-smoothstep(.05,.14,lum))*(1.-smoothstep(.12,.3,sat));vec3 o=diffuseColor.rgb;o=mix(o,uSk*min(lum/uSkL,2.),sk);o=mix(o,uDk*min(lum/uDkL,2.5),dk);diffuseColor.rgb=o;}')};
+      const k=mat.customProgramCacheKey?mat.customProgramCacheKey():'';mat.customProgramCacheKey=()=>k+'|t2';mat.needsUpdate=true}
+    const U=mat.userData.t2;if(skin!==undefined&&skin!==null){U.uSk.value.copy(this.lin(skin));U.uSkOn.value=1}else U.uSkOn.value=0;if(dark!==undefined&&dark!==null){U.uDk.value.copy(this.lin(dark));U.uDkOn.value=1}else U.uDkOn.value=0;return true},
+  // a colour picked for a part of a textured body: when the texture is not decoded yet, try again shortly
+  tintWhen(m,hex){const go=()=>{const t=m.map;if(t&&t.image&&t.image.width){this.tint(m,hex);return true}return !t};if(!go()){setTimeout(go,400);setTimeout(go,1500)}},
   // round 29: "Me (3D scan)": the owner's head scan (assets/models/avatar/MeHead.glb, 13k triangles, flat colours) on the realistic body: Man's own head triangles (above the neck) are cut away and the scan rides on the Head bone
   meHead(R,o,find,sh){const body=find('Body');for(const k of ['Eyes','Brows','Beard','HairParted','HairBuzzed','HairLong','HairBuns'])sh(k,false);
     if(body&&body.geometry&&!body.userData.meCut){const g=body.geometry.clone(),ix=g.index,pa=g.attributes.position,keep=[];for(let i=0;i<ix.count;i+=3){const a=ix.getX(i),b=ix.getX(i+1),c=ix.getX(i+2);if(!(pa.getY(a)>1.53&&pa.getY(b)>1.53&&pa.getY(c)>1.53))keep.push(a,b,c)}g.setIndex(keep);body.geometry=g;body.userData.meCut=1}
@@ -120,7 +131,10 @@ const REAL={SC:.94,url:'assets/models/avatar/Man.glb',tpl:null,st:0,wait:[],eyeT
     const mat={};M.traverse(c=>{if(c.isMesh)mat[c.material.name]=c.material});
     // skin: the texture is baked around #f2c9a6, other tones tint it
     {const K=this.kind(o),T=K&&this.BOD[K]&&this.BOD[K].tint;if(T&&o.skinPick){for(const nm of T)if(mat[nm]){const apply=()=>this.tint(mat[nm],o.skin);if(mat[nm].map&&mat[nm].map.image&&mat[nm].map.image.width)apply();else if(mat[nm].map){const t=mat[nm].map,f=()=>{apply()};t.addEventListener&&0;setTimeout(apply,400);setTimeout(apply,1500)}}}}
-    if(mat.chead){mat.chead.color.setRGB(1.3,1.25,1.22);mat.chead.roughness=.7}   // Chigurh's textured head: a little brighter than the file (the game's light is dim on skin)
+    if(mat.chead){mat.chead.color.setRGB(1.3,1.25,1.22);mat.chead.roughness=.7}
+    if(mat.chead){const ap=()=>mat.chead.map&&mat.chead.map.image&&mat.chead.map.image.width?this.tint2(mat.chead,o.skinPick?o.skin:null,o.topC!==undefined?o.topC:null):false;if(!ap()){setTimeout(ap,400);setTimeout(ap,1500)}}
+    if(mat.handskin2&&o.skinPick)mat.handskin2.color.copy(this.lin(o.skin)).multiplyScalar(.55)   // Chigurh's hands follow a skin colour you pick
+    {const K2=this.kind(o),BD=K2&&this.BOD[K2];if(BD&&BD.reg)for(const [slot,c] of [['top',o.topC],['bottom',o.botC],['shoe',o.shoeC],['hair',o.hairC]])if(c!==undefined&&BD.reg[slot])for(const nm of BD.reg[slot])if(mat[nm])this.tintWhen(mat[nm],c)}   // textured bodies: a picked top / bottom / shoe / hair colour recolours that part's main colour   // Chigurh's textured head: a little brighter than the file (the game's light is dim on skin)
     if(mat.handskin){mat.handskin.color.copy(this.lin(o.skinRaw||o.skin||'#f2c9a6'));mat.handskin.roughness=.62}   // Chigurh: the sculpt's hands, untextured, in the colour of the face
     if(mat.skin){const u=this.lin(o.skin||'#f2c9a6'),d=this.lin('#f2c9a6');mat.skin.color.setRGB(Math.min(1.6,u.r/d.r),Math.min(1.6,u.g/d.g),Math.min(1.6,u.b/d.b));mat.skin.roughness=.62;if(mat.skin.normalScale)mat.skin.normalScale.set(.85,.85);
       if(typeof bdSkinRim==='function')bdSkinRim(mat.skin)}

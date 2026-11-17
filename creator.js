@@ -2,7 +2,8 @@
 //  1. option tables + a compact code (17 small ints) that is saved, sent to co-op friends and turned into makePlayer() options
 //  2. CHP: extra avatar parts (hair styles, hats, glasses, beard, neckwear, backpack) that makePlayer() attaches
 //  3. CREATOR: the full-screen 3D window that Play / Character open, rendered with the game's own renderer
-const CH_SKIN=['#fbe3d0','#f6d2b6','#f2c9a6','#e6b088','#cf9a6b','#b27a4c','#8f5a38','#6c3f27','#4a2b1d','#33201a'];
+const CH_SKIN=['#fbe3d0','#f6d2b6','#f2c9a6','#e6b088','#cf9a6b','#b27a4c','#8f5a38','#6c3f27','#4a2b1d','#33201a',
+  '#3a8dff','#34c27a','#e5483f','#8a52e0','#ff7ab6','#f2d14a','#9aa3ad','#f4f4f4'];   // round 34: the last eight are fantasy colours for the creature bodies (blue, green, red, violet, pink, yellow, grey, white); append only
 const CH_HAIR=[['Blond',0xe6c477,0xf3dc9c,'#b88a3e'],['Honey',0xc8964a,0xdcb06a,'#8a5a22'],['Chestnut',0x7a4a2a,0x95603a,'#4a2a14'],['Brown',0x4a2e1c,0x62402a,'#2a1a10'],
   ['Black',0x161616,0x2a2a2a,'#161616'],['Ginger',0xa0522d,0xc0703a,'#8a4422'],['Red',0xa02a22,0xc84a3a,'#7a1c16'],['Grey',0x9a9a9e,0xb8b8bc,'#6a6a6e'],
   ['White',0xe8e8e8,0xffffff,'#b8b8b8'],['Pink',0xe86aa8,0xf3a0c8,'#b8447e'],['Blue',0x2f6fd8,0x5a94ee,'#1e4a9a'],['Violet',0x7a3ad8,0xa070f0,'#5222a0']];
@@ -27,7 +28,7 @@ const CHAR_BODY_K=[null,null,'booba','nolik','steve','mrbeast','halo','leon','gh
 // where the face sits on the Chigurh.glb head (metres in the model, feet at y=0): eye line, eye distance, centre line, the oval the picture covers
 const CHIG_FACECFG={ey:1.6298,eyd:.0719,cx:-.0121,fcy:1.5941,ru:.1224,rd:.083,rx:.083};
 const CHIG_LOOK={real:true,photo:false,skinRaw:'#d9b3a0',faceImg:'assets/textures/chigurh_face.jpg',skin:'#c48d73',iris:'#5a3d26',bd:'none',hs:'short',hair:0x5a4129,hair2:0x6a4d33,brow:'#2a1a10',ts:'chig',shirt:0x202226,bs:'jeans',jeans:0x1b1b1e,cuff:0x2a2a2e,ss:'boot',shoe:0x5a3a24,sole:0x2a1a10,gl:'none',ht:'none',nk:'none',bk:'none',cn:false,bodyK:'chigurh',booba:false,nolik:false};
-const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,10,12,8,16,4,10,3,8,6,5,16,4,3,2,12],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic, 2 Booba, 3 Nolik, 4 Steve, 5 MrBeast, 6 Halo, 7 Leon, 8 Ghost, 9 Walter (real.js BOD; CHAR_BODY_K below)
+const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[18,6,4,10,12,8,16,4,10,3,8,6,5,16,4,3,2,12],cur:null,   // [17] = body: 0 realistic (real.js), 1 classic, 2 Booba, 3 Nolik, 4 Steve, 5 MrBeast, 6 Halo, 7 Leon, 8 Ghost, 9 Walter (real.js BOD; CHAR_BODY_K below)
   clean(a){const o=[];for(let i=0;i<this.def.length;i++){const v=Array.isArray(a)&&a[i]!==undefined?(a[i]|0):this.def[i];o.push(v>=0&&v<this.max[i]?v:this.def[i])}return o},
   load(){let a=null;try{a=JSON.parse(localStorage.getItem('od_char')||'null')}catch(e){}
     const SHARP=[3,3,1,1,3,4,2,0,1,0,1,1,0,2,2,0,0];     // the short-lived "sharp guy" default: anyone who saved it goes back to the blond with blue eyes
@@ -37,11 +38,15 @@ const CHAR={def:[2,0,0, 0,0, 2,0, 0,0, 0,0, 1, 0,2, 0,1,1, 0],max:[10,6,4,10,12,
   // the code → makePlayer() options
   opts(a){const own=!a||a===this.cur;a=this.clean(a||this.cur);const H=CH_HAIR[a[4]],J=CH_JEANS[a[8]],S=CH_SHOE[a[10]],C=CH_CLOTH[a[6]],ts=CH_TS_ID[a[5]];
     const o={skin:CH_SKIN[a[0]],iris:CH_EYE[a[1]][1],bd:CH_BD_ID[a[2]],hs:CH_HS_ID[a[3]],hair:H[1],hair2:H[2],brow:H[3],ts,bs:CH_BS_ID[a[7]],jeans:J[1],cuff:J[2],
-      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:a[17]===0||a[17]===11,meHead:a[17]===11,booba:a[17]===2,nolik:a[17]===3,bodyK:CHAR_BODY_K[a[17]]||null,skinPick:a[0]!==CHAR.def[0]};   // friends' codes use the realistic body as well (it used to be only your own avatar)
+      ss:CH_SS_ID[a[9]],shoe:S[1],sole:S[2],gl:CH_GL_ID[a[11]],ht:CH_HT_ID[a[12]],ac:CH_CLOTH[a[13]][1],nk:CH_NK_ID[a[14]],bk:CH_BK_ID[a[15]],cn:!!a[16],real:a[17]===0||a[17]===11,meHead:a[17]===11,booba:a[17]===2,nolik:a[17]===3,bodyK:CHAR_BODY_K[a[17]]||null,skinPick:a[0]!==CHAR.def[0]};
+    {const P=i=>a[i]!==CHAR.def[i];o.topC=P(6)?C[1]:undefined;o.botC=P(8)?J[1]:undefined;o.shoeC=P(10)?S[1]:undefined;o.hairC=P(4)?H[1]:undefined}   // round 34: a colour you picked is applied on EVERY body (textured ones through real.js BOD.reg)   // friends' codes use the realistic body as well (it used to be only your own avatar)
     if(ts==='sailor'){o.shirt=0xf3f1ec;o.tee1='#f4f4f0';o.tee2='#'+C[1].toString(16).padStart(6,'0')}
     else if(ts==='capy'){o.ts='tee';o.capy=true;o.shirt=0xf3f1ec}     // printed in real.js / look.js; the classic body just shows a plain white tee
     else{o.shirt=C[1];if(ts==='over'){o.tee1='#f4f4f0';o.tee2='#1d2f6a'}}
-    if(a[17]===10){Object.assign(o,CHIG_LOOK);}   // round 27: the head carries its own face texture (the owner's textured bust), no projection
+    if(a[17]===10){const keep={ht:o.ht,gl:o.gl,nk:o.nk,bk:o.bk,ac:o.ac,cn:o.cn,iris:o.iris,skin:o.skin,jeans:o.jeans,cuff:o.cuff,shoe:o.shoe,sole:o.sole,hair:o.hair,hair2:o.hair2,brow:o.brow,bd:o.bd},P=i=>a[i]!==CHAR.def[i];Object.assign(o,CHIG_LOOK);
+      // round 34: what you pick yourself wins over his preset look (before, the preset ate your hat, glasses and colours)
+      for(const [i,ks] of [[11,['gl']],[12,['ht']],[13,['ac']],[14,['nk']],[15,['bk']],[16,['cn']],[1,['iris']],[2,['bd']],[8,['jeans','cuff']],[10,['shoe','sole']],[4,['hair','hair2','brow']]])if(P(i))for(const k of ks)o[k]=keep[k];
+      if(P(0)){o.skin=keep.skin;o.skinRaw=keep.skin;o.skinPick=true}else o.skinPick=false;if(P(3))o.hs=CH_HS_ID[a[3]]}   // round 27: the head carries its own face texture (the owner's textured bust), no projection
     if(own&&typeof LOOK!=='undefined')LOOK.opts(o);       // your own face photo (never sent to friends)
     return o},
   random(){const r=n=>Math.floor(Math.random()*n),p=(n,z)=>Math.random()<z?0:1+r(n-1);
@@ -186,7 +191,7 @@ const CREATOR={on:false,mode:'play',done:false,built:false,tab:0,yaw:.5,tYaw:.5,
       const box=this.el('div',r.sw?'crSw':'crChips',null,row);
       const n=(r.sw||r.ch).length;
       for(let v=0;v<n;v++){const b=this.el('button',r.sw?'crDot':'crChip',r.sw?'':r.ch[v],box);if(r.sw){b.style.background=r.sw[v][1];b.title=r.sw[v][0];b.setAttribute('aria-label',r.sw[v][0])}
-        b.dataset.k=r.k;b.dataset.v=v;b.onclick=()=>{CHAR.cur[r.k]=v;this.free(T.slot);this.change()}}
+        b.dataset.k=r.k;b.dataset.v=v;b.onclick=()=>{CHAR.cur[r.k]=v;if(r.k===17)CHAR.cur[0]=CHAR.def[0];this.free(T.slot);this.change()}}   // a new body starts in its own colours (a brown skin picked on one body made Nolik and Booba brown)
       row._val=val;row._r=r;row._box=box}
     this.rows=[...P.querySelectorAll('.crRow')];this.mark()},
   mark(){for(const row of this.rows||[]){const r=row._r;if(!r)continue;const cur=CHAR.cur[r.k];row._box.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===cur));
