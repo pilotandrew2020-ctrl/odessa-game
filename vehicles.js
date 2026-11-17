@@ -186,7 +186,7 @@ class LiteVehicle{
     // hood details, grille, lights
     xb(B,1.2,.04,.8,0,1.4,1.55,paint2);
     xb(B,1.0,.44,.05,0,1.0,2.33,trim);for(const x of [-.3,0,.3])xb(B,.04,.4,.06,x,1.0,2.36,chrome);{const star=new THREE.Mesh(new THREE.TorusGeometry(.09,.012,6,18),chrome);star.position.set(0,1.0,2.38);B.add(star)}
-    for(const s of [-1,1]){const h=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.08,16),lamp);h.rotation.x=Math.PI/2;h.position.set(s*.72,1.14,2.3);B.add(h);
+    for(const s of [-1,1]){xb(B,.44,.44,.14,s*.72,1.14,2.24,trim);const h=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.08,16),lamp);h.rotation.x=Math.PI/2;h.position.set(s*.72,1.14,2.3);B.add(h);   // round 34: a black socket behind the lamp (the discs looked like they floated)
       const ring=new THREE.Mesh(new THREE.TorusGeometry(.18,.02,6,18),chrome);ring.position.set(s*.72,1.14,2.34);B.add(ring);
       xb(B,.18,.07,.12,s*.94,1.34,2.2,amber);                               // fender indicators
       xb(B,.3,.2,.06,s*.78,1.0,-2.34,tail);   // tail lamps

@@ -6,7 +6,7 @@ exports.run = async (page, h) => {
   await ev(() => { S.q = 'low'; applyQuality(); }); await h.start(); await h.render(); await h.wait(1500);
   const shot = async (n, ms) => { if (!SH) return; await h.wait(ms || 2000); await page.screenshot({ path: h.SCR + '/' + n + '.png' }) };
   await page.waitForFunction(() => CHG.prefab, null, { timeout: 60000 }); console.log('shotgun GLB loaded');
-  await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 10; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }); await h.wait(2500);
+  await ev(() => { const c = CHAR.clean(CHAR.cur); c[17] = 10; CHAR.cur = c; CHAR.save(); WARDROBE.apply() }); await page.waitForFunction(() => PLR._chgTank && PLR._chgTank.parent, null, { timeout: 40000 }).catch(() => {}); await h.wait(1000);
   const st = await ev(() => ({ armed: GUN.armed, w: WEAPONS[GUN.w].n, tank: !!(PLR._chgTank && PLR._chgTank.parent), opts: { hs: CHAR.opts().hs, ts: CHAR.opts().ts }, names: WEAPONS.filter(w => w.chg || w.n === 'Captive bolt').map(w => w.n) })); console.log('equipped', JSON.stringify(st));
   assert(st.armed && st.w === "Chigurh's shotgun" && st.tank && st.opts.hs === 'short' && st.opts.ts === 'chig', 'not equipped as Chigurh');
   // from the front (face, jacket), the side (shotgun + tank), the back

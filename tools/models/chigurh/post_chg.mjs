@@ -14,4 +14,15 @@ for(const mesh of root.listMeshes())for(const pr of mesh.listPrimitives()){const
   if(mat==='shoe'){const J=pr.getAttribute('JOINTS_0'),W=pr.getAttribute('WEIGHTS_0'),ja=J.getArray(),wa=W.getArray();
     for(let i=0;i<n;i++){const b=P[i*3]>=-0.0?ji('foot_l'):ji('foot_r');ja[i*4]=b;ja[i*4+1]=ja[i*4+2]=ja[i*4+3]=0;wa[i*4]=1;wa[i*4+1]=wa[i*4+2]=wa[i*4+3]=0}
     J.setArray(ja);W.setArray(wa);console.log('shoe rigid to the feet')}}
+// (3) hands: centre each hand under its own sleeve cuff (the sculpt's hand sat ~12 cm in front of the cuff and was narrower than the opening: "pieces of hands floating in the air")
+{const prims={};for(const mesh of root.listMeshes())for(const pr of mesh.listPrimitives())prims[pr.getMaterial().getName()]=pr;
+ const C=prims.chead.getAttribute('POSITION').getArray(),H=prims.handskin2.getAttribute('POSITION').getArray();
+ for(const sd of [1,-1]){const cuff=[];let lo=9;for(let i=0;i<C.length;i+=3)if(sd*C[i]>.2&&C[i+1]<1.05&&C[i+1]>.5)lo=Math.min(lo,C[i+1]);
+  for(let i=0;i<C.length;i+=3)if(sd*C[i]>.2&&C[i+1]<lo+.02&&C[i+1]>.5)cuff.push([C[i],C[i+1],C[i+2]]);
+  const cc=[0,1,2].map(k=>cuff.reduce((a,p)=>a+p[k],0)/cuff.length);
+  let hi=-9;const idx=[];for(let i=0;i<H.length;i+=3)if(sd*H[i]>.2){idx.push(i);hi=Math.max(hi,H[i+1])}
+  const top=idx.filter(i=>H[i+1]>hi-.02),hc=[0,1,2].map(k=>top.reduce((a,i)=>a+H[i+k],0)/top.length);
+  const dx=cc[0]-hc[0],dz=cc[2]-hc[2],KS=+(process.env.HKS||1.18);console.log('hand',sd,'shift',dx.toFixed(3),dz.toFixed(3));
+  for(const i of idx){H[i]=hc[0]+(H[i]-hc[0])*KS+dx;H[i+1]=hc[1]+(H[i+1]-hc[1])+.045;H[i+2]=hc[2]+(H[i+2]-hc[2])*KS+dz}}
+ prims.handskin2.getAttribute('POSITION').setArray(H)}
 await io.write(process.argv[3],d);

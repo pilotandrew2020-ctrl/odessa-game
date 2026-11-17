@@ -13,7 +13,7 @@ let K=null;
 const stat={b:0,v:0,balc:0,porch:0,awn:0,mans:0};
 function kit(){if(K)return K;
   K={stone:sRGB('#d8cfbc'),stone2:sRGB('#c3b8a2'),iron:sRGB('#16171a'),door:[sRGB('#5b3a22'),sRGB('#2f4a36'),sRGB('#3c5a7e'),sRGB('#7a2f2a'),sRGB('#3a3a3e'),sRGB('#8a5a32')],
-    awn:['#b3322b','#2a6a9a','#2f7a4a','#c8892a','#7a3a7a','#2b2b2e'].map(sRGB),brick:sRGB('#8a4a36'),metal:sRGB('#6a7078'),glass:sRGB('#10161c')};
+    awn:['#b3322b','#2a6a9a','#2f7a4a','#c8892a','#7a3a7a','#2b2b2e'].map(sRGB),brick:sRGB('#8a4a36'),metal:sRGB('#6a7078'),glass:sRGB('#10161c'),conc:sRGB('#b9b6ae'),conc2:sRGB('#9a978f'),dkdoor:sRGB('#2a2e33'),arch:sRGB('#0c0d0f')};
   return K}
 // direction of a rail packed into the material code: PROP_SURF reads the angle back (a in [-pi,pi] -> [0,1))
 const barM=(tx,tz)=>10+(Math.atan2(tz,tx)+Math.PI)/TAU*.998;
@@ -142,6 +142,27 @@ function porch(P,k,c){
   if(!sn)P.box(px+W.nx*.55,y0+.05,pz+W.nz*.55,1.5,.1,.9,ry,k.stone2,9);                                  // threshold slab
   stat.porch++;FAC.lastPorch=[px,pz,W.nx,W.nz,y0]}
 
+
+// ---- round 34 (the owner: "start with the facades of Moldavanka and Tairove")
+// Tairove (panel blocks / khrushchyovkas / towers): a stair entrance at the middle of every section (dark steel door, concrete canopy on two posts, steps) + a concrete parapet round the roof
+function entrances(P,k,c){const {walls,y0,GF}=c,CAP=MOBILE?6:16;let cnt=0;
+  for(const W of walls){if(W.ri>0||W.L<10||cnt>=CAP)continue;const n=Math.max(1,Math.round(W.L/(c.st===TOWER?24:11.8))),sec=W.L/n,ry=Math.atan2(W.nx,W.nz);
+    for(let i=0;i<n&&cnt<CAP;i++){const u=(i+.5)*sec,px=W.x1+W.tx*u,pz=W.z1+W.tz*u;
+      P.box(px+W.nx*.07,y0+1.05,pz+W.nz*.07,1.5,2.1,.12,ry,k.dkdoor,5);
+      strip(P,px-W.tx*1.6,pz-W.tz*1.6,px+W.tx*1.6,pz+W.tz*1.6,W.nx,W.nz,y0+2.55,.18,1.35,k.conc,9);
+      for(const sg of [-1,1])P.box(px+W.tx*sg*1.5+W.nx*1.25,y0+1.27,pz+W.tz*sg*1.5+W.nz*1.25,.12,2.55,.12,ry,k.conc2,9);
+      P.box(px+W.nx*.75,y0+.07,pz+W.nz*.75,2.4,.14,1.1,ry,k.conc,9);cnt++;stat.porch++}}}
+function parapet(P,k,c){const {walls,y0,H}=c;for(const W of walls){if(W.ri>0||W.L<4)continue;strip(P,W.x1,W.z1,W.x2,W.z2,W.nx,W.nz,y0+H-.05,.55,.14,k.conc,9)}}
+// Moldavanka: a stone plinth along the street walls and an arched gateway into the courtyard (a dark round-topped opening in a stone frame, like the real "arka")
+function plinth(P,k,c){const {walls,y0}=c;for(const W of walls){if(W.ri>0||W.L<4)continue;strip(P,W.x1,W.z1,W.x2,W.z2,W.nx,W.nz,y0,.9,.06,k.stone2,9)}}
+function archway(P,k,c){const {walls,y0,H}=c;if(H<5.5||c.area<70)return;let best=null;for(const W of walls)if(W.ri===0&&W.L>=9&&(!best||W.L>best.L))best=W;if(!best)return;
+  const W=best,R=c.R,u=2.4+R()*(W.L-4.8),px=W.x1+W.tx*u+W.nx*.05,pz=W.z1+W.tz*u+W.nz*.05,hw=1.5,hY=2.2,out=[W.nx,0,W.nz];
+  const A=(a,y)=>[px+W.tx*a,y0+y,pz+W.tz*a];
+  Qh(P,[A(-hw,0),A(hw,0),A(hw,hY),A(-hw,hY)],out,k.arch,2);
+  for(let i=0;i<8;i++){const a0=Math.PI*i/8,a1=Math.PI*(i+1)/8;Qh(P,[A(0,hY),A(hw*Math.cos(a0),hY+hw*Math.sin(a0)),A(hw*Math.cos(a1),hY+hw*Math.sin(a1)),A(hw*Math.cos(a1),hY+hw*Math.sin(a1))],out,k.arch,2)}
+  for(const sg of [-1,1]){const q=A(sg*(hw+.18),(hY+.2)/2);P.box(q[0]+W.nx*.02,q[1],q[2]+W.nz*.02,.36,hY+.2,.2,Math.atan2(W.nx,W.nz),k.stone,9)}
+  stat.porch++}
+
 function dress(c){
   const st=c.st,P=c.P;if(!P||c.opt&&c.opt.props===false)return;
   const v0=P.g.n;
@@ -150,6 +171,8 @@ function dress(c){
       const o=c.obb;   // roof: a mansard on some rectangular blocks (no lift-house box, no dome, one ring), chimney stacks on all of them
       if(st===HIST&&c.g&&o&&c.rect&&c.rings.length===1&&c.lv>=3&&c.lv<=6&&!(c.lv>=5&&c.area>220)&&!(c.fl&4)&&o.w>=9&&o.d>=8&&c.area<1500&&c.R()<.4){mansard(c.g,P,k,c);stat.mans++;FAC.lastMans=[o.cx,o.cz,c.y0+c.H,o.w,o.d]}
       if(c.area>45)chimneys(P,k,c)}
+    if(st===MOLD&&c.lv>=2){plinth(P,k,c);archway(P,k,c)}
+    if((st===KHRU||st===PANEL||st===TOWER)&&c.lv>=3){entrances(P,k,c);parapet(P,k,c)}
     if(c.signPl&&c.signPl.length)awnings(P,k,c);
     if(st===HOUSE)porch(P,k,c)}
   catch(e){if(!FAC.err){FAC.err=e;console.warn('FAC.dress',e)}}

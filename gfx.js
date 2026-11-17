@@ -201,9 +201,11 @@ function updateCarLights(night){
     if(ns<6&&d<110*110){
       if(G.carLights)U.uCP.value[ns].set(c.x+fx*L*.42,y+.75,c.z+fz*L*.42,mine?4.4:2.6);
       U.uCD.value[ns].set(fx*.995,-.09,fz*.995,.84);if(G.carLights)ns++}
+    // round 34: lamp height and the nose / tail position come from the car itself (the dots hung at a fixed 0.72 m and L/2: floating in the air in front of low or short cars)
+    const LK={gwagon:[1.14,.95,.5,.5],lambo:[.5,.7,.52,.5],gtr:[.62,.8,.5,.5],p911:[.6,.78,.5,.5],p918:[.55,.75,.5,.5],db9:[.6,.78,.5,.5],peugeot:[.55,.7,.5,.5]},lk=c.spec&&LK[c.kind],hl=lk?lk[0]:(t&&t.hl!==undefined?t.hl:.72),tl=lk?lk[1]:(t&&t.tl!==undefined?t.tl:.8),fo=(t&&t.front!==undefined?t.front-.12:L*.5-.1),ro=(t&&t.rear!==undefined?-t.rear-.12:L*.5-.1),wk=(t&&t.cw?t.cw:W)*.34;
     for(const s of [-1,1]){
-      P[hn*3]=c.x+fx*L*.5+rx*s*W*.34;P[hn*3+1]=y+.72;P[hn*3+2]=c.z+fz*L*.5+rz*s*W*.34;C.set([1,.93,.78,1.05],hn*4);hn++;
-      P[hn*3]=c.x-fx*L*.5+rx*s*W*.34;P[hn*3+1]=y+.80;P[hn*3+2]=c.z-fz*L*.5+rz*s*W*.34;C.set([1,.07,.03,.62],hn*4);hn++}
+      P[hn*3]=c.x+fx*fo+rx*s*wk;P[hn*3+1]=y+hl;P[hn*3+2]=c.z+fz*fo+rz*s*wk;C.set([1,.93,.78,1.05],hn*4);hn++;
+      P[hn*3]=c.x-fx*ro+rx*s*wk;P[hn*3+1]=y+tl;P[hn*3+2]=c.z-fz*ro+rz*s*wk;C.set([1,.07,.03,.62],hn*4);hn++}
   }
   U.uNCar.value=ns;
   H.g.setDrawRange(0,hn);H.g.attributes.position.needsUpdate=true;H.g.attributes.aC.needsUpdate=true;

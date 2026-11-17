@@ -4689,6 +4689,7 @@ function initCarMeshes(scene,N){
     t.mesh=new THREE.InstancedMesh(t.geo,CAR_MAT,cap);t.wheels=new THREE.InstancedMesh(t.wgeo,CAR_MAT,cap*4);
     for(const m of [t.mesh,t.wheels]){m.frustumCulled=false;m.castShadow=m===t.mesh||!MOBILE;   // tablets: the body's shadow covers the wheels' (4 x ~300 triangles per car, as much as the body)
       m.receiveShadow=true;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.setColorAt(0,new THREE.Color(1,1,1));m.count=0;scene.add(m)}
+    t.hl=d.hl;t.tl=d.tl;t.front=d.front;t.rear=d.rear;t.cw=d.W;   // round 34: the night glow dots use each car's own lamp height and nose / tail position
     t.cap=cap;CAR_T.push(t)});
 }
 const _cm=new THREE.Matrix4(),_cm2=new THREE.Matrix4(),_cq=new THREE.Quaternion(),_ce=new THREE.Euler(),_cv=new THREE.Vector3(),_cs=new THREE.Vector3(1,1,1),_cc=new THREE.Color();
