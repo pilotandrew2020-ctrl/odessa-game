@@ -53,3 +53,4 @@ Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the 
 ## Round 34
 - `cobra.glb` (1.4 MB) replaces the procedural helicopter body (heli2.js keeps it as the placeholder); `vehicles/peugeot.glb` (1.5 MB) is a new Garage car. Both from the owner's files, see CREDITS.md.
 - `avatar/Chigurh.glb` rebuilt: duller / flatter drawn eyes, darker hands, boots rigid to the feet bones, floating shards removed (`tools/models/chigurh/build5.mjs` + `post_chg.mjs`).
+- `godzilla.glb` (3.3 MB, round 42): loaded only when Godzilla is called from the Spawn menu (godzilla.js).

@@ -452,7 +452,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="jetrace.js"></script>
 <script src="phone.js"></script>
 <script src="nav.js"></script>
-<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="moonx.js"></script><script src="gtaped.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
+<script src="music.js"></script><script src="speaker.js"></script><script src="space.js"></script><script src="spaceint.js"></script><script src="space2.js"></script><script src="moonx.js"></script><script src="gtaped.js"></script><script src="ship.js"></script><script src="shipx.js"></script><script src="volcano.js"></script><script src="blast.js"></script><script src="blastfx.js"></script><script src="tank.js"></script><script src="drone.js"></script><script src="godzilla.js"></script><script src="nuke.js"></script><script src="roofpads.js"></script><script src="rails.js"></script><script src="chigurh.js"></script><script src="gpudiet.js"></script>
 <script src="look.js"></script>
 <script src="trees.js"></script>
 <script src="water.js"></script>
@@ -7494,7 +7494,7 @@ function collide(x,z,m,y){
 // ---------- player ----------
 let stepPhase=0;
 function stepPlayer(dt){
-  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on||typeof SHIPX!=='undefined'&&SHIPX.on)return;   // tank.js / drone.js / rails.js / the ship's helm move the player themselves
+  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof GOJI!=='undefined'&&GOJI.on||typeof RAILS!=='undefined'&&RAILS.on||typeof SHIPX!=='undefined'&&SHIPX.on)return;   // tank.js / drone.js / rails.js / the ship's helm move the player themselves
   if(typeof BR!=='undefined'&&BR.ctl){BR.ctlStep(dt);return}     // Battle Royale: on the bus / skydiving
   if(typeof SWIM!=='undefined'&&SWIM.step(dt))return;            // in deep water: swimming (swim.js)
   if(player.sit){const s=player.sit;player.x=s.x;player.z=s.z;player.y=s.y;player.yaw=s.yaw;PLR.root.position.set(s.x,s.y,s.z);PLR.root.rotation.y=s.yaw;animPlayer(PLR,{spd:0,mode:'sit'},dt);
@@ -7571,7 +7571,7 @@ function surfaceAt(x,z,y){
 }
 function stepCamera(dt){
   if(window.DBGCAM){const c=window.DBGCAM;camera.position.set(c[0],c[1],c[2]);camera.lookAt(c[3],c[4],c[5]);return}
-  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof RAILS!=='undefined'&&RAILS.on)return;   // their own frames set the camera
+  if(typeof TANK!=='undefined'&&TANK.on||typeof DRONE!=='undefined'&&DRONE.on||typeof GOJI!=='undefined'&&GOJI.on||typeof RAILS!=='undefined'&&RAILS.on)return;   // their own frames set the camera
   if(HELI.on&&started)return HELI.stepCamera(dt);
   if(MP.on&&started)return MP.stepCamera(dt);
   if(PLN.cur&&started)return PLN.stepCamera(dt);
@@ -7715,7 +7715,7 @@ function updateHUD(dt){
   let rayPick=null;if(PORTAL.cur){_shopPickRay.setFromCamera(_shopPickNdc,camera);const targets=INTERACT.filter(it=>it.rayObj).map(it=>it.rayObj);
     const hit=_shopPickRay.intersectObjects(targets,false)[0];if(hit&&hit.distance<5)rayPick=hit.object}
   // round 34: in the air (helicopter, plane, drone, space craft, parachute, high jump) no door / shop / stall / vehicle prompt of the ground shows ("Enter the house" over a roof); an entry that names its own height (y) still works
-  const inAir=!PORTAL.cur&&(HELI.on||PLN.cur||(typeof DRONE!=='undefined'&&DRONE.on)||(typeof SPC!=='undefined'&&SPC.on)||player.y-Math.max(groundH(player.x,player.z),SL)>7);
+  const inAir=!PORTAL.cur&&(HELI.on||PLN.cur||(typeof DRONE!=='undefined'&&DRONE.on)||(typeof GOJI!=='undefined'&&GOJI.on)||(typeof SPC!=='undefined'&&SPC.on)||player.y-Math.max(groundH(player.x,player.z),SL)>7);
   let best=null,bd=1e9;for(const it of INTERACT){if(inAir&&it.y===undefined)continue;if(it.cond&&!it.cond()||(it.rayObj&&it.rayObj!==rayPick))continue;const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<it.r&&Math.abs((it.y||player.y)-player.y)<2.5&&d<bd){bd=d;best=it}}
   if(player.sit)best={label:'Stand up',fn:()=>{player.sit=null}};
   if(DRIVE.on)best={label:'Get out of the car',fn:exitCar};
@@ -8173,7 +8173,7 @@ function loop(t){
     if(typeof PED_SPRITES!=='undefined')PED_SPRITES.update(dt,player.x,player.z);
     // Safety net: the avatar is hidden while driving / flying and restored on exit. If any of
     // those exits is missed the local character stays invisible, so re-assert it here.
-    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&!(typeof TANK!=='undefined'&&TANK.on)&&!(typeof DRONE!=='undefined'&&DRONE.on)&&!(typeof RAILS!=='undefined'&&RAILS.on)&&PLR.root.visible===false)PLR.root.visible=true;
+    if(PLR&&PLR.root&&!HELI.on&&!DRIVE.on&&!RIDE.on&&!EXT.cur&&!(typeof SPC!=='undefined'&&SPC.on)&&!(typeof TANK!=='undefined'&&TANK.on)&&!(typeof DRONE!=='undefined'&&DRONE.on)&&!(typeof GOJI!=='undefined'&&GOJI.on)&&!(typeof RAILS!=='undefined'&&RAILS.on)&&PLR.root.visible===false)PLR.root.visible=true;
     updateIndoor(dt);updateHUD(dt);COOP.update(dt);if(PASS.host)PASS.post();if(BUDDY.on)BUDDY.update(dt);
     if(typeof BATTERY411!=='undefined')BATTERY411.update(dt);
     if((typeof SPK!=='undefined')&&SPK)SPK.update(dt);
@@ -8193,7 +8193,8 @@ function loop(t){
   safe('bodycls',()=>{const h=!!(typeof HELI!=='undefined'&&HELI.on);if(document.body.classList.contains('heliOn')!==h)document.body.classList.toggle('heliOn',h)});
   safe('rails',()=>{if(typeof RAILS!=='undefined'){if(RAILS.on)RAILS.frame(dt);else RAILS.tick(dt)}});   // rails.js: coaster / slide rides
   safe('nuke',()=>{if(typeof NUKE!=='undefined'&&NUKE.st)NUKE.update(dt);if(typeof BLASTFX!=='undefined')BLASTFX.tick(dt)});   // nuke.js: bomb, flash, shock front, mushroom cloud, ruins and recovery
-  safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});   // drone.js: flight and camera of the kamikaze drone
+  safe('drone',()=>{if(typeof DRONE!=='undefined'&&DRONE.on)DRONE.frame(dt)});
+  safe('goji',()=>{if(typeof GOJI!=='undefined'&&GOJI.on)GOJI.frame(dt)});   // godzilla.js: the giant's walk, beam and camera   // drone.js: flight and camera of the kamikaze drone
   safe('tank',()=>{if(typeof TANK!=='undefined'&&TANK.on)TANK.frame(dt)});   // tank.js: the driver's camera and the tank's physics
   safe('spcAtmo',()=>{if(typeof SPC!=='undefined'&&SPC.atmo)SPC.frameAtmo(dt)});   // space.js: the shuttle's automatic ascent / the fighter in the atmosphere take over the camera
   safe('env',()=>{if((lightTick++)%10===0)updateLampUniforms();
