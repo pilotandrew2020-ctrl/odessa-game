@@ -10,11 +10,11 @@ exports.run = async (page, h) => {
   await ev(() => document.getElementById('bStart').click()); await h.wait(1500);
   await ev(() => document.getElementById('crGo').click()); await h.wait(6000);   // bStart opens the character creator, crGo starts the game
   await h.noRender();
-  assert.deepStrictEqual(await ev(() => LV_NAMES.slice(5)), ['gtr', 'p911', 'p918', 'db9'], 'LV_NAMES must only grow at the end (network index)');
+  assert.deepStrictEqual(await ev(() => LV_NAMES.slice(5)), ['gtr', 'p911', 'p918', 'db9', 'peugeot'], 'LV_NAMES must only grow at the end (network index)');
   const garage = await ev(() => GAR.LIST.map(e => e.id));
-  for (const k of ['p911', 'p918', 'db9']) assert(garage.includes(k), 'the Garage does not list ' + k);
-  const want = { p911: 4.28, p918: 4.65, db9: 4.7 };
-  for (const kind of ['p911', 'p918', 'db9']) {
+  for (const k of ['p911', 'p918', 'db9', 'peugeot']) assert(garage.includes(k), 'the Garage does not list ' + k);
+  const want = { p911: 4.28, p918: 4.65, db9: 4.7, peugeot: 4.93 };
+  for (const kind of ['p911', 'p918', 'db9', 'peugeot']) {
     await ev(k => { const v = EXT.veh.find(q => q.kind === k); if (!v) throw new Error('no ' + k + ' parked in the yard'); v.attachGLB(); }, kind);
     await page.waitForFunction(k => EXT.veh.find(q => q.kind === k).glbDone, kind, { timeout: 90000 });
     const R = await ev(k => {
@@ -58,7 +58,7 @@ exports.run = async (page, h) => {
   }
   // the Garage turntable shows each of them (the proxy vehicle loads its GLB and gets measured)
   await ev(() => GAR.open()); await h.wait(800);
-  for (const k of ['p911', 'p918', 'db9']) {
+  for (const k of ['p911', 'p918', 'db9', 'peugeot']) {
     await ev(id => GAR.show(GAR.LIST.findIndex(e => e.id === id)), k);
     await page.waitForFunction(id => { const e = GAR.LIST.find(q => q.id === id); return e.v && e.v.glbDone }, k, { timeout: 90000 });
     const G = await ev(id => { const e = GAR.LIST.find(q => q.id === id), M = GAR.cache[id]; return { name: GAR.nameB.textContent, L: +M.L.toFixed(2), H: +M.H.toFixed(2) } }, k);

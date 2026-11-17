@@ -49,3 +49,7 @@ Loading goes through `MDL.put(parent, name, {x,y,z,ry,h|w})` (`models.js`): the 
 | `textures/chigurh_face.jpg` | crop of the owner's reference picture (Ernesto Perlingeiro, ArtStation) | all rights reserved (used at the owner's request) | `chigurh.js`: face painted on the Chigurh head texture |
 | `models/space/lunokhod.glb` | owner upload `lunokhod-2.glb` (author unknown) | not stated | `moonx.js`: the Moon vehicle "Lunokhod" (17k tris, 2.6 MB, loaded the first time you pick it) |
 | `models/avatar/Chigurh.glb` | owner's TRELLIS output (picture: FLUX.1 Kontext from the owner's reference) | unclear (see CREDITS) | `real.js` body `chigurh`: 1 MB, 28k tris, untextured colours + projected face (`look.js`) |
+
+## Round 34
+- `cobra.glb` (1.4 MB) replaces the procedural helicopter body (heli2.js keeps it as the placeholder); `vehicles/peugeot.glb` (1.5 MB) is a new Garage car. Both from the owner's files, see CREDITS.md.
+- `avatar/Chigurh.glb` rebuilt: duller / flatter drawn eyes, darker hands, boots rigid to the feet bones, floating shards removed (`tools/models/chigurh/build5.mjs` + `post_chg.mjs`).

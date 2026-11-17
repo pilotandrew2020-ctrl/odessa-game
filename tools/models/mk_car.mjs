@@ -6,6 +6,7 @@ import {texBuf,weld,simplify,stats,smoothNormals,mergeGeo} from './build_lib.mjs
 import fs from 'fs';
 const C=JSON.parse(fs.readFileSync(process.argv[2]));
 const doc=await io.read(C.src);const P=parts(doc);
+for(const p of P)for(const [re,nm] of Object.entries(C.nodeMat||{}))if(new RegExp(re).test(p.node)){p.mat=nm;break}   // optional: give a material a new name by NODE (lamps that share one material with the body glow)
 const s=C.scale,[ox,oy,oz]=C.origin;       // source -> game: p' = (p - origin)*scale ; origin = (centre line x, ground y, wheelbase centre z)
 const X=(g)=>{for(let i=0;i<g.pos.length;i+=3){g.pos[i]=(g.pos[i]-ox)*s*(C.mirrorX?-1:1);g.pos[i+1]=(g.pos[i+1]-oy)*s;g.pos[i+2]=(g.pos[i+2]-oz)*s*(C.flipZ?-1:1)}
   for(let i=0;i<g.nrm.length;i+=3){if(C.mirrorX)g.nrm[i]=-g.nrm[i];if(C.flipZ)g.nrm[i+2]=-g.nrm[i+2]}

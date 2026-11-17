@@ -18,15 +18,17 @@ const LV_SEATS={
   gtr:[{p:[.37,.22,-.2],pose:'drive'},{p:[-.37,.22,-.2],pose:'drive'}],   // Nissan GT-R: driver on the left (+x) and one passenger
   p911:[{p:[.36,.22,-.42],pose:'drive'},{p:[-.36,.22,-.42],pose:'drive'}],   // Porsche 911 Turbo (1975): the cabin sits far back
   p918:[{p:[.33,.2,-.3],pose:'drive'},{p:[-.33,.2,-.3],pose:'drive'}],       // Porsche 918 Spyder
+  peugeot:[{p:[.27,.17,.42],pose:'drive'},{p:[-.27,.17,.42],pose:'drive'}],   // Peugeot 9X8 Le Mans hypercar: a narrow cockpit far forward
   db9:[{p:[-.37,.24,-.36],pose:'drive'},{p:[.37,.24,-.36],pose:'drive'}],    // Aston Martin DB9 is right-hand drive: the driver (first seat) is on -x
   sub:[{p:[0,-.4,-7.8],pose:'sit'},{p:[-.65,-.4,-6.8],pose:'sit'}]};   // pilot and co-op passenger inside the forward bridge
-const LV_NAMES=['gwagon','lambo','bike','moto','sub','gtr','p911','p918','db9'];   // append only: the index goes over the network (co-op presence)
+const LV_NAMES=['gwagon','lambo','bike','moto','sub','gtr','p911','p918','db9','peugeot'];   // append only: the index goes over the network (co-op presence)
 // real models (Sketchfab, see assets/CREDITS.md). Wheels are pivot nodes inside the GLB: [node name, steers, tyre radius]. The procedural body below is the fallback / placeholder until the file arrives
 const LV_GLB={
   moto:{url:'assets/models/vehicles/ducati.glb',wheels:[['wheel_front',true,.292],['wheel_rear',false,.326]]},
   gtr:{url:'assets/models/vehicles/gtr.glb',wheels:[['wheel_fl',true,.34],['wheel_fr',true,.34],['wheel_rl',false,.34],['wheel_rr',false,.34]]},
   p911:{url:'assets/models/vehicles/p911.glb',wheels:[['wheel_fl',true,.315],['wheel_fr',true,.315],['wheel_rl',false,.315],['wheel_rr',false,.315]]},
   p918:{url:'assets/models/vehicles/p918.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.365],['wheel_rr',false,.365]]},
+  peugeot:{url:'assets/models/vehicles/peugeot.glb',wheels:[['wheel_fl',true,.35],['wheel_fr',true,.35],['wheel_rl',false,.35],['wheel_rr',false,.35]]},
   db9:{url:'assets/models/vehicles/db9.glb',wheels:[['wheel_fl',true,.335],['wheel_fr',true,.335],['wheel_rl',false,.335],['wheel_rr',false,.335]]}};
 const LV_GLB_CACHE={},LV_GLB_USE={};   // LV_GLB_USE: vehicles showing each file; at 0 the file's geometry and textures are released (LiteVehicle.detachGLB)
 // tablets: vehicle textures are shrunk (a yard of five detailed cars and a bike was ~90 MB of video memory: the bike alone had nine 768 px maps) and their CPU copy goes once the GPU has them
@@ -96,7 +98,7 @@ class LiteVehicle{
     this.root=new THREE.Group();this.susp=new THREE.Group();this.body=new THREE.Group();this.root.add(this.susp);this.susp.add(this.body);this.root.userData.lv=this;
     this.wheels=[];this.cols=[];this.crank=null;this.prop=null;this.seats=LV_SEATS[kind]||[];this.tailMat=null;this.lampMat=null;
     this.y=kind==='sub'?SL+SUB_SURF:lvGround(x,z);
-    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),p911:()=>this.buildGtrPlaceholder(1.76,1.28,4.28),p918:()=>this.buildGtrPlaceholder(2.06,1.18,4.65),db9:()=>this.buildGtrPlaceholder(2.02,1.29,4.7),sub:()=>this.buildSub()})[kind]();
+    ({gwagon:()=>this.buildGWagon(),lambo:()=>this.buildLambo(),bike:()=>this.buildBike(),moto:()=>this.buildMoto(),gtr:()=>this.buildGtrPlaceholder(),p911:()=>this.buildGtrPlaceholder(1.76,1.28,4.28),p918:()=>this.buildGtrPlaceholder(2.06,1.18,4.65),db9:()=>this.buildGtrPlaceholder(2.02,1.29,4.7),peugeot:()=>this.buildGtrPlaceholder(2.0,1.15,4.93),sub:()=>this.buildSub()})[kind]();
     // tablets: a vehicle built from code is 30-90 little meshes that each cast a shadow (268 extra draw calls in the shadow pass of the home yard): only the pieces of half a metre and more cast
     if(typeof MOBILE!=='undefined'&&MOBILE)this.root.traverse(o=>{if(!o.isMesh||!o.castShadow||!o.geometry)return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();const sc=Math.max(o.scale.x,o.scale.y,o.scale.z);if(o.geometry.boundingSphere.radius*sc<.5)o.castShadow=false});
     this.glbPending=!!LV_GLB[kind];this.glbDone=false;
@@ -280,7 +282,7 @@ class LiteVehicle{
     this.root.traverse(o=>{if(o.isMesh&&o.material)for(const m of (Array.isArray(o.material)?o.material:[o.material]))mats.add(m)});
     for(const c of [...this.body.children])this.body.remove(c);for(const c of [...this.root.children])if(c!==this.susp)this.root.remove(c);
     this.wheels=[];this.tailMat=this.lampMat=null;for(const m of mats)m.dispose();
-    const dim={p911:[1.76,1.28,4.28],p918:[2.06,1.18,4.65],db9:[2.02,1.29,4.7]}[this.kind]||[];if(this.kind==='moto')this.buildMoto();else this.buildGtrPlaceholder(dim[0],dim[1],dim[2]);this.glbDone=false;this.glbPending=true;this.glbUrl=null;this.sync();
+    const dim={p911:[1.76,1.28,4.28],p918:[2.06,1.18,4.65],db9:[2.02,1.29,4.7],peugeot:[2.0,1.15,4.93]}[this.kind]||[];if(this.kind==='moto')this.buildMoto();else this.buildGtrPlaceholder(dim[0],dim[1],dim[2]);this.glbDone=false;this.glbPending=true;this.glbUrl=null;this.sync();
     if(--LV_GLB_USE[url]<=0){const p=LV_GLB_CACHE[url];delete LV_GLB_CACHE[url];LV_GLB_USE[url]=0;if(p)p.then(g=>{if(LV_GLB_CACHE[url])return;g.scene.traverse(o=>{if(!o.isMesh)return;o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}m.dispose()}})}).catch(()=>{})}}
   loadModel(){if(LV_GLB[this.kind]){this.attachGLB();return}
     if(this.kind!=='sub'||this.modelLoaded||this.modelLoading)return;this.modelLoading=true;

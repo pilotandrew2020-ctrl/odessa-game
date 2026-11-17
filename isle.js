@@ -98,7 +98,7 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     for(let k=0;k<edge.length;k++){const a=edge[k],b=edge[(k+1)%edge.length],c=base+k,d=base+(k+1)%edge.length;idx.push(a,c,b,b,c,d)}
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(idx);g.computeVertexNormals();g.computeBoundingSphere();
     const m=new THREE.Mesh(g,this.terrM);m.receiveShadow=lod===0;m.castShadow=false;m.matrixAutoUpdate=false;return m},
-  updateTiles(budget){const cx=camera.position.x,cz=camera.position.z,TS=this.TS;let made=0;
+  updateTiles(budget,at){const cx=at?at[0]:camera.position.x,cz=at?at[1]:camera.position.z,TS=this.TS;let made=0;
     const i0=Math.floor((cx-ISL.cx)/TS),j0=Math.floor((cz-ISL.cz)/TS);
     for(let j=-17;j<=16;j++)for(let i=-17;i<=16;i++){const key=this.tileKey(i,j),tcx=ISL.cx+(i+.5)*TS,tcz=ISL.cz+(j+.5)*TS,d=Math.hypot(tcx-cx,tcz-cz);
       // skip tiles that are entirely deep sea
@@ -197,7 +197,9 @@ const ISLE={on:false,near(x,z){return (x-ISL.cx)**2+(z-ISL.cz)**2<3900*3900},
     const dx=player.x-ISL.cx,dz=player.z-ISL.cz,d=Math.hypot(dx,dz),active=d<7200||(typeof MP!=='undefined'&&MP.on&&Math.hypot(camera.position.x-ISL.cx,camera.position.z-ISL.cz)<7200);
     if(!active){if(this.root.visible){this.root.visible=false;this.on=false}return}
     if(!this.root.visible){this.root.visible=true}this.on=d<3900;
-    this.updateTiles(this.firstBuild?2:40);this.firstBuild=true;
+    // round 34: after a teleport / a jump of more than 800 m the ground is built at once round the PLAYER (the camera is still at the old place on that frame, and 2 tiles a frame made you walk on the water until the island appeared)
+    const jump=!!this._lp&&Math.hypot(player.x-this._lp[0],player.z-this._lp[1])>800;this._lp=[player.x,player.z];
+    this.updateTiles(jump||!this.firstBuild?60:2,jump||!this.firstBuild?[player.x,player.z]:null);this.firstBuild=true;
     const vx=Math.round(camera.position.x),vz=Math.round(camera.position.z);
     const now=performance.now();   // the rebuild looks at ~25 000 cells: at most once per 1.5 s and only after 60 m of movement
     if(this._vj){if(this._vj.next().done)this._vj=null}
