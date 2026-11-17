@@ -22,12 +22,18 @@ exports.run = async (page, h) => {
   console.log('fire', JSON.stringify(fr)); assert(fr.st === 'fly' && fr.left === fr.was - 1 && (fr.rk === 0 || fr.ahead > 8), 'the rocket did not go forward / the drone blew up');
   // dive at the ground: it explodes, hurts people / cars close by, leaves a scorch mark, then you are back home
   await ev(() => { GUN.armed = true; GUN.hp = 100; DRONE.pitch = -1.2; DRONE.v = 40; BLAST.n = 0; BLAST.hits = 0 });
-  await ev(() => { for (let i = 0; i < 200 && DRONE.st === 'fly'; i++) DRONE.frame(.05) }); assert(await ev(() => DRONE.st === 'boom'), 'it did not blow up on the ground'); const b = await ev(() => ({ hits: BLAST.hits, mark: !!BLAST.marks[0], last: BLAST.last })); console.log('exploded', JSON.stringify(b)); assert(b.hits === 1 && b.mark, 'no explosion / scorch mark');
+  await ev(() => { for (let i = 0; i < 200 && DRONE.st === 'fly'; i++) DRONE.frame(.05) }); assert(await ev(() => DRONE.st === 'boom'), 'it did not blow up on the ground'); const b = await ev(() => ({ hits: BLAST.hits, mark: !!BLAST.marks[0], last: BLAST.last })); console.log('exploded', JSON.stringify(b)); assert(b.hits >= 1 && b.mark, 'no explosion / scorch mark');
   await shot('drone_boom', 400);
   await step(60); await h.wait(800);
   const back = await ev(() => ({ vis: PLR.root.visible, cls: document.body.classList.contains('droneon'), d: Math.hypot(player.x - 0, player.z - 0) })); const hm = await ev(h2 => Math.round(Math.hypot(player.x - h2.x, player.z - h2.z)), home); console.log('back home, off by', hm, 'm', JSON.stringify(back)); assert(back.vis && !back.cls && hm < 6, 'not put back / stuck state');
   // a blast next to you hurts and shoves
+  await ev(() => { if (typeof NUKE !== 'undefined' && NUKE.clear) NUKE.clear() });   // the dive started a nuclear strike (round 34): let it end before testing a plain blast
+  await ev(() => { GUN.down = 0 });   // the dive near the launch point started a nuclear strike that knocked the pilot's body down (round 34): stand up before testing a plain blast
   const hp = await ev(() => { GUN.armed = true; GUN.hp = 100; BLAST.at(player.x + 3, player.y + 1, player.z, 9, 70); return GUN.hp }); console.log('blast 3 m away: hp 100 ->', hp); assert(hp < 100, 'a blast 3 m away did not hurt');
   // abort and the battery
-  await ev(() => DRONE.spawn()); await h.wait(500); await ev(() => DRONE.end()); await h.wait(500); assert(await ev(() => !DRONE.on && PLR.root.visible), 'abort left stuck state');
+  await ev(() => DRONE.spawn()); await h.wait(500);
+  // NUKE (round 41): a nuclear missile leaves the nose (one every 30 s), the second press is refused, and where it lands a full nuclear strike starts
+  const nk = await ev(() => { DRONE.pitch = 0; DRONE.v = 15; DRONE.ncd = 0; const n0 = DRONE.rk.length; DRONE.nuke(); const ok1 = DRONE.rk.length === n0 + 1 && DRONE.rk[DRONE.rk.length - 1].nuke === true, cd = DRONE.ncd; DRONE.nuke(); return { ok1, cd, second: DRONE.rk.length === n0 + 1, alive: DRONE.on && DRONE.st === 'fly' } }); console.log('nuke', JSON.stringify(nk)); assert(nk.ok1 && nk.cd === 30 && nk.second && nk.alive, 'the nuke shot misbehaves');
+  const st = await ev(() => { const r = DRONE.rk[DRONE.rk.length - 1]; r.p.set(DRONE.x + 5, groundH(DRONE.x + 5, DRONE.z) + .05, DRONE.z); for (let i = 0; i < 4; i++) DRONE.rockets(.05); return NUKE.st }); console.log('nuke state after the hit', JSON.stringify(st)); assert(st, 'the missile did not start a nuclear strike');
+  await ev(() => DRONE.end()); await h.wait(500); assert(await ev(() => !DRONE.on && PLR.root.visible), 'abort left stuck state');
 };
