@@ -12,9 +12,10 @@ exports.run = async (page, h) => {
   if (SH) await h.shot('goji_stand', 5000);
   const w = await ev(() => { const x0 = GOJI.x, z0 = GOJI.z, q0 = GOJI.B.legL.quaternion.clone(); inp.jy = 1; for (let i = 0; i < 80; i++) GOJI.frame(.05); inp.jy = 0; return { d: +Math.hypot(GOJI.x - x0, GOJI.z - z0).toFixed(1), leg: +q0.angleTo(GOJI.B.legL.quaternion).toFixed(3) } });
   console.log('walked', JSON.stringify(w)); assert(w.d > 10 && w.leg > .02, 'he does not walk / the legs do not move');
-  const l = await ev(() => { BLAST.hits = 0; const j0 = GOJI.B.jaw.quaternion.clone(); GOJI.aim = -.3; GOJI.fire = true; for (let i = 0; i < 60; i++) GOJI.frame(.05); const r = { beam: GOJI.beam.visible, len: +GOJI.beam.scale.y.toFixed(0), hit: GOJI.splash.visible, blasts: BLAST.hits, nuke: NUKE.st, jaw: +j0.angleTo(GOJI.B.jaw.quaternion).toFixed(3), glow: +GOJI.spine.emissiveIntensity.toFixed(2) }; return r });
-  console.log('laser', JSON.stringify(l)); assert(l.beam && l.hit && l.blasts > 0 && l.jaw > .2, 'the laser does not fire / hit / open the jaw');
+  const l = await ev(() => { BLAST.hits = 0; const j0 = GOJI.B.jaw.quaternion.clone(); GOJI.aim = -.3; GOJI.fire = true; for (let i = 0; i < 60; i++) GOJI.frame(.05); const r = { beam: GOJI.beam.visible, len: +GOJI.beam.scale.y.toFixed(0), hit: GOJI.splash.visible, blasts: BLAST.hits, nuke: NUKE.st, ruins: RUIN.n, burning: GOJI.burn.length, jaw: +j0.angleTo(GOJI.B.jaw.quaternion).toFixed(3), glow: +GOJI.spine.emissiveIntensity.toFixed(2) }; return r });
+  console.log('laser', JSON.stringify(l)); assert(l.beam && l.hit && l.blasts > 0 && l.jaw > .2 && l.ruins > 0 && !l.nuke, 'the laser does not fire / hit / open the jaw / leave ruins (or it started a nuke)');
   if (SH) await h.shot('goji_laser', 5000);
   await ev(() => { GOJI.fire = false; for (let i = 0; i < 10; i++) GOJI.frame(.05); GOJI.end() }); await h.wait(500);
+  const rz = await ev(() => { const q = RUIN.Z[0]; RUIN.tick(1); return { n: RUIN.n, zone: NUKE.ruin && NUKE.inZone(q.x, q.z), uni: UNI.uRzN.value } }); console.log('ruins after exit', JSON.stringify(rz)); assert(rz.n > 0 && rz.zone && rz.uni === rz.n, 'the ruins did not stay');
   const e = await ev(() => ({ on: GOJI.on, plr: PLR.root.visible, hud: GOJI.el.hidden, cls: document.body.classList.contains('gojion') })); console.log('exit', JSON.stringify(e)); assert(!e.on && e.plr && e.hud && !e.cls, 'Exit left a stuck state');
 };

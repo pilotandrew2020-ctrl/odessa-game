@@ -811,7 +811,7 @@ function signUV(i){i=i%SIGNS.length;const cx=(i%2)*.5,cy=((i/2)|0)/SIGN_ROWS;ret
 
 // ===================== materials (patched MeshStandardMaterial) =====================
 const UNI={
-  uNuke:{value:new THREE.Vector4(0,0,300,0)},uNukeK:{value:0},uNukeY:{value:0},
+  uNuke:{value:new THREE.Vector4(0,0,300,0)},uNukeK:{value:0},uNukeY:{value:0},uRz:{value:Array.from({length:24},()=>new THREE.Vector4(0,0,0,0))},uRzN:{value:0},
   uL:{value:Array.from({length:16},()=>new THREE.Vector4(0,-999,0,0))},
   uNight:{value:0},uTime:{value:0},uWinter:{value:0},uWet:{value:0},uIndoor:{value:0},
   uUW:{value:0},uSunUp:{value:1},   // water.js: 1 while the camera is under the sea; sun height 0..1 (caustics, shafts)
@@ -863,10 +863,11 @@ void lampLight(vec3 wp,vec3 wn,vec3 V,float rough,inout vec3 dif,inout vec3 spc)
   dif*=uNight;spc*=uNight;
 }
 `;
+// RUIN (nuke.js, round 43): uRz[i] = (x, z, radius, ground y) of up to 24 lasting ruin patches (Godzilla's beam, his body and tail), uRzN how many; nukeK takes the strongest of the bomb and the patches, ruinY the ground under it.
 // nuke.js: uNuke = (ground zero x, z, radius, seconds since the flash), uNukeK 1 = ruined .. 0 = whole again, uNukeY ground height at zero. nukeK(xz) 0..1 = how destroyed a spot is (the shock front sweeps outwards at 330 m/s)
-const NUKE_GLSL=`uniform vec4 uNuke;uniform float uNukeK;uniform float uNukeY;float nukeK(vec2 p){if(uNukeK<.001)return 0.;float d=length(p-uNuke.xy);return clamp((uNuke.w*330.-d)/25.,0.,1.)*(1.-smoothstep(uNuke.z*.45,uNuke.z,d))*uNukeK;}float nukeH(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}`;
+const NUKE_GLSL=`uniform vec4 uNuke;uniform float uNukeK;uniform float uNukeY;uniform vec4 uRz[24];uniform float uRzN;float ruinY;float nukeK0(vec2 p){if(uNukeK<.001)return 0.;float d=length(p-uNuke.xy);return clamp((uNuke.w*330.-d)/25.,0.,1.)*(1.-smoothstep(uNuke.z*.45,uNuke.z,d))*uNukeK;}float nukeK(vec2 p){float k=nukeK0(p);ruinY=uNukeY;if(uRzN<.5)return k;for(int i=0;i<24;i++){if(float(i)>=uRzN)break;vec4 z=uRz[i];float kk=1.-smoothstep(z.z*.55,z.z,length(p-z.xy));if(kk>k){k=kk;ruinY=z.w;}}return k;}float nukeH(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}`;
 // buildings: every vertex above a ragged stump height (per 5 m cell, lower the closer to zero) is pulled down onto it, so walls break off unevenly and roofs sink into rubble
-const NUKE_VB=`{vec4 _nw=modelMatrix*vec4(transformed,1.);float _nk=nukeK(_nw.xz);if(_nk>0.){float _nh=nukeH(floor(_nw.xz/5.));float _top=uNukeY+1.2+(_nh*15.+3.)*(1.-_nk)*(1.-_nk);transformed.y+=min(_nw.y,_top)-_nw.y;transformed.xz+=(_nh-.5)*1.6*_nk;}}`;
+const NUKE_VB=`{vec4 _nw=modelMatrix*vec4(transformed,1.);float _nk=nukeK(_nw.xz);if(_nk>0.){float _nh=nukeH(floor(_nw.xz/5.));float _top=ruinY+1.2+(_nh*15.+3.)*(1.-_nk)*(1.-_nk);transformed.y+=min(_nw.y,_top)-_nw.y;transformed.xz+=(_nh-.5)*1.6*_nk;}}`;
 const NUKE_SURF=`{float _nk=nukeK(vW.xz);sAlb=mix(sAlb,vec3(.04,.036,.033),_nk*.78);sRough=mix(sRough,.95,_nk);}`;
 const PATCH_VS_DECL=`varying vec3 vW; varying vec3 vNw;`+NUKE_GLSL;
 const PATCH_VS_MAIN=`{vec4 _wp=vec4(transformed,1.);
