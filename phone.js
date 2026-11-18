@@ -281,4 +281,4 @@ PHONE.ttMirrors=['https://pablo.tools','https://proxitok.pabloferreiro.es','http
 try{PHONE.ttMi=+localStorage.getItem('odessa_phone_ttmi')||0}catch(e){PHONE.ttMi=0}
 PHONE.ttSrc=function(){const m=this.ttMirrors[(this.ttMi|0)%this.ttMirrors.length],u=String(this.tt).startsWith('u:'),id=String(this.tt);
   if(/\/embed$/.test(m))return m+'/'+(u?id.slice(2):'v2/'+id);
-  return m+'/'+(u?id.slice(2):'@i/video/'+id)};
+  return m+(id==='u:@tiktok'?'/trending':'/'+(u?id.slice(2):'@i/video/'+id))};   // default tile = the mirror's /trending feed; a pasted @name / video keeps its own path
