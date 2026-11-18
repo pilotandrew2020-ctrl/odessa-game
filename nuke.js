@@ -13,6 +13,9 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,_ruin:false,get ruin(){retur
     this.stem=new THREE.Mesh(new THREE.CylinderGeometry(.62,1,1,20,1,true),MB({map:tx,color:0xffb060,opacity:0,side:THREE.DoubleSide}));this.stem.visible=false;g.add(this.stem);
     this.cap=new THREE.Mesh(new THREE.SphereGeometry(1,24,14),MB({map:tx,color:0xffb060,opacity:0,side:THREE.DoubleSide}));this.cap.visible=false;g.add(this.cap);
     this.skirt=new THREE.Mesh(new THREE.TorusGeometry(1,.34,10,32),MB({map:tx,color:0xffb060,opacity:0}));this.skirt.rotation.x=Math.PI/2;this.skirt.visible=false;g.add(this.skirt);
+    // round 46: the owner's mushroom footage (a 25-frame atlas, 5 x 5, cut from his video on black; additive, so black is clear): ONE billboard anchored on the ground replaces the coloured spheres
+    {const t=new THREE.TextureLoader().load('assets/fx/nuke_mushroom.jpg');t.encoding=THREE.sRGBEncoding;t.repeat.set(.2,.2);t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;this.vt=t;
+      const sp=this.vid=new THREE.Sprite(new THREE.SpriteMaterial({map:t,color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}));sp.center.set(.5,.02);sp.visible=false;sp.renderOrder=4;g.add(sp)}
     g.traverse(o=>{o.frustumCulled=false;o.renderOrder=3});scene.add(g);this.g=g;
     const d=document.createElement('div');d.id='nukeFlash';d.style.cssText='position:fixed;inset:0;z-index:70;background:#fff;opacity:0;pointer-events:none';document.body.appendChild(d);this.fl=d},
   // landmarks, the home yard's flats and every other building that is not a chunk mesh use their own materials: give the ones near the blast the same collapse (vertex + char) the shared materials have. One shader compile per material, done while the bomb falls.
@@ -34,26 +37,28 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,_ruin:false,get ruin(){retur
       const o=c.createOscillator();o.frequency.setValueAtTime(70,T);o.frequency.exponentialRampToValueAtTime(22,T+3);const og=c.createGain();og.gain.setValueAtTime(.9,T);og.gain.exponentialRampToValueAtTime(.001,T+3.2);o.connect(og);og.connect(m);o.start(T);o.stop(T+3.4)}}catch(e){}},
   flash(){const d=this.fl;const amp=Math.max(.12,Math.min(1,this.sc*2));d.style.background=this.sc<.6?'#ffe9c4':'#fff';d.style.transition='none';d.style.opacity=String(amp);void d.offsetWidth;d.style.transition='opacity '+(amp<.5?.8:3.5)+'s ease-out';d.style.opacity='0'},
   boom(){this.st='boom';this.t=0;this.K=1;this.ruin=true;this.bomb.visible=false;UNI.uNuke.value.set(this.gx,this.gz,this.R,0);UNI.uNukeK.value=1;UNI.uNukeY.value=this.gy;
-    for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt])m.visible=true;this.flash();for(const o of this.shadowOff||[])o.castShadow=false;BLAST.at(this.gx,this.gy+2,this.gz,this.R*.8,this.sc>.5?0:50,true);
+    for(const m of [this.ring,this.wall])m.visible=true;this.vid.visible=true;this.flash();for(const o of this.shadowOff||[])o.castShadow=false;BLAST.at(this.gx,this.gy+2,this.gz,this.R*.8,this.sc>.5?0:50,true);
     this.dp=Math.hypot(player.x-this.gx,player.z-this.gz);this.snd('boom',this.dp/330);toast('Nuclear bomb','Detonation')},
   update(dt){if(!this.st)return;dt=Math.min(dt,.1);this.t+=dt;const t=this.t;
     if(this.st==='fall'){const k=Math.min(1,t/4.6);this.bomb.position.y=this.gy+450*(1-k*k);this.bomb.rotation.y+=dt*2;if(t>=4.6)this.boom();return}
     // after the flash: effects follow the shock front
     UNI.uNuke.value.w=t;const R=this.R,front=Math.min(t*330,R*1.7),fade=1-front/(R*1.7);
-    const k0=this.sc,br=120*k0*(1-Math.exp(-t*1.6));this.ball.position.set(this.gx,this.gy+br*.55+t*7*k0,this.gz);this.ball.scale.setScalar(Math.max(.01,br));this.ball.material.opacity=Math.max(0,1-t/9);this.ball.material.color.setRGB(1,Math.max(.25,1-t*.14),Math.max(.1,1-t*.3));
+    const k0=this.sc,br=120*k0*(1-Math.exp(-t*1.6));{this.ball.position.set(this.gx,this.gy+br*.55+t*7*k0,this.gz);this.ball.scale.setScalar(Math.max(.01,br));this.ball.material.opacity=Math.max(0,1-t/9);this.ball.material.color.setRGB(1,Math.max(.25,1-t*.14),Math.max(.1,1-t*.3));}
     this.ring.position.set(this.gx,this.gy+1.2,this.gz);this.ring.scale.set(front,front,1);this.ring.material.opacity=.85*fade;this.ring.visible=fade>.02;
     this.wall.position.set(this.gx,this.gy+(18+front*.06),this.gz);this.wall.scale.set(front,(36+front*.12)*Math.max(.4,k0),front);this.wall.material.opacity=.55*fade;this.wall.visible=fade>.02;
     const H=340*k0*(1-Math.exp(-t/6)),rise=Math.min(1,t/1.5),life=t>50*k0?Math.max(0,1-(t-50*k0)/Math.max(3,30*k0)):1,col=Math.min(1,t/20),op=rise*life*.85;
     for(const m of [this.stem,this.cap,this.skirt]){m.material.opacity=op;m.material.color.setRGB(1-.62*col,.69-.36*col,.38-.06*col)}
     this.stem.position.set(this.gx,this.gy+H/2,this.gz);this.stem.scale.set((26+t*.6)*k0,Math.max(1,H),(26+t*.6)*k0);
     const cr=(40+Math.min(150,t*9))*k0;this.cap.position.set(this.gx,this.gy+H+cr*.25,this.gz);this.cap.scale.set(cr,cr*.6,cr);this.skirt.position.set(this.gx,this.gy+H*.82,this.gz);this.skirt.scale.set(cr*.95,cr*.95,cr*.5);this.cap.rotation.y=this.stem.rotation.y=t*.05;
+    {const S=520*k0,dur=24*Math.max(.4,k0),f=Math.min(24,Math.floor(t/dur*25)),endT=Math.max(6,22*k0)+Math.max(4,10*k0),fo=Math.max(0,Math.min(1,(endT-t)/6));   // the owner's footage plays once over ~24 s (shorter for small strikes), then fades with the ruin
+      this.vid.position.set(this.gx,this.gy,this.gz);this.vid.scale.set(S,S,1);this.vt.offset.set((f%5)*.2,.8-Math.floor(f/5)*.2);this.vid.material.opacity=Math.min(1,t/.5)*fo}
     // the shock reaches you: shove, hurt, shake (once)
     if(!this.hit&&front*1>=this.dp){this.hit=true;const dx=player.x-this.gx,dz=player.z-this.gz,d=Math.hypot(dx,dz)||1,k=Math.max(0,1-d/(R*1.8));player.vx+=dx/d*(8+22*k);player.vz+=dz/d*(8+22*k);if(typeof GUN!=='undefined'&&GUN.armed)GUN.damage(Math.round(100*k),'nuclear blast');if(typeof FX!=='undefined'){FX.shakeT=2.2;FX.shakeA=.07}}
     // the zone stays ruined for 75 s, then the city grows back over 25 s
     const hold=Math.max(6,22*k0),rec=Math.max(4,10*k0);   // round 34: the city is back after ~30 s (it was 100 s)   // small strikes (a tank shell) are over in ~15 s
     if(t>hold){this.K=Math.max(0,1-(t-hold)/rec);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg&&k0>.3){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
     if(t>hold+rec)this.clear()},
-  clear(){for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
+  clear(){if(this.vid){this.vid.visible=false;this.vid.material.opacity=0}for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
 
 // RUIN (round 43): lasting ruin patches for Godzilla (his beam, his body, his tail, his feet). Up to 24 at once in the shared building / ground shaders (uRz, uRzN: the same collapse
 //   and char as the bomb, no mushroom, no flash): a patch grows to its radius in 0.8 s, stays for 15 minutes and then the houses come back over 20 s; with 24 patches standing the

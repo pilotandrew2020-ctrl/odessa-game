@@ -47,14 +47,16 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
   // a footstep = a 40 Hz thud and a low rumble; the beam = a rising hiss over a buzzing drone while it fires
   au(){return typeof AUD!=='undefined'&&AUD.ok&&AUD.ctx?AUD.ctx:null},
   out(){return (AUD.master||AUD.ctx.destination)},
-  roar(){const c=this.au();if(!c)return;const now=performance.now();if(now-(this._rT||0)<5000)return;this._rT=now;const T=c.currentTime,D=2.8,o=this.out();
-    const g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.9,T+.35);g.gain.setValueAtTime(.85,T+1.7);g.gain.exponentialRampToValueAtTime(.001,T+D);
-    const ws=c.createWaveShaper(),cv=new Float32Array(512);for(let i=0;i<512;i++){const x=i/255.5-1;cv[i]=Math.tanh(x*4)}ws.curve=cv;
-    const f1=c.createBiquadFilter();f1.type='bandpass';f1.frequency.value=520;f1.Q.value=2.2;const f2=c.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1150;f2.Q.value=3;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2400;
-    ws.connect(f1);ws.connect(f2);ws.connect(lp);const mix=c.createGain();mix.gain.value=.55;f1.connect(mix);f2.connect(mix);lp.connect(mix);mix.connect(g);g.connect(o);
-    for(const [f0,f1v,type] of [[180,95,'sawtooth'],[176,92,'sawtooth'],[90,48,'square']]){const os=c.createOscillator();os.type=type;os.frequency.setValueAtTime(f0*.8,T);os.frequency.linearRampToValueAtTime(f0,T+.4);os.frequency.exponentialRampToValueAtTime(f1v,T+D);
-      const vb=c.createOscillator(),vg=c.createGain();vb.frequency.value=7;vg.gain.value=f0*.04;vb.connect(vg);vg.connect(os.frequency);vb.start(T);vb.stop(T+D);os.connect(ws);os.start(T);os.stop(T+D)}
-    if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const nf=c.createBiquadFilter();nf.type='bandpass';nf.frequency.value=900;nf.Q.value=.8;const ng=c.createGain();ng.gain.value=.35;n.connect(nf);nf.connect(ng);ng.connect(g);n.start(T);n.stop(T+D)}},
+  // tuned from an analysis of the owner's reference roar (not copied: a sound from a film is not ours to put on a public site): ~45-80 Hz fundamental, a harsh breathy noise
+  // body around 2-3 kHz, loud and steady for ~8 s, then a 4 s fall. Here: 6.5 s, three low saws through a hard distortion + a wide noise band, a slow wobble.
+  roar(){const c=this.au();if(!c)return;const now=performance.now();if(now-(this._rT||0)<9000)return;this._rT=now;const T=c.currentTime,D=6.5,o=this.out();
+    const g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.95,T+.5);g.gain.setValueAtTime(.9,T+4.0);g.gain.exponentialRampToValueAtTime(.001,T+D);
+    const ws=c.createWaveShaper(),cv=new Float32Array(1024);for(let i=0;i<1024;i++){const x=i/511.5-1;cv[i]=Math.tanh(x*6)}ws.curve=cv;
+    const f1=c.createBiquadFilter();f1.type='bandpass';f1.frequency.value=420;f1.Q.value=1.6;const f2=c.createBiquadFilter();f2.type='bandpass';f2.frequency.value=2300;f2.Q.value=.9;const lo=c.createBiquadFilter();lo.type='lowpass';lo.frequency.value=260;
+    const mix=c.createGain();mix.gain.value=.6;ws.connect(f1);ws.connect(f2);ws.connect(lo);f1.connect(mix);f2.connect(mix);lo.connect(mix);mix.connect(g);g.connect(o);
+    for(const [f0,f1v,type] of [[84,52,'sawtooth'],[86,50,'sawtooth'],[42,28,'square']]){const os=c.createOscillator();os.type=type;os.frequency.setValueAtTime(f0*.9,T);os.frequency.linearRampToValueAtTime(f0,T+.6);os.frequency.linearRampToValueAtTime(f0*.96,T+4);os.frequency.exponentialRampToValueAtTime(f1v,T+D);
+      const vb=c.createOscillator(),vg=c.createGain();vb.frequency.value=5.5;vg.gain.value=f0*.06;vb.connect(vg);vg.connect(os.frequency);vb.start(T);vb.stop(T+D);os.connect(ws);os.start(T);os.stop(T+D)}
+    if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const nf=c.createBiquadFilter();nf.type='bandpass';nf.frequency.setValueAtTime(1500,T);nf.frequency.linearRampToValueAtTime(2800,T+3);nf.frequency.linearRampToValueAtTime(900,T+D);nf.Q.value=.5;const ng=c.createGain();ng.gain.value=.7;n.connect(nf);nf.connect(ng);ng.connect(g);n.start(T);n.stop(T+D)}},
   stompSnd(){const c=this.au();if(!c)return;const T=c.currentTime,o=this.out(),os=c.createOscillator(),g=c.createGain();os.type='sine';os.frequency.setValueAtTime(55,T);os.frequency.exponentialRampToValueAtTime(28,T+.5);
     g.gain.setValueAtTime(.9,T);g.gain.exponentialRampToValueAtTime(.001,T+.7);os.connect(g);g.connect(o);os.start(T);os.stop(T+.75);
     if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=180;const ng=c.createGain();ng.gain.setValueAtTime(.6,T);ng.gain.exponentialRampToValueAtTime(.001,T+.6);n.connect(f);f.connect(ng);ng.connect(o);n.start(T,Math.random());n.stop(T+.65)}},
