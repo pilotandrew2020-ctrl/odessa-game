@@ -277,7 +277,7 @@ addEventListener('load',()=>{if(typeof toast==='function'&&!toast._ph){const t=t
 
 
 // TikTok mirrors (DPI-blocked networks): ProxiTok-style hosts first, the original embed last; "Next mirror" in the hint cycles them
-PHONE.ttMirrors=['https://pablo.tools','https://proxitok.pabloferreiro.es','https://tok.artemislena.eu','https://www.tiktok.com/embed'];
+PHONE.ttMirrors=['https://pablo.tools','https://pussthecat.org','https://habed.org','https://proxitok.pabloferreiro.es','https://www.tiktok.com/embed'];
 try{PHONE.ttMi=+localStorage.getItem('odessa_phone_ttmi')||0}catch(e){PHONE.ttMi=0}
 PHONE.ttSrc=function(){const m=this.ttMirrors[(this.ttMi|0)%this.ttMirrors.length],u=String(this.tt).startsWith('u:'),id=String(this.tt);
   if(/\/embed$/.test(m))return m+'/'+(u?id.slice(2):'v2/'+id);
