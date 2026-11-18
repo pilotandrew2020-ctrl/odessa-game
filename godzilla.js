@@ -114,7 +114,7 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
     const m=this._v,mb=this.B.tongue2||this.B.jaw||this.B.head;mb.getWorldPosition(m);m.addScaledVector(this._d.set(Math.sin(this.yaw),0,Math.cos(this.yaw)),6);
     const ca=Math.cos(this.aim),d=this._d.set(Math.sin(this.yaw)*ca,Math.sin(this.aim),Math.cos(this.yaw)*ca).normalize(),e=this._e.copy(m);let L=700;
     for(let s=6;s<=700;s+=5){const x=m.x+d.x*s,y=m.y+d.y*s,z=m.z+d.z*s;if(y<=Math.max(groundH(x,z),SL)||insideAny(x,z,1.5,y)){L=s;break}}
-    e.copy(m).addScaledVector(d,L);B.visible=this.flare.visible=true;B.position.copy(m);B.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);const fl=.85+Math.random()*.3;B.scale.set(fl,L,fl);
+    e.copy(m).addScaledVector(d,L);B.visible=this.flare.visible=true;B.position.copy(m);B.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);const fl=(.85+Math.random()*.3)*(this.fp?.3:1);B.scale.set(fl,L,fl);B.children[2].visible=!this.fp;   // from his eyes the beam starts right under you: thinner, no outer haze
     this.flare.position.copy(m);this.flare.scale.setScalar(.8+Math.random()*.5);
     const hit=L<700;this.splash.visible=hit;if(hit){this.splash.position.copy(e);this.splash.scale.setScalar(.7+Math.random()*.6)}
     if(typeof FX!=='undefined'){FX.shakeT=Math.max(FX.shakeT||0,.12);FX.shakeA=Math.max(FX.shakeA||0,.025)}
