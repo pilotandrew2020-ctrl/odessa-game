@@ -18,7 +18,7 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,_ruin:false,get ruin(){retur
   // landmarks, the home yard's flats and every other building that is not a chunk mesh use their own materials: give the ones near the blast the same collapse (vertex + char) the shared materials have. One shader compile per material, done while the bomb falls.
   patchNear(x,z,R){const skip=new Set(Object.values(typeof MATS!=='undefined'?MATS:{})),box=new THREE.Box3();this.shadowOff=this.shadowOff||[];
     const patch=m=>{if(!m||m.userData.nk||skip.has(m)||!(m.isMeshStandardMaterial||m.isMeshLambertMaterial||m.isMeshPhongMaterial)||m.blending===THREE.AdditiveBlending)return;m.userData.nk=1;const old=m.onBeforeCompile,key=m.customProgramCacheKey?m.customProgramCacheKey():'';
-      m.onBeforeCompile=(sh,r)=>{if(old)old.call(m,sh,r);if(sh.vertexShader.indexOf('nukeK')>=0)return;sh.uniforms.uNuke=UNI.uNuke;sh.uniforms.uNukeK=UNI.uNukeK;sh.uniforms.uNukeY=UNI.uNukeY;sh.uniforms.uRz=UNI.uRz;sh.uniforms.uRzN=UNI.uRzN;
+      m.onBeforeCompile=(sh,r)=>{if(old)old.call(m,sh,r);if(sh.vertexShader.indexOf('nukeK')>=0)return;sh.uniforms.uNuke=UNI.uNuke;sh.uniforms.uNukeK=UNI.uNukeK;sh.uniforms.uNukeY=UNI.uNukeY;sh.uniforms.uRz=UNI.uRz;sh.uniforms.uRs=UNI.uRs;sh.uniforms.uRzN=UNI.uRzN;
         sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL).replace('#include <begin_vertex>','#include <begin_vertex>\n'+NUKE_VB+'\nvNkW=modelMatrix*vec4(transformed,1.);').replace('void main() {','varying vec4 vNkW;\nvoid main() {');
         sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL+'\nvarying vec4 vNkW;').replace('#include <color_fragment>','#include <color_fragment>\n{float _nk=nukeK(vNkW.xz);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.028,.026),_nk*.8);}')};
       m.customProgramCacheKey=()=>key+'|nk';m.needsUpdate=true};
@@ -59,16 +59,19 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,_ruin:false,get ruin(){retur
 //   and char as the bomb, no mushroom, no flash): a patch grows to its radius in 0.8 s, stays for 15 minutes and then the houses come back over 20 s; with 24 patches standing the
 //   oldest one goes first. No colliders inside a patch (NUKE.inZone asks RUIN.hit), so you walk through the rubble. Buildings that are not chunk meshes get the shader through NUKE.patchNear.
 const RUIN={Z:[],n:0,MAX:24,LIFE:900,
-  hit(x,z,pad){for(const q of this.Z)if(Math.hypot(x-q.x,z-q.z)<q.r*.7+(pad||0))return true;return false},
-  covered(x,z,R){for(const q of this.Z)if(Math.hypot(x-q.x,z-q.z)+R*.35<q.R)return true;return false},
-  add(x,z,R){if(this.covered(x,z,R))return false;if(this.Z.length>=this.MAX)this.Z.sort((a,b)=>a.t0-b.t0).shift();const y=Math.max(groundH(x,z),SL);
-    this.Z.push({x,z,R,r:0,y,t0:performance.now()/1000,life:this.LIFE});
+  // no walls where the building has melted below ~40 % of its height: what is still standing at the edge keeps its collider (you cannot walk through a piece you can see)
+  k(x,z,q){const d=Math.hypot(x-q.x,z-q.z),a=q.r*.55,b=Math.max(a+.01,q.r),t=Math.max(0,Math.min(1,(d-a)/(b-a)));return q.s*(1-t*t*(3-2*t))},
+  hit(x,z,pad){for(const q of this.Z)if(this.k(x,z,q)>.6)return true;return false},
+  near(x,z,R){for(const q of this.Z)if(Math.hypot(x-q.x,z-q.z)<q.R*.5)return q;return null},
+  // s = how much this hit burns (0..1): the beam adds a little every 0.3 s (the house melts down while you hold it there), a foot / the body / the tail crush at once (s 1)
+  add(x,z,R,s){s=s===undefined?1:s;const o=this.near(x,z,R);if(o){if(o.s>=1)return false;o.s=Math.min(1,o.s+s);o.t0=Math.max(o.t0,performance.now()/1000-.8);this.sync();return true}if(this.Z.length>=this.MAX)this.Z.sort((a,b)=>a.t0-b.t0).shift();const y=Math.max(groundH(x,z),SL);
+    this.Z.push({x,z,R,r:0,y,s,t0:performance.now()/1000,life:this.LIFE});
     // the landmark / non-chunk materials near it learn the collapse shader; walking the scene is costly, so only once per 120 m
     if(!(this.pc=this.pc||[]).some(c=>Math.hypot(c[0]-x,c[1]-z)<120)){this.pc.push([x,z]);try{if(typeof NUKE!=='undefined')NUKE.patchNear(x,z,160)}catch(e){}}
     this.sync();return true},
   tick(dt){if(!this.Z.length)return;const now=performance.now()/1000;let ch=false;
     for(let i=this.Z.length-1;i>=0;i--){const q=this.Z[i],a=now-q.t0;let r=a<.8?q.R*(a/.8):q.R;if(a>q.life)r=q.R*Math.max(0,1-(a-q.life)/20);if(a>q.life+20){this.Z.splice(i,1);ch=true;continue}if(Math.abs(r-q.r)>.01){q.r=r;ch=true}}
     if(ch)this.sync()},
-  sync(){const U=UNI.uRz.value;this.n=this.Z.length;for(let i=0;i<U.length;i++){const q=this.Z[i];if(q)U[i].set(q.x,q.z,Math.max(.01,q.r),q.y);else U[i].set(0,0,0,0)}UNI.uRzN.value=this.n;if(typeof PARKED_DIRTY!=='undefined')PARKED_DIRTY=true},
+  sync(){const U=UNI.uRz.value,S=UNI.uRs.value;this.n=this.Z.length;for(let i=0;i<U.length;i++){const q=this.Z[i];if(q){U[i].set(q.x,q.z,Math.max(.01,q.r),q.y);S[i]=q.s}else{U[i].set(0,0,0,0);S[i]=0}}UNI.uRzN.value=this.n;if(typeof PARKED_DIRTY!=='undefined')PARKED_DIRTY=true},
   clear(){this.Z.length=0;this.sync()}};
 (function hook(){if(typeof ANIM==='undefined'){setTimeout(hook,200);return}ANIM.push(dt=>RUIN.tick(dt))})();

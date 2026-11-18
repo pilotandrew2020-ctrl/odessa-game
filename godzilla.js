@@ -31,23 +31,46 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
 #gojiFire{width:118px!important;height:118px!important;border-radius:50%!important;border-color:rgba(80,230,255,.9)!important;color:#7ff4ff!important;box-shadow:0 0 24px rgba(60,220,255,.45)}
 #gojiInfo{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(14px + env(safe-area-inset-top,0px));padding:10px 14px;border-radius:12px;background:linear-gradient(180deg,#191c23,#07080b);border:1px solid rgba(255,255,255,.13);line-height:1.6}#gojiInfo b{display:block;font-size:11px;letter-spacing:.2em;color:#38e4d0}`;
     document.head.appendChild(s);
-    const d=this.el=document.createElement('div');d.id='gojiHud';d.hidden=true;d.innerHTML='<div id="gojiLook"></div><div id="gojiInfo"><b>GODZILLA</b>stick: walk · drag: look / aim · pinch: zoom · hold LASER</div><div id="gojiBtns"><button id="gojiExit">Exit</button><button id="gojiFire">Laser</button></div>';document.body.appendChild(d);
+    const d=this.el=document.createElement('div');d.id='gojiHud';d.hidden=true;d.innerHTML='<div id="gojiLook"></div><div id="gojiInfo"><b>GODZILLA</b>stick: walk · drag: look / aim · pinch: zoom · hold LASER</div><div id="gojiBtns"><button id="gojiExit">Exit</button><button id="gojiView">View</button><button id="gojiFire">Laser</button></div>';document.body.appendChild(d);
     const F=d.querySelector('#gojiFire'),on=e=>{e.preventDefault();e.stopPropagation();this.fire=true},off=e=>{this.fire=false};F.addEventListener('pointerdown',on);for(const k of ['pointerup','pointercancel','pointerleave'])F.addEventListener(k,off);
     d.querySelector('#gojiExit').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.end()});
+    d.querySelector('#gojiView').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.fp=!this.fp;this._cp=null;toast('Camera',this.fp?'his eyes':'behind him')});
     // the look area: one finger turns the view round him and aims the beam (up / down), two fingers pinch to zoom (right up to his mouth), the mouse wheel zooms too
     const lk=d.querySelector('#gojiLook'),P=new Map();let pd=0;lk.addEventListener('pointerdown',e=>{P.set(e.pointerId,[e.clientX,e.clientY]);try{lk.setPointerCapture(e.pointerId)}catch(x){}if(P.size===2){const [a,b]=[...P.values()];pd=Math.hypot(a[0]-b[0],a[1]-b[1])}});
     lk.addEventListener('pointermove',e=>{const o=P.get(e.pointerId);if(!o)return;const dx=e.clientX-o[0],dy=e.clientY-o[1];o[0]=e.clientX;o[1]=e.clientY;
       if(P.size>=2){const [a,b]=[...P.values()],nd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd>0)this.cd=Math.max(14,Math.min(420,this.cd*pd/Math.max(1,nd)));pd=nd;return}
       this.cy-=dx*.005;this.aim=Math.max(-.9,Math.min(.25,this.aim-dy*.003))});
     const up=e=>{P.delete(e.pointerId);if(P.size<2)pd=0};lk.addEventListener('wheel',e=>{e.preventDefault();this.cd=Math.max(14,Math.min(420,this.cd*Math.exp(e.deltaY*.0012)))},{passive:false});
-    addEventListener('keydown',e=>{if(!this.on)return;if(e.code==='Space'||e.code==='KeyL'){this.fire=true;e.preventDefault();e.stopPropagation()}else if(e.code==='Escape')this.end()},true);
+    addEventListener('keydown',e=>{if(!this.on)return;if(e.code==='Space'||e.code==='KeyL'){this.fire=true;e.preventDefault();e.stopPropagation()}else if(e.code==='Escape')this.end();else if(e.code==='KeyV'){this.fp=!this.fp;this._cp=null}},true);
     addEventListener('keyup',e=>{if(e.code==='Space'||e.code==='KeyL')this.fire=false},true)},
+  // SOUND (round 45): all made here with Web Audio (no files): the roar = two detuned saws gliding down through a growling distortion and two vocal formants over a noise breath;
+  // a footstep = a 40 Hz thud and a low rumble; the beam = a rising hiss over a buzzing drone while it fires
+  au(){return typeof AUD!=='undefined'&&AUD.ok&&AUD.ctx?AUD.ctx:null},
+  out(){return (AUD.master||AUD.ctx.destination)},
+  roar(){const c=this.au();if(!c)return;const now=performance.now();if(now-(this._rT||0)<5000)return;this._rT=now;const T=c.currentTime,D=2.8,o=this.out();
+    const g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.9,T+.35);g.gain.setValueAtTime(.85,T+1.7);g.gain.exponentialRampToValueAtTime(.001,T+D);
+    const ws=c.createWaveShaper(),cv=new Float32Array(512);for(let i=0;i<512;i++){const x=i/255.5-1;cv[i]=Math.tanh(x*4)}ws.curve=cv;
+    const f1=c.createBiquadFilter();f1.type='bandpass';f1.frequency.value=520;f1.Q.value=2.2;const f2=c.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1150;f2.Q.value=3;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2400;
+    ws.connect(f1);ws.connect(f2);ws.connect(lp);const mix=c.createGain();mix.gain.value=.55;f1.connect(mix);f2.connect(mix);lp.connect(mix);mix.connect(g);g.connect(o);
+    for(const [f0,f1v,type] of [[180,95,'sawtooth'],[176,92,'sawtooth'],[90,48,'square']]){const os=c.createOscillator();os.type=type;os.frequency.setValueAtTime(f0*.8,T);os.frequency.linearRampToValueAtTime(f0,T+.4);os.frequency.exponentialRampToValueAtTime(f1v,T+D);
+      const vb=c.createOscillator(),vg=c.createGain();vb.frequency.value=7;vg.gain.value=f0*.04;vb.connect(vg);vg.connect(os.frequency);vb.start(T);vb.stop(T+D);os.connect(ws);os.start(T);os.stop(T+D)}
+    if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const nf=c.createBiquadFilter();nf.type='bandpass';nf.frequency.value=900;nf.Q.value=.8;const ng=c.createGain();ng.gain.value=.35;n.connect(nf);nf.connect(ng);ng.connect(g);n.start(T);n.stop(T+D)}},
+  stompSnd(){const c=this.au();if(!c)return;const T=c.currentTime,o=this.out(),os=c.createOscillator(),g=c.createGain();os.type='sine';os.frequency.setValueAtTime(55,T);os.frequency.exponentialRampToValueAtTime(28,T+.5);
+    g.gain.setValueAtTime(.9,T);g.gain.exponentialRampToValueAtTime(.001,T+.7);os.connect(g);g.connect(o);os.start(T);os.stop(T+.75);
+    if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=180;const ng=c.createGain();ng.gain.setValueAtTime(.6,T);ng.gain.exponentialRampToValueAtTime(.001,T+.6);n.connect(f);f.connect(ng);ng.connect(o);n.start(T,Math.random());n.stop(T+.65)}},
+  beamSnd(on){const c=this.au();if(!c)return;if(on&&!this._bs){const T=c.currentTime,o=this.out(),g=c.createGain();g.gain.setValueAtTime(0,T);g.gain.linearRampToValueAtTime(.55,T+.4);g.connect(o);const parts=[];
+      if(AUD.noise){const n=c.createBufferSource();n.buffer=AUD.noise;n.loop=true;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.setValueAtTime(1200,T);f.frequency.linearRampToValueAtTime(3200,T+1.2);f.Q.value=1.2;n.connect(f);f.connect(g);n.start(T);parts.push(n)}
+      for(const fq of [110,111.5,220]){const os=c.createOscillator();os.type='sawtooth';os.frequency.value=fq;const og=c.createGain();og.gain.value=.12;os.connect(og);og.connect(g);os.start(T);parts.push(os)}this._bs={g,parts}}
+    else if(!on&&this._bs){const T=c.currentTime,b=this._bs;this._bs=null;b.g.gain.cancelScheduledValues(T);b.g.gain.setValueAtTime(b.g.gain.value,T);b.g.gain.linearRampToValueAtTime(0,T+.3);for(const p of b.parts)try{p.stop(T+.35)}catch(e){}}},
+  // leaving him frees his GPU memory (textures and meshes are uploaded again the next time he is called): the tab kept ~12-30 MB for nothing and iOS killed it later
+  release(){if(!this.S)return;this.S.traverse(o=>{if(!o.isMesh)return;if(o.geometry)o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(!m)continue;for(const k in m){const t=m[k];if(t&&t.isTexture)t.dispose()}}});
+    for(const m of this.beam.children)m.geometry.dispose()},
   async spawn(){if(this.on||this.busy)return;if(typeof DRONE!=='undefined'&&DRONE.on||typeof TANK!=='undefined'&&TANK.on)return;this.busy=1;this.build();toast('Godzilla','he is coming…');
     try{const S=await this.load();if(!this.g.children.includes(S)){this.g.add(S);this.prep()}}catch(e){this.busy=0;console.warn('[godzilla]',e);toast('Godzilla','the model failed to load, check the connection');return}
     this.busy=0;this.home={x:player.x,z:player.z,yaw:player.yaw};this.yaw=player.yaw;this.x=player.x+Math.sin(this.yaw)*45;this.z=player.z+Math.cos(this.yaw)*45;this.y=this.gy(this.x,this.z);
     this.g.scale.setScalar(this.K);this.g.visible=true;this.on=true;this.t=this.ph=this.sp=this.ch=0;this.cy=0;this._cp=null;this.fire=false;document.body.classList.add('gojion');this.el.hidden=false;if(PLR)PLR.root.visible=false;cam.init=false;
-    toast('GODZILLA','stick: walk · drag: look and aim · hold LASER')},
-  end(){if(!this.on)return;this.on=false;this.fire=false;this.g.visible=false;this.beam.visible=this.flare.visible=this.splash.visible=false;document.body.classList.remove('gojion');this.el.hidden=true;
+    toast('GODZILLA','stick: walk · drag: look and aim · pinch: zoom · hold LASER · View: his eyes');setTimeout(()=>{if(this.on)this.roar()},600)},
+  end(){if(!this.on)return;this.on=false;this.fire=false;this.beamSnd(false);setTimeout(()=>{if(!this.on)this.release()},200);this.g.visible=false;this.beam.visible=this.flare.visible=this.splash.visible=false;document.body.classList.remove('gojion');this.el.hidden=true;
     const s=this.yaw+Math.PI/2;teleportRaw(this.x+Math.sin(s)*35,this.z+Math.cos(s)*35,this.yaw);if(PLR)PLR.root.visible=true;cam.init=false},
   gy(x,z){return Math.max(groundH(x,z),SL-18)},   // he wades into the sea up to his chest
   // the walk, breathing and the beam pose; all angles in radians about the model axes
@@ -61,7 +84,8 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
     for(let i=0;i<10;i++){const n=i?'tail'+(i+1):'tail';T(n,0,1,0,Math.sin(t*1.3-i*.55)*(.035+.03*w)+sL*.02*w)}
     T('neck',1,0,0,.03*Math.sin(t*1.1)+c*.14);T('neck2',1,0,0,c*.12);T('head',1,0,0,c*.2-.02*w*Math.sin(p*2));T('jaw',1,0,0,c*.5+.03*Math.sin(t*2));
     const cb=this.B.center,r=this.R&&this.R.center;if(cb&&r)cb.position.y=r.pos.y+Math.abs(Math.cos(p))*.25*w},
-  frame(dt){if(!this.on)return;dt=Math.min(dt,.05);this.t+=dt;const I=inp,K=I.k||{};
+  frame(dt){if(!this.on)return;if(typeof CREATOR!=='undefined'&&CREATOR.on){this.end();return}   // the character window draws its own scene: never both at once (the tab ran out of memory)
+    dt=Math.min(dt,.05);this.t+=dt;const I=inp,K=I.k||{};if(this.fire&&!this._fw)this.roar();this._fw=this.fire;
     const fw=Math.max(-1,Math.min(1,I.jy+(K.KeyW?1:0)-(K.KeyS?1:0))),tn=Math.max(-1,Math.min(1,I.jx+(K.KeyD?1:0)-(K.KeyA?1:0)));
     const firing=this.fire&&this.ch>.75,want=firing?0:Math.max(0,fw)*7.5-Math.max(0,-fw)*2.5;this.sp+=(want-this.sp)*Math.min(1,dt*2);this.yaw-=tn*.55*dt*(firing?.4:1);
     const fx=Math.sin(this.yaw),fz=Math.cos(this.yaw);this.x+=fx*this.sp*dt;this.z+=fz*this.sp*dt;this.y+=(this.gy(this.x,this.z)-this.y)*Math.min(1,dt*4);
@@ -71,9 +95,9 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
     this.g.position.set(this.x,this.y,this.z);this.g.rotation.y=this.yaw;this.pose(dt);
     if(this.spine)this.spine.emissiveIntensity=.25+this.ch*3.2+(firing?Math.random()*.8:0);
     player.x=this.x;player.z=this.z;player.y=this.y;player.vx=player.vz=0;   // the world streams round him
-    this.g.updateMatrixWorld(true);this.crush(dt);this.burnTick(dt);this.laser(dt,firing);this.camera(dt)},
-  step(side){if(typeof FX!=='undefined'){FX.shakeT=.35;FX.shakeA=.06}const s=this.yaw+Math.PI/2*side,x=this.x+Math.sin(s)*6+Math.sin(this.yaw)*8,z=this.z+Math.cos(s)*6+Math.cos(this.yaw)*8;
-    if(insideAny(x,z,6,this.y+2)){try{RUIN.add(x,z,26);BLAST.at(x,this.y+2,z,8,0,true)}catch(e){}}},
+    this.g.updateMatrixWorld(true);this.crush(dt);this.burnTick(dt);this.laser(dt,firing);this.beamSnd(firing);this.camera(dt)},
+  step(side){this.stompSnd();if(typeof FX!=='undefined'){FX.shakeT=.35;FX.shakeA=.06}const s=this.yaw+Math.PI/2*side,x=this.x+Math.sin(s)*6+Math.sin(this.yaw)*8,z=this.z+Math.cos(s)*6+Math.cos(this.yaw)*8;
+    if(insideAny(x,z,6,this.y+2)){try{RUIN.add(x,z,26,1);BLAST.at(x,this.y+2,z,8,0,true)}catch(e){}}},
   // spots the beam burned keep smoking for 40 s (black smoke, now and then a blue ember)
   burn:[],burnAt(x,y,z){if(this.burn.some(b=>Math.hypot(b.x-x,b.z-z)<14))return;this.burn.push({x,y,z,t:0});if(this.burn.length>18)this.burn.shift()},
   burnTick(dt){if(typeof FX==='undefined')return;for(let i=this.burn.length-1;i>=0;i--){const b=this.burn[i];b.t+=dt;if(b.t>40){this.burn.splice(i,1);continue}
@@ -83,21 +107,24 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,
   _w:new THREE.Vector3(),crushT:0,
   crush(dt){this.crushT-=dt;if(this.crushT>0)return;this.crushT=.2;const pts=[[this.x,this.z,12]];
     for(const n of ['tail2','tail4','tail6','tail8']){const b=this.B[n];if(b){b.getWorldPosition(this._w);pts.push([this._w.x,this._w.z,9])}}
-    let hit=false;for(const [x,z,r] of pts)if(insideAny(x,z,r,this.y+4)){if(RUIN.add(x,z,30))hit=true}
+    let hit=false;for(const [x,z,r] of pts)if(insideAny(x,z,r,this.y+4)){if(RUIN.add(x,z,30,1))hit=true}
     if(hit&&typeof FX!=='undefined'){FX.shakeT=.4;FX.shakeA=.07}},
   _v:new THREE.Vector3(),_d:new THREE.Vector3(),_e:new THREE.Vector3(),
   laser(dt,on){const B=this.beam;if(!on){B.visible=this.flare.visible=this.splash.visible=false;return}
     const m=this._v,mb=this.B.tongue2||this.B.jaw||this.B.head;mb.getWorldPosition(m);m.addScaledVector(this._d.set(Math.sin(this.yaw),0,Math.cos(this.yaw)),6);
     const ca=Math.cos(this.aim),d=this._d.set(Math.sin(this.yaw)*ca,Math.sin(this.aim),Math.cos(this.yaw)*ca).normalize(),e=this._e.copy(m);let L=700;
     for(let s=6;s<=700;s+=5){const x=m.x+d.x*s,y=m.y+d.y*s,z=m.z+d.z*s;if(y<=Math.max(groundH(x,z),SL)||insideAny(x,z,1.5,y)){L=s;break}}
-    e.copy(m).addScaledVector(d,L);B.visible=this.flare.visible=true;B.position.copy(m);B.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);const fl=.85+Math.random()*.3;B.scale.set(fl,L,fl);
+    e.copy(m).addScaledVector(d,L);B.visible=this.flare.visible=true;B.position.copy(m);B.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d);const fl=(.85+Math.random()*.3)*(this.fp?.3:1);B.scale.set(fl,L,fl);B.children[2].visible=!this.fp;   // from his eyes the beam starts right under you: thinner, no outer haze
     this.flare.position.copy(m);this.flare.scale.setScalar(.8+Math.random()*.5);
     const hit=L<700;this.splash.visible=hit;if(hit){this.splash.position.copy(e);this.splash.scale.setScalar(.7+Math.random()*.6)}
     if(typeof FX!=='undefined'){FX.shakeT=Math.max(FX.shakeT||0,.12);FX.shakeA=Math.max(FX.shakeA||0,.025)}
-    this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.3;try{BLAST.at(e.x,e.y,e.z,12,90,true);if(BLAST.mark)BLAST.mark(e.x,e.z,12);RUIN.add(e.x,e.z,40);this.burnAt(e.x,e.y,e.z)}catch(err){console.warn('[godzilla] beam',err)}}
+    this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.3;try{BLAST.at(e.x,e.y,e.z,12,90,true);if(BLAST.mark)BLAST.mark(e.x,e.z,12);RUIN.add(e.x,e.z,40,.22);this.burnAt(e.x,e.y,e.z)}catch(err){console.warn('[godzilla] beam',err)}}
     if(hit&&typeof FX!=='undefined'){FX.init();for(let i=0;i<3;i++)FX.puff({x:e.x,y:e.y+1,z:e.z,vx:(Math.random()-.5)*26,vy:6+Math.random()*16,vz:(Math.random()-.5)*26,s0:.6,s1:.15,life:.5+Math.random()*.4,c0:[.55,.85,1],c1:[.1,.35,1],op:1,add:true,drag:1.5,grow:1})}},   // blue sparks fly off where it burns
   // the camera: behind, above the head and a little to the right (over the shoulder); while the beam charges it swings round to a 3/4 view from his right, so the beam runs across the screen instead of away from you
-  camera(dt){const D=this.cd,zin=Math.max(0,Math.min(1,(150-D)/120)),a=this.yaw+this.cy+Math.PI-this.ch*1.05*(1-zin*.5),sd=this.yaw+this.cy-Math.PI/2;
+  camera(dt){if(this.fp&&(this.B.eyes||this.B.head)){   // his eyes: a little in front of the snout, the view sways with his steps; you see your own beam leave the mouth below you
+      const e=this._v;(this.B.eyes||this.B.head).getWorldPosition(e);const fa=this.yaw+this.cy,pi=Math.max(-.9,Math.min(.5,this.aim*.9));e.x+=Math.sin(this.yaw)*5;e.z+=Math.cos(this.yaw)*5;e.y+=2+Math.sin(this.ph*2)*.5;
+      camera.position.copy(e);camera.lookAt(e.x+Math.sin(fa)*Math.cos(pi)*100,e.y+Math.sin(pi)*100,e.z+Math.cos(fa)*Math.cos(pi)*100);return}
+    const D=this.cd,zin=Math.max(0,Math.min(1,(150-D)/120)),a=this.yaw+this.cy+Math.PI-this.ch*1.05*(1-zin*.5),sd=this.yaw+this.cy-Math.PI/2;
     // what it looks at: his chest far away, his head and mouth when you zoom in
     const fa=this.yaw+this.cy,ch=this._w.set(this.x+Math.sin(fa)*70*(1-zin),this.y+28+this.aim*60*(1-zin),this.z+Math.cos(fa)*70*(1-zin));
     if(zin>0&&this.B.head){const hp=this._v.set(0,0,0);this.B.head.getWorldPosition(hp);ch.lerp(hp,zin)}
