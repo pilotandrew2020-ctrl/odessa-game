@@ -1,8 +1,8 @@
 // nuke.js — the nuclear bomb (2026-11-16). Spawn menu "Nuclear bomb": it falls 5 s onto a spot 300 m in front of where you look, then: white flash, a fireball, a shock ring + dust wall that sweeps outwards at 330 m/s, the mushroom cloud, a rumble that reaches you when the shock does.
 //   BUILDINGS: no new geometry. The shared building / ground / tree shaders in index.html (NUKE_GLSL, NUKE_VB, NUKE_SURF, the uniforms uNuke / uNukeK / uNukeY) pull every wall and roof vertex down onto a ragged stump height as the shock front passes (nukeK), char the ground and shrink the trees inside the radius (R = 300 m).
 //   While ruined: no wall colliders inside the zone (insideAny asks NUKE.inZone), no chunk shadows there, traffic cars inside are gone, pedestrians are thrown, you are shoved / hurt when the front reaches you. After 22 s the city grows back over 10 s. Cost: a handful of meshes while it lasts, one extra uniform test in the vertex shaders.
-const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
-  inZone(x,z,pad){return Math.hypot(x-this.gx,z-this.gz)<Math.min(this.t*330,this.R*.95)+(pad||0)},
+const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,_ruin:false,get ruin(){return this._ruin||(typeof RUIN!=='undefined'&&RUIN.n>0)},set ruin(v){this._ruin=v},g:null,hit:false,
+  inZone(x,z,pad){if(this._ruin&&Math.hypot(x-this.gx,z-this.gz)<Math.min(this.t*330,this.R*.95)+(pad||0))return true;return typeof RUIN!=='undefined'&&RUIN.hit(x,z,pad)},   // the bomb's crater or one of the lasting ruin patches (RUIN, below)
   cloud(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');for(let i=0;i<46;i++){const x=64+(Math.random()-.5)*78,y=64+(Math.random()-.5)*78,r=14+Math.random()*26,q=g.createRadialGradient(x,y,0,x,y,r);q.addColorStop(0,'rgba(255,255,255,.55)');q.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=q;g.fillRect(0,0,128,128)}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t},
   build(){if(this.g)return;const g=new THREE.Group(),tx=this.cloud(),MB=(o)=>new THREE.MeshBasicMaterial(Object.assign({transparent:true,depthWrite:false,fog:false,toneMapped:false},o));
     const bomb=this.bomb=new THREE.Group(),dm=new THREE.MeshStandardMaterial({color:0x2b2f2a,roughness:.5,metalness:.5});const body=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,3.2,12),dm);bomb.add(body);const nose=new THREE.Mesh(new THREE.SphereGeometry(.6,12,8),dm);nose.scale.y=1.4;nose.position.y=-1.9;bomb.add(nose);for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.BoxGeometry(.05,1.1,1.1),dm);f.position.y=1.9;f.rotation.y=i*Math.PI/2;bomb.add(f)}bomb.scale.setScalar(2.2);
@@ -18,7 +18,7 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
   // landmarks, the home yard's flats and every other building that is not a chunk mesh use their own materials: give the ones near the blast the same collapse (vertex + char) the shared materials have. One shader compile per material, done while the bomb falls.
   patchNear(x,z,R){const skip=new Set(Object.values(typeof MATS!=='undefined'?MATS:{})),box=new THREE.Box3();this.shadowOff=this.shadowOff||[];
     const patch=m=>{if(!m||m.userData.nk||skip.has(m)||!(m.isMeshStandardMaterial||m.isMeshLambertMaterial||m.isMeshPhongMaterial)||m.blending===THREE.AdditiveBlending)return;m.userData.nk=1;const old=m.onBeforeCompile,key=m.customProgramCacheKey?m.customProgramCacheKey():'';
-      m.onBeforeCompile=(sh,r)=>{if(old)old.call(m,sh,r);if(sh.vertexShader.indexOf('nukeK')>=0)return;sh.uniforms.uNuke=UNI.uNuke;sh.uniforms.uNukeK=UNI.uNukeK;sh.uniforms.uNukeY=UNI.uNukeY;
+      m.onBeforeCompile=(sh,r)=>{if(old)old.call(m,sh,r);if(sh.vertexShader.indexOf('nukeK')>=0)return;sh.uniforms.uNuke=UNI.uNuke;sh.uniforms.uNukeK=UNI.uNukeK;sh.uniforms.uNukeY=UNI.uNukeY;sh.uniforms.uRz=UNI.uRz;sh.uniforms.uRzN=UNI.uRzN;
         sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL).replace('#include <begin_vertex>','#include <begin_vertex>\n'+NUKE_VB+'\nvNkW=modelMatrix*vec4(transformed,1.);').replace('void main() {','varying vec4 vNkW;\nvoid main() {');
         sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+NUKE_GLSL+'\nvarying vec4 vNkW;').replace('#include <color_fragment>','#include <color_fragment>\n{float _nk=nukeK(vNkW.xz);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.028,.026),_nk*.8);}')};
       m.customProgramCacheKey=()=>key+'|nk';m.needsUpdate=true};
@@ -54,3 +54,21 @@ const NUKE={st:'',t:0,R:300,sc:1,gx:0,gz:0,gy:0,K:0,ruin:false,g:null,hit:false,
     if(t>hold){this.K=Math.max(0,1-(t-hold)/rec);UNI.uNukeK.value=this.K;if(this.K<.5)this.ruin=false;if(this.K>0&&!this.msg&&k0>.3){this.msg=1;toast('Nuclear bomb','The city is coming back')}}
     if(t>hold+rec)this.clear()},
   clear(){for(const o of this.shadowOff||[])o.castShadow=true;this.shadowOff=[];this.st='';this.ruin=false;this.K=0;this.msg=0;UNI.uNukeK.value=0;UNI.uNuke.value.set(0,0,300,0);for(const m of [this.ball,this.ring,this.wall,this.stem,this.cap,this.skirt,this.bomb])m.visible=false}};
+
+// RUIN (round 43): lasting ruin patches for Godzilla (his beam, his body, his tail, his feet). Up to 24 at once in the shared building / ground shaders (uRz, uRzN: the same collapse
+//   and char as the bomb, no mushroom, no flash): a patch grows to its radius in 0.8 s, stays for 15 minutes and then the houses come back over 20 s; with 24 patches standing the
+//   oldest one goes first. No colliders inside a patch (NUKE.inZone asks RUIN.hit), so you walk through the rubble. Buildings that are not chunk meshes get the shader through NUKE.patchNear.
+const RUIN={Z:[],n:0,MAX:24,LIFE:900,
+  hit(x,z,pad){for(const q of this.Z)if(Math.hypot(x-q.x,z-q.z)<q.r*.7+(pad||0))return true;return false},
+  covered(x,z,R){for(const q of this.Z)if(Math.hypot(x-q.x,z-q.z)+R*.35<q.R)return true;return false},
+  add(x,z,R){if(this.covered(x,z,R))return false;if(this.Z.length>=this.MAX)this.Z.sort((a,b)=>a.t0-b.t0).shift();const y=Math.max(groundH(x,z),SL);
+    this.Z.push({x,z,R,r:0,y,t0:performance.now()/1000,life:this.LIFE});
+    // the landmark / non-chunk materials near it learn the collapse shader; walking the scene is costly, so only once per 120 m
+    if(!(this.pc=this.pc||[]).some(c=>Math.hypot(c[0]-x,c[1]-z)<120)){this.pc.push([x,z]);try{if(typeof NUKE!=='undefined')NUKE.patchNear(x,z,160)}catch(e){}}
+    this.sync();return true},
+  tick(dt){if(!this.Z.length)return;const now=performance.now()/1000;let ch=false;
+    for(let i=this.Z.length-1;i>=0;i--){const q=this.Z[i],a=now-q.t0;let r=a<.8?q.R*(a/.8):q.R;if(a>q.life)r=q.R*Math.max(0,1-(a-q.life)/20);if(a>q.life+20){this.Z.splice(i,1);ch=true;continue}if(Math.abs(r-q.r)>.01){q.r=r;ch=true}}
+    if(ch)this.sync()},
+  sync(){const U=UNI.uRz.value;this.n=this.Z.length;for(let i=0;i<U.length;i++){const q=this.Z[i];if(q)U[i].set(q.x,q.z,Math.max(.01,q.r),q.y);else U[i].set(0,0,0,0)}UNI.uRzN.value=this.n;if(typeof PARKED_DIRTY!=='undefined')PARKED_DIRTY=true},
+  clear(){this.Z.length=0;this.sync()}};
+(function hook(){if(typeof ANIM==='undefined'){setTimeout(hook,200);return}ANIM.push(dt=>RUIN.tick(dt))})();

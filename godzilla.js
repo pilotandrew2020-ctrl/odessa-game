@@ -1,6 +1,7 @@
 // godzilla.js — GODZILLA (2026-11-17, round 42): Spawn menu "Godzilla". You ARE him: a 75 m giant (taller than the houses) that walks through the city on the stick,
 //   and LASER (hold the button / Space / L) bows the head, opens the jaw, lights the dorsal spines and fires an endless blue atomic beam: whatever it touches burns
-//   and collapses (BLAST.at + the nuke's building-collapse shader, NUKE.strike, in short patches). Footsteps shake the camera; walking into a block knocks it down.
+//   and collapses into charred rubble (RUIN patches in nuke.js: the bomb's collapse shader without the bomb; they last 15 minutes). His feet, his body and his swinging tail
+//   crush every block they touch. Round 43: the beam is blue and BURNS (blue sparks, black smoke, scorch), no fireballs, no mushroom clouds.
 // Model: the owner's export of "Godzilla Minus One" by Nelzonis2 (CGTrader, free, credit required, not for sale): 44k triangles, a 143-bone skeleton, NO animation in
 //   the file, so every movement here is made by turning bones about the model's own axes (x = side, y = up, z = forward): legs + knees + ankles for the walk, a tail
 //   wave, breathing, the head / jaw for the beam. Textures were shrunk to <= 1536 px (tools/models/goji.mjs): 3.3 MB, loaded only the first time he is called.
@@ -19,9 +20,9 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:fa
   build(){if(this.g)return;const g=this.g=new THREE.Group();g.visible=false;scene.add(g);
     // the beam: a bright core + a wide soft glow (two additive cylinders along +y, stretched each frame) + a flare at the mouth and a splash where it lands
     const add=(r,c,o)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,1,14,1,true).translate(0,.5,0),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false,side:THREE.DoubleSide}));m.frustumCulled=false;return m};
-    const beam=this.beam=new THREE.Group();beam.add(add(2.2,0xeaffff,1),add(5.5,0x38d8ff,.5),add(11,0x1a8cff,.2));beam.visible=false;scene.add(beam);
+    const beam=this.beam=new THREE.Group();beam.add(add(2.2,0xb4ecff,1),add(5.5,0x2e9bff,.55),add(11,0x1546ff,.22));beam.visible=false;scene.add(beam);
     const sp=(r,c,o)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,10),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,toneMapped:false}));m.frustumCulled=false;return m};
-    this.flare=sp(7,0x66e8ff,.8);this.splash=sp(18,0x5fe6ff,.5);this.flare.visible=this.splash.visible=false;scene.add(this.flare,this.splash);
+    this.flare=sp(7,0x5ad2ff,.85);this.splash=sp(18,0x3aa0ff,.5);this.flare.visible=this.splash.visible=false;scene.add(this.flare,this.splash);
     const s=document.createElement('style');s.textContent=`body.gojion #hud *{visibility:hidden}body.gojion #joy,body.gojion #joy *{visibility:visible}body.gojion #actBtns,body.gojion #bAct,body.gojion #quickRow,body.gojion #gunBar{display:none!important}
 #gojiHud{position:fixed;inset:0;z-index:39;pointer-events:none;font:800 12px var(--f-disp,system-ui);color:#dffbff;text-shadow:0 0 6px #000}#gojiHud[hidden]{display:none}
 #gojiLook{position:absolute;right:0;top:0;width:62%;height:100%;pointer-events:auto;touch-action:none}
@@ -67,9 +68,20 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:fa
     this.g.position.set(this.x,this.y,this.z);this.g.rotation.y=this.yaw;this.pose(dt);
     if(this.spine)this.spine.emissiveIntensity=.25+this.ch*3.2+(firing?Math.random()*.8:0);
     player.x=this.x;player.z=this.z;player.y=this.y;player.vx=player.vz=0;   // the world streams round him
-    this.g.updateMatrixWorld(true);this.laser(dt,firing);this.camera(dt)},
+    this.g.updateMatrixWorld(true);this.crush(dt);this.burnTick(dt);this.laser(dt,firing);this.camera(dt)},
   step(side){if(typeof FX!=='undefined'){FX.shakeT=.35;FX.shakeA=.06}const s=this.yaw+Math.PI/2*side,x=this.x+Math.sin(s)*6+Math.sin(this.yaw)*8,z=this.z+Math.cos(s)*6+Math.cos(this.yaw)*8;
-    if(insideAny(x,z,6,this.y+2)){try{if(typeof NUKE!=='undefined'&&!NUKE.st)NUKE.strike(x,z,26);BLAST.at(x,this.y+2,z,8,0,true)}catch(e){}}},
+    if(insideAny(x,z,6,this.y+2)){try{RUIN.add(x,z,26);BLAST.at(x,this.y+2,z,8,0,true)}catch(e){}}},
+  // spots the beam burned keep smoking for 40 s (black smoke, now and then a blue ember)
+  burn:[],burnAt(x,y,z){if(this.burn.some(b=>Math.hypot(b.x-x,b.z-z)<14))return;this.burn.push({x,y,z,t:0});if(this.burn.length>18)this.burn.shift()},
+  burnTick(dt){if(typeof FX==='undefined')return;for(let i=this.burn.length-1;i>=0;i--){const b=this.burn[i];b.t+=dt;if(b.t>40){this.burn.splice(i,1);continue}
+    if(Math.random()<dt*2.2)FX.puff({x:b.x+(Math.random()-.5)*10,y:b.y+2,z:b.z+(Math.random()-.5)*10,vx:(Math.random()-.5),vy:4+Math.random()*3,vz:(Math.random()-.5),s0:5,s1:16,life:6,c0:[.09,.09,.1],c1:[.2,.2,.22],op:.55,add:false,drag:.3,grow:1});
+    if(Math.random()<dt*1.5)FX.puff({x:b.x+(Math.random()-.5)*8,y:b.y+1,z:b.z+(Math.random()-.5)*8,vx:0,vy:3,vz:0,s0:1.2,s1:.2,life:.8,c0:[.4,.8,1],c1:[.1,.3,1],op:.9,add:true,drag:1,grow:1})}},
+  // his body and his tail crush every block they touch (sampled 5 times a second while he moves or swings)
+  _w:new THREE.Vector3(),crushT:0,
+  crush(dt){this.crushT-=dt;if(this.crushT>0)return;this.crushT=.2;const pts=[[this.x,this.z,12]];
+    for(const n of ['tail2','tail4','tail6','tail8']){const b=this.B[n];if(b){b.getWorldPosition(this._w);pts.push([this._w.x,this._w.z,9])}}
+    let hit=false;for(const [x,z,r] of pts)if(insideAny(x,z,r,this.y+4)){if(RUIN.add(x,z,30))hit=true}
+    if(hit&&typeof FX!=='undefined'){FX.shakeT=.4;FX.shakeA=.07}},
   _v:new THREE.Vector3(),_d:new THREE.Vector3(),_e:new THREE.Vector3(),
   laser(dt,on){const B=this.beam;if(!on){B.visible=this.flare.visible=this.splash.visible=false;return}
     const m=this._v,mb=this.B.tongue2||this.B.jaw||this.B.head;mb.getWorldPosition(m);m.addScaledVector(this._d.set(Math.sin(this.yaw),0,Math.cos(this.yaw)),6);
@@ -79,7 +91,8 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:fa
     this.flare.position.copy(m);this.flare.scale.setScalar(.8+Math.random()*.5);
     const hit=L<700;this.splash.visible=hit;if(hit){this.splash.position.copy(e);this.splash.scale.setScalar(.7+Math.random()*.6)}
     if(typeof FX!=='undefined'){FX.shakeT=Math.max(FX.shakeT||0,.12);FX.shakeA=Math.max(FX.shakeA||0,.025)}
-    this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.35;try{BLAST.at(e.x,e.y,e.z,10,90);if(typeof NUKE!=='undefined'&&!NUKE.st)NUKE.strike(e.x,e.z,45)}catch(err){console.warn('[godzilla] beam',err)}}},
+    this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.3;try{BLAST.at(e.x,e.y,e.z,12,90,true);if(BLAST.mark)BLAST.mark(e.x,e.z,12);RUIN.add(e.x,e.z,40);this.burnAt(e.x,e.y,e.z)}catch(err){console.warn('[godzilla] beam',err)}}
+    if(hit&&typeof FX!=='undefined'){FX.init();for(let i=0;i<3;i++)FX.puff({x:e.x,y:e.y+1,z:e.z,vx:(Math.random()-.5)*26,vy:6+Math.random()*16,vz:(Math.random()-.5)*26,s0:.6,s1:.15,life:.5+Math.random()*.4,c0:[.55,.85,1],c1:[.1,.35,1],op:1,add:true,drag:1.5,grow:1})}},   // blue sparks fly off where it burns
   // the camera: behind, above the head and a little to the right (over the shoulder); while the beam charges it swings round to a 3/4 view from his right, so the beam runs across the screen instead of away from you
   camera(dt){const a=this.yaw+this.cy+Math.PI-this.ch*1.05,D=135,sd=this.yaw+this.cy-Math.PI/2,h=this.y+98;const tx=this.x+Math.sin(a)*D+Math.sin(sd)*32,tz=this.z+Math.cos(a)*D+Math.cos(sd)*32,ty=Math.max(h,this.gy(tx,tz)+6);
     if(!this._cp)this._cp=new THREE.Vector3(tx,ty,tz);this._cp.lerp(this._e.set(tx,ty,tz),Math.min(1,dt*3));camera.position.copy(this._cp);
