@@ -5,7 +5,7 @@
 // Model: the owner's export of "Godzilla Minus One" by Nelzonis2 (CGTrader, free, credit required, not for sale): 44k triangles, a 143-bone skeleton, NO animation in
 //   the file, so every movement here is made by turning bones about the model's own axes (x = side, y = up, z = forward): legs + knees + ankles for the walk, a tail
 //   wave, breathing, the head / jaw for the beam. Textures were shrunk to <= 1536 px (tools/models/goji.mjs): 3.3 MB, loaded only the first time he is called.
-const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:false,ch:0,hitT:0,stepT:0,K:2.73,
+const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,cd:135,aim:-.2,fire:false,ch:0,hitT:0,stepT:0,K:2.73,
   URL:'assets/models/godzilla.glb',
   load(){return this._p||(this._p=new Promise((res,rej)=>new THREE.GLTFLoader().load(this.URL,g=>{const S=g.scene,B={};
     S.traverse(o=>{if(o.isBone)B[o.name]=o;if(o.isMesh){o.frustumCulled=false;o.castShadow=/Body|Thorn/.test(o.name);o.receiveShadow=false;
@@ -31,12 +31,15 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:fa
 #gojiFire{width:118px!important;height:118px!important;border-radius:50%!important;border-color:rgba(80,230,255,.9)!important;color:#7ff4ff!important;box-shadow:0 0 24px rgba(60,220,255,.45)}
 #gojiInfo{position:absolute;left:max(14px,env(safe-area-inset-left));top:calc(14px + env(safe-area-inset-top,0px));padding:10px 14px;border-radius:12px;background:linear-gradient(180deg,#191c23,#07080b);border:1px solid rgba(255,255,255,.13);line-height:1.6}#gojiInfo b{display:block;font-size:11px;letter-spacing:.2em;color:#38e4d0}`;
     document.head.appendChild(s);
-    const d=this.el=document.createElement('div');d.id='gojiHud';d.hidden=true;d.innerHTML='<div id="gojiLook"></div><div id="gojiInfo"><b>GODZILLA</b>stick: walk · drag: look / aim · hold LASER</div><div id="gojiBtns"><button id="gojiExit">Exit</button><button id="gojiFire">Laser</button></div>';document.body.appendChild(d);
+    const d=this.el=document.createElement('div');d.id='gojiHud';d.hidden=true;d.innerHTML='<div id="gojiLook"></div><div id="gojiInfo"><b>GODZILLA</b>stick: walk · drag: look / aim · pinch: zoom · hold LASER</div><div id="gojiBtns"><button id="gojiExit">Exit</button><button id="gojiFire">Laser</button></div>';document.body.appendChild(d);
     const F=d.querySelector('#gojiFire'),on=e=>{e.preventDefault();e.stopPropagation();this.fire=true},off=e=>{this.fire=false};F.addEventListener('pointerdown',on);for(const k of ['pointerup','pointercancel','pointerleave'])F.addEventListener(k,off);
     d.querySelector('#gojiExit').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();this.end()});
-    const lk=d.querySelector('#gojiLook');let id=null,lx=0,ly=0;lk.addEventListener('pointerdown',e=>{id=e.pointerId;lx=e.clientX;ly=e.clientY;try{lk.setPointerCapture(id)}catch(x){}});
-    lk.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;this.cy-=(e.clientX-lx)*.005;this.aim=Math.max(-.9,Math.min(.25,this.aim-(e.clientY-ly)*.003));lx=e.clientX;ly=e.clientY});
-    const up=e=>{if(e.pointerId===id)id=null};lk.addEventListener('pointerup',up);lk.addEventListener('pointercancel',up);
+    // the look area: one finger turns the view round him and aims the beam (up / down), two fingers pinch to zoom (right up to his mouth), the mouse wheel zooms too
+    const lk=d.querySelector('#gojiLook'),P=new Map();let pd=0;lk.addEventListener('pointerdown',e=>{P.set(e.pointerId,[e.clientX,e.clientY]);try{lk.setPointerCapture(e.pointerId)}catch(x){}if(P.size===2){const [a,b]=[...P.values()];pd=Math.hypot(a[0]-b[0],a[1]-b[1])}});
+    lk.addEventListener('pointermove',e=>{const o=P.get(e.pointerId);if(!o)return;const dx=e.clientX-o[0],dy=e.clientY-o[1];o[0]=e.clientX;o[1]=e.clientY;
+      if(P.size>=2){const [a,b]=[...P.values()],nd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd>0)this.cd=Math.max(14,Math.min(420,this.cd*pd/Math.max(1,nd)));pd=nd;return}
+      this.cy-=dx*.005;this.aim=Math.max(-.9,Math.min(.25,this.aim-dy*.003))});
+    const up=e=>{P.delete(e.pointerId);if(P.size<2)pd=0};lk.addEventListener('wheel',e=>{e.preventDefault();this.cd=Math.max(14,Math.min(420,this.cd*Math.exp(e.deltaY*.0012)))},{passive:false});
     addEventListener('keydown',e=>{if(!this.on)return;if(e.code==='Space'||e.code==='KeyL'){this.fire=true;e.preventDefault();e.stopPropagation()}else if(e.code==='Escape')this.end()},true);
     addEventListener('keyup',e=>{if(e.code==='Space'||e.code==='KeyL')this.fire=false},true)},
   async spawn(){if(this.on||this.busy)return;if(typeof DRONE!=='undefined'&&DRONE.on||typeof TANK!=='undefined'&&TANK.on)return;this.busy=1;this.build();toast('Godzilla','he is coming…');
@@ -94,7 +97,10 @@ const GOJI={on:false,g:null,x:0,y:0,z:0,yaw:0,ph:0,t:0,sp:0,cy:0,aim:-.2,fire:fa
     this.hitT-=dt;if(hit&&this.hitT<=0){this.hitT=.3;try{BLAST.at(e.x,e.y,e.z,12,90,true);if(BLAST.mark)BLAST.mark(e.x,e.z,12);RUIN.add(e.x,e.z,40);this.burnAt(e.x,e.y,e.z)}catch(err){console.warn('[godzilla] beam',err)}}
     if(hit&&typeof FX!=='undefined'){FX.init();for(let i=0;i<3;i++)FX.puff({x:e.x,y:e.y+1,z:e.z,vx:(Math.random()-.5)*26,vy:6+Math.random()*16,vz:(Math.random()-.5)*26,s0:.6,s1:.15,life:.5+Math.random()*.4,c0:[.55,.85,1],c1:[.1,.35,1],op:1,add:true,drag:1.5,grow:1})}},   // blue sparks fly off where it burns
   // the camera: behind, above the head and a little to the right (over the shoulder); while the beam charges it swings round to a 3/4 view from his right, so the beam runs across the screen instead of away from you
-  camera(dt){const a=this.yaw+this.cy+Math.PI-this.ch*1.05,D=135,sd=this.yaw+this.cy-Math.PI/2,h=this.y+98;const tx=this.x+Math.sin(a)*D+Math.sin(sd)*32,tz=this.z+Math.cos(a)*D+Math.cos(sd)*32,ty=Math.max(h,this.gy(tx,tz)+6);
-    if(!this._cp)this._cp=new THREE.Vector3(tx,ty,tz);this._cp.lerp(this._e.set(tx,ty,tz),Math.min(1,dt*3));camera.position.copy(this._cp);
-    const fa=this.yaw+this.cy;camera.lookAt(this.x+Math.sin(fa)*70,this.y+28+this.aim*60,this.z+Math.cos(fa)*70)}
+  camera(dt){const D=this.cd,zin=Math.max(0,Math.min(1,(150-D)/120)),a=this.yaw+this.cy+Math.PI-this.ch*1.05*(1-zin*.5),sd=this.yaw+this.cy-Math.PI/2;
+    // what it looks at: his chest far away, his head and mouth when you zoom in
+    const fa=this.yaw+this.cy,ch=this._w.set(this.x+Math.sin(fa)*70*(1-zin),this.y+28+this.aim*60*(1-zin),this.z+Math.cos(fa)*70*(1-zin));
+    if(zin>0&&this.B.head){const hp=this._v.set(0,0,0);this.B.head.getWorldPosition(hp);ch.lerp(hp,zin)}
+    const up=.62-zin*.42,cp=Math.cos(up),tx=ch.x+Math.sin(a)*D*cp+Math.sin(sd)*D*.24,tz=ch.z+Math.cos(a)*D*cp+Math.cos(sd)*D*.24,ty=Math.max(ch.y+Math.sin(up)*D,this.gy(tx,tz)+3);
+    if(!this._cp)this._cp=new THREE.Vector3(tx,ty,tz);this._cp.lerp(this._d.set(tx,ty,tz),Math.min(1,dt*3));camera.position.copy(this._cp);camera.lookAt(ch)}
 };
