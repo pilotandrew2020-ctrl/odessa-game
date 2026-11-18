@@ -17,6 +17,10 @@ exports.run = async (page, h) => {
   if (SH) await h.shot('goji_laser', 5000);
   const zc = await ev(() => { GOJI.cd = 28; for (let i = 0; i < 40; i++) GOJI.frame(.05); const hp = new THREE.Vector3(); GOJI.B.head.getWorldPosition(hp); return +camera.position.distanceTo(hp).toFixed(1) }); console.log('zoomed in: camera to head', zc); assert(zc < 60, 'cannot zoom in to his head');
   if (SH) await h.shot('goji_close', 5000);
+  const fp = await ev(() => { GOJI.fp = true; GOJI.cd = 135; for (let i = 0; i < 10; i++) GOJI.frame(.05); const e = new THREE.Vector3(); (GOJI.B.eyes || GOJI.B.head).getWorldPosition(e); return +camera.position.distanceTo(e).toFixed(1) }); console.log('first person: camera to the eyes', fp); assert(fp < 12, 'first person camera is not at his eyes');
+  if (SH) await h.shot('goji_fp', 5000);
+  const melt = await ev(() => { const q = RUIN.Z[RUIN.Z.length - 1]; return { s: q && +q.s.toFixed(2), n: RUIN.n, uni: UNI.uRs.value.slice(0, RUIN.n).map(x => +x.toFixed(2)) } }); console.log('melt', JSON.stringify(melt));
+  await ev(() => { GOJI.fp = false });
   await ev(() => { GOJI.fire = false; for (let i = 0; i < 10; i++) GOJI.frame(.05); GOJI.end() }); await h.wait(500);
   const rz = await ev(() => { const q = RUIN.Z[0]; RUIN.tick(1); return { n: RUIN.n, zone: NUKE.ruin && NUKE.inZone(q.x, q.z), uni: UNI.uRzN.value } }); console.log('ruins after exit', JSON.stringify(rz)); assert(rz.n > 0 && rz.zone && rz.uni === rz.n, 'the ruins did not stay');
   const e = await ev(() => ({ on: GOJI.on, plr: PLR.root.visible, hud: GOJI.el.hidden, cls: document.body.classList.contains('gojion') })); console.log('exit', JSON.stringify(e)); assert(!e.on && e.plr && e.hud && !e.cls, 'Exit left a stuck state');
