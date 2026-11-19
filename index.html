@@ -8692,7 +8692,7 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
     const N=420;const geo=new THREE.BufferGeometry();this.sPos=new Float32Array(N*3);this.sCol=new Float32Array(N*3);this.sVel=new Float32Array(N*3);this.sLife=new Float32Array(N);
     geo.setAttribute('position',new THREE.BufferAttribute(this.sPos,3));geo.setAttribute('color',new THREE.BufferAttribute(this.sCol,3));
     this.sparks=new THREE.Points(geo,new THREE.PointsMaterial({size:.32,map:this.tex.spark,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true,fog:false}));this.sparks.frustumCulled=false;this.sparks.renderOrder=4;scene.add(this.sparks);this.sN=N;
-    for(let i=0;i<N;i++)this.sPos[i*3+1]=-9999;
+    this.sparks.visible=false;this.sHi=0;geo.setDrawRange(0,0);   // dead sparks are black (additive = invisible) and outside the draw range: nothing parked at -9999
     const dm=[0x3a3631,0x6a5a48,0x8b8272].map(c=>new THREE.MeshStandardMaterial({color:new THREE.Color(c).convertSRGBToLinear(),roughness:.9}));
     const bg=new THREE.BoxGeometry(1,1,1);
     for(let i=0;i<34;i++){const m=new THREE.Mesh(bg,dm[i%3]);m.visible=false;m.castShadow=true;scene.add(m);this.deb.push({m,on:false,v:new THREE.Vector3(),w:new THREE.Vector3(),t:0})}
@@ -8784,10 +8784,11 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
       const m=sp.material;m.rotation=a.rot+=a.sr*dt;m.color.setRGB(a.c0[0]+(a.c1[0]-a.c0[0])*Math.min(1,u*1.6),a.c0[1]+(a.c1[1]-a.c0[1])*Math.min(1,u*1.6),a.c0[2]+(a.c1[2]-a.c0[2])*Math.min(1,u*1.6));
       m.opacity=a.op*(a.add?Math.pow(1-u,1.6):(u<.12?u/.12:Math.pow(1-u,1.2)))}
     // sparks
-    if(this.sparks){let any=false;for(let i=0;i<this.sN;i++){let L=this.sLife[i];if(L<=0)continue;any=true;L-=dt;this.sLife[i]=L;const j=i*3;
+    if(this.sparks){let any=false,hi=0;for(let i=0;i<this.sN;i++){let L=this.sLife[i];if(L<=0)continue;any=true;hi=i+1;L-=dt;this.sLife[i]=L;const j=i*3;
         this.sVel[j+1]-=16*dt;this.sPos[j]+=this.sVel[j]*dt;this.sPos[j+1]+=this.sVel[j+1]*dt;this.sPos[j+2]+=this.sVel[j+2]*dt;
         const g=groundH(this.sPos[j],this.sPos[j+2]);if(this.sPos[j+1]<g){this.sPos[j+1]=g+.02;this.sVel[j+1]*=-.35;this.sVel[j]*=.6;this.sVel[j+2]*=.6}
-        const k=Math.max(0,Math.min(1,L*1.4));this.sCol[j]=1*k;this.sCol[j+1]=(.55+.3*k)*k;this.sCol[j+2]=.18*k;if(L<=0){this.sPos[j+1]=-9999}}
+        const k=Math.max(0,Math.min(1,L*1.4));this.sCol[j]=1*k;this.sCol[j+1]=(.55+.3*k)*k;this.sCol[j+2]=.18*k;if(L<=0){this.sCol[j]=this.sCol[j+1]=this.sCol[j+2]=0}}
+      if(hi>(this.sHi||0)||!any)this.sHi=hi;this.sparks.visible=any||this._sw;this.sparks.geometry.setDrawRange(0,any?Math.max(hi,this.sHi||0):0);
       if(any||this._sw){this.sparks.geometry.attributes.position.needsUpdate=true;this.sparks.geometry.attributes.color.needsUpdate=true;this._sw=any}}
     for(const d of this.deb){if(!d.on)continue;d.t+=dt;d.v.y-=22*dt;d.m.position.addScaledVector(d.v,dt);d.m.rotation.x+=d.w.x*dt;d.m.rotation.y+=d.w.y*dt;d.m.rotation.z+=d.w.z*dt;
       const g=groundH(d.m.position.x,d.m.position.z);if(d.m.position.y<g+.05){d.m.position.y=g+.05;d.v.y*=-.32;d.v.x*=.6;d.v.z*=.6;d.w.multiplyScalar(.6)}
@@ -8808,7 +8809,10 @@ const FX={ready:false,sp:[],free:[],act:[],deb:[],chunks:[],scorch:[],sparks:nul
     for(const q of this.rings){if(!q.on)continue;q.t+=dt;const u=q.t/.55;if(u>=1){q.on=false;q.m.visible=false;continue}const s=q.r*(.4+u*3.2);q.m.scale.set(s,1,s);q.m.material.opacity=.7*(1-u)*(1-u)}
     for(const s of this.scorch){if(!s.on)continue;s.t+=dt;const u=s.t/26;if(u>=1){s.on=false;s.m.visible=false;continue}s.m.material.opacity=.8*(1-u*u)}
   },
-  sCur:0
+  sCur:0,
+  dispose(){if(!this.ready)return;this.ready=false;const D=o=>{if(!o)return;scene.remove(o);if(o.geometry)o.geometry.dispose();const m=o.material;if(m)(Array.isArray(m)?m:[m]).forEach(x=>x.dispose())};
+    D(this.sparks);this.sparks=null;this.sp.forEach(D);this.deb.forEach(d=>D(d.m));this.chunks.forEach(d=>D(d.m));this.rings.forEach(d=>D(d.m));this.scorch.forEach(d=>D(d.m));
+    for(const k in this.tex)this.tex[k].dispose();this.tex={};this.sp=[];this.free=[];this.act=[];this.deb=[];this.chunks=[];this.rings=[];this.scorch=[]}
 };
 
 // ===================== Arena mode: cartoon guns for friends (2-20 players, no blood) =====================
