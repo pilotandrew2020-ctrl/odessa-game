@@ -8,7 +8,7 @@ const MDL={base:'assets/models/props/',buf:{},wait:{},gl:{},
   // phones: textures of the props are shrunk to 512 px (a 1024 px one is 5.6 MB of video memory, a flat has a dozen of them)
   shrink(scene,max){const done=new Set();scene.traverse(o=>{if(!o.isMesh||!o.material)return;for(const m of (Array.isArray(o.material)?o.material:[o.material]))for(const k in m){const t=m[k];if(!t||!t.isTexture||done.has(t))continue;done.add(t);const im=t.image,w=im&&(im.width||im.videoWidth),h=im&&im.height;if(!w||!h||Math.max(w,h)<=max)continue;
         try{const s=max/Math.max(w,h),cv=document.createElement('canvas');cv.width=Math.max(1,Math.round(w*s));cv.height=Math.max(1,Math.round(h*s));cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);if(im.close)try{im.close()}catch(e){}t.image=cv;t.needsUpdate=true}catch(e){}}})},
-  make(name){if(!this.gl[name])this.gl[name]=this.parse(name).then(g=>{g.skinned=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)g.skinned=true});if(typeof MOBILE!=='undefined'&&MOBILE&&!g.skinned)this.shrink(g.scene,512);return g});
+  make(name){if(!this.gl[name])this.gl[name]=this.parse(name).then(g=>{g.skinned=false;g.scene.traverse(o=>{if(o.isSkinnedMesh)g.skinned=true});if(typeof MOBILE!=='undefined'&&MOBILE&&!g.skinned)this.shrink(g.scene,(this.maxTex&&this.maxTex[name])||512);return g});   // maxTex: a few models (vint.js lanes) keep a bigger strip
     return this.gl[name].then(g=>g.skinned?this.parse(name):{scene:g.scene.clone(true),animations:g.animations})},
   // opts: h = target height (m) or s = scale (sc = [kx,ky,kz] stretches on top of it); x,y,z,ry = placement; keep:1 leaves the model's own origin on the holder instead of centring its bounding box (the venue pieces are authored around their footprint)
   tc:new Map(),
