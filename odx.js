@@ -307,11 +307,13 @@ const ODX_NUKE = {
       ROOFPADS.list = ROOFPADS.list.filter(p => p.big || Math.hypot(p.x - x, p.z - z) > r);
       if (ROOFPADS.g) for (const m of [...ROOFPADS.g.children]) if (Math.hypot(m.position.x - x, m.position.z - z) < r + 25) { ROOFPADS.g.remove(m); m.geometry.dispose() }
     }
-    let n = 0;
+    let n = 0; const q = [];
     if (typeof chunks !== 'undefined') for (const c of [...chunks.values()]) { const cx = BB[0] + (c.id % NCX + .5) * CH, cz = BB[2] + (Math.floor(c.id / NCX) + .5) * CH;
-      if (Math.hypot(cx - x, cz - z) < r + CH * .75) { disposeChunk(c); n++ } }
-    if (typeof updateChunks === 'function') try { updateChunks(8) } catch (e) {}
-    console.log('[odx] nuke: ' + n + ' chunks rebuilt without the destroyed buildings');
+      if (Math.hypot(cx - x, cz - z) < r + CH * .75) { q.push(c); n++ } }
+    // one chunk at a time, 350 ms apart (all at once froze the tab, worst on an iPad)
+    const step = () => { const c = q.shift(); if (!c) return; try { if (chunks.get(c.id) === c) disposeChunk(c); if (typeof updateChunks === 'function') updateChunks(2) } catch (e) {} setTimeout(step, 350) };
+    step();
+    console.log('[odx] nuke: ' + n + ' chunks queued to rebuild without the destroyed buildings');
     return n;
   },
   dispose() {

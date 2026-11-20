@@ -11,6 +11,12 @@ exports.run = async (page, h) => {
   console.log('venues', JSON.stringify(v));
   assert(v.n > 6000 && v.hair > 100 && v.bowl >= 1 && v.cyr > 3000, 'venue list');
   assert.deepStrictEqual(v.int, ['bg_barber', 'bg_bowling']);
+  // map search finds real venues (salons, the bowling)
+  const found = await ev(() => { mapQ = 'барбер'; buildPlaceList(); const a = placeList.children.length; mapQ = 'sfera'; buildPlaceList(); const b = placeList.children.length; mapQ = ''; return [a, b] });
+  console.log('map search', JSON.stringify(found)); assert(found[0] >= 1 && found[1] >= 1, 'map search finds venues');
+  // a big building opens a venue room from any door
+  const far = await ev(() => { const v = VEN.all.find(x => x.c === 'med'); VEN.match(v); return !!VEN.forEntry(v.k, v.sx + 40, v.sz) });
+  assert(far, 'far door of a clinic building still opens its room');
   // a street in the centre: the live signs carry the real names
   await ev(() => { const v = VEN.all.find(x => /Таврія В/.test(x.name) && Math.abs(x.x - 1000) < 900 && Math.abs(x.z + 10300) < 900) || VEN.all.find(x => x.c === 'market' && /[А-я]/.test(x.name));
     VEN.match(v); teleportRaw(v.sx + v.nx * 7, v.sz + v.nz * 7, Math.atan2(-v.nx, -v.nz)); cam.pitch = .05; cam.dist = 5; cam.init = false; window.__v = v.name });

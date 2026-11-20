@@ -30,7 +30,7 @@ const VEN={ready:false,cats:[],all:[],by:new Map(),byB:new Map(),live:new Map(),
     sweet:{t:'SWEETS',it:[['Ice cream',45],['Eclair',60],['Napoleon',80],['Hot chocolate',70],['Pampushky',50],['Tea',35]]}},
   late:new Set(),mtex:new Map(),mlive:new Map(),mpool:[],
 
-  load(){fetch('assets/venues.json').then(r=>r.json()).then(j=>{
+  load(){fetch('assets/venues.json?v=49').then(r=>r.json()).then(j=>{
       this.cats=j.cats;let n=0;
       for(const r of j.v){const v={i:n++,c:j.cats[r[0]],x:r[1],z:r[2],name:r[3],m:0};this.all.push(v);const id=chunkIdAt2(v.x,v.z);if(id<0)continue;let a=this.by.get(id);if(!a)this.by.set(id,a=[]);a.push(v)}
       this.ready=true;MAPP=null;
@@ -57,7 +57,9 @@ const VEN={ready:false,cats:[],all:[],by:new Map(),byB:new Map(),live:new Map(),
     for(let j=j0-1;j<=j0+1;j++)for(let i=i0-1;i<=i0+1;i++){const a=this.by.get(j*NCX+i);if(!a)continue;for(const v of a)if(!v.m&&Math.abs(v.x-x)<r&&Math.abs(v.z-z)<r)this.match(v)}},
   // bldg.js: which venue does the door at (qx,qz) of building k belong to?
   forEntry(k,qx,qz){if(!this.ready)return null;this.matchNear(qx,qz,60);const L=this.byB.get(k);if(!L)return null;let best=null,bd=13;
-    for(const v of L){if(!this.INT[v.c])continue;const d=Math.hypot(v.sx-qx,v.sz-qz);if(d<bd){bd=d;best=v}}return best},
+    for(const v of L){if(!this.INT[v.c])continue;const d=Math.hypot(v.sx-qx,v.sz-qz);if(d<bd){bd=d;best=v}}
+    if(!best){let b2=1e9;for(const v of L){if(!this.INT[v.c])continue;const d=Math.hypot(v.sx-qx,v.sz-qz);if(d<b2){b2=d;best=v}}}      // a big building (hospital, bank hall): any door of it opens the room of the venue it holds
+    return best},
   // map pin -> a spot on the street in front of the door
   stand(p){const v=this.all[p.vi];if(!v||p.vs)return;this.match(v);p.vs=1;if(v.m===1){p.x=v.sx+v.nx*3.4;p.z=v.sz+v.nz*3.4;p.yaw=Math.atan2(-v.nx,-v.nz)}},
   mapEntries(){if(this._me)return this._me;const out=[];

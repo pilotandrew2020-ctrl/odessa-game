@@ -7903,10 +7903,11 @@ let mapCat='all',mapQ='';
 function buildPlaceList(){const L=$('placeList');L.innerHTML='';if(!MAPP||MAPP.n!==PLACES.length)mapPlaces();
   const q=mapQ.trim().toLowerCase(),px=player.x,pz=player.z,dist=p=>Math.hypot(p.x-px,p.z-pz);
   const rows=MAPP.list.filter(e=>!e.p.hide&&(mapCat==='all'||e.cat===mapCat)&&(!q||(e.p.name+' '+(e.p.sub||'')).toLowerCase().includes(q)));
+  if(q.length>1&&typeof VEN!=='undefined'&&VEN.ready){const vr=VEN.mapEntries().filter(e=>(e.p.name+' '+e.p.sub).toLowerCase().includes(q)).sort((a,b)=>dist(a.p)-dist(b.p)).slice(0,60);rows.push(...vr)}      // search also finds the ~6600 real shops, salons, banks ...
   rows.sort((a,b)=>a.p.id==='home'?-1:b.p.id==='home'?1:dist(a.p)-dist(b.p));
   for(const e of rows){const p=e.p,d=dist(p),b=document.createElement('button');b.className='place'+(MAPV.selPlace===p?' sel':'');b.dataset.id=p.id;
     const row=document.createElement('span');row.className='pn';const t=document.createElement('span');t.textContent=p.name;const dd=document.createElement('em');dd.textContent=d<950?Math.max(10,Math.round(d/10)*10)+' m':(d/1000).toFixed(1)+' km';row.append(t,dd);
-    const s=document.createElement('small');s.textContent=p.sub||'';b.append(row,s);b.onclick=()=>mapSelect(p,true);L.appendChild(b)}
+    const s=document.createElement('small');s.textContent=p.sub||'';b.append(row,s);b.onclick=()=>{if(p.v&&VEN.stand)VEN.stand(p);mapSelect(p,true)};L.appendChild(b)}
   if(!rows.length){const n=document.createElement('small');n.textContent='Nothing found';L.appendChild(n)}}
 // ---------- input ----------
 const TOUCH_LOOK={active:false,id:null,x:0,y:0};
