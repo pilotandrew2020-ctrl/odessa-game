@@ -9,7 +9,7 @@
 
 (function(){
 if(typeof VEN==='undefined')return;
-Object.assign(VEN.INT,{hair:'bg_barber',bowl:'bg_bowling'});
+Object.assign(VEN.INT,{hair:'bg_barber',bowl:'bg_bowling',bank:'bg_bank',post:'bg_post',med:'bg_clinic'});
 Object.assign(VEN.LABEL,{hair:'barbershop & hair salon',bowl:'bowling'});
 Object.assign(VEN.COL,{hair:['#151515','#f4f1ea'],bowl:['#191442','#ff5fd8']});
 Object.assign(VEN.PIN,{hair:['#c8102e','✂'],bowl:['#6a3fd0','●']});
@@ -176,4 +176,49 @@ BW.lanes.forEach((L,i)=>L.n=i+1);
     const on=B.onEnter;B.onEnter=function(o){if(on)on.call(this,o);const nm=venName('BOWLING');if(setName)setName(nm);hudName('bg_bowling',nm==='BOWLING'?'Bowling':nm)};
     if(setName)setName('BOWLING');B.BW=BW;return B};
   reg('bg_bowling');
+
+  // ---------- bank / post office / clinic: a lit name board, real names, Sketchfab pieces; peds behind the counters are the shops' cashiers
+  const room=(key,idx,o,def,col,glow,tit)=>{INTERIORS[key]=()=>{let setName=null;
+      const B=simpleInterior(key,idx,Object.assign({lcol:0xfff2e0,li:.75},o,{furnish(P,grp,ox,oz,hw,D){setName=nameBoard(grp,ox,Y+(o.h||3.4)-.55,oz+D-.135,PI,4.4,col,glow);o.build(P,grp,ox,oz,hw,D)}}));
+      const on=B.onEnter;B.onEnter=function(a){if(on)on.call(this,a);const nm=venName(def);if(setName)setName(nm);hudName(key,nm===def?tit:nm)};
+      if(setName)setName(def);return B};reg(key)};
+  const teller=(grp,x,z,k)=>{if(typeof PRD!=='undefined'&&PRD.cashier)PRD.cashier(grp,x,Y,z,PI,'tavria',k)};
+  const plants=(grp,ox,oz,hw,D)=>{for(const s of [-1,1])put(grp,'sh_plant',ox+s*(hw-.7),oz+D-.8,0,{bake:1})};
+  const ropes=(P,x0,x1,z,ry)=>{for(let x=x0;x<=x1;x+=1.2){P.cyl(x,Y,z,.16,.16,.04,10,c('#2a2a2e'),1);P.cyl(x,Y+.04,z,.03,.03,.9,6,c('#c9a64a'),6)}
+    P.box((x0+x1)/2,Y+.82,z,x1-x0,.03,.03,0,c('#8a1c1c'),1)};
+
+  room('bg_bank',88,{w:14,d:11,h:3.6,floor:0x8f8a80,fr:.25,wall:0xc9c3b6,ceil:0xd8d4ca,title:'Bank',sub:'tellers, ATMs and a queue',lights:[3,8],surf:'tile',
+    build(P,grp,ox,oz,hw,D){
+      P.box(ox,Y+1.6,oz+D-.115,hw*2-.4,3.1,.03,0,c('#0b3a73'),5);
+      for(const x of [-4.4,0,4.4]){put(grp,'bank_counter',ox+x,oz+D-2.6,PI,{bake:1});LOW_OBB.push(ox+x,oz+D-2.6,1.5,.5,1,0);teller(grp,ox+x,oz+D-3.5,Math.round(x*10));
+        INTERACT.push({x:ox+x,z:oz+D-4.3,r:1.5,label:'Talk to the teller',fn:()=>toast('Teller','"Take a ticket, next window please"')})}
+      for(const z of [3.2,5.2]){put(grp,'bank_atm',ox-hw+.6,oz+z,PI/2,{bake:1});LOW_OBB.push(ox-hw+.6,oz+z,.4,.45,1,0);
+        INTERACT.push({x:ox-hw+1.5,z:oz+z,r:1.3,label:'Use the ATM',fn:()=>toast('ATM','balance '+WALLET.fmt()+' · no fees today')})}
+      ropes(P,ox-2.4,ox+2.4,oz+6.2);put(grp,'lounge_sofa',ox+hw-.6,oz+3.0,-PI/2,{bake:1});LOW_OBB.push(ox+hw-.6,oz+3.0,.5,.93,1,0);
+      put(grp,'lounge_sofa',ox+hw-.6,oz+5.2,-PI/2,{bake:1});LOW_OBB.push(ox+hw-.6,oz+5.2,.5,.93,1,0);plants(grp,ox,oz,hw,D);
+      neonSign(grp,'ОБМІН ВАЛЮТ',ox-hw+.125,Y+2.6,oz+7.6,PI/2,2.4,'#7fd0ff')}},'BANK','#e8f4ff','#5ab0ff','Bank');
+
+  room('bg_post',89,{w:12,d:10,h:3.4,floor:0x7d776c,fr:.5,wall:0xcfc6b0,ceil:0xd6d1c4,title:'Post office',sub:'parcels, letters and a queue',lights:[2.8,7],
+    build(P,grp,ox,oz,hw,D){
+      P.box(ox,Y+1.6,oz+D-.115,hw*2-.4,3.1,.03,0,c('#c8102e'),5);
+      for(const x of [-2.8,2.8]){put(grp,'bank_counter',ox+x,oz+D-2.6,PI,{bake:1});LOW_OBB.push(ox+x,oz+D-2.6,1.5,.5,1,0);teller(grp,ox+x,oz+D-3.5,Math.round(x*10)+3);
+        INTERACT.push({x:ox+x,z:oz+D-4.3,r:1.5,label:'Send a parcel (₴80)',fn:()=>{if(WALLET.pay(80,'a parcel'))toast('Parcel sent','tracking number 20450'+((Math.random()*9e5)|0))}})}
+      put(grp,'post_stack',ox-hw+.7,oz+D-1.0,PI,{bake:1});put(grp,'post_boxes',ox-hw+1.2,oz+3.0,PI/2,{bake:1,sc:[1.4,1.4,1.4]});put(grp,'post_boxes',ox+hw-1.3,oz+D-1.5,PI,{bake:1,sc:[1.5,1.5,1.5]});
+      LOW_OBB.push(ox-hw+1.2,oz+3.0,.9,.9,1,0);LOW_OBB.push(ox+hw-1.3,oz+D-1.5,.9,.9,1,0);
+      const n=Math.max(1,Math.round(4.4/1.8));for(let i=0;i<n;i++)put(grp,'sh_palletrack',ox+hw-.9,oz+2.4+i*1.8,-PI/2,{bake:1});LOW_OBB.push(ox+hw-.9,oz+2.4+n*.9,.7,n*.9,1,0);
+      for(let i=0;i<8;i++){P.box(ox-hw+.12,Y+1.0+(i>>2)*.55,oz+5.6+(i&3)*.52,.2,.48,.46,0,c('#c8102e'),6);P.box(ox-hw+.23,Y+1.0+(i>>2)*.55,oz+5.6+(i&3)*.52,.02,.18,.18,0,c('#f3f0e6'),0)}   // wall of mailboxes
+      ropes(P,ox-2.4,ox+2.4,oz+5.8);plants(grp,ox,oz,hw,D);
+      INTERACT.push({x:ox-hw+1.6,z:oz+6.9,r:1.4,label:'Collect a parcel',fn:()=>toast('Parcel desk','"Passport, please — here is your box"')})}},'POST OFFICE','#fff3f0','#ff6a6a','Post office');
+
+  room('bg_clinic',90,{w:13,d:10,h:3.4,floor:0xaeb8ba,fr:.2,wall:0xd3dcdc,ceil:0xe3e9e9,title:'Clinic',sub:'a doctor will see you shortly',lights:[2.8,7],lcol:0xf2fbff,li:.85,surf:'tile',
+    build(P,grp,ox,oz,hw,D){
+      P.box(ox,Y+1.6,oz+D-.115,hw*2-.4,3.1,.03,0,c('#1b8aa0'),5);
+      put(grp,'bank_counter',ox-hw+2.6,oz+3.2,PI,{bake:1,sc:[.9,1,1]});LOW_OBB.push(ox-hw+2.6,oz+3.2,1.4,.5,1,0);teller(grp,ox-hw+2.6,oz+2.3,5);
+      INTERACT.push({x:ox-hw+2.6,z:oz+4.1,r:1.5,label:'Register at the desk',fn:()=>toast('Reception','"Your card, please — doctor is free in five minutes"')});
+      put(grp,'clinic_dental',ox+hw-1.7,oz+D-2.0,PI,{bake:1});LOW_OBB.push(ox+hw-1.7,oz+D-2.0,.9,.7,1,0);
+      INTERACT.push({x:ox+hw-2.6,z:oz+D-3.4,r:1.6,label:'Dental check-up (₴400)',fn:()=>{if(!WALLET.pay(400,'a dental check-up'))return;const f=$('fade');f.style.opacity=1;setTimeout(()=>{f.style.opacity=0;toast('All good','no cavities · ₴400')},1300)}});
+      for(const x of [-2.2,.6]){put(grp,'clinic_bed',ox+x,oz+D-1.5,PI,{bake:1,sc:[1.35,1.35,1.35]});LOW_OBB.push(ox+x,oz+D-1.5,.8,.7,1,0)}
+      INTERACT.push({x:ox-.8,z:oz+D-3.2,r:1.7,label:'Get a check-up (₴250)',fn:()=>{if(!WALLET.pay(250,'a check-up'))return;toast('Doctor','"Healthy as a horse — drink more water"')}});
+      put(grp,'lounge_sofa',ox-hw+.6,oz+6.3,PI/2,{bake:1});LOW_OBB.push(ox-hw+.6,oz+6.3,.5,.93,1,0);plants(grp,ox,oz,hw,D);
+      neonSign(grp,'+',ox+hw-.125,Y+2.5,oz+4.6,-PI/2,.9,'#3be0a0')}},'CLINIC','#eafffb','#3be0a0','Clinic');
 }
