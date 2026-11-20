@@ -7521,9 +7521,14 @@ function stepPlayer(dt){
   const vmax=(player.scoot?28:(running?5.4*1.25:1.8*1.25))*((typeof CHAR!=='undefined'&&CHAR.cur&&CHAR.cur[17]===10&&!player.scoot)?(running?.82:.78):1)*((typeof BR!=='undefined'&&BR.on)?BR.speedMul():1);     // electric scooter: 100 km/h
   const acc=player.scoot?(im>0?3.4:2.2):(player.air?2:10);
   player.vx+=(mx*vmax-player.vx)*Math.min(1,dt*acc);player.vz+=(mz*vmax-player.vz)*Math.min(1,dt*acc);
-  let nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
-  [nx,nz]=collide(nx,nz,PR,player.y);
-  if(!PORTAL.cur&&insideAny(nx,nz,PR,player.y)&&!insideAny(player.x,player.z,PR,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}   // collide() gives up deep inside a solid: do not let that walk you through walls
+  // swept movement: the step is cut into <=25 cm sub-steps and every one is resolved against the walls (the chunk grid inside insideAny), so a long frame (a throttled iPad, a 28 m/s scooter) can never jump over a thin wall
+  const sdx=player.vx*dt,sdz=player.vz*dt,nSub=Math.min(16,Math.max(1,Math.ceil(Math.hypot(sdx,sdz)/.25)));
+  let nx=player.x,nz=player.z;
+  for(let i=0;i<nSub;i++){
+    let tx=nx+sdx/nSub,tz=nz+sdz/nSub;
+    [tx,tz]=collide(tx,tz,PR,player.y);
+    if(!PORTAL.cur&&insideAny(tx,tz,PR,player.y)&&!insideAny(nx,nz,PR,player.y)){player.vx*=.2;player.vz*=.2;break}   // collide() gives up deep inside a solid: do not let that walk you through walls
+    nx=tx;nz=tz}
   if(PORTAL.cur&&!specialGround(nx,nz,player.y)){nx=player.x;nz=player.z;player.vx*=.2;player.vz*=.2}
   const sp=specialGround(nx,nz,player.y);
   const gN=sp?sp.h:(PORTAL.cur?player.y:groundH(nx,nz)+sidewalkLift(nx,nz));
