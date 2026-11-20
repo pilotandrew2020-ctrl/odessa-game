@@ -153,7 +153,7 @@ BW.lanes.forEach((L,i)=>L.n=i+1);
     const setPin=p=>{if(!BW.pins)return;const f=p.up?0:Math.max(0,Math.min(1,p.t));Q.setFromAxisAngle(p.ax,f*PI/2*.96);
       V.set(p.x+p.d[0]*f*.22,Y+.012+.06*Math.sin(f*PI/2),p.z+p.d[1]*f*.22);M4.compose(V,Q,p.gone?ZERO:ONE);BW.pins.setMatrixAt(p.i,M4);BW.pins.instanceMatrix.needsUpdate=true};
     const say=(L,a)=>{L.board(a,'frame '+Math.min(10,L.frame)+' · total '+L.total)};
-    function bowl(L){if(!BW.pins||!L.ball)return;if(!BW.paid){toast('Rent a lane first','₴300 at the desk by the door');return}
+    function bowl(L){if(!BW.pins||!L.ball)return;if(!BW.paid){if(!WALLET.pay(300,'a lane for an hour'))return;BW.paid=true;toast('Lane rented','₴300 · shoes included · bowl again to throw')}
       L.busy=true;const st=L.pins.filter(p=>p.up&&!p.gone),aim=(Math.random()-.5)*.5,gut=Math.random()<.06,hook=(Math.random()<.5?-1:1)*(.12+Math.random()*.18);
       const start=[L.x+aim*.4,INT_Z+BW.foul+.2],end=[gut?L.x+(aim<0?-.64:.64):L.x+aim*.25,INT_Z+BW.head+1.4];
       // how many of the standing pins go down
