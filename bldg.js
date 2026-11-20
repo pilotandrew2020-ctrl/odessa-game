@@ -30,7 +30,7 @@ function bgType(b){const st=D.bst[b.k],h=(Math.imul(b.k+1,2654435761)>>>0)>>>4;
 // walking straight into a shop, cafe or supermarket wall opens it (no need to find the button); BGW is the queue of shop interiors built in idle moments (see tickDoors)
 const BGW=[];let bgBumpT=0;
 function bgBump(dt,sp,fx,fz){const b=BG.cur;if(!b||sp<.5){bgBumpT=0;return false}
-  if(!/^bg_(market|cafe|phones|pharmacy|sweets|coffee|books|gifts|flowers|eva|optics|jewel|toys|rest|bar|game|gym|cloth)$/.test(bgType(b).id)){bgBumpT=0;return false}
+  if(!/^bg_(market|cafe|phones|pharmacy|sweets|coffee|books|gifts|flowers|eva|optics|jewel|toys|rest|bar|game|gym|cloth|barber|bowling)$/.test(bgType(b).id)){bgBumpT=0;return false}
   const dx=b.qx-player.x,dz=b.qz-player.z,d=Math.hypot(dx,dz);if(d>.8||(dx*fx+dz*fz)/Math.max(d,.01)<.75){bgBumpT=0;return false}
   bgBumpT+=dt;if(bgBumpT<.35)return false;bgBumpT=0;bgEnter(b);return true}
 function bgEnter(b){if(!b)return;const t=bgType(b),ret={x:player.x,z:player.z,yaw:Math.atan2(player.x-b.qx,player.z-b.qz)};

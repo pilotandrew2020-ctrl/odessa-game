@@ -400,6 +400,7 @@ body.live #qMenu button:not(.on){background:rgba(0,0,0,.7)}
 <script src="fill_data.js"></script>
 <script src="steps.js"></script>
 <script src="ven.js"></script>
+<script src="vint.js"></script>
 <script src="buses.js"></script>
 <script src="houses.js"></script>
 <script src="fdet.js"></script>
@@ -1596,7 +1597,7 @@ function addBuilding2(g,B,obbs,P,S,opt){
     }
   }
   // shop signs
-  if(S&&(s===SHOP||(s===HIST&&r()<.7)||(s===BRICK&&(seed*3.7%1)>.5)||s===TOWER)){
+  if(S&&typeof VEN==='undefined'&&(s===SHOP||(s===HIST&&r()<.7)||(s===BRICK&&(seed*3.7%1)>.5)||s===TOWER)){   // made-up signs only without the real venue list (vint.js)
     for(const W of walls){
       if(W.L<8)continue;
       if(s!==SHOP&&r()<.5)continue;
@@ -1804,7 +1805,7 @@ function addPolyBuilding(g,rings,lv,st,sd,fl,P,S,opt){
     }
     quadN(g,[[W.x1,yb,W.z1],[W.x2,yb,W.z2],[W.x2,top,W.z2],[W.x1,top,W.z1]],[W.nx,0,W.nz],A)}
   if(S)for(const [W,u,code] of signPl){const len=Math.min(W.L-.6,4.6),gfe=GF>0?GF:FH;const x=W.x1+W.tx*u+W.nx*.12,z=W.z1+W.tz*u+W.nz*.12;
-    addSign(S,x,y0+gfe-.74,z,W.tx,W.tz,W.nx,W.nz,len,.62,code);if(P)P.box(x-W.nx*.06,y0+gfe-.43,z-W.nz*.06,len+.1,.7,.1,Math.atan2(W.tx,W.tz)-Math.PI/2,sRGB('#2a2a2a'),1);
+    if(!(typeof VEN!=='undefined'&&VEN.nearNamed&&(!VEN.ready||VEN.nearNamed(x,z,16)))){addSign(S,x,y0+gfe-.74,z,W.tx,W.tz,W.nx,W.nz,len,.62,code);if(P)P.box(x-W.nx*.06,y0+gfe-.43,z-W.nz*.06,len+.1,.7,.1,Math.atan2(W.tx,W.tz)-Math.PI/2,sRGB('#2a2a2a'),1)}   // the category word only where OSM knows no name
     const du=len/2>1.6?-len/2+.9:0;const dx=x+W.tx*du,dz=z+W.tz*du;
     if(P){const ry=Math.atan2(W.tx,W.tz)-Math.PI/2;P.box(dx-W.nx*.04,y0+1.15,dz-W.nz*.04,1.25,2.3,.08,ry,sRGB('#1d2a30'),2);P.box(dx-W.nx*.02,y0+2.36,dz-W.nz*.02,1.4,.12,.1,ry,sRGB('#6a6a66'),1);
       const gy=groundH(dx+W.nx*1.1,dz+W.nz*1.1);if(y0-gy>.12)P.box(dx+W.nx*.75,(y0+gy)/2,dz+W.nz*.75,1.8,y0-gy+.08,1.4,ry,sRGB('#9a9792'),9)}
